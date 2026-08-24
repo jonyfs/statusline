@@ -2,23 +2,28 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 2.3.0 (new principle added)
-- Added: X. Icons Carry Live State — icons must convey changing information: change highlighting
-  animates one frame per render (the only form of animation a print-once statusline permits) and
-  decays after 30s; only discrete state is tracked, never usage percentages; reset icons derive
-  from the real reset hour; no invented symbols for dates; countdowns switch to days past 24h;
-  tracking state is disposable and disableable so previews stay reproducible
-- MINOR bump: adds a principle without removing or redefining an existing one
+- Version: 2.4.0 (new principle added; one existing principle made concrete)
+- Added: XI. Releases Are Tag-Driven and Verified — publishing only from a v*.*.* tag, the test
+  matrix re-run against the tagged commit, refusal when tag and package.json disagree or the
+  version already exists on npm, OIDC trusted publishing with no stored token, and CI enforcing
+  the invariants Principles VIII and IX declare
+- Modified: IV. npm Installable with Install/Uninstall Workflow — the placeholder package name
+  `statusline` is replaced with the real published name `@jonyfs/statusline` (the bare name is
+  occupied on npm by an unrelated 2018 package, so it was never available); adds the requirement
+  that the published tarball exclude development-only preview tooling
+- MINOR bump: a principle is added and one is made concrete. No principle is removed and no rule
+  is reversed — IV's command name was an unpublished placeholder, not a shipped contract
 - Templates: no `.specify/templates/*` changes required — the new principle constrains this
-  repo's rendering behaviour, not the spec/plan/tasks artifact structure
-- Follow-up: none deferred
-- Prior versions: 2.2.0 added Principle IX (cross-platform support); 2.1.0 added Principle VIII
-  (generated documentation previews); 2.0.0 redefined Principle II (three-line → four-line)
+  repo's release pipeline, not the spec/plan/tasks artifact structure
+- Follow-up: the first npm publish must be manual, because trusted publishing is configured on
+  an npm package page and the package must exist before that link can be created
+- Prior versions: 2.3.0 added Principle X (live-state icons); 2.2.0 added IX (cross-platform);
+  2.1.0 added VIII (generated previews); 2.0.0 redefined II (three-line → four-line)
 - Project Type: npm-installable CLI plugin for Claude Code statusline customization
-- Scope: Local development → GitHub distribution pipeline
+- Scope: Local development → npm distribution via tag-driven GitHub Actions release
 - Key Constraints: Starship compatibility, four-line display format, token tracking grounded in
   real payload data, icons carrying live state, generated documentation previews, cross-platform
-  support, English-only output
+  support, tag-driven verified releases, English-only output
 -->
 
 ## Core Principles
@@ -86,18 +91,26 @@ value, and MUST NOT break the rest of the line.
 
 ### IV. npm Installable with Install/Uninstall Workflow
 
-Plugin MUST be distributable via `npx statusline-plugin` command (when on GitHub). Local development uses `npm link` or direct path injection. Install command (`npx statusline-plugin install`) MUST:
-- Create `.claude/statusline/` config directory
-- Write template configuration to user's Claude settings
-- Add statusline import to active `settings.json` hooks
-- Document changes made (for audit trail)
+The plugin MUST be published to the public npm registry as `@jonyfs/statusline` and installable
+with a single command, `npx @jonyfs/statusline install`. The scope is not cosmetic: the bare
+name `statusline` is occupied on npm by an unrelated package, so an unscoped name was never
+available, and a scope keyed to the repository owner cannot collide with anyone.
 
-Uninstall command (`statusline-plugin uninstall` or `npm uninstall statusline-plugin`) MUST:
-- Remove statusline module references from Claude settings
-- Preserve user configuration backups (timestamped)
-- Restore original settings.json state
+Install MUST:
+- Back up the user's existing `~/.claude/settings.json` to a timestamped file before touching it
+- Set only the `statusLine` key, leaving every other setting untouched
+- Report the settings file it wrote, the backup it made, and the command it installed
 
-Both commands MUST be idempotent (safe to run multiple times).
+Uninstall MUST:
+- Remove the `statusLine` key only when it points at this plugin's own CLI path — matching a
+  generic `cli.js` would delete an unrelated tool's statusline
+- Preserve the backups taken at install time
+
+Both commands MUST be idempotent, and neither may require the user to hand-edit JSON.
+
+The published tarball MUST contain only what the plugin needs at runtime. Development-only
+tooling (the preview generator and its extracted glyph data) MUST be excluded — it is nearly
+half the unpruned package and no installed copy ever executes it.
 
 ### V. Integration Documentation & Configuration Guide
 
@@ -220,6 +233,25 @@ accessibility hazard where it works.
   be keyed per session, be pruned once stale, and MUST never break rendering when it cannot be
   read or written. It MUST be disableable, so generated previews stay reproducible.
 
+### XI. Releases Are Tag-Driven and Verified
+
+Publishing MUST be automated through GitHub Actions and triggered only by pushing a `v*.*.*`
+tag. No workflow may publish from a branch push: a green `main` must never be able to ship by
+accident, and the tag is then the single source of truth for what is on npm.
+
+- **Re-verify at the tag**: the release workflow MUST re-run the full test suite on Linux, macOS
+  and Windows against the tagged commit. A tag can point at a commit that never went through a
+  pull request, so trusting an earlier CI run would leave a hole.
+- **Refuse inconsistent releases**: the workflow MUST fail if the tag's version disagrees with
+  `package.json`, or if that version already exists on npm.
+- **No long-lived credentials**: publishing MUST authenticate via npm trusted publishing over
+  OIDC (`id-token: write`), never a stored npm token. Workflow `permissions` MUST be the minimum
+  each job needs, declared per job rather than granted repository-wide.
+- **CI guards the invariants other principles declare**: continuous integration MUST run the
+  test matrix across all three platforms (Principle IX), MUST fail when regenerating previews
+  produces a diff (Principle VIII), and MUST verify the packed tarball actually runs — so a
+  publish-time packaging error surfaces on every push instead of at release.
+
 ## Development & Distribution Workflow
 
 **Local Installation Procedure** (v1.0.0 MVP):
@@ -248,8 +280,8 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Amendment Process**: Constitution changes require documented rationale (breaking changes, new principle, or clarification). Version bumped according to semver: MAJOR for principle removals/redefinitions, MINOR for new principles/sections, PATCH for wording/clarification only.
 
-**Compliance Review**: Each feature merged MUST verify adherence to Principles I–X (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support, live-state icons). Reviews checked via PR review checklist.
+**Compliance Review**: Each feature merged MUST verify adherence to Principles I–XI (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support, live-state icons, tag-driven releases). Reviews checked via PR review checklist.
 
-**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–X. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
+**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 2.3.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24
+**Version**: 2.4.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24

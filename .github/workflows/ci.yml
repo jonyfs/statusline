@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Principle IX requires this to pass on all three platforms, so the
+    # matrix is the enforcement, not a nicety: a platform regression has
+    # to fail here rather than on someone else's machine.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18, 20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Run smoke tests
+        run: npm test
+
+      - name: Verify the CLI runs and renders
+        shell: bash
+        run: |
+          echo '{"model":{"display_name":"Sonnet 5"},"context_window":{"used_percentage":42}}' \
+            | node bin/cli.js render
+
+      - name: Verify uninstall is a safe no-op when not installed
+        run: node bin/cli.js uninstall
+
+  previews-current:
+    # Principle VIII: a README image that disagrees with the code is a
+    # defect. Regenerating must produce no diff, which only holds if the
+    # committed previews were regenerated alongside the last render change.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Regenerate previews
+        run: npm run previews
+
+      - name: Fail if previews are stale
+        run: |
+          if ! git diff --quiet -- docs/previews; then
+            echo "::error::docs/previews is out of date. Run 'npm run previews' and commit the result."
+            git diff --stat -- docs/previews
+            exit 1
+          fi
+
+  package:
+    # Catches publish-time problems (missing files, bad metadata) on every
+    # push instead of at release, when they are far more annoying.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build the tarball npm would publish
+        run: npm pack --dry-run
+
+      - name: Verify the published tarball can actually run
+        run: |
+          npm pack
+          mkdir -p /tmp/install-check
+          tar -xzf jonyfs-statusline-*.tgz -C /tmp/install-check
+          echo '{"model":{"display_name":"Sonnet 5"}}' \
+            | node /tmp/install-check/package/bin/cli.js render

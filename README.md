@@ -90,12 +90,10 @@ percentages. This script reads that JSON, gathers a few more things (git, gh,
 the session transcript, rtk) and prints the four lines — so it is always
 current as of the last render tick without you doing anything.
 
-## Install (local)
+## Install
 
 ```bash
-cd statusline
-npm link
-statusline-plugin install
+npx @jonyfs/statusline install
 ```
 
 This will:
@@ -106,14 +104,27 @@ This will:
 
 Restart Claude Code (or start a new session) to see it.
 
+Prefer a persistent install? `npm install -g @jonyfs/statusline`, then
+`statusline-plugin install`.
+
+### From a clone
+
+```bash
+git clone https://github.com/jonyfs/statusline.git
+cd statusline
+npm link
+statusline-plugin install
+```
+
 ## Uninstall
 
 ```bash
-statusline-plugin uninstall
+npx @jonyfs/statusline uninstall
 ```
 
-Removes the `statusLine` key only if it points at this plugin's `cli.js`.
-Backups made on install are never deleted automatically.
+Removes the `statusLine` key only if it points at this plugin's `cli.js`,
+so an unrelated tool's statusline is never touched. Backups made on
+install are never deleted automatically.
 
 ## Configuration
 
@@ -237,7 +248,34 @@ python3 -m venv /tmp/statusline-venv
   Terminal.app are supported; other terminals fall back to a Finder
   reveal. The first click may also trigger a one-time macOS Automation
   permission prompt for the terminal app.
-- **Want the stock statusline back**: run `statusline-plugin uninstall`.
+- **Want the stock statusline back**: run `npx @jonyfs/statusline uninstall`.
+
+## Releasing
+
+Releases are cut by pushing a version tag; nothing publishes from a
+branch push.
+
+```bash
+npm version patch   # or minor / major — updates package.json and tags
+git push --follow-tags
+```
+
+The release workflow re-runs the test suite on Linux, macOS and Windows
+against the tagged commit, refuses to publish if the tag and
+`package.json` disagree or if that version already exists on npm, then
+publishes to npm and creates the GitHub release.
+
+Publishing authenticates over OIDC trusted publishing — no npm token is
+stored in this repository. That link is configured once on the package's
+npm settings page, which requires the package to already exist, so the
+very first publish has to be done manually:
+
+```bash
+npm login
+npm publish --access public
+```
+
+After that, tags do the work.
 
 ## Clickable names
 
