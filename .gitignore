@@ -1,3 +1,9 @@
 node_modules/
 *.log
 .DS_Store
+
+# Medium drafts: local only, never published to a repository
+.medium/
+
+# Local-only skill, not part of the published project
+.claude/skills/publish-to-medium/
