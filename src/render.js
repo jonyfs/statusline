@@ -33,6 +33,37 @@ const NF_ADDED = "\u{F457}";    // boxed plus, GitHub's "added" marker
 const NF_PUSH = "\u{F40A}";     // cloud up: commits waiting to be pushed
 const NF_PULL = "\u{F409}";     // cloud down: commits waiting to be pulled
 
+/**
+ * The whole glyph set, and the substitutes used when the terminal has no
+ * Nerd Font. Swapping only the Powerline separator would be a false
+ * promise: every Octicon above sits in the private use area and renders
+ * as an empty box without the font, so ASCII mode has to replace all of
+ * them. The substitutes are plain Unicode and emoji, which need no
+ * special font.
+ */
+const GLYPHS = {
+  nerd: {
+    branch: NF_BRANCH,
+    clock: NF_CLOCK,
+    pr: NF_PR,
+    calendar: NF_CALENDAR,
+    modified: NF_MODIFIED,
+    added: NF_ADDED,
+    push: NF_PUSH,
+    pull: NF_PULL,
+  },
+  plain: {
+    branch: "\u{1F33F}",   // 🌿
+    clock: "\u{23F0}",     // ⏰
+    pr: "\u{1F500}",       // 🔀
+    calendar: "\u{1F4C5}", // 📅
+    modified: "\u{25CF}",  // ●
+    added: "+",
+    push: "\u{2191}",      // ↑
+    pull: "\u{2193}",      // ↓
+  },
+};
+
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
 async function readStdinAsync() {
@@ -130,6 +161,7 @@ export function renderPayload(
   );
 
   const palette = PALETTES[flavor] || PALETTES.mocha;
+  const g = asciiArrows ? GLYPHS.plain : GLYPHS.nerd;
   const opts = { asciiArrows };
   const lines = [];
 
@@ -141,7 +173,7 @@ export function renderPayload(
     const branchUrl = remoteUrl ? `${remoteUrl}/tree/${git.branch}` : null;
     l1.push({
       color: "lavender",
-      text: ` ${changes.iconFor("branch", NF_BRANCH)} ${git.branch} `,
+      text: ` ${changes.iconFor("branch", g.branch)} ${git.branch} `,
       url: branchUrl,
     });
     // Working-tree state and divergence from upstream, right after the
@@ -150,10 +182,10 @@ export function renderPayload(
     const state = [];
     // File counts are not animated: they change on every save, and
     // Principle X reserves animation for state that changes discretely.
-    if (git.changed) state.push(`${NF_MODIFIED} ${git.changed}`);
-    if (git.untracked) state.push(`${NF_ADDED} ${git.untracked}`);
-    if (git.ahead) state.push(`${changes.iconFor("ahead", NF_PUSH)} ${git.ahead}`);
-    if (git.behind) state.push(`${changes.iconFor("behind", NF_PULL)} ${git.behind}`);
+    if (git.changed) state.push(`${g.modified} ${git.changed}`);
+    if (git.untracked) state.push(`${g.added} ${git.untracked}`);
+    if (git.ahead) state.push(`${changes.iconFor("ahead", g.push)} ${git.ahead}`);
+    if (git.behind) state.push(`${changes.iconFor("behind", g.pull)} ${git.behind}`);
     if (state.length) {
       l1.push({ color: "mauve", text: ` ${state.join("  ")} ` });
     }
@@ -161,7 +193,7 @@ export function renderPayload(
       const prState = pr.isDraft ? "draft" : pr.state.toLowerCase();
       l1.push({
         color: "blue",
-        text: ` ${changes.iconFor("pr", NF_PR)} PR #${pr.number} ${prState} `,
+        text: ` ${changes.iconFor("pr", g.pr)} PR #${pr.number} ${prState} `,
         url: pr.url,
       });
     }
@@ -189,8 +221,8 @@ export function renderPayload(
   // Each reset segment's clock face is the actual hour the window resets,
   // and the 7-day segment names the real day it expires, so the icon
   // carries the information rather than decorating it.
-  const fiveHourClock = clockFaceFor(fiveHourResetsAt) ?? NF_CLOCK;
-  const sevenDayClock = clockFaceFor(sevenDayResetsAt) ?? NF_CLOCK;
+  const fiveHourClock = clockFaceFor(fiveHourResetsAt) ?? g.clock;
+  const sevenDayClock = clockFaceFor(sevenDayResetsAt) ?? g.clock;
   const sevenDayMoment = resetMomentLabel(sevenDayResetsAt);
 
   const l4 = [
@@ -199,7 +231,7 @@ export function renderPayload(
     { color: "peach", text: ` ${fiveHourClock} ${fiveHourResetLabel} ` },
     {
       color: "sapphire",
-      text: ` ${NF_CALENDAR} 7d ${sevenDayPct ?? "?"}%${sevenDayMoment ? ` · ${sevenDayMoment}` : ""} `,
+      text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${sevenDayMoment ? ` · ${sevenDayMoment}` : ""} `,
     },
     { color: "peach", text: ` ${sevenDayClock} ${sevenDayResetLabel} ` },
   ];

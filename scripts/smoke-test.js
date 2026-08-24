@@ -248,5 +248,43 @@ test("git status is never fetched from the network", async () => {
   assert.doesNotMatch(src, /git fetch|git pull|git remote update/, "must not hit the network");
 });
 
+test("ASCII mode emits no private-use codepoints at all", () => {
+  // The flag promises "no Nerd Font required". Swapping only the
+  // separator while leaving Octicons behind would keep that promise in
+  // name and break it on screen: every one renders as an empty box.
+  const out = renderPayload(
+    {
+      model: { display_name: "Sonnet 5" },
+      context_window: { used_percentage: 40 },
+      rate_limits: {
+        five_hour: { used_percentage: 10, resets_at: Math.floor(Date.now() / 1000) + 3600 },
+        seven_day: { used_percentage: 50, resets_at: Math.floor(Date.now() / 1000) + 86400 },
+      },
+    },
+    {
+      asciiArrows: true,
+      trackChanges: false,
+      sources: {
+        ...emptySources,
+        getGitInfo: () => ({ branch: "main", ahead: 1, behind: 2, changed: 3, untracked: 4 }),
+        getRemoteUrl: () => "https://github.com/x/y",
+        getPrInfo: () => ({ number: 9, state: "OPEN", isDraft: false, url: "https://x/y/pull/9" }),
+        getActiveSkills: () => ["a"],
+        getRtkSavings: () => 50,
+      },
+    }
+  );
+  const pua = [...stripAnsi(out)].filter((c) => {
+    const cp = c.codePointAt(0);
+    return cp >= 0xe000 && cp <= 0xf8ff;
+  });
+  assert.equal(
+    pua.length,
+    0,
+    `ASCII mode leaked ${pua.length} private-use glyph(s): ` +
+      pua.map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(" ")
+  );
+});
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);
