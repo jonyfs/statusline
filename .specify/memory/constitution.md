@@ -8,7 +8,7 @@ Sync Impact Report:
   version already exists on npm, OIDC trusted publishing with no stored token, and CI enforcing
   the invariants Principles VIII and IX declare
 - Modified: IV. npm Installable with Install/Uninstall Workflow — the placeholder package name
-  `statusline` is replaced with the real published name `@jonyfs/statusline` (the bare name is
+  `statusline` is replaced with the real published name `@jonfys/statusline` (the bare name is
   occupied on npm by an unrelated 2018 package, so it was never available); adds the requirement
   that the published tarball exclude development-only preview tooling
 - MINOR bump: a principle is added and one is made concrete. No principle is removed and no rule
@@ -94,8 +94,8 @@ value, and MUST NOT break the rest of the line.
 
 ### IV. npm Installable with Install/Uninstall Workflow
 
-The plugin MUST be published to the public npm registry as `@jonyfs/statusline` and installable
-with a single command, `npx @jonyfs/statusline install`. The scope is not cosmetic: the bare
+The plugin MUST be published to the public npm registry as `@jonfys/statusline` and installable
+with a single command, `npx @jonfys/statusline install`. The scope is not cosmetic: the bare
 name `statusline` is occupied on npm by an unrelated package, so an unscoped name was never
 available, and a scope keyed to the repository owner cannot collide with anyone.
 

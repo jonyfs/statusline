@@ -93,7 +93,7 @@ current as of the last render tick without you doing anything.
 ## Install
 
 ```bash
-npx @jonyfs/statusline install
+npx @jonfys/statusline install
 ```
 
 This will:
@@ -104,7 +104,7 @@ This will:
 
 Restart Claude Code (or start a new session) to see it.
 
-Prefer a persistent install? `npm install -g @jonyfs/statusline`, then
+Prefer a persistent install? `npm install -g @jonfys/statusline`, then
 `statusline-plugin install`.
 
 ### From a clone
@@ -119,7 +119,7 @@ statusline-plugin install
 ## Uninstall
 
 ```bash
-npx @jonyfs/statusline uninstall
+npx @jonfys/statusline uninstall
 ```
 
 Removes the `statusLine` key only if it points at this plugin's `cli.js`,
@@ -249,7 +249,7 @@ python3 -m venv /tmp/statusline-venv
   Terminal.app are supported; other terminals fall back to a Finder
   reveal. The first click may also trigger a one-time macOS Automation
   permission prompt for the terminal app.
-- **Want the stock statusline back**: run `npx @jonyfs/statusline uninstall`.
+- **Want the stock statusline back**: run `npx @jonfys/statusline uninstall`.
 
 ## Releasing
 

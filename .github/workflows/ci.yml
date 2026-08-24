@@ -80,6 +80,6 @@ jobs:
         run: |
           npm pack
           mkdir -p /tmp/install-check
-          tar -xzf jonyfs-statusline-*.tgz -C /tmp/install-check
+          tar -xzf jonfys-statusline-*.tgz -C /tmp/install-check
           echo '{"model":{"display_name":"Sonnet 5"}}' \
             | node /tmp/install-check/package/bin/cli.js render
