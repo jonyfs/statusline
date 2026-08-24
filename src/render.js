@@ -10,14 +10,10 @@ import { getOpenTabUrl } from "./openTerminalTab.js";
 // their Nerd Font — not guessed private-use codepoints.
 const NF_BRANCH = ""; // [git_branch] symbol in the reference config
 const NF_CLOCK = "";  // [time] symbol in the reference config
-
-// Starship has no built-in GitHub/pull-request module, so there's nothing
-// to copy from the reference config for these two. Using the standard
-// Octicons glyphs instead (nf-oct-mark-github, nf-oct-git-pull-request) —
-// the same Nerd Font family already rendering NF_BRANCH/NF_CLOCK above,
-// not a guessed unrelated codepoint.
-const NF_GITHUB = "";
-const NF_PR = "";
+// GitHub and PR use color emoji (🐙/🔀) instead of a guessed Octicons
+// codepoint — Starship has no built-in module for either, so there was
+// nothing proven to copy, and an unverified private-use codepoint risks
+// rendering as a blank/tofu box instead of an icon.
 
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
@@ -86,17 +82,17 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
   if (git) {
     const isGitHub = remoteUrl?.includes("github.com");
     const branchUrl = remoteUrl ? `${remoteUrl}/tree/${git.branch}` : null;
-    const branchIcon = isGitHub ? NF_GITHUB : NF_BRANCH;
+    const branchIcon = isGitHub ? "🐙" : NF_BRANCH;
     l1.push({ color: "lavender", text: ` ${branchIcon} ${git.branch} `, url: branchUrl });
     if (git.ahead || git.behind) {
       const parts = [];
       if (git.ahead) parts.push(`⬆${git.ahead}`);
       if (git.behind) parts.push(`⬇${git.behind}`);
-      l1.push({ color: "mauve", text: ` ${parts.join(" ")} ` });
+      l1.push({ color: "mauve", text: ` 🔃 ${parts.join(" ")} ` });
     }
     if (pr) {
       const state = pr.isDraft ? "draft" : pr.state.toLowerCase();
-      l1.push({ color: "blue", text: ` ${NF_PR} PR #${pr.number} ${state} `, url: pr.url });
+      l1.push({ color: "blue", text: ` 🔀 PR #${pr.number} ${state} `, url: pr.url });
     }
   }
   lines.push(renderRow(palette, l1, opts));

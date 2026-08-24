@@ -6,16 +6,17 @@ usage (context window, 5-hour window, 7-day window) with reset countdowns.
 Also shows `rtk` token-savings, when `rtk` is installed.
 
 ```
-📁 statusline  main ⬆2  PR #128 open
+📁 statusline 🐙 main 🔃 ⬆2 🔀 PR #128 open
 🧩 code-review 🧩 dataviz 🧩 artifact-design
 🤖 Sonnet 5 ⚡ high
 🧠 Context 21% ⏱️ 5h 11%  resets in 2h29m 📆 7d 76%  resets in 7h13m 🦀 rtk 81% saved
 ```
 
-The branch/GitHub, reset-clock, and pull-request glyphs are Nerd Font icons,
-not emoji — see "Where each icon comes from" below. Directory, model,
-effort, context, and rtk have no Starship equivalent to copy, so those use
-color emoji instead, which need no special font.
+The reset-clock glyph () and the plain-git branch icon (non-GitHub
+remotes) are Nerd Font icons copied from this machine's own
+`starship.toml` — see "Where each icon comes from" below. Everything
+else, including GitHub branch/PR, is color emoji, which needs no
+special font and can't render as a blank box.
 
 ## How auto-update works
 
@@ -86,15 +87,12 @@ Environment variables (set in your shell profile, or inline in the
   from this machine's own `~/.config/starship.toml` (`git_branch` and
   `time` module symbols), so they're proven to render in the Nerd Font
   that config already uses — not a guessed private-use codepoint.
-- **GitHub branch** and **pull request** — Starship has no built-in
-  GitHub/PR module, so there's nothing to copy for these two. They use
-  the standard Octicons glyphs (`nf-oct-mark-github`,
-  `nf-oct-git-pull-request`) instead — the same Nerd Font family as the
-  glyphs above, not an unrelated guess.
-- **Directory and everything else** (skills, model, effort, context,
-  rate-limit windows, rtk) — color emoji. `starship explain` on this
-  machine shows no folder icon for its own directory segment, but every
-  segment here gets a leading icon regardless, so directory uses 📁.
+- **Everything else** (directory, GitHub branch 🐙, ahead/behind 🔃,
+  pull request 🔀, skills, model, effort, context, rate-limit windows,
+  rtk) — color emoji. Starship has no built-in GitHub/PR module, so
+  there was no proven codepoint to copy for those two; a guessed
+  private-use codepoint risks rendering as a blank box, so emoji is used
+  instead everywhere there's no verified Starship glyph to reuse.
 
 ## Clickable names
 
