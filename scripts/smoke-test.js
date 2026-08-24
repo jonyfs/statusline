@@ -191,5 +191,14 @@ test("preview generation pins UTC so output is timezone-independent", async () =
   assert.match(src, /process\.env\.TZ\s*=\s*"UTC"/, "generator must pin TZ=UTC");
 });
 
+test("install refuses to record a package-manager cache path", async () => {
+  // A cache path works until the cache is evicted, then the statusline
+  // vanishes with no explanation. Failing at install time is kinder.
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../src/install.js", import.meta.url), "utf8");
+  assert.match(src, /_npx/, "install must detect the npx cache directory");
+  assert.match(src, /assertNotRunningFromNpxCache\(\);/, "the guard must actually run");
+});
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

@@ -1,7 +1,7 @@
 name: Release
 
-# Publishing is driven by a version tag, so the tag is the single source of
-# truth for what is on npm. Nothing publishes from a branch push: a green
+# A release is driven by a version tag, so the tag is the single source of
+# truth for what was released. Nothing releases from a branch push: a green
 # main must never be able to ship by accident.
 on:
   push:
@@ -28,15 +28,12 @@ jobs:
         with:
           node-version: 22
 
-      - run: npm test
+      - run: node scripts/smoke-test.js
 
-  publish:
+  release:
     needs: verify
     runs-on: ubuntu-latest
     permissions:
-      # id-token lets npm verify this workflow's identity over OIDC, so no
-      # long-lived npm token is stored in this repository at all.
-      id-token: write
       contents: write
     steps:
       - uses: actions/checkout@v4
@@ -44,9 +41,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
 
-      - name: Fail if the tag disagrees with package.json
+      - name: Fail if the tag disagrees with the recorded version
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           PKG_VERSION="$(node -p "require('./package.json').version")"
@@ -54,26 +50,11 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME implies version $TAG_VERSION but package.json says $PKG_VERSION."
             exit 1
           fi
-          echo "Publishing version $PKG_VERSION"
-
-      - name: Fail if this version is already on npm
-        run: |
-          PKG_NAME="$(node -p "require('./package.json').name")"
-          PKG_VERSION="$(node -p "require('./package.json').version")"
-          if npm view "$PKG_NAME@$PKG_VERSION" version >/dev/null 2>&1; then
-            echo "::error::$PKG_NAME@$PKG_VERSION is already published. Bump the version."
-            exit 1
-          fi
-
-      - name: Upgrade npm for OIDC trusted publishing
-        # Trusted publishing needs npm >= 11.5.1; the npm bundled with the
-        # Node 22 runner image predates it.
-        run: npm install -g npm@latest
-
-      - name: Publish to npm
-        run: npm publish
+          echo "Releasing version $PKG_VERSION"
 
       - name: Create the GitHub release
+        # Users install by cloning, so the release is the tag plus these
+        # notes. There is no artifact to upload and no registry to push to.
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

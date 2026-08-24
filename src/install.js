@@ -9,6 +9,33 @@ const SETTINGS_PATH = path.join(HOME, ".claude", "settings.json");
 const BACKUP_DIR = path.join(HOME, ".claude", "statusline", "backups");
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
 
+/**
+ * Running this straight out of a package-manager scratch directory
+ * (`~/.npm/_npx/<hash>/...`) records a path that only exists until the
+ * cache is evicted. The statusline then silently disappears with no
+ * clue why. Refusing here, with the command that does work, is far
+ * kinder than that delayed failure.
+ */
+function assertNotRunningFromNpxCache() {
+  const normalized = CLI_PATH.replace(/\\/g, "/");
+  if (!normalized.includes("/_npx/")) return;
+  throw new Error(
+    [
+      "Refusing to install from an npx cache directory.",
+      "",
+      `  ${CLI_PATH}`,
+      "",
+      "That cache is temporary and gets evicted later, which would leave",
+      "Claude Code pointing at a path that no longer exists.",
+      "",
+      "Clone it somewhere permanent instead:",
+      "",
+      "  git clone https://github.com/jonyfs/statusline.git ~/.claude/statusline-plugin",
+      "  node ~/.claude/statusline-plugin/bin/cli.js install",
+    ].join("\n")
+  );
+}
+
 function loadSettings() {
   if (!existsSync(SETTINGS_PATH)) return {};
   try {
@@ -65,6 +92,8 @@ function resolveInterpreter() {
 }
 
 export function install() {
+  assertNotRunningFromNpxCache();
+
   const settings = loadSettings();
   const backupPath = backupSettings(settings);
 

@@ -28,7 +28,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Run smoke tests
-        run: npm test
+        run: node scripts/smoke-test.js
 
       - name: Verify the CLI runs and renders
         shell: bash
@@ -52,19 +52,20 @@ jobs:
           node-version: 22
 
       - name: Regenerate previews
-        run: npm run previews
+        run: node scripts/generate-previews.js
 
       - name: Fail if previews are stale
         run: |
           if ! git diff --quiet -- docs/previews; then
-            echo "::error::docs/previews is out of date. Run 'npm run previews' and commit the result."
+            echo "::error::docs/previews is out of date. Run 'node scripts/generate-previews.js' and commit the result."
             git diff --stat -- docs/previews
             exit 1
           fi
 
-  package:
-    # Catches publish-time problems (missing files, bad metadata) on every
-    # push instead of at release, when they are far more annoying.
+  clone-install:
+    # The documented install is a bare clone with no package manager, which
+    # only works while the project has zero runtime dependencies. This proves
+    # a fresh clone runs, so a stray dependency can't slip in unnoticed.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -73,13 +74,15 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build the tarball npm would publish
-        run: npm pack --dry-run
-
-      - name: Verify the published tarball can actually run
+      - name: Fail if a runtime dependency was introduced
         run: |
-          npm pack
-          mkdir -p /tmp/install-check
-          tar -xzf jonfys-statusline-*.tgz -C /tmp/install-check
-          echo '{"model":{"display_name":"Sonnet 5"}}' \
-            | node /tmp/install-check/package/bin/cli.js render
+          DEPS="$(node -p "Object.keys(require('./package.json').dependencies || {}).length")"
+          if [ "$DEPS" != "0" ]; then
+            echo "::error::The clone-based install requires zero runtime dependencies, found $DEPS."
+            exit 1
+          fi
+
+      - name: Run straight from a clean checkout, as the README instructs
+        run: |
+          echo '{"model":{"display_name":"Sonnet 5"},"context_window":{"used_percentage":42}}' \
+            | node bin/cli.js render

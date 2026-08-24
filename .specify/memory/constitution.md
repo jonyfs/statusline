@@ -2,31 +2,29 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 2.4.1 (clarification: Principle VIII now requires a pinned timezone)
-- Added: XI. Releases Are Tag-Driven and Verified — publishing only from a v*.*.* tag, the test
-  matrix re-run against the tagged commit, refusal when tag and package.json disagree or the
-  version already exists on npm, OIDC trusted publishing with no stored token, and CI enforcing
-  the invariants Principles VIII and IX declare
-- Modified: IV. npm Installable with Install/Uninstall Workflow — the placeholder package name
-  `statusline` is replaced with the real published name `@jonfys/statusline` (the bare name is
-  occupied on npm by an unrelated 2018 package, so it was never available); adds the requirement
-  that the published tarball exclude development-only preview tooling
-- MINOR bump: a principle is added and one is made concrete. No principle is removed and no rule
-  is reversed — IV's command name was an unpublished placeholder, not a shipped contract
-- Templates: no `.specify/templates/*` changes required — the new principle constrains this
-  repo's release pipeline, not the spec/plan/tasks artifact structure
-- PATCH on top of 2.4.0: VIII gains an explicit timezone requirement, found when CI's staleness
-  check failed on a UTC runner against previews generated in UTC-3. No new rule, no rule
-  reversed — it makes the existing reproducibility requirement actually achievable
-- Follow-up: the first npm publish must be manual, because trusted publishing is configured on
-  an npm package page and the package must exist before that link can be created
-- Prior versions: 2.3.0 added Principle X (live-state icons); 2.2.0 added IX (cross-platform);
-  2.1.0 added VIII (generated previews); 2.0.0 redefined II (three-line → four-line)
-- Project Type: npm-installable CLI plugin for Claude Code statusline customization
-- Scope: Local development → npm distribution via tag-driven GitHub Actions release
+- Version: 3.0.0 (two ratified principles redefined)
+- Modified: IV. npm Installable with Install/Uninstall Workflow → IV. Installable by Clone, With
+  Install/Uninstall Commands — distribution moves off the npm registry entirely. Install is now
+  `git clone` plus one `node` command, which only works because the project has zero runtime
+  dependencies; keeping it dependency-free becomes a requirement. Adds the rule that install must
+  refuse to run from a package-manager scratch directory, whose path is evicted later and would
+  leave a statusline that silently disappears
+- Modified: XI. Releases Are Tag-Driven and Verified — a release is now a tag plus a GitHub
+  release entry. No registry upload, and no publishing credential of any kind in the repository
+- MAJOR bump: both changes reverse rules this constitution previously ratified. IV mandated
+  publishing to a registry and installing from it; XI mandated a registry publish step. Code and
+  documentation written against either would now be non-compliant
+- Templates: no `.specify/templates/*` changes required — these constrain distribution, not the
+  spec/plan/tasks artifact structure
+- Follow-up: none. The previously deferred first-publish step no longer exists
+- Prior versions: 2.4.1 clarified VIII (pinned timezone); 2.4.0 added XI; 2.3.0 added X
+  (live-state icons); 2.2.0 added IX (cross-platform); 2.1.0 added VIII (generated previews);
+  2.0.0 redefined II (three-line → four-line)
+- Project Type: clone-installable CLI plugin for Claude Code statusline customization
+- Scope: Local development → distribution as a git repository, released by tag
 - Key Constraints: Starship compatibility, four-line display format, token tracking grounded in
   real payload data, icons carrying live state, generated documentation previews, cross-platform
-  support, tag-driven verified releases, English-only output
+  support, zero runtime dependencies, tag-driven verified releases, English-only output
 -->
 
 ## Core Principles
@@ -92,33 +90,42 @@ window usage, 5-hour window usage, 7-day window usage, plus a reset countdown co
 or a render before the session has usage), the segment MUST show `?%` rather than a guessed
 value, and MUST NOT break the rest of the line.
 
-### IV. npm Installable with Install/Uninstall Workflow
+### IV. Installable by Clone, With Install/Uninstall Commands
 
-The plugin MUST be published to the public npm registry as `@jonfys/statusline` and installable
-with a single command, `npx @jonfys/statusline install`. The scope is not cosmetic: the bare
-name `statusline` is occupied on npm by an unrelated package, so an unscoped name was never
-available, and a scope keyed to the repository owner cannot collide with anyone.
+The plugin MUST be installable by cloning the repository and running one command, with no
+package registry and no package manager involved:
+
+```
+git clone https://github.com/jonyfs/statusline.git ~/.claude/statusline-plugin
+node ~/.claude/statusline-plugin/bin/cli.js install
+```
+
+This is only possible because the project has zero runtime dependencies, and it MUST stay that
+way. Adding a dependency would reintroduce a package manager into the install path and break
+this principle.
 
 Install MUST:
 - Back up the user's existing `~/.claude/settings.json` to a timestamped file before touching it
 - Set only the `statusLine` key, leaving every other setting untouched
 - Report the settings file it wrote, the backup it made, and the command it installed
+- Refuse to run from a package-manager scratch directory (`~/.npm/_npx/<hash>/...`). Such a path
+  is evicted later, and recording it produces a statusline that works now and silently
+  disappears afterwards with no clue why. Failing at install time, naming the command that does
+  work, is the kinder failure.
 
 Uninstall MUST:
 - Remove the `statusLine` key only when it points at this plugin's own CLI path — matching a
   generic `cli.js` would delete an unrelated tool's statusline
 - Preserve the backups taken at install time
 
-Both commands MUST be idempotent, and neither may require the user to hand-edit JSON.
-
-The published tarball MUST contain only what the plugin needs at runtime. Development-only
-tooling (the preview generator and its extracted glyph data) MUST be excluded — it is nearly
-half the unpruned package and no installed copy ever executes it.
+Both commands MUST be idempotent, and neither may require the user to hand-edit JSON. Updating
+MUST be a `git pull` with no reinstall, which holds as long as install records the clone's own
+path rather than a copy.
 
 ### V. Integration Documentation & Configuration Guide
 
 Documentation MUST include step-by-step "How to Integrate" section explaining Claude's hook system and where statusline module injects itself. Configuration guide MUST show:
-- Default settings (what you get after `npm install`)
+- Default settings (what you get immediately after installing)
 - Customization options (colors, time window display, module order)
 - Troubleshooting (common integration errors)
 - Reverting to standard Claude statusline
@@ -127,11 +134,11 @@ Documentation MUST be in `README.md` and reviewed for accuracy before GitHub rel
 
 ### VI. English-Only Codebase
 
-All code, comments, documentation strings, CLI output, and error messages MUST be written in English. User-facing error messages MUST be clear and actionable. No abbreviations or acronyms unless standard in tech (e.g., PR, CLI, npm). This ensures maintainability and reduces localization debt.
+All code, comments, documentation strings, CLI output, and error messages MUST be written in English. User-facing error messages MUST be clear and actionable. No abbreviations or acronyms unless standard in tech (e.g., PR, CLI, JSON). This ensures maintainability and reduces localization debt.
 
 ### VII. MVP-First, Local-Then-GitHub
 
-Development MUST start with local installation path (npm link or direct import). Feature completeness verified locally before GitHub publication. GitHub release ONLY after:
+Development MUST start from a local clone, run directly with `node`. Feature completeness verified locally before a release is tagged. A release ONLY after:
 - All features verified working (manual testing in Claude Code)
 - README complete with integration guide and troubleshooting
 - Install/uninstall commands tested end-to-end
@@ -146,7 +153,7 @@ with hand-written mockups or prose approximations of what the output "looks like
 examples drift silently from the code the moment a segment, icon, or colour changes, and a
 reader has no way to tell a stale illustration from a current one.
 
-- **Generation**: previews MUST be produced by `npm run previews`, which calls the same
+- **Generation**: previews MUST be produced by `node scripts/generate-previews.js`, which calls the same
   `renderPayload()` the installed statusline runs, and converts its actual ANSI output to SVG.
   Any change in the renderer therefore shows up in the images on the next regeneration.
 - **Reproducibility**: preview inputs MUST be fixed (`scripts/preview-fixtures.js`), the clock
@@ -172,7 +179,7 @@ reader has no way to tell a stale illustration from a current one.
 
 Every script in this project — the renderer, the install/uninstall commands, and the
 developer tooling — MUST run on Linux, macOS and Windows. The statusline is distributed via
-npm to whoever runs Claude Code, and Claude Code runs on all three.
+cloned by whoever runs Claude Code, and Claude Code runs on all three.
 
 - **No shelling out to platform-specific tools on a shared path**: `osascript`, `open`,
   `xdg-open`, `cmd /c` and friends MUST be reached only behind an explicit
@@ -198,7 +205,7 @@ npm to whoever runs Claude Code, and Claude Code runs on all three.
   a platform (opening a terminal tab from a link has no Linux/Windows equivalent that works
   without installing a URL-scheme handler) MUST fall back to the nearest portable behaviour
   and be documented as platform-limited. It MUST NOT emit a broken artifact or throw.
-- **Verification**: `npm test` MUST pass on all three platforms. It MUST cover path/URL
+- **Verification**: `node scripts/smoke-test.js` MUST pass on all three platforms. It MUST cover path/URL
   construction, platform guards, and the degraded rendering paths, so a platform regression
   fails a test rather than surfacing as a broken statusline on someone else's machine.
 
@@ -241,28 +248,28 @@ accessibility hazard where it works.
 
 ### XI. Releases Are Tag-Driven and Verified
 
-Publishing MUST be automated through GitHub Actions and triggered only by pushing a `v*.*.*`
-tag. No workflow may publish from a branch push: a green `main` must never be able to ship by
-accident, and the tag is then the single source of truth for what is on npm.
+Releases MUST be cut by pushing a `v*.*.*` tag, never from a branch push, so a green `main` can
+never ship by accident and the tag is the single source of truth for what was released.
 
 - **Re-verify at the tag**: the release workflow MUST re-run the full test suite on Linux, macOS
   and Windows against the tagged commit. A tag can point at a commit that never went through a
   pull request, so trusting an earlier CI run would leave a hole.
 - **Refuse inconsistent releases**: the workflow MUST fail if the tag's version disagrees with
-  `package.json`, or if that version already exists on npm.
-- **No long-lived credentials**: publishing MUST authenticate via npm trusted publishing over
-  OIDC (`id-token: write`), never a stored npm token. Workflow `permissions` MUST be the minimum
-  each job needs, declared per job rather than granted repository-wide.
+  the version recorded in `package.json`.
+- **Distribution is the git repository itself**: users install by cloning, so a release is a tag
+  plus a GitHub release entry, not an upload to any registry. No publishing credential of any
+  kind belongs in this repository.
+- **Least privilege**: workflow `permissions` MUST be the minimum each job needs, declared per
+  job rather than granted repository-wide.
 - **CI guards the invariants other principles declare**: continuous integration MUST run the
-  test matrix across all three platforms (Principle IX), MUST fail when regenerating previews
-  produces a diff (Principle VIII), and MUST verify the packed tarball actually runs — so a
-  publish-time packaging error surfaces on every push instead of at release.
+  test matrix across all three platforms (Principle IX) and MUST fail when regenerating previews
+  produces a diff (Principle VIII).
 
 ## Development & Distribution Workflow
 
 **Local Installation Procedure** (v1.0.0 MVP):
 1. Clone repo locally
-2. Run `npm link` in statusline plugin directory
+2. Clone the repository to a permanent location
 3. Run `statusline-plugin install` to integrate with Claude
 4. Test statusline display in Claude Code
 5. Make edits; auto-reload when settings.json changes
@@ -273,8 +280,7 @@ accident, and the tag is then the single source of truth for what is on npm.
 - [ ] Install/uninstall tested end-to-end
 - [ ] No uncommitted changes
 - [ ] Tag release as `v1.0.0` (or next version)
-- [ ] Publish to npm registry
-- [ ] Update repo homepage link to npm package
+- [ ] Tag the release and let the workflow create the GitHub release entry
 
 ## Integration with Claude's Configuration
 
@@ -286,8 +292,8 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Amendment Process**: Constitution changes require documented rationale (breaking changes, new principle, or clarification). Version bumped according to semver: MAJOR for principle removals/redefinitions, MINOR for new principles/sections, PATCH for wording/clarification only.
 
-**Compliance Review**: Each feature merged MUST verify adherence to Principles I–XI (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support, live-state icons, tag-driven releases). Reviews checked via PR review checklist.
+**Compliance Review**: Each feature merged MUST verify adherence to Principles I–XI (Starship compatibility, four-line format, token tracking, clone distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support, live-state icons, tag-driven releases). Reviews checked via PR review checklist.
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 2.4.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24
+**Version**: 3.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24
