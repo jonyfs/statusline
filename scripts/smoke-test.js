@@ -182,5 +182,14 @@ test("change tracking can be disabled for reproducible output", async () => {
   assert.equal(off.iconFor("branch", "STATIC"), "STATIC");
 });
 
+test("preview generation pins UTC so output is timezone-independent", async () => {
+  // Clock faces and reset labels come from LOCAL time, so previews
+  // generated in one timezone and regenerated in another would disagree
+  // and fail CI's staleness check on a diff that reflects geography.
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./generate-previews.js", import.meta.url), "utf8");
+  assert.match(src, /process\.env\.TZ\s*=\s*"UTC"/, "generator must pin TZ=UTC");
+});
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

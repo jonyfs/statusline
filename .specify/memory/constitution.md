@@ -2,7 +2,7 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 2.4.0 (new principle added; one existing principle made concrete)
+- Version: 2.4.1 (clarification: Principle VIII now requires a pinned timezone)
 - Added: XI. Releases Are Tag-Driven and Verified — publishing only from a v*.*.* tag, the test
   matrix re-run against the tagged commit, refusal when tag and package.json disagree or the
   version already exists on npm, OIDC trusted publishing with no stored token, and CI enforcing
@@ -15,6 +15,9 @@ Sync Impact Report:
   is reversed — IV's command name was an unpublished placeholder, not a shipped contract
 - Templates: no `.specify/templates/*` changes required — the new principle constrains this
   repo's release pipeline, not the spec/plan/tasks artifact structure
+- PATCH on top of 2.4.0: VIII gains an explicit timezone requirement, found when CI's staleness
+  check failed on a UTC runner against previews generated in UTC-3. No new rule, no rule
+  reversed — it makes the existing reproducibility requirement actually achievable
 - Follow-up: the first npm publish must be manual, because trusted publishing is configured on
   an npm package page and the package must exist before that link can be created
 - Prior versions: 2.3.0 added Principle X (live-state icons); 2.2.0 added IX (cross-platform);
@@ -146,10 +149,13 @@ reader has no way to tell a stale illustration from a current one.
 - **Generation**: previews MUST be produced by `npm run previews`, which calls the same
   `renderPayload()` the installed statusline runs, and converts its actual ANSI output to SVG.
   Any change in the renderer therefore shows up in the images on the next regeneration.
-- **Reproducibility**: preview inputs MUST be fixed (`scripts/preview-fixtures.js`) and the
-  clock frozen during generation, so regenerating without a code change produces no diff.
-  Previews MUST NOT probe the live machine's git state, usage, or clock — an image showing
-  whichever branch happened to be checked out is a screenshot, not documentation.
+- **Reproducibility**: preview inputs MUST be fixed (`scripts/preview-fixtures.js`), the clock
+  frozen, and the timezone pinned to UTC during generation, so regenerating without a code
+  change produces no diff on any machine. Clock and calendar output derive from *local* time, so
+  without a pinned timezone the same fixture renders differently in UTC-3 and on a UTC CI
+  runner, and the staleness check fails on a diff that reflects geography rather than a code
+  change. Previews MUST NOT probe the live machine's git state, usage, or clock — an image
+  showing whichever branch happened to be checked out is a screenshot, not documentation.
 - **Coverage**: the committed previews MUST include the degraded states, not only the ideal
   one — at minimum: no git repository, no open pull request, no active skills, and a payload
   missing rate-limit fields. These are the cases where a reader most needs to know what to
@@ -284,4 +290,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 2.4.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24
+**Version**: 2.4.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24

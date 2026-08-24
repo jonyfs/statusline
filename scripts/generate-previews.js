@@ -10,6 +10,15 @@
  * are not hand-drawn mockups that can drift from the code.
  */
 
+// Pinned before any Date is constructed. Clock-face icons and reset
+// labels are derived from LOCAL time, so without this the same fixture
+// renders differently depending on the machine's timezone — previews
+// generated in UTC-3 and re-generated on a UTC CI runner disagree, and
+// the staleness check fails on a diff that reflects geography rather
+// than any code change. Set in JS, not the npm script, because `TZ=UTC
+// node ...` is not valid shell on Windows (Principle IX).
+process.env.TZ = "UTC";
+
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
