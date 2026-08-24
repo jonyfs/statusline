@@ -174,6 +174,14 @@ so a clean branch in sync with its remote adds nothing at all.
 | cloud down | Commits the remote has that you don't, waiting to be pulled |
 
 These are GitHub's own Octicons, the same marks you see in a diff view.
+Three modified files, seven untracked, two commits to push and five to
+pull looks like this:
+
+![All four git counters](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/git-state.svg)
+
+The same branch, once everything is committed, pushed and pulled:
+
+![Clean branch in sync](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/git-clean.svg)
 
 One thing worth knowing about the "behind" count: git compares against the
 copy of the remote branch on your disk, and that copy only moves when you

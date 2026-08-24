@@ -94,6 +94,42 @@ export const SCENARIOS = [
     },
   },
   {
+    file: "git-state.svg",
+    title: "All four working-tree counters at once: modified, untracked, to push, to pull",
+    payload: basePayload,
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({
+        branch: "feature/git-state",
+        ahead: 2,
+        behind: 5,
+        changed: 3,
+        untracked: 7,
+      }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+    },
+  },
+  {
+    file: "git-clean.svg",
+    title: "The same branch clean and in sync: every counter is omitted, not shown as zero",
+    payload: basePayload,
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({
+        branch: "feature/git-state",
+        ahead: 0,
+        behind: 0,
+        changed: 0,
+        untracked: 0,
+      }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+    },
+  },
+  {
     file: "behind-upstream.svg",
     title: "Branch both ahead of and behind its upstream, with a draft pull request",
     payload: basePayload,
