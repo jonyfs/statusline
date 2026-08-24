@@ -4,6 +4,8 @@ import { getActiveSkills } from "./skills.js";
 import { getContextPercent, getRateLimits, formatResetCountdown } from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
+import { clockFaceFor, resetMomentLabel } from "./timeIcons.js";
+import { trackChanges } from "./changeTracker.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
 // characters: pasted literals silently vanished from this file once
@@ -14,6 +16,12 @@ import { getOpenTabUrl } from "./openTerminalTab.js";
 const NF_BRANCH = "\u{F418}"; // nf-oct-git_branch (GitHub's branch icon)
 const NF_CLOCK = "\u{F43A}";  // nf-oct-clock
 const NF_PR = "\u{F407}";     // nf-oct-git_pull_request
+
+// A blank calendar grid, deliberately NOT the 📆 emoji: every emoji font
+// draws a fixed date on that glyph (Apple renders "17"), so beside a real
+// expiry day it reads as a date that never changes and contradicts the
+// text next to it. Unicode has no per-date emoji, so the day is text.
+const NF_CALENDAR = "\u{F455}"; // nf-oct-calendar
 
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
@@ -63,7 +71,10 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
  * whatever branch and usage happened to be live when they were generated.
  * Runtime always uses the real probes (the defaults below).
  */
-export function renderPayload(payload, { asciiArrows = false, flavor = "mocha", sources = {} } = {}) {
+export function renderPayload(
+  payload,
+  { asciiArrows = false, flavor = "mocha", sources = {}, trackChanges: tracking = true } = {}
+) {
   const probe = {
     getGitInfo,
     getPrInfo,
@@ -92,6 +103,21 @@ export function renderPayload(payload, { asciiArrows = false, flavor = "mocha", 
   const skills = probe.getActiveSkills(transcriptPath, 3);
   const rtkPct = probe.getRtkSavings(cwd);
 
+  // Only discrete state feeds change tracking — usage percentages tick on
+  // almost every render and would leave the line permanently animated.
+  const changes = trackChanges(
+    payload?.session_id,
+    {
+      branch: git?.branch ?? null,
+      ahead: git ? `${git.ahead}/${git.behind}` : null,
+      pr: pr ? `${pr.number}:${pr.state}:${pr.isDraft}` : null,
+      skills: skills.join(","),
+      model: modelName,
+      effort,
+    },
+    { enabled: tracking }
+  );
+
   const palette = PALETTES[flavor] || PALETTES.mocha;
   const opts = { asciiArrows };
   const lines = [];
@@ -102,43 +128,62 @@ export function renderPayload(payload, { asciiArrows = false, flavor = "mocha", 
   const l1 = [{ color: "surface1", text: ` 📁 ${dirLabel} `, url: dirUrl }];
   if (git) {
     const branchUrl = remoteUrl ? `${remoteUrl}/tree/${git.branch}` : null;
-    l1.push({ color: "lavender", text: ` ${NF_BRANCH} ${git.branch} `, url: branchUrl });
+    l1.push({
+      color: "lavender",
+      text: ` ${changes.iconFor("branch", NF_BRANCH)} ${git.branch} `,
+      url: branchUrl,
+    });
     if (git.ahead || git.behind) {
       const parts = [];
       if (git.ahead) parts.push(`⬆${git.ahead}`);
       if (git.behind) parts.push(`⬇${git.behind}`);
-      l1.push({ color: "mauve", text: ` 🔃 ${parts.join(" ")} ` });
+      l1.push({ color: "mauve", text: ` ${changes.iconFor("ahead", "🔃")} ${parts.join(" ")} ` });
     }
     if (pr) {
       const state = pr.isDraft ? "draft" : pr.state.toLowerCase();
-      l1.push({ color: "blue", text: ` ${NF_PR} PR #${pr.number} ${state} `, url: pr.url });
+      l1.push({
+        color: "blue",
+        text: ` ${changes.iconFor("pr", NF_PR)} PR #${pr.number} ${state} `,
+        url: pr.url,
+      });
     }
   }
   lines.push(renderRow(palette, l1, opts));
 
   // Line 2: active skills, one chip per skill, distinct colors, no bullets
   if (skills.length) {
+    const skillIcon = changes.iconFor("skills", "🧩");
     const l2 = skills.map((name, i) => ({
       color: SKILL_CHIP_COLORS[i % SKILL_CHIP_COLORS.length],
-      text: ` 🧩 ${name} `,
+      text: ` ${skillIcon} ${name} `,
     }));
     lines.push(renderRow(palette, l2, opts));
   }
 
   // Line 3: model + effort
   const l3 = [
-    { color: "red", text: ` 🤖 ${modelName} ` },
-    { color: "peach", text: ` ⚡ ${effort} ` },
+    { color: "red", text: ` ${changes.iconFor("model", "🤖")} ${modelName} ` },
+    { color: "peach", text: ` ${changes.iconFor("effort", "⚡")} ${effort} ` },
   ];
   lines.push(renderRow(palette, l3, opts));
 
-  // Line 4: context / 5h window + its reset / 7d window + its reset / rtk
+  // Line 4: context / 5h window + its reset / 7d window + its reset / rtk.
+  // Each reset segment's clock face is the actual hour the window resets,
+  // and the 7-day segment names the real day it expires, so the icon
+  // carries the information rather than decorating it.
+  const fiveHourClock = clockFaceFor(fiveHourResetsAt) ?? NF_CLOCK;
+  const sevenDayClock = clockFaceFor(sevenDayResetsAt) ?? NF_CLOCK;
+  const sevenDayMoment = resetMomentLabel(sevenDayResetsAt);
+
   const l4 = [
     { color: "yellow", text: ` 🧠 Context ${ctxPct ?? "?"}% ` },
     { color: "green", text: ` ⏱️ 5h ${fiveHourPct ?? "?"}% ` },
-    { color: "peach", text: ` ${NF_CLOCK} ${fiveHourResetLabel} ` },
-    { color: "sapphire", text: ` 📆 7d ${sevenDayPct ?? "?"}% ` },
-    { color: "peach", text: ` ${NF_CLOCK} ${sevenDayResetLabel} ` },
+    { color: "peach", text: ` ${fiveHourClock} ${fiveHourResetLabel} ` },
+    {
+      color: "sapphire",
+      text: ` ${NF_CALENDAR} 7d ${sevenDayPct ?? "?"}%${sevenDayMoment ? ` · ${sevenDayMoment}` : ""} `,
+    },
+    { color: "peach", text: ` ${sevenDayClock} ${sevenDayResetLabel} ` },
   ];
   if (rtkPct !== null) {
     l4.push({ color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` });

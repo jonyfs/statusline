@@ -45,7 +45,7 @@ function main() {
 
   for (const scenario of SCENARIOS) {
     const ansi = withFrozenClock(() =>
-      renderPayload(scenario.payload, { sources: scenario.sources })
+      renderPayload(scenario.payload, { sources: scenario.sources, trackChanges: false })
     );
     const svg = ansiToSvg(ansi, {
       title: scenario.title,
@@ -61,6 +61,7 @@ function main() {
       renderPayload(FLAVOR_SCENARIO.payload, {
         flavor,
         sources: FLAVOR_SCENARIO.sources,
+        trackChanges: false,
       })
     );
     const svg = ansiToSvg(ansi, {
@@ -76,6 +77,7 @@ function main() {
     renderPayload(FLAVOR_SCENARIO.payload, {
       asciiArrows: true,
       sources: FLAVOR_SCENARIO.sources,
+      trackChanges: false,
     })
   );
   writeFileSync(

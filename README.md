@@ -154,8 +154,51 @@ Environment variables (set in your shell profile, or inline in the
 - **Pull request** — `U+F407` (`nf-oct-git_pull_request`), from the same
   Octicons set, verified present in the installed Nerd Font by reading
   the font's `cmap` table.
-- **Everything else** (directory, skills, model, effort, context,
-  rate-limit windows, rtk) — color emoji, which need no special font.
+- **7-day window calendar** — `U+F455` (`nf-oct-calendar`), a blank grid,
+  deliberately *not* the 📆 emoji. Every emoji font draws a fixed date on
+  that glyph (Apple renders "17"), so sitting next to a real expiry day
+  it reads as a date that never changes and contradicts the text beside
+  it. Unicode has no per-date emoji, so the day is rendered as text.
+- **Reset clock faces** — the clock-face emoji matching the *actual*
+  reset hour (🕐 … 🕧, 24 variants covering each hour and half-hour), so
+  the icon carries the information rather than decorating it.
+- **Everything else** (directory, skills, model, effort, context, rtk) —
+  color emoji, which need no special font.
+
+## Icons react when something changes
+
+When a tracked value differs from the previous render, that segment's
+icon switches to a short animation sequence and reverts once the change
+is no longer recent (30 seconds). Tracked: branch, ahead/behind, pull
+request, active skills, model, effort.
+
+Usage percentages are deliberately *not* tracked — they move on nearly
+every render, so animating them would leave the line permanently in
+motion and the highlight would stop meaning anything.
+
+**How "animated" works here, honestly:** a statusline is printed once per
+render and is then static text — the process exits and nothing can
+redraw it. There is no timer and no frame loop. Frames therefore advance
+one per render, and Claude Code re-invokes the command roughly every 5–6
+seconds during activity. The result is a slow pulse that draws the eye to
+what changed, not smooth motion. ANSI blink is not used: many terminals
+ignore it, and where it works it's an accessibility hazard.
+
+Switching branch, for example, cycles the branch icon over successive
+renders before settling back to the static glyph:
+
+```
+render 1   📁 statusline   main            ← static
+render 2   📁 statusline   main
+render 3   📁 statusline  🌳 feature/x      ← changed
+render 4   📁 statusline  🌿 feature/x
+render 5   📁 statusline  🌱 feature/x
+...        📁 statusline   feature/x       ← reverts after 30s
+```
+
+Tracking state lives in `~/.claude/statusline/state/`, keyed per session
+and pruned after a week. If it can't be read or written, the statusline
+renders normally with no animation.
 
 ## Regenerating the previews
 

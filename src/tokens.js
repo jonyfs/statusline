@@ -30,7 +30,16 @@ export function formatResetCountdown(resetsAtSeconds) {
   if (typeof resetsAtSeconds !== "number") return null;
   const diffMs = resetsAtSeconds * 1000 - Date.now();
   if (diffMs <= 0) return "resetting now";
-  const hours = Math.floor(diffMs / 3600000);
+
+  const totalHours = Math.floor(diffMs / 3600000);
   const minutes = Math.floor((diffMs % 3600000) / 60000);
-  return `resets in ${hours}h${String(minutes).padStart(2, "0")}m`;
+
+  // Past a day, hours-only reads as noise ("resets in 78h00m") — the
+  // 7-day window routinely lands days out, so switch units there.
+  if (totalHours >= 24) {
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    return `resets in ${days}d ${hours}h`;
+  }
+  return `resets in ${totalHours}h${String(minutes).padStart(2, "0")}m`;
 }

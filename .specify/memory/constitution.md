@@ -2,21 +2,23 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 2.2.0 (new principle added)
-- Added: IX. Runs on Linux, macOS and Windows — platform-specific tools only behind explicit
-  `process.platform` guards, paths via node:path/node:os, portable file:// URLs, quoted
-  interpreter and script paths using process.execPath, no payload data interpolated into shell
-  command strings, documented graceful degradation, and `npm test` passing on all three
+- Version: 2.3.0 (new principle added)
+- Added: X. Icons Carry Live State — icons must convey changing information: change highlighting
+  animates one frame per render (the only form of animation a print-once statusline permits) and
+  decays after 30s; only discrete state is tracked, never usage percentages; reset icons derive
+  from the real reset hour; no invented symbols for dates; countdowns switch to days past 24h;
+  tracking state is disposable and disableable so previews stay reproducible
 - MINOR bump: adds a principle without removing or redefining an existing one
 - Templates: no `.specify/templates/*` changes required — the new principle constrains this
-  repo's runtime and tooling, not the spec/plan/tasks artifact structure
+  repo's rendering behaviour, not the spec/plan/tasks artifact structure
 - Follow-up: none deferred
-- Prior versions: 2.1.0 added Principle VIII (generated documentation previews); 2.0.0
-  redefined Principle II (three-line → four-line display structure)
+- Prior versions: 2.2.0 added Principle IX (cross-platform support); 2.1.0 added Principle VIII
+  (generated documentation previews); 2.0.0 redefined Principle II (three-line → four-line)
 - Project Type: npm-installable CLI plugin for Claude Code statusline customization
 - Scope: Local development → GitHub distribution pipeline
 - Key Constraints: Starship compatibility, four-line display format, token tracking grounded in
-  real payload data, generated documentation previews, cross-platform support, English-only output
+  real payload data, icons carrying live state, generated documentation previews, cross-platform
+  support, English-only output
 -->
 
 ## Core Principles
@@ -181,6 +183,43 @@ npm to whoever runs Claude Code, and Claude Code runs on all three.
   construction, platform guards, and the degraded rendering paths, so a platform regression
   fails a test rather than surfacing as a broken statusline on someone else's machine.
 
+### X. Icons Carry Live State
+
+An icon MUST earn its place by conveying information that changes. A glyph that looks the same
+whatever the underlying state is decoration, and decoration in a four-line status display costs
+width that real signal could use.
+
+**What "animated" can and cannot mean here.** A statusline is printed once per render and is
+then static text: this process exits, and nothing can redraw it. There is no timer and no frame
+loop. Claude Code re-invokes the command roughly every 5–6 seconds during activity (measured on
+the reference machine, not assumed). Animation therefore MUST be implemented as one frame per
+render, producing a slow pulse that draws the eye — never described or documented as smooth
+motion, and never implemented with ANSI blink, which many terminals ignore and which is an
+accessibility hazard where it works.
+
+- **Change highlighting**: when a tracked value differs from the previous render, that segment's
+  icon MUST switch to an animation frame sequence, advancing one frame per render, and MUST
+  revert to its static icon once the change is no longer recent (30 seconds).
+- **Only discrete state is tracked**: branch, ahead/behind, pull request, active skills, model,
+  and effort. Usage percentages MUST NOT trigger highlighting — they move on nearly every
+  render, so animating them would leave the line permanently in motion and the highlight would
+  stop meaning anything.
+- **No false positives on first render**: a session with no previous state MUST render every
+  icon static. Treating an absent baseline as "everything just changed" would light up the whole
+  line at startup.
+- **Time-derived icons**: where an icon represents a moment, it MUST be derived from the real
+  timestamp — the reset segments use the clock-face emoji matching the actual reset hour, not a
+  fixed clock glyph.
+- **No invented symbols**: Unicode has no per-weekday or per-date emoji. The expiry day MUST be
+  rendered as text (`Thu 15:00`, `tomorrow 09:00`, or a bare time when it is still today)
+  beside a generic calendar icon. Repurposing an unrelated glyph to stand for a date would be a
+  symbol that does not mean what it appears to.
+- **Durations stay legible**: a countdown MUST switch to days past 24 hours (`resets in 3d 6h`),
+  since the 7-day window routinely lands days out and an hours-only figure becomes noise.
+- **State persistence is disposable**: change-tracking state MUST live outside the repository,
+  be keyed per session, be pruned once stale, and MUST never break rendering when it cannot be
+  read or written. It MUST be disableable, so generated previews stay reproducible.
+
 ## Development & Distribution Workflow
 
 **Local Installation Procedure** (v1.0.0 MVP):
@@ -209,8 +248,8 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Amendment Process**: Constitution changes require documented rationale (breaking changes, new principle, or clarification). Version bumped according to semver: MAJOR for principle removals/redefinitions, MINOR for new principles/sections, PATCH for wording/clarification only.
 
-**Compliance Review**: Each feature merged MUST verify adherence to Principles I–IX (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support). Reviews checked via PR review checklist.
+**Compliance Review**: Each feature merged MUST verify adherence to Principles I–X (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support, live-state icons). Reviews checked via PR review checklist.
 
-**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–IX. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
+**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–X. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 2.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24
+**Version**: 2.3.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24

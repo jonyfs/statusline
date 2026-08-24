@@ -19,8 +19,10 @@ const basePayload = {
   workspace: { current_dir: "/Users/dev/projects/statusline" },
   context_window: { used_percentage: 26 },
   rate_limits: {
+    // The 5-hour window resets within the day; the 7-day one lands on a
+    // later date, which is what makes the weekday appear in its segment.
     five_hour: { used_percentage: 20, resets_at: FIXED_NOW + 7740 },
-    seven_day: { used_percentage: 77, resets_at: FIXED_NOW + 24540 },
+    seven_day: { used_percentage: 77, resets_at: FIXED_NOW + 3 * 86400 + 21600 },
   },
 };
 

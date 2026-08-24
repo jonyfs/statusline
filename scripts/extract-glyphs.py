@@ -24,6 +24,7 @@ WANTED = {
     "F418": 0xF418,  # nf-oct-git_branch
     "F43A": 0xF43A,  # nf-oct-clock
     "F407": 0xF407,  # nf-oct-git_pull_request
+    "F455": 0xF455,  # nf-oct-calendar (blank grid, no baked-in date)
 }
 
 

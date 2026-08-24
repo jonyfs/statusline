@@ -139,5 +139,48 @@ test("renderer does not shell out with interpolated user data", async () => {
   }
 });
 
+test("clock-face icon matches the real reset hour", async () => {
+  const { clockFaceFor } = await import("../src/timeIcons.js");
+  const at = (iso) => Math.floor(new Date(iso).getTime() / 1000);
+  assert.equal(clockFaceFor(at("2026-08-24T15:00:00")), "🕒");
+  assert.equal(clockFaceFor(at("2026-08-24T15:30:00")), "🕞");
+  assert.equal(clockFaceFor(at("2026-08-24T00:00:00")), "🕛");
+  assert.equal(clockFaceFor(undefined), null);
+});
+
+test("expiry label names the real day, not a fake one", async () => {
+  const { resetMomentLabel } = await import("../src/timeIcons.js");
+  const now = new Date("2026-08-24T14:20:00");
+  const at = (iso) => Math.floor(new Date(iso).getTime() / 1000);
+  assert.equal(resetMomentLabel(at("2026-08-24T15:00:00"), now), "15:00");
+  assert.equal(resetMomentLabel(at("2026-08-25T09:00:00"), now), "tomorrow 09:00");
+  assert.equal(resetMomentLabel(at("2026-08-27T18:30:00"), now), "Thu 18:30");
+});
+
+test("change tracking animates on change and decays after the window", async () => {
+  const { trackChanges } = await import("../src/changeTracker.js");
+  const id = `smoke-${process.pid}`;
+  const t0 = 1787000000000;
+
+  trackChanges(id, { branch: "main" }, { now: t0 });
+  const onFirstRender = trackChanges(id, { branch: "main" }, { now: t0 + 100 });
+  assert.equal(onFirstRender.isChanged("branch"), false, "unchanged value must not animate");
+
+  const changed = trackChanges(id, { branch: "feature" }, { now: t0 + 1000 });
+  assert.equal(changed.isChanged("branch"), true);
+  assert.notEqual(changed.iconFor("branch", "STATIC"), "STATIC", "changed icon must differ");
+
+  const expired = trackChanges(id, { branch: "feature" }, { now: t0 + 40000 });
+  assert.equal(expired.isChanged("branch"), false, "highlight must decay");
+  assert.equal(expired.iconFor("branch", "STATIC"), "STATIC", "icon must revert");
+});
+
+test("change tracking can be disabled for reproducible output", async () => {
+  const { trackChanges } = await import("../src/changeTracker.js");
+  const off = trackChanges("whatever", { branch: "x" }, { enabled: false });
+  assert.equal(off.isChanged("branch"), false);
+  assert.equal(off.iconFor("branch", "STATIC"), "STATIC");
+});
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);
