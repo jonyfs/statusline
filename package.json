@@ -1,5 +1,5 @@
 {
-  "name": "smart-statusline",
+  "name": "statusline",
   "version": "1.0.0",
   "description": "Catppuccin Powerline statusline for Claude Code: model/effort, context and rate-limit usage, active skills, git branch and pull request state.",
   "type": "module",
