@@ -5,15 +5,15 @@ import { getContextPercent, getRateLimits, formatResetCountdown } from "./tokens
 import { getRtkSavings } from "./rtk.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 
-// Glyphs copied verbatim from the user's own ~/.config/starship.toml
-// (Catppuccin Powerline reference config) so they're proven to render in
-// their Nerd Font — not guessed private-use codepoints.
-const NF_BRANCH = ""; // [git_branch] symbol in the reference config
-const NF_CLOCK = "";  // [time] symbol in the reference config
-// GitHub and PR use color emoji (🐙/🔀) instead of a guessed Octicons
-// codepoint — Starship has no built-in module for either, so there was
-// nothing proven to copy, and an unverified private-use codepoint risks
-// rendering as a blank/tofu box instead of an icon.
+// Nerd Font Octicons, written as escapes rather than literal private-use
+// characters: pasted literals silently vanished from this file once
+// already, leaving empty strings that rendered as a bare gap. Every
+// codepoint below was verified to exist in the installed FiraCode Nerd
+// Font by reading the font's cmap table, and F418/F43A are the exact
+// glyphs this machine's own ~/.config/starship.toml already uses.
+const NF_BRANCH = "\u{F418}"; // nf-oct-git_branch (GitHub's branch icon)
+const NF_CLOCK = "\u{F43A}";  // nf-oct-clock
+const NF_PR = "\u{F407}";     // nf-oct-git_pull_request
 
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
@@ -80,10 +80,8 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
   // GitHub tree view, PR -> PR page), with no visible URL text.
   const l1 = [{ color: "surface1", text: ` 📁 ${dirLabel} `, url: dirUrl }];
   if (git) {
-    const isGitHub = remoteUrl?.includes("github.com");
     const branchUrl = remoteUrl ? `${remoteUrl}/tree/${git.branch}` : null;
-    const branchIcon = isGitHub ? "🐙" : NF_BRANCH;
-    l1.push({ color: "lavender", text: ` ${branchIcon} ${git.branch} `, url: branchUrl });
+    l1.push({ color: "lavender", text: ` ${NF_BRANCH} ${git.branch} `, url: branchUrl });
     if (git.ahead || git.behind) {
       const parts = [];
       if (git.ahead) parts.push(`⬆${git.ahead}`);
@@ -92,7 +90,7 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
     }
     if (pr) {
       const state = pr.isDraft ? "draft" : pr.state.toLowerCase();
-      l1.push({ color: "blue", text: ` 🔀 PR #${pr.number} ${state} `, url: pr.url });
+      l1.push({ color: "blue", text: ` ${NF_PR} PR #${pr.number} ${state} `, url: pr.url });
     }
   }
   lines.push(renderRow(palette, l1, opts));
