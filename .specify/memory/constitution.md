@@ -2,16 +2,20 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 2.0.0 (Principle II redefined: three-line format → four-line format)
-- Modified: II. Three-Line Display Structure → II. Four-Line Display Structure — directory/git/PR,
-  skills, model/effort, and context/usage are now separate lines (skills split out of the old
-  line 2 into their own line; directory and PR detail added to the git line), matching the
-  accepted Model 1 mockup built and iterated in this session
-- MAJOR bump: redefines a ratified principle's core structure (line count and per-line content),
-  a backward-incompatible change per this constitution's own versioning rule
+- Version: 2.1.0 (new principle added)
+- Added: VIII. Documentation Shows Generated, Not Hand-Drawn, Output — README illustrations must
+  be generated from the real renderer via `npm run previews`, from fixed fixtures under a frozen
+  clock, covering degraded states, portable to viewers with no Nerd Font, and regenerated in the
+  same commit as any rendering change
+- MINOR bump: adds a principle without removing or redefining an existing one
+- Templates: no `.specify/templates/*` changes required — the new principle constrains this
+  repo's own docs pipeline, not the spec/plan/tasks artifact structure
+- Follow-up: none deferred
+- Prior version 2.0.0 redefined Principle II (three-line → four-line display structure)
 - Project Type: npm-installable CLI plugin for Claude Code statusline customization
 - Scope: Local development → GitHub distribution pipeline
-- Key Constraints: Starship compatibility, four-line display format, token tracking, English-only output
+- Key Constraints: Starship compatibility, four-line display format, token tracking grounded in
+  real payload data, generated documentation previews, English-only output
 -->
 
 ## Core Principles
@@ -116,6 +120,32 @@ Development MUST start with local installation path (npm link or direct import).
 
 No features added beyond MVP scope before first release. Scope for v1.0.0: display model + effort, token usage %, active skills, GitHub branch/PR info.
 
+### VIII. Documentation Shows Generated, Not Hand-Drawn, Output
+
+`README.md` MUST illustrate the statusline with images generated from the real renderer, never
+with hand-written mockups or prose approximations of what the output "looks like". Hand-drawn
+examples drift silently from the code the moment a segment, icon, or colour changes, and a
+reader has no way to tell a stale illustration from a current one.
+
+- **Generation**: previews MUST be produced by `npm run previews`, which calls the same
+  `renderPayload()` the installed statusline runs, and converts its actual ANSI output to SVG.
+  Any change in the renderer therefore shows up in the images on the next regeneration.
+- **Reproducibility**: preview inputs MUST be fixed (`scripts/preview-fixtures.js`) and the
+  clock frozen during generation, so regenerating without a code change produces no diff.
+  Previews MUST NOT probe the live machine's git state, usage, or clock — an image showing
+  whichever branch happened to be checked out is a screenshot, not documentation.
+- **Coverage**: the committed previews MUST include the degraded states, not only the ideal
+  one — at minimum: no git repository, no open pull request, no active skills, and a payload
+  missing rate-limit fields. These are the cases where a reader most needs to know what to
+  expect, and they're the cases a hand-drawn example never bothers to show.
+- **Portability**: preview SVGs MUST render correctly for a viewer with no Nerd Font and no
+  terminal (GitHub's README renderer being the primary target). Nerd Font glyphs MUST be
+  embedded as extracted outlines rather than font references or a redistributed font binary;
+  emoji MAY remain as text, since every platform's system emoji font covers them.
+- **Freshness**: any change to segment content, ordering, icons, or palette MUST be accompanied
+  by regenerated previews in the same commit. A README image that disagrees with the code is a
+  defect, not a cosmetic issue.
+
 ## Development & Distribution Workflow
 
 **Local Installation Procedure** (v1.0.0 MVP):
@@ -144,8 +174,8 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Amendment Process**: Constitution changes require documented rationale (breaking changes, new principle, or clarification). Version bumped according to semver: MAJOR for principle removals/redefinitions, MINOR for new principles/sections, PATCH for wording/clarification only.
 
-**Compliance Review**: Each feature merged MUST verify adherence to Principles I–VII (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope). Reviews checked via PR review checklist.
+**Compliance Review**: Each feature merged MUST verify adherence to Principles I–VIII (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope, generated previews). Reviews checked via PR review checklist.
 
-**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–VII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
+**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–VIII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 2.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-23
+**Version**: 2.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24

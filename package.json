@@ -7,6 +7,9 @@
   "bin": {
     "statusline-plugin": "bin/cli.js"
   },
+  "scripts": {
+    "previews": "node scripts/generate-previews.js"
+  },
   "engines": {
     "node": ">=18"
   },

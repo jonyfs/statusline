@@ -53,6 +53,27 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
     }
   }
 
+  return renderPayload(payload, { asciiArrows, flavor });
+}
+
+/**
+ * Renders a payload that's already parsed. `sources` exists so the preview
+ * generator can supply fixed git/PR/skill/rtk values instead of probing the
+ * real machine — previews must be reproducible, and they'd otherwise show
+ * whatever branch and usage happened to be live when they were generated.
+ * Runtime always uses the real probes (the defaults below).
+ */
+export function renderPayload(payload, { asciiArrows = false, flavor = "mocha", sources = {} } = {}) {
+  const probe = {
+    getGitInfo,
+    getPrInfo,
+    getRemoteUrl,
+    getActiveSkills,
+    getRtkSavings,
+    getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
+    ...sources,
+  };
+
   const cwd = payload?.workspace?.current_dir || payload?.cwd || process.cwd();
   const modelName = payload?.model?.display_name || payload?.model?.id || "Claude";
   const effort = payload?.effort?.level || payload?.output_style?.name || "default";
@@ -64,12 +85,12 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
   const sevenDayResetLabel = formatResetCountdown(sevenDayResetsAt) ?? "reset time unknown";
 
   const dirLabel = getDirLabel(cwd);
-  const dirUrl = getOpenTabUrl(cwd) || getDirUrl(cwd);
-  const git = getGitInfo(cwd);
-  const pr = git ? getPrInfo(cwd) : null;
-  const remoteUrl = git ? getRemoteUrl(cwd) : null;
-  const skills = getActiveSkills(transcriptPath, 3);
-  const rtkPct = getRtkSavings(cwd);
+  const dirUrl = probe.getDirUrl(cwd);
+  const git = probe.getGitInfo(cwd);
+  const pr = git ? probe.getPrInfo(cwd) : null;
+  const remoteUrl = git ? probe.getRemoteUrl(cwd) : null;
+  const skills = probe.getActiveSkills(transcriptPath, 3);
+  const rtkPct = probe.getRtkSavings(cwd);
 
   const palette = PALETTES[flavor] || PALETTES.mocha;
   const opts = { asciiArrows };
