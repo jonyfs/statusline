@@ -106,6 +106,7 @@ or inline in the `statusLine.command` string in `settings.json`.
 |---|---|
 | `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato` or `latte` |
 | `CLAUDE_STATUSLINE_ASCII=1` | Drops the Powerline separator for terminals without a Nerd Font |
+| `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json`, for when a field changes shape in some future version |
 
 ## Platform support
@@ -157,8 +158,12 @@ with an open PR for your branch. Miss any of those and the segment simply
 isn't there.
 
 **Active skills** are read out of the current session transcript by looking
-for Skill tool calls. If that format ever changes, you'll see no skills
-rather than a crash.
+for Skill tool calls, and they drop off once they have not been used for
+thirty minutes. Claude Code emits no "skill unloaded" event, so a time
+window is the closest honest approximation: without one, a skill invoked
+once stays on the line for the rest of the session. Set
+`CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` to change it. If the transcript
+format ever changes, you'll see no skills rather than a crash.
 
 ## Git and GitHub status
 
