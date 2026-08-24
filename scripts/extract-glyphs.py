@@ -25,6 +25,15 @@ WANTED = {
     "F43A": 0xF43A,  # nf-oct-clock
     "F407": 0xF407,  # nf-oct-git_pull_request
     "F455": 0xF455,  # nf-oct-calendar (blank grid, no baked-in date)
+    # GitHub's own diff and sync vocabulary. Each was rendered and checked
+    # by eye before being adopted: several plausibly-named codepoints draw
+    # something else entirely (F433 "repo_push" is a DOWN arrow, F45D
+    # "arrow_up" is a signpost), so the name in a Nerd Font cheat sheet is
+    # not evidence of what the glyph looks like.
+    "F459": 0xF459,  # nf-oct-diff_modified: boxed dot, GitHub's modified marker
+    "F457": 0xF457,  # nf-oct-diff_added: boxed plus, GitHub's added marker
+    "F40A": 0xF40A,  # nf-oct-cloud_upload: commits waiting to be pushed
+    "F409": 0xF409,  # nf-oct-cloud_download: commits waiting to be pulled
 }
 
 

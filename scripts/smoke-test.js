@@ -200,5 +200,53 @@ test("install refuses to record a package-manager cache path", async () => {
   assert.match(src, /assertNotRunningFromNpxCache\(\);/, "the guard must actually run");
 });
 
+test("working-tree state renders after the branch", () => {
+  const git = (over) => ({
+    ...emptySources,
+    getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, changed: 0, untracked: 0, ...over }),
+  });
+  // Tracking off: with it on, a changed ahead/behind swaps the static
+  // icon for an animation frame, which is correct behaviour but makes
+  // the exact-layout assertion below meaningless.
+  const line1 = (over) =>
+    stripAnsi(
+      renderPayload({}, { sources: git(over), trackChanges: false })
+    ).split("\n")[0];
+
+  const MODIFIED = "\u{F459}", ADDED = "\u{F457}", PUSH = "\u{F40A}", PULL = "\u{F409}";
+
+  const clean = line1({});
+  for (const g of [MODIFIED, ADDED, PUSH, PULL]) {
+    assert.ok(!clean.includes(g), "a clean, in-sync branch adds nothing");
+  }
+  assert.ok(line1({ changed: 3 }).includes(`${MODIFIED} 3`));
+  assert.ok(line1({ untracked: 2 }).includes(`${ADDED} 2`));
+  assert.ok(line1({ ahead: 1 }).includes(`${PUSH} 1`));
+  assert.ok(line1({ behind: 4 }).includes(`${PULL} 4`));
+
+  // Order matters: the state cluster belongs immediately after the branch.
+  const full = line1({ changed: 1, untracked: 2, ahead: 3, behind: 4 });
+  const expected = `${MODIFIED} 1  ${ADDED} 2  ${PUSH} 3  ${PULL} 4`;
+  assert.ok(full.includes(expected), `unexpected layout: ${JSON.stringify(full)}`);
+  assert.ok(full.indexOf("main") < full.indexOf(expected), "state must follow the branch");
+});
+
+test("tracked changes and untracked files are counted separately", async () => {
+  // Collapsing them into one number hides which problem you actually have.
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../src/git.js", import.meta.url), "utf8");
+  assert.match(src, /startsWith\("\?\?"\)/, "untracked entries must be split out");
+  assert.match(src, /untracked/, "untracked count must be returned");
+});
+
+test("git status is never fetched from the network", async () => {
+  // The statusline re-renders every few seconds; fetching on each one
+  // would hammer the remote. `behind` is therefore only as fresh as the
+  // user's last fetch, which is a documented limitation, not a bug.
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../src/git.js", import.meta.url), "utf8");
+  assert.doesNotMatch(src, /git fetch|git pull|git remote update/, "must not hit the network");
+});
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);

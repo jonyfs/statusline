@@ -2,29 +2,31 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 3.0.0 (two ratified principles redefined)
-- Modified: IV. npm Installable with Install/Uninstall Workflow → IV. Installable by Clone, With
-  Install/Uninstall Commands — distribution moves off the npm registry entirely. Install is now
-  `git clone` plus one `node` command, which only works because the project has zero runtime
-  dependencies; keeping it dependency-free becomes a requirement. Adds the rule that install must
-  refuse to run from a package-manager scratch directory, whose path is evicted later and would
-  leave a statusline that silently disappears
-- Modified: XI. Releases Are Tag-Driven and Verified — a release is now a tag plus a GitHub
-  release entry. No registry upload, and no publishing credential of any kind in the repository
-- MAJOR bump: both changes reverse rules this constitution previously ratified. IV mandated
-  publishing to a registry and installing from it; XI mandated a registry publish step. Code and
-  documentation written against either would now be non-compliant
-- Templates: no `.specify/templates/*` changes required — these constrain distribution, not the
-  spec/plan/tasks artifact structure
-- Follow-up: none. The previously deferred first-publish step no longer exists
-- Prior versions: 2.4.1 clarified VIII (pinned timezone); 2.4.0 added XI; 2.3.0 added X
-  (live-state icons); 2.2.0 added IX (cross-platform); 2.1.0 added VIII (generated previews);
+- Version: 3.1.0 (two principles materially expanded)
+- Modified: II. Four-Line Display Structure — line 1 now also carries working-tree state
+  (tracked changes, untracked files). The count was already being computed and silently
+  discarded, so the statusline could not answer "do I have uncommitted work?"
+- Modified: X. Icons Carry Live State — adds three rules: git and GitHub state must use GitHub's
+  own Octicons so the line reads in symbols its audience knows; every icon must be rendered and
+  inspected before adoption, because Nerd Font codepoint names proved unreliable (F433
+  "repo_push" draws a DOWN arrow, F45D "arrow_up" draws a signpost); and working-tree counts must
+  not animate, since they change on every file save
+- MINOR bump: both principles gain requirements without any existing rule being reversed
+- Templates: no `.specify/templates/*` changes required
+- Known limitation, documented rather than worked around: `behind` reflects the locally cached
+  remote ref, so it means "commits already fetched but not merged". The statusline deliberately
+  never fetches — it re-renders every few seconds, and hitting the network that often would be
+  hostile to the user's connection and the remote
+- Follow-up: none deferred
+- Prior versions: 3.0.0 redefined IV and XI (clone distribution, no registry); 2.4.1 clarified
+  VIII (pinned timezone); 2.4.0 added XI; 2.3.0 added X; 2.2.0 added IX; 2.1.0 added VIII;
   2.0.0 redefined II (three-line → four-line)
 - Project Type: clone-installable CLI plugin for Claude Code statusline customization
 - Scope: Local development → distribution as a git repository, released by tag
 - Key Constraints: Starship compatibility, four-line display format, token tracking grounded in
-  real payload data, icons carrying live state, generated documentation previews, cross-platform
-  support, zero runtime dependencies, tag-driven verified releases, English-only output
+  real payload data, icons carrying live state in the platform's own vocabulary, generated
+  documentation previews, cross-platform support, zero runtime dependencies, tag-driven verified
+  releases, English-only output
 -->
 
 ## Core Principles
@@ -67,7 +69,7 @@ is the version installed and studied on the reference machine.
 ### II. Four-Line Display Structure
 
 Statusline MUST display exactly four information lines, in this order:
-- **Line 1**: Working directory + git branch + ahead/behind upstream + PR status (existence + number if open)
+- **Line 1**: Working directory + git branch + working-tree state (tracked changes, untracked files) + divergence from upstream (ahead, behind) + PR status (existence + number if open)
 - **Line 2**: Active skills for the current session, one chip per skill, each in a distinct palette color, no bullet/prefix glyph
 - **Line 3**: Model name + effort level (current session context)
 - **Line 4**: Context percentage + token usage windows (weekly / monthly) + rate-limit reset countdown
@@ -236,6 +238,16 @@ accessibility hazard where it works.
 - **Time-derived icons**: where an icon represents a moment, it MUST be derived from the real
   timestamp — the reset segments use the clock-face emoji matching the actual reset hour, not a
   fixed clock glyph.
+- **Speak the platform's vocabulary**: git and GitHub state MUST use GitHub's own Octicons, so
+  the line reads in symbols its audience already knows: the diff-modified and diff-added markers
+  for working-tree counts, and cloud-up/cloud-down for commits waiting to be pushed or pulled.
+- **A codepoint's name is not evidence of its glyph**: every icon MUST be rendered and inspected
+  before adoption. Nerd Font tables proved unreliable in practice — `F433` is listed as
+  "repo_push" but draws a downward arrow, and `F45D` is listed as "arrow_up" but draws a
+  signpost. Shipping either on its name would have put a wrong-direction arrow on the line.
+- **Working-tree counts MUST NOT animate**: they change on every file save, which is exactly the
+  churn this principle excludes. Only the discrete state (branch, ahead, behind, PR, skills,
+  model, effort) animates.
 - **No invented symbols**: Unicode has no per-weekday or per-date emoji. The expiry day MUST be
   rendered as text (`Thu 15:00`, `tomorrow 09:00`, or a bare time when it is still today)
   beside a generic calendar icon. Repurposing an unrelated glyph to stand for a date would be a
@@ -296,4 +308,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 3.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24
+**Version**: 3.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24

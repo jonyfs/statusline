@@ -53,6 +53,12 @@ export function getGitInfo(cwd) {
   const branch = run("git symbolic-ref --short -q HEAD", cwd) || run("git rev-parse --short HEAD", cwd);
   if (!branch) return null;
 
+  // Compares against the locally cached remote ref, which only moves on
+  // fetch or pull. So `behind` means "commits you have already fetched but
+  // not merged", not "commits that exist on the remote right now". This
+  // deliberately does not fetch: the statusline re-renders every few
+  // seconds, and hitting the network that often would be hostile to both
+  // the user's connection and the remote.
   let ahead = 0;
   let behind = 0;
   const counts = run("git rev-list --left-right --count @{u}...HEAD", cwd);
@@ -62,10 +68,21 @@ export function getGitInfo(cwd) {
     ahead = Number.isFinite(a) ? a : 0;
   }
 
-  const dirtyOut = run("git status --porcelain", cwd);
-  const dirtyCount = dirtyOut ? dirtyOut.split("\n").filter(Boolean).length : 0;
+  // Tracked changes and untracked files are counted separately: "work I
+  // haven't committed" and "files git isn't watching yet" are different
+  // problems, and collapsing them hides which one you have.
+  let changed = 0;
+  let untracked = 0;
+  const porcelain = run("git status --porcelain", cwd);
+  if (porcelain) {
+    for (const line of porcelain.split("\n")) {
+      if (!line) continue;
+      if (line.startsWith("??")) untracked++;
+      else changed++;
+    }
+  }
 
-  return { branch, ahead, behind, dirtyCount };
+  return { branch, ahead, behind, changed, untracked };
 }
 
 export function getPrInfo(cwd) {

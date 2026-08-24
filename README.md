@@ -160,6 +160,29 @@ isn't there.
 for Skill tool calls. If that format ever changes, you'll see no skills
 rather than a crash.
 
+## Git and GitHub status
+
+Right after the branch, line 1 shows what state your working tree is in and
+how far it has drifted from upstream. Each count disappears when it's zero,
+so a clean branch in sync with its remote adds nothing at all.
+
+| Icon | Meaning |
+|---|---|
+| diff-modified marker | Tracked files with uncommitted changes |
+| diff-added marker | Untracked files git isn't watching yet |
+| cloud up | Commits you have that the remote doesn't, waiting to be pushed |
+| cloud down | Commits the remote has that you don't, waiting to be pulled |
+
+These are GitHub's own Octicons, the same marks you see in a diff view.
+
+One thing worth knowing about the "behind" count: git compares against the
+copy of the remote branch on your disk, and that copy only moves when you
+fetch or pull. So it means "commits I've already fetched but haven't merged",
+not "commits that exist on the remote right now". The statusline never
+fetches on your behalf, because it redraws every few seconds and hitting the
+network that often would be rude to both your connection and the remote. Run
+`git fetch` and the count catches up.
+
 ## Where the icons come from
 
 The branch and clock glyphs were copied out of this machine's own

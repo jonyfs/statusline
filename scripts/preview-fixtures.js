@@ -42,7 +42,7 @@ export const SCENARIOS = [
     payload: basePayload,
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "feature/preview-images", ahead: 2, behind: 0, dirtyCount: 4 }),
+      getGitInfo: () => ({ branch: "feature/preview-images", ahead: 2, behind: 0, changed: 4, untracked: 1 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getPrInfo: () => ({ number: 128, state: "OPEN", isDraft: false, url: "https://github.com/jonyfs/statusline/pull/128" }),
       getActiveSkills: () => ["code-review", "dataviz", "artifact-design"],
@@ -55,7 +55,7 @@ export const SCENARIOS = [
     payload: basePayload,
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, dirtyCount: 0 }),
+      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getActiveSkills: () => ["code-review"],
       getRtkSavings: () => 81,
@@ -89,7 +89,7 @@ export const SCENARIOS = [
     },
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, dirtyCount: 0 }),
+      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
     },
   },
@@ -99,7 +99,7 @@ export const SCENARIOS = [
     payload: basePayload,
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "fix/reset-countdown", ahead: 3, behind: 7, dirtyCount: 1 }),
+      getGitInfo: () => ({ branch: "fix/reset-countdown", ahead: 3, behind: 7, changed: 1, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getPrInfo: () => ({ number: 131, state: "OPEN", isDraft: true, url: "https://github.com/jonyfs/statusline/pull/131" }),
       getActiveSkills: () => ["code-review", "dataviz"],
@@ -119,7 +119,7 @@ export const SCENARIOS = [
     },
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, dirtyCount: 0 }),
+      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getActiveSkills: () => ["code-review", "dataviz", "artifact-design"],
       getRtkSavings: () => 81,

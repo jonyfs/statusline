@@ -23,6 +23,16 @@ const NF_PR = "\u{F407}";     // nf-oct-git_pull_request
 // text next to it. Unicode has no per-date emoji, so the day is text.
 const NF_CALENDAR = "\u{F455}"; // nf-oct-calendar
 
+// GitHub's own diff and sync markers, so the working-tree state reads in
+// the vocabulary anyone who uses GitHub already knows. Each glyph was
+// rendered and inspected before being adopted: codepoint names in Nerd
+// Font tables proved unreliable (F433 "repo_push" draws a down arrow,
+// F45D "arrow_up" draws a signpost), so the name is not evidence.
+const NF_MODIFIED = "\u{F459}"; // boxed dot, GitHub's "modified" marker
+const NF_ADDED = "\u{F457}";    // boxed plus, GitHub's "added" marker
+const NF_PUSH = "\u{F40A}";     // cloud up: commits waiting to be pushed
+const NF_PULL = "\u{F409}";     // cloud down: commits waiting to be pulled
+
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
 async function readStdinAsync() {
@@ -109,7 +119,8 @@ export function renderPayload(
     payload?.session_id,
     {
       branch: git?.branch ?? null,
-      ahead: git ? `${git.ahead}/${git.behind}` : null,
+      ahead: git ? String(git.ahead) : null,
+      behind: git ? String(git.behind) : null,
       pr: pr ? `${pr.number}:${pr.state}:${pr.isDraft}` : null,
       skills: skills.join(","),
       model: modelName,
@@ -133,17 +144,24 @@ export function renderPayload(
       text: ` ${changes.iconFor("branch", NF_BRANCH)} ${git.branch} `,
       url: branchUrl,
     });
-    if (git.ahead || git.behind) {
-      const parts = [];
-      if (git.ahead) parts.push(`⬆${git.ahead}`);
-      if (git.behind) parts.push(`⬇${git.behind}`);
-      l1.push({ color: "mauve", text: ` ${changes.iconFor("ahead", "🔃")} ${parts.join(" ")} ` });
+    // Working-tree state and divergence from upstream, right after the
+    // branch. Each count is omitted when it's zero, so a clean branch in
+    // sync with its upstream adds nothing to the line at all.
+    const state = [];
+    // File counts are not animated: they change on every save, and
+    // Principle X reserves animation for state that changes discretely.
+    if (git.changed) state.push(`${NF_MODIFIED} ${git.changed}`);
+    if (git.untracked) state.push(`${NF_ADDED} ${git.untracked}`);
+    if (git.ahead) state.push(`${changes.iconFor("ahead", NF_PUSH)} ${git.ahead}`);
+    if (git.behind) state.push(`${changes.iconFor("behind", NF_PULL)} ${git.behind}`);
+    if (state.length) {
+      l1.push({ color: "mauve", text: ` ${state.join("  ")} ` });
     }
     if (pr) {
-      const state = pr.isDraft ? "draft" : pr.state.toLowerCase();
+      const prState = pr.isDraft ? "draft" : pr.state.toLowerCase();
       l1.push({
         color: "blue",
-        text: ` ${changes.iconFor("pr", NF_PR)} PR #${pr.number} ${state} `,
+        text: ` ${changes.iconFor("pr", NF_PR)} PR #${pr.number} ${prState} `,
         url: pr.url,
       });
     }

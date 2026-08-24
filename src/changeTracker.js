@@ -28,6 +28,7 @@ const FRAMES = {
   model: ["🔆", "🔅", "🔆", "🔅"],
   effort: ["⚡", "✨", "⚡", "✨"],
   ahead: ["⏫", "🔼", "⏫", "🔼"],
+  behind: ["⏬", "🔽", "⏬", "🔽"],
 };
 
 function sessionStateFile(sessionId) {
