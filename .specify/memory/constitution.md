@@ -2,20 +2,21 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 2.1.0 (new principle added)
-- Added: VIII. Documentation Shows Generated, Not Hand-Drawn, Output — README illustrations must
-  be generated from the real renderer via `npm run previews`, from fixed fixtures under a frozen
-  clock, covering degraded states, portable to viewers with no Nerd Font, and regenerated in the
-  same commit as any rendering change
+- Version: 2.2.0 (new principle added)
+- Added: IX. Runs on Linux, macOS and Windows — platform-specific tools only behind explicit
+  `process.platform` guards, paths via node:path/node:os, portable file:// URLs, quoted
+  interpreter and script paths using process.execPath, no payload data interpolated into shell
+  command strings, documented graceful degradation, and `npm test` passing on all three
 - MINOR bump: adds a principle without removing or redefining an existing one
 - Templates: no `.specify/templates/*` changes required — the new principle constrains this
-  repo's own docs pipeline, not the spec/plan/tasks artifact structure
+  repo's runtime and tooling, not the spec/plan/tasks artifact structure
 - Follow-up: none deferred
-- Prior version 2.0.0 redefined Principle II (three-line → four-line display structure)
+- Prior versions: 2.1.0 added Principle VIII (generated documentation previews); 2.0.0
+  redefined Principle II (three-line → four-line display structure)
 - Project Type: npm-installable CLI plugin for Claude Code statusline customization
 - Scope: Local development → GitHub distribution pipeline
 - Key Constraints: Starship compatibility, four-line display format, token tracking grounded in
-  real payload data, generated documentation previews, English-only output
+  real payload data, generated documentation previews, cross-platform support, English-only output
 -->
 
 ## Core Principles
@@ -146,6 +147,40 @@ reader has no way to tell a stale illustration from a current one.
   by regenerated previews in the same commit. A README image that disagrees with the code is a
   defect, not a cosmetic issue.
 
+### IX. Runs on Linux, macOS and Windows
+
+Every script in this project — the renderer, the install/uninstall commands, and the
+developer tooling — MUST run on Linux, macOS and Windows. The statusline is distributed via
+npm to whoever runs Claude Code, and Claude Code runs on all three.
+
+- **No shelling out to platform-specific tools on a shared path**: `osascript`, `open`,
+  `xdg-open`, `cmd /c` and friends MUST be reached only behind an explicit
+  `process.platform` check, never assumed. Guards MUST test the platform itself, not a proxy
+  for it — `TERM_PROGRAM` is an ordinary environment variable and can carry a macOS value on
+  a Linux machine.
+- **Paths**: every filesystem path MUST be built with `node:path` and every home/temp
+  location with `node:os` (`homedir()`, `tmpdir()`). Hard-coded `/tmp`, `$HOME`, `~`, or `/`
+  separators are prohibited outside strings that are already platform-guarded.
+- **File URLs**: `file://` URLs MUST be produced by the shared helper, which handles the
+  Windows drive-letter form (`file:///C:/...`), converts backslashes, and percent-encodes
+  spaces — a naive `` `file://${path}` `` yields an unopenable URL on Windows and on any
+  path containing a space.
+- **Spawned commands**: anything written into `settings.json` or passed to a shell MUST quote
+  both the interpreter and the script path, since either may contain spaces on any platform.
+  The interpreter MUST be `process.execPath` rather than a bare `node`, which may not be on
+  the PATH of the shell Claude Code spawns.
+- **Shell command strings**: values derived from the payload or the environment MUST NOT be
+  interpolated into a shell command string. Working directory travels as the `cwd` option;
+  command strings stay constant. A directory named with shell metacharacters would otherwise
+  be command injection, and quoting rules differ per platform.
+- **Graceful degradation over silent breakage**: a capability that genuinely does not exist on
+  a platform (opening a terminal tab from a link has no Linux/Windows equivalent that works
+  without installing a URL-scheme handler) MUST fall back to the nearest portable behaviour
+  and be documented as platform-limited. It MUST NOT emit a broken artifact or throw.
+- **Verification**: `npm test` MUST pass on all three platforms. It MUST cover path/URL
+  construction, platform guards, and the degraded rendering paths, so a platform regression
+  fails a test rather than surfacing as a broken statusline on someone else's machine.
+
 ## Development & Distribution Workflow
 
 **Local Installation Procedure** (v1.0.0 MVP):
@@ -174,8 +209,8 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Amendment Process**: Constitution changes require documented rationale (breaking changes, new principle, or clarification). Version bumped according to semver: MAJOR for principle removals/redefinitions, MINOR for new principles/sections, PATCH for wording/clarification only.
 
-**Compliance Review**: Each feature merged MUST verify adherence to Principles I–VIII (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope, generated previews). Reviews checked via PR review checklist.
+**Compliance Review**: Each feature merged MUST verify adherence to Principles I–IX (Starship compatibility, four-line format, token tracking, npm distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support). Reviews checked via PR review checklist.
 
-**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–VIII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
+**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–IX. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 2.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24
+**Version**: 2.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24

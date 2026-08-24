@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
+import { pathToFileUrl } from "./openTerminalTab.js";
 
 function run(cmd, cwd, timeout = 1500) {
   try {
@@ -21,13 +22,12 @@ export function getDirLabel(cwd) {
 
 /**
  * `file://` URL for the working directory. Clicking it (terminals that
- * support OSC 8 hyperlinks) reveals the folder in Finder/the file
+ * support OSC 8 hyperlinks) reveals the folder in the system file
  * manager on most terminals — there is no cross-terminal standard for
  * "open a new terminal window at this path" via a plain link.
  */
 export function getDirUrl(cwd) {
-  const abs = cwd || process.cwd();
-  return `file://${encodeURI(abs)}`;
+  return pathToFileUrl(cwd || process.cwd());
 }
 
 function normalizeRemoteToHttps(remote) {

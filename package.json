@@ -8,8 +8,14 @@
     "statusline-plugin": "bin/cli.js"
   },
   "scripts": {
-    "previews": "node scripts/generate-previews.js"
+    "previews": "node scripts/generate-previews.js",
+    "test": "node scripts/smoke-test.js"
   },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
   "engines": {
     "node": ">=18"
   },

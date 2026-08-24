@@ -60,6 +60,27 @@ Powerline separator for a plain arrow:
 
 ![ASCII fallback](docs/previews/ascii-fallback.svg)
 
+## Platform support
+
+Runs on **Linux, macOS and Windows** — `npm test` covers path handling,
+URL construction, platform guards and the degraded rendering paths.
+
+Two features are platform-limited, and degrade rather than break:
+
+| Feature | Linux | macOS | Windows |
+|---|---|---|---|
+| Statusline rendering | ✅ | ✅ | ✅ |
+| Git branch / ahead-behind | ✅ | ✅ | ✅ |
+| Pull request info (needs `gh`) | ✅ | ✅ | ✅ |
+| Install / uninstall | ✅ | ✅ | ✅ |
+| Clicking branch/PR opens GitHub | ✅ | ✅ | ✅ |
+| Clicking directory opens a **new terminal tab** | ✖︎ file manager | ✅ iTerm2, Terminal.app | ✖︎ file manager |
+
+Opening a terminal tab from a click needs an OS automation hook that only
+macOS provides without installing a custom URL-scheme handler. Everywhere
+else — including Ghostty, Warp, kitty and WezTerm on macOS — the directory
+link falls back to revealing the folder in the system file manager.
+
 ## How auto-update works
 
 No daemon, no polling loop. Claude Code invokes the configured `statusLine`
@@ -181,12 +202,13 @@ The directory, branch, and PR segments on line 1 are OSC 8 terminal
 hyperlinks — the visible text stays exactly what you see (no URL is ever
 printed), but it's clickable in terminals that support OSC 8:
 
-- **Directory** → on iTerm2 and Terminal.app, opens a new tab in that
-  same app, `cd`'d into the directory (via a generated `.command`
-  script and AppleScript). Any other terminal (Warp, VS Code's
-  integrated terminal, kitty, WezTerm, ...) has no automation target
-  from here, so it falls back to a plain `file://` link, which most
-  terminals resolve to revealing the folder in Finder.
+- **Directory** → on macOS with iTerm2 or Terminal.app, opens a new tab
+  in that same app, `cd`'d into the directory (via a generated
+  `.command` script and AppleScript). Everywhere else — Linux, Windows,
+  and other macOS terminals like Ghostty, Warp, kitty and WezTerm — it
+  falls back to a plain `file://` link, which the system resolves to
+  revealing the folder in the file manager. See
+  [Platform support](#platform-support).
 - **Branch** → the branch's tree view on GitHub (built from `git remote
   get-url origin`), only when a remote is configured.
 - **PR** → the pull request's page on GitHub, only when one is open.
