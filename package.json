@@ -1,0 +1,19 @@
+{
+  "name": "claude-statusline-catppuccin",
+  "version": "1.0.0",
+  "description": "Catppuccin Powerline statusline for Claude Code: model/effort, context and rate-limit usage, active skills, git branch and pull request state.",
+  "type": "module",
+  "main": "src/render.js",
+  "bin": {
+    "statusline-plugin": "bin/cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ]
+}
