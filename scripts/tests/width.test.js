@@ -45,6 +45,11 @@ for (const ascii of [false, true]) {
       trackChanges: false,
       asciiArrows: ascii,
       now: NOW,
+      // The constitutional limit is what this asserts, so it is what the
+      // render is given. Without it the suite would assert 120 while
+      // rendering at whatever width the runner pinned.
+      maxWidth: LIMIT,
+      maxHeight: 40,
     });
     for (const [i, line] of stripAnsi(out).split("\n").entries()) {
       const width = displayWidth(line);
@@ -67,9 +72,12 @@ await test("a narrow line drops by priority, not by position", () => {
   const roomy = line4At(200);
   assert.match(roomy, /rtk/, "with room, everything renders");
 
-  const tight = line4At(displayWidth(roomy) - 4);
+  // Narrowing by a few columns is absorbed by the bar, which scales with the
+  // terminal (E3), so nothing has to be dropped. Past that, the priority
+  // table decides, and the savings figure at 40 is the first to go.
+  const tight = line4At(100);
   assert.doesNotMatch(tight, /rtk/, "priority 40 is the first to go");
-  assert.match(tight, /Context 100%/, "priority 100 stays");
+  assert.match(tight, /Context [░█▓▒!]* ?100%/, "priority 100 stays");
 
   const tighter = line4At(40);
   assert.match(tighter, /Context/, "the top of the table survives to the end");
@@ -104,7 +112,7 @@ await test("dropping a segment is preferred to shortening one", () => {
   assert.equal((at70.match(/resets in/g) || []).length, 0, "the right-aligned countdowns go together");
 
   // 45: down to the top of the table.
-  assert.match(line4At(45), /Context 100%/);
+  assert.match(line4At(45), /Context [░█▓▒!]* ?100%/);
 });
 
 await test("an unconstrained line keeps everything, so the guard costs nothing normally", () => {
@@ -127,7 +135,7 @@ await test("an unconstrained line keeps everything, so the guard costs nothing n
 await test("a very long directory name is shortened from the left, keeping the end", () => {
   const long = "/tmp/" + "segment-".repeat(20) + "end";
   const out = stripAnsi(
-    renderPayload({ cwd: long }, { sources: gitSources(), trackChanges: false, now: NOW })
+    renderPayload({ cwd: long }, { sources: gitSources(), trackChanges: false, now: NOW, maxWidth: LIMIT })
   );
   const line1 = out.split("\n")[0];
   assert.ok(displayWidth(line1) <= LIMIT, `line 1 is ${displayWidth(line1)} columns`);

@@ -157,6 +157,30 @@ Powerline separator for a plain arrow:
 
 ![ASCII fallback](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/ascii-fallback.svg)
 
+## Reading a level at a glance
+
+The context figure renders as a bar beside its number, and the bar's colour
+follows the level: green below 60%, yellow to 85%, red above it. The 5-hour
+and 7-day figures use the same thresholds, so all three read the same way.
+
+Colour is not the only carrier, because around one man in twelve cannot
+separate red from green. Each band draws a different character, so the band
+survives a greyscale screenshot and a terminal with a broken palette:
+
+| Band | Bar | Also |
+|---|---|---|
+| below 60% | `████░░░░░░` | |
+| 60% to 85% | `▓▓▓▓▓▓▓░░░` | |
+| above 85% | `▒▒▒▒▒▒▒▒▒▒` | a trailing `!` |
+
+The bar scales with the terminal: eight cells under 100 columns, ten up to
+160, sixteen above. An unknown percentage draws an empty track rather than
+disappearing, so the line's width does not jump when the payload skips a
+field.
+
+The reset countdowns are dimmed. They are context for the figures beside
+them rather than figures in their own right.
+
 ## What line 4 can tell you
 
 Beyond the three usage percentages and their countdowns, the payload carries

@@ -100,8 +100,11 @@ await test("the report states the redraw cost and each rendered row's width", ()
   assert.equal(typeof report.elapsedMs, "number");
   assert.equal(report.budgets.redrawMs, 300);
   assert.ok(report.rows.length >= 3);
+  // The diagnostic renders at the terminal's width, like the bar does, so
+  // that is what its rows are measured against.
+  const limit = Number(process.env.COLUMNS) || 120;
   for (const row of report.rows) {
-    assert.ok(row.width > 0 && row.width <= 120, `row ${row.row} is ${row.width} columns`);
+    assert.ok(row.width > 0 && row.width <= limit, `row ${row.row} is ${row.width} columns`);
   }
 });
 

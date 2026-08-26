@@ -16,6 +16,7 @@ import { clockFaceFor, resetMomentLabel } from "./timeIcons.js";
 import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel } from "./segments.js";
+import { bar, rampColour } from "./ramp.js";
 import { fitToWidth, alignColumns, linesToRender, terminalWidth, terminalHeight } from "./layout.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
@@ -492,18 +493,33 @@ export function renderReadings(
   const sevenDayMoment = resetMomentLabel(sevenDayResetsAt, new Date(now));
 
   const line4Content = {
-    context: () => ({ color: "yellow", text: ` 🧠 Context ${ctxPct ?? "?"}% ` }),
-    fiveHour: () => ({ color: "green", text: ` ⏱️ 5h ${fiveHourPct ?? "?"}% ` }),
+    // The three ramped segments. Colour says which band the level is in, and
+    // the bar's own characters say it again, because colour may not be the
+    // only carrier (E6). An unknown level keeps the segment's own colour and
+    // draws an empty track: `?%` is the honest answer, and a bar that
+    // vanished would make the line's width jump.
+    context: () => ({
+      color: rampColour(ctxPct, "yellow"),
+      // The label stays. E1 asked for a bar beside the number, not instead
+      // of the word that says what the number is.
+      text: ` 🧠 Context ${bar(ctxPct, maxWidth)} ${ctxPct ?? "?"}% `,
+    }),
+    fiveHour: () => ({
+      color: rampColour(fiveHourPct, "green"),
+      text: ` ⏱️ 5h ${fiveHourPct ?? "?"}% `,
+    }),
     fiveHourReset: (o) => ({
-      color: "peach",
+      // E8: dimmed, because a countdown is context for the figure beside it
+      // rather than the figure itself.
+      color: "surface2",
       text: ` ${fiveHourClock}${o.fiveHourText ? ` ${fiveHourResetLabel}` : ""} `,
     }),
     sevenDay: (o) => ({
-      color: "sapphire",
+      color: rampColour(sevenDayPct, "sapphire"),
       text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${o.moment && sevenDayMoment ? ` · ${sevenDayMoment}` : ""} `,
     }),
     sevenDayReset: (o) => ({
-      color: "peach",
+      color: "surface2",
       text: ` ${sevenDayClock}${o.sevenDayText ? ` ${sevenDayResetLabel}` : ""} `,
     }),
     rtk: (o) => (o.rtk && rtkPct !== null ? { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` } : null),

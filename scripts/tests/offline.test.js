@@ -84,14 +84,14 @@ await test("a source that throws removes its own segment and nothing else", () =
     }
   );
   const plain = stripAnsi(out);
-  assert.match(plain, /Context 55%/, "unrelated segments must be untouched");
+  assert.match(plain, /Context [░█▓▒]* ?55%/, "unrelated segments must be untouched");
   assert.doesNotMatch(plain, /rtk/);
   assert.doesNotMatch(plain, /exploded|unreadable/);
 });
 
 await test("with nothing available at all, the line is still four segments of truth", () => {
   const plain = stripAnsi(renderPayload({}, { sources: emptySources, trackChanges: false }));
-  assert.match(plain, /Context \?%/);
+  assert.match(plain, /Context [░█▓▒]* ?\?%/);
   assert.match(plain, /5h \?%/);
   assert.match(plain, /7d \?%/);
 });

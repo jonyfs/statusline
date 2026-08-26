@@ -126,12 +126,12 @@ await test("outputStyle: present when set, absent when default or missing", () =
 
 await test("context, fiveHour, sevenDay: present, and ?% rather than absent", () => {
   const full = render(payload, everything);
-  assert.match(full, /Context 26%/);
+  assert.match(full, /Context [░█▓▒]* ?26%/);
   assert.match(full, /5h 20%/);
   assert.match(full, /7d 77%/);
 
   const empty = render({}, emptySources);
-  assert.match(empty, /Context \?%/);
+  assert.match(empty, /Context [░█▓▒]* ?\?%/);
   assert.match(empty, /5h \?%/);
   assert.match(empty, /7d \?%/);
 });

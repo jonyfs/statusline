@@ -96,14 +96,14 @@ description: "Task list for the selected statusline redesign"
 
 **Purpose**: The bar, the ramp, the shape rule that keeps it readable without colour, and the formatting.
 
-- [ ] T033 [P] Write `scripts/tests/ramp.test.js`: a level maps to a band at 60 and 85; each band has a distinct bar character; the mapping is identical for context and for the rate limits
-- [ ] T034 [P] Write `scripts/tests/bar.test.js`: bar width scales with the terminal (8, 10, 16); the number renders beside the bar; a bar plus number never exceeds its segment's share
-- [ ] T035 Create `src/ramp.js`: level to colour and to bar shape, in one place [E4, E5, E6]
-- [ ] T036 Render context as a bar and a number [E1, E2, E3]
-- [ ] T037 Apply the ramp to context, 5-hour and 7-day [E4, E5]
-- [ ] T038 Make each band change the bar's characters, so the band survives greyscale [E6]
-- [ ] T039 [P] Dim the reset countdowns [E8]
-- [ ] T040 [P] Abbreviate token counts, per E9
+- [X] T033 [P] Write `scripts/tests/ramp.test.js`: a level maps to a band at 60 and 85; each band has a distinct bar character; the mapping is identical for context and for the rate limits
+- [X] T034 [P] Write `scripts/tests/bar.test.js`: bar width scales with the terminal (8, 10, 16); the number renders beside the bar; a bar plus number never exceeds its segment's share
+- [X] T035 Create `src/ramp.js`: level to colour and to bar shape, in one place [E4, E5, E6]
+- [X] T036 Render context as a bar and a number [E1, E2, E3]
+- [X] T037 Apply the ramp to context, 5-hour and 7-day [E4, E5]
+- [X] T038 Make each band change the bar's characters, so the band survives greyscale [E6]
+- [X] T039 [P] Dim the reset countdowns [E8]
+- [X] T040 [P] Abbreviate token counts, per E9
 
 **Checkpoint**: A glance says which band a value is in, with or without colour.
 
