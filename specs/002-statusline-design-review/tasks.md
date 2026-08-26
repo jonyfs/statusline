@@ -194,12 +194,12 @@ description: "Task list for the selected statusline redesign"
 
 ## Phase 12: Documentation and previews
 
-- [ ] T076 [P] Rewrite the README's four-line section for a shape that sheds lines
-- [ ] T077 [P] Document the priority table and what an 80-column terminal shows
-- [ ] T078 [P] Document the new segments, the themes, and `refreshInterval`
-- [ ] T079 Add preview fixtures: narrow terminal, shed lines, both new themes, the bar, the sparkline, the new segments
-- [ ] T080 Regenerate previews and commit them in the same change
-- [ ] T081 Run every check in quickstart.md and record the measured p95
+- [X] T076 [P] Rewrite the README's four-line section for a shape that sheds lines
+- [X] T077 [P] Document the priority table and what an 80-column terminal shows
+- [X] T078 [P] Document the new segments, the themes, and `refreshInterval`
+- [X] T079 Add preview fixtures: narrow terminal, shed lines, both new themes, the bar, the sparkline, the new segments
+- [X] T080 Regenerate previews and commit them in the same change
+- [X] T081 Run every check in quickstart.md and record the measured p95
 - [ ] T082 Confirm CI passes on Linux, macOS and Windows
 - [ ] T083 Pass every changed markdown file through the `humanizer` skill, then open the pull request
 

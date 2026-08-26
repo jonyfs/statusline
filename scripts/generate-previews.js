@@ -65,8 +65,9 @@ function main() {
       renderPayload(scenario.payload, {
         sources: scenario.sources,
         trackChanges: false,
-        maxWidth: PREVIEW_WIDTH,
-        maxHeight: PREVIEW_HEIGHT,
+        // A scenario may pin its own size when the size is the point.
+        maxWidth: scenario.width ?? PREVIEW_WIDTH,
+        maxHeight: scenario.height ?? PREVIEW_HEIGHT,
       })
     );
     const svg = ansiToSvg(ansi, {

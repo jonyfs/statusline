@@ -12,8 +12,18 @@
 
 import { gather, renderReadings } from "./render.js";
 import { SEGMENTS as REGISTRY } from "./segments.js";
-import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl, probeGitInfo, probePrInfo, normalizePr } from "./git.js";
-import { getActiveSkills } from "./skills.js";
+import {
+  getDirLabel,
+  getDirUrl,
+  getGitInfo,
+  getPrInfo,
+  getRemoteUrl,
+  getCiStatus,
+  probeGitInfo,
+  probePrInfo,
+  normalizePr,
+} from "./git.js";
+import { getActiveSkills, getSessionActivity } from "./skills.js";
 import { getRtkSavings, probeRtkSavings } from "./rtk.js";
 import { formatResetCountdown } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
@@ -129,11 +139,16 @@ async function readStdin() {
 }
 
 export function buildReport(payload, { now = Date.now(), live = true, probe } = {}) {
+  // The same probe set the renderer builds. Missing one here made the
+  // diagnostic report a source failure for a segment that renders fine,
+  // which is the diagnostic lying about the thing it exists to explain.
   const probes = probe || {
     getGitInfo,
     getPrInfo,
     getRemoteUrl,
+    getCiStatus,
     getActiveSkills,
+    getSessionActivity,
     getRtkSavings,
     getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
   };

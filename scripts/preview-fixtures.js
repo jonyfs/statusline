@@ -226,6 +226,52 @@ export const SCENARIOS = [
       getRtkSavings: () => 81,
     },
   },
+  {
+    file: "narrow.svg",
+    title: "Eighty columns — the priority table decides what survives",
+    width: 80,
+    payload: {
+      ...basePayload,
+      context_window: { used_percentage: 38, total_input_tokens: 15500, total_output_tokens: 1200, context_window_size: 200000 },
+      cost: { total_duration_ms: 3840000, total_api_duration_ms: 1320000, total_lines_added: 156, total_lines_removed: 23 },
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "feature/preview-images", upstream: "origin/feature/preview-images", ahead: 2, behind: 0, changed: 4, untracked: 1, conflicts: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+    },
+  },
+  {
+    file: "short-window.svg",
+    title: "A window with room for two rows — lines are shed, never wrapped",
+    height: 2,
+    payload: basePayload,
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0, conflicts: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+    },
+  },
+  {
+    file: "near-compaction.svg",
+    title: "Close to the context limit — the ramp changes the bar's shape, not only its colour",
+    payload: {
+      ...basePayload,
+      context_window: { used_percentage: 92, total_input_tokens: 184000, total_output_tokens: 2000, context_window_size: 200000 },
+      rate_limits: {
+        five_hour: { used_percentage: 88, resets_at: FIXED_NOW + 1320 },
+        seven_day: { used_percentage: 96, resets_at: FIXED_NOW + 9300 },
+      },
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0, conflicts: 2 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+    },
+  },
 ];
 
 export const EXTRA_FLAVORS = ["nord", "gruvbox"];

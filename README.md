@@ -5,7 +5,7 @@ shows where you are (directory, git branch, working-tree state, open pull
 request), which skills are active, which model and effort you're on, and how
 much of your context window and rate limits you've burned through.
 
-Every redraw finishes in about 31 milliseconds at the 95th percentile,
+Every redraw finishes in about 25 milliseconds at the 95th percentile,
 measured against a 75 MB session transcript, and never waits on the network.
 The bar fits itself to the terminal it is in: it reads the real width and
 height, drops the least important segments before it would overflow, and
@@ -139,11 +139,15 @@ window, the model, and the 7-day window. Measured in this repository:
 | 80 | the 7-day countdown; the 5-hour one stays |
 | 60 | both countdowns; the three usage figures remain |
 
+![Eighty columns](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/narrow.svg)
+
 **Too short.** Lines are shed rather than wrapped, because a wrapped bar
 costs more rows than it saves and Claude Code truncates rather than wraps.
 Skills go first, then the model line, then the directory line. Line 4 is the
 last one standing: it carries the limits whose consequences you cannot undo.
 Everything comes back the moment the window does.
+
+![A two-row window](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/short-window.svg)
 
 The full priority table lives in
 [`specs/002-statusline-design-review/data-model.md`](specs/002-statusline-design-review/data-model.md).
@@ -189,6 +193,8 @@ survives a greyscale screenshot and a terminal with a broken palette:
 | below 60% | `████░░░░░░` | |
 | 60% to 85% | `▓▓▓▓▓▓▓░░░` | |
 | above 85% | `▒▒▒▒▒▒▒▒▒▒` | a trailing `!` |
+
+![Close to the limit](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/near-compaction.svg)
 
 The bar scales with the terminal: eight cells under 100 columns, ten up to
 160, sixteen above. An unknown percentage draws an empty track rather than
@@ -300,7 +306,7 @@ state in as JSON: the model, the context window, the rate limits.
 
 What the script does with that has one rule: a redraw has 300 milliseconds
 and it does not go over. Measured on this machine against a real 75 MB
-session transcript, a redraw takes 31 milliseconds at the 95th percentile.
+session transcript, a redraw takes 25 milliseconds at the 95th percentile.
 You can check that yourself:
 
 ```bash
