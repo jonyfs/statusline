@@ -12,6 +12,9 @@ const NF_CODEPOINTS = new Set(
   Object.keys(GLYPHS.glyphs).map((hex) => parseInt(hex, 16))
 );
 
+/** Private use area: where every Nerd Font glyph lives. */
+const isPrivateUse = (cp) => cp >= 0xe000 && cp <= 0xf8ff;
+
 const CELL_W = 9.8;
 const CELL_H = 22;
 const FONT_SIZE = 16;
@@ -97,13 +100,28 @@ function escapeXml(s) {
 }
 
 /**
+ * A private-use codepoint with no embedded outline cannot be drawn, and it
+ * must not be written out as text either: Principle VIII requires these SVGs
+ * to render for a viewer with no Nerd Font, and a raw private-use character
+ * shows them tofu. That is what happened to the commit icon on a detached
+ * HEAD, which shipped in a preview as an invisible character.
+ */
+function missingGlyphMessage(hex) {
+  return (
+    `No outline for U+${hex} in src/preview/glyphs.json. Add it to the ` +
+    "CODEPOINTS map in scripts/extract-glyphs.py and regenerate, or the " +
+    "preview ships a character most viewers cannot render."
+  );
+}
+
+/**
  * Renders one Nerd Font glyph as a scaled path. Font outlines are
  * y-up from the baseline, SVG is y-down, hence the negative y scale.
  */
 function glyphPath(cp, x, baselineY, fill) {
   const hex = cp.toString(16).toUpperCase().padStart(4, "0");
   const g = GLYPHS.glyphs[hex];
-  if (!g) return "";
+  if (!g) throw new Error(missingGlyphMessage(hex));
   const scale = FONT_SIZE / GLYPHS.unitsPerEm;
   return (
     `<path d="${g.path}" fill="${fill}" ` +
@@ -179,6 +197,8 @@ export function ansiToSvg(ansi, { title = "", background = "#1e1e2e" } = {}) {
 
         if (NF_CODEPOINTS.has(cp)) {
           body.push(glyphPath(cp, PAD_X + localX * CELL_W, baseline, fill));
+        } else if (isPrivateUse(cp)) {
+          throw new Error(missingGlyphMessage(cp.toString(16).toUpperCase().padStart(4, "0")));
         } else if (ch.trim()) {
           const centre = PAD_X + (localX + w / 2) * CELL_W;
           body.push(

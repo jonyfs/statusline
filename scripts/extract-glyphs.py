@@ -34,6 +34,7 @@ WANTED = {
     "F457": 0xF457,  # nf-oct-diff_added: boxed plus, GitHub's added marker
     "F40A": 0xF40A,  # nf-oct-cloud_upload: commits waiting to be pushed
     "F409": 0xF409,  # nf-oct-cloud_download: commits waiting to be pulled
+    "F417": 0xF417,  # nf-oct-git_commit: a detached HEAD, which is not a branch
 }
 
 

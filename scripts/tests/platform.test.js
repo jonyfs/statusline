@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { ansiToSvg } from "../../src/preview/ansiToSvg.js";
 import { test } from "../test-harness.js";
 import { pathToFileUrl, buildOpenTabScript } from "../../src/openTerminalTab.js";
 import { buildCommandForTest } from "../../src/install.js";
@@ -118,4 +120,31 @@ await test("git status is never fetched from the network", () => {
   // user's last fetch, which is a documented limitation, not a bug.
   const src = readSource("src/git.js");
   assert.doesNotMatch(src, /git fetch|git pull|git remote update/, "must not hit the network");
+});
+
+await test("no preview ships a private-use character as text", () => {
+  // Principle VIII: these SVGs must render for a viewer with no Nerd Font,
+  // GitHub's README renderer included. A Nerd Font codepoint written as text
+  // rather than as an embedded outline shows them tofu. The commit icon on a
+  // detached HEAD shipped that way once, because the converter fell through
+  // to its text branch for any codepoint missing from glyphs.json.
+  const dir = fileURLToPath(new URL("../../docs/previews/", import.meta.url));
+  for (const name of readdirSync(dir).filter((f) => f.endsWith(".svg"))) {
+    const svg = readFileSync(path.join(dir, name), "utf8");
+    const pua = [...svg].filter((ch) => {
+      const cp = ch.codePointAt(0);
+      return cp >= 0xe000 && cp <= 0xf8ff;
+    });
+    assert.equal(pua.length, 0, `${name} carries ${pua.length} private-use character(s) as text`);
+  }
+});
+
+await test("the preview converter refuses a glyph it cannot draw", () => {
+  const ESC = String.fromCharCode(27);
+  const unknown = String.fromCodePoint(0xf5ff); // in the private use area, not embedded
+  assert.throws(
+    () => ansiToSvg(`${ESC}[48;2;69;71;90m ${unknown} ${ESC}[0m`),
+    /No outline for U\+F5FF/,
+    "an un-embedded glyph must fail loudly rather than ship as text"
+  );
 });
