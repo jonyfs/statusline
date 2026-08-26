@@ -7,6 +7,7 @@ import { getOpenTabUrl } from "./openTerminalTab.js";
 import { clockFaceFor, resetMomentLabel } from "./timeIcons.js";
 import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
+import { byLine, segment, inChannel } from "./segments.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
 // characters: pasted literals silently vanished from this file once
@@ -344,11 +345,21 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
   // Line 3: model, then effort and output style as separate segments. They
   // are different things, and one standing in for the other behind the
   // same icon is a segment that lies about what it shows (FR-021).
-  const l3 = [{ color: "red", text: ` ${changes.iconFor("model", "🤖")} ${modelName} ` }];
-  if (effort) l3.push({ color: "peach", text: ` ${changes.iconFor("effort", "⚡")} ${effort} ` });
-  if (outputStyle && outputStyle !== "default") {
-    l3.push({ color: "flamingo", text: ` 🎨 ${outputStyle} ` });
-  }
+  // Composed from the registry: which segments belong on this line, and in
+  // what order, is a property of the table rather than of this function.
+  // What each one says is still built here, because that is content, not
+  // layout.
+  const line3Content = {
+    model: () => ({ color: "red", text: ` ${changes.iconFor("model", "🤖")} ${modelName} ` }),
+    effort: () => (effort ? { color: "peach", text: ` ${changes.iconFor("effort", "⚡")} ${effort} ` } : null),
+    outputStyle: () =>
+      outputStyle && outputStyle !== "default"
+        ? { color: "flamingo", text: ` 🎨 ${outputStyle} ` }
+        : null,
+  };
+  const l3 = byLine(3)
+    .map((s) => line3Content[s.key]?.())
+    .filter(Boolean);
   lines.push(renderRow(palette, l3, opts));
 
   // Line 4: context / 5h window + its reset / 7d window + its reset / rtk.
@@ -359,21 +370,29 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
   const sevenDayClock = clockFaceFor(sevenDayResetsAt) ?? g.clock;
   const sevenDayMoment = resetMomentLabel(sevenDayResetsAt, new Date(now));
 
+  const line4Content = {
+    context: () => ({ color: "yellow", text: ` 🧠 Context ${ctxPct ?? "?"}% ` }),
+    fiveHour: () => ({ color: "green", text: ` ⏱️ 5h ${fiveHourPct ?? "?"}% ` }),
+    fiveHourReset: (o) => ({
+      color: "peach",
+      text: ` ${fiveHourClock}${o.fiveHourText ? ` ${fiveHourResetLabel}` : ""} `,
+    }),
+    sevenDay: (o) => ({
+      color: "sapphire",
+      text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${o.moment && sevenDayMoment ? ` · ${sevenDayMoment}` : ""} `,
+    }),
+    sevenDayReset: (o) => ({
+      color: "peach",
+      text: ` ${sevenDayClock}${o.sevenDayText ? ` ${sevenDayResetLabel}` : ""} `,
+    }),
+    rtk: (o) => (o.rtk && rtkPct !== null ? { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` } : null),
+  };
+
   const buildLine4 = ({ moment = true, fiveHourText = true, sevenDayText = true, rtk = true } = {}) => {
-    const row = [
-      { color: "yellow", text: ` 🧠 Context ${ctxPct ?? "?"}% ` },
-      { color: "green", text: ` ⏱️ 5h ${fiveHourPct ?? "?"}% ` },
-      { color: "peach", text: ` ${fiveHourClock}${fiveHourText ? ` ${fiveHourResetLabel}` : ""} ` },
-      {
-        color: "sapphire",
-        text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${moment && sevenDayMoment ? ` · ${sevenDayMoment}` : ""} `,
-      },
-      { color: "peach", text: ` ${sevenDayClock}${sevenDayText ? ` ${sevenDayResetLabel}` : ""} ` },
-    ];
-    if (rtk && rtkPct !== null) {
-      row.push({ color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` });
-    }
-    return row;
+    const opt = { moment, fiveHourText, sevenDayText, rtk };
+    return byLine(4)
+      .map((s) => line4Content[s.key]?.(opt))
+      .filter(Boolean);
   };
 
   // The 120-column limit is a promise the constitution makes, and until now
