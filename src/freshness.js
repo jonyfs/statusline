@@ -55,6 +55,11 @@ export const MAX_AGE_MS = {
   git: 5_000,
   pr: 60_000,
   rtk: 60_000,
+  // A network call, so it lives behind the same background refresh the
+  // pull request uses. A green tick ten minutes old is worse than none.
+  ci: 60_000,
+  todo: REDRAW_INTERVAL_MS,
+  activity: REDRAW_INTERVAL_MS,
   skills: REDRAW_INTERVAL_MS,
   model: REDRAW_INTERVAL_MS,
   effort: REDRAW_INTERVAL_MS,

@@ -1,4 +1,4 @@
-import { scanTailForSkills } from "./transcriptTail.js";
+import { scanTailForSkills, scanTail } from "./transcriptTail.js";
 import { readSkillEvents } from "./skillEvents.js";
 
 /**
@@ -73,4 +73,29 @@ export function getActiveSkillsDetailed(transcriptPath, limit = 3, { now = Date.
 
   if (!transcriptPath) return { skills: [], truncated: false, bytesRead: 0, source: "transcript" };
   return { ...scanTailForSkills(transcriptPath, { limit, windowMs: window, now }), source: "transcript" };
+}
+
+/**
+ * What the session is doing, and how far along it is: the todo list, and
+ * whether Claude has done anything in the last few seconds.
+ *
+ * "Working" here means the transcript grew recently. It is an
+ * approximation, and the honest one available: there is no event that says
+ * "thinking now", and the statusline hides during permission prompts
+ * anyway. A session that has been quiet for longer than the threshold reads
+ * as idle, which is what it looks like from the outside.
+ */
+const ACTIVE_WITHIN_MS = 10_000;
+
+export function getSessionActivity(transcriptPath, { now = Date.now(), limit = 3 } = {}) {
+  // No transcript is not an idle session; it is a session this process
+  // cannot see. Saying "idle" there would be a claim about something
+  // unobserved.
+  if (!transcriptPath) return null;
+  const scan = scanTail(transcriptPath, { limit, windowMs: windowMs(), now });
+  return {
+    skills: scan.skills,
+    todos: scan.todos,
+    working: scan.lastAt !== null && now - scan.lastAt <= ACTIVE_WITHIN_MS,
+  };
 }

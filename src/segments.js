@@ -52,9 +52,12 @@ export const SEGMENTS = [
   { key: "worktreeState", line: 1, order: 30, align: "left", priority: 86, colour: "identity", source: "git" },
   { key: "upstream", line: 1, order: 40, align: "left", priority: 84, colour: "identity", source: "git" },
   { key: "pr", line: 1, order: 50, align: "left", priority: 82, colour: "change", source: "gh" },
+  { key: "ci", line: 1, order: 60, align: "left", priority: 56, colour: "identity", source: "gh" },
 
   // Line 2: what is shaping the work.
   { key: "skills", line: 2, order: 10, align: "left", priority: 76, colour: "change", source: "transcript" },
+  { key: "todo", line: 2, order: 20, align: "left", priority: 70, colour: "identity", source: "transcript" },
+  { key: "activity", line: 2, order: 30, align: "left", priority: 68, colour: "identity", source: "transcript" },
 
   // Line 3: how the model is configured.
   { key: "model", line: 3, order: 10, align: "left", priority: 92, colour: "change", source: "payload" },

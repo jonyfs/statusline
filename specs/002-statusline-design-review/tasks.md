@@ -159,11 +159,11 @@ description: "Task list for the selected statusline redesign"
 
 **Purpose**: One background-refresh value, and two that ride the transcript read that already happens.
 
-- [ ] T060 [P] Write `scripts/tests/ci.test.js`: CI status renders from cache only, never calls `gh` on the redraw path, and disappears rather than going stale
-- [ ] T061 [P] Write `scripts/tests/activity.test.js`: the working or idle marker and the todo count come from the tail read, and both are absent rather than wrong when the transcript says nothing
-- [ ] T062 CI status, symbol and workflow, behind the existing background refresh [B10]
-- [ ] T063 Working or idle marker from the transcript tail [F6]
-- [ ] T064 Todo progress, count and current item, from the same read [F7]
+- [X] T060 [P] Write `scripts/tests/ci.test.js`: CI status renders from cache only, never calls `gh` on the redraw path, and disappears rather than going stale
+- [X] T061 [P] Write `scripts/tests/activity.test.js`: the working or idle marker and the todo count come from the tail read, and both are absent rather than wrong when the transcript says nothing
+- [X] T062 CI status, symbol and workflow, behind the existing background refresh [B10]
+- [X] T063 Working or idle marker from the transcript tail [F6]
+- [X] T064 Todo progress, count and current item, from the same read [F7]
 
 **Checkpoint**: The bar shows what Claude is doing, not only what the session looks like.
 

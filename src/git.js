@@ -310,3 +310,39 @@ export function probeGitInfo(cwd, timeout) {
     gitText(["--no-optional-locks", "status", "--porcelain=v2", "--branch", "-z"], cwd, timeout)
   );
 }
+
+/**
+ * The last CI run's conclusion for this branch, from `gh run list`.
+ *
+ * A network call, so it never runs during a redraw: it lives behind the
+ * same detached refresh the pull request lookup uses, and a value older
+ * than its maximum age disappears rather than going stale. A green tick
+ * that is actually ten minutes old is worse than no tick.
+ */
+export function probeCiStatus(cwd, timeout = 5000) {
+  try {
+    const out = execFileSync(
+      "gh",
+      ["run", "list", "--limit", "1", "--json", "conclusion,status,workflowName"],
+      { cwd, timeout, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true }
+    );
+    const [run] = JSON.parse(out);
+    if (!run) return null;
+    return {
+      conclusion: run.conclusion || null,
+      status: run.status || null,
+      workflow: run.workflowName || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** CI status, read from cache only, refreshed in the background. */
+export function getCiStatus(cwd, { now = Date.now() } = {}) {
+  const key = repoKey(cwd);
+  const entry = readEntry(key, "ci");
+  if (shouldRefresh("ci", entry, now)) spawnRefresh(key, "ci", cwd, { now });
+  if (!entry || now - entry.at > (MAX_AGE_MS.ci ?? 60_000)) return null;
+  return entry.value;
+}

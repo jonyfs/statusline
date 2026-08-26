@@ -1,6 +1,15 @@
 import { PALETTES, renderRow, displayWidth } from "./theme.js";
-import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl, normalizePr, repoUrlFromPayload } from "./git.js";
-import { getActiveSkills } from "./skills.js";
+import {
+  getDirLabel,
+  getDirUrl,
+  getGitInfo,
+  getPrInfo,
+  getRemoteUrl,
+  getCiStatus,
+  normalizePr,
+  repoUrlFromPayload,
+} from "./git.js";
+import { getActiveSkills, getSessionActivity } from "./skills.js";
 import {
   getContextPercent,
   getRateLimits,
@@ -210,6 +219,13 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
         : timed("gh", () => normalizePr(probe.getPrInfo(cwd), "gh"))
       : missing("gh", "not a repository"),
     skills: skillsReading(timed, probe, payload),
+    // One pass over the transcript answers all three. Reading the file
+    // three times would have tripled the only cost on this path that ever
+    // grew with the session.
+    activity: timed("transcript", () =>
+      probe.getSessionActivity(payload?.transcript_path, { now })
+    ),
+    ci: hasRepo ? timed("gh", () => probe.getCiStatus(cwd)) : missing("gh", "not a repository"),
     rtk: timed("rtk", () => probe.getRtkSavings(cwd)),
     model: reading({
       value: payload?.model?.display_name || payload?.model?.id || "Claude",
@@ -268,6 +284,8 @@ export function renderPayload(
     getPrInfo,
     getRemoteUrl,
     getActiveSkills,
+    getSessionActivity,
+    getCiStatus,
     getRtkSavings,
     getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
     ...sources,
@@ -354,6 +372,9 @@ export function renderReadings(
   const g = asciiArrows ? GLYPHS.plain : GLYPHS.nerd;
   const opts = { asciiArrows };
   const lines = [];
+  // Which of the four each rendered row is. Shedding needs to know, and a
+  // line that renders only sometimes made an index-based guess wrong.
+  const rendered = [];
 
   /**
    * Attaches each descriptor's registry row and drops the least important
@@ -415,6 +436,15 @@ export function renderReadings(
     if (repo?.owner && repo.name) {
       l1.push({ key: "repo", color: "surface2", text: ` ${repo.owner}/${repo.name} ` });
     }
+    // B10: closes the loop after a push without leaving the terminal. It is
+    // a cached value by construction, and disappears rather than going
+    // stale, because a green tick ten minutes old is worse than none.
+    const ci = shows("ci") ? readings.ci.value : null;
+    if (ci) {
+      const mark = ci.status && ci.status !== "completed" ? "◐" : ci.conclusion === "success" ? "✓" : "✗";
+      const colour = mark === "✓" ? "green" : mark === "✗" ? "red" : "yellow";
+      l1.push({ key: "ci", color: colour, text: ` ${mark} ${ci.workflow ?? "CI"} ` });
+    }
     // B8: an unmerged path stops everything until it is resolved, which is
     // not what an ordinary changed file means.
     if (git.conflicts) {
@@ -454,6 +484,25 @@ export function renderReadings(
     }
   }
   lines.push(line1);
+  rendered.push(1);
+
+  // F7 and F6, on the line that already describes what the session is doing.
+  // Both come from the transcript pass that already runs for the skills.
+  const activity = shows("activity") ? readings.activity.value : null;
+  function pushLine2Extras(row) {
+    if (activity?.todos) {
+      const { done, total, current } = activity.todos;
+      const label = current ? `${current} (${done}/${total})` : `${done}/${total}`;
+      row.push({ key: "todo", color: "sapphire", text: ` ▸ ${label} ` });
+    }
+    if (activity) {
+      row.push({
+        key: "activity",
+        color: activity.working ? "green" : "surface2",
+        text: activity.working ? ` ● working ` : ` ○ idle `,
+      });
+    }
+  }
 
   // Line 2: active skills, one chip per skill, distinct colors, no bullets.
   // When more are active than the line shows, the count of the rest is
@@ -470,7 +519,16 @@ export function renderReadings(
     if (hidden > 0) {
       l2.push({ key: "skills:more", color: "surface2", text: ` +${hidden} more ` });
     }
+    pushLine2Extras(l2);
     lines.push(renderRow(palette, fit(l2), opts));
+    rendered.push(2);
+  } else {
+    const l2 = [];
+    pushLine2Extras(l2);
+    if (l2.length) {
+      lines.push(renderRow(palette, fit(l2), opts));
+      rendered.push(2);
+    }
   }
 
   // Line 3: model, then effort and output style as separate segments. They
@@ -512,6 +570,7 @@ export function renderReadings(
     })
     .filter(Boolean);
   lines.push(renderRow(palette, fit(l3), opts));
+  rendered.push(3);
 
   // Line 4: context / 5h window + its reset / 7d window + its reset / rtk.
   // Each reset segment's clock face is the actual hour the window resets,
@@ -695,11 +754,11 @@ export function renderReadings(
     line4 = renderRow(palette, fit(buildLine4(step)), opts);
   }
   lines.push(line4);
+  rendered.push(4);
 
   // Which lines the window has room for. Everything comes back the moment
   // the rows do: shedding answers the terminal, it is not a mode the bar
   // gets stuck in.
-  const present = [1, skills.length ? 2 : null, 3, 4].filter(Boolean);
-  const keep = linesToRender(maxHeight, present);
-  return lines.filter((_, i) => keep.includes(present[i])).join("\n");
+  const keep = linesToRender(maxHeight, rendered);
+  return lines.filter((_, i) => keep.includes(rendered[i])).join("\n");
 }

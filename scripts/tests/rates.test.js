@@ -125,3 +125,40 @@ await test("a conflict renders on line 1, and nothing renders without one", () =
   );
   assert.doesNotMatch(clean, /✖/);
 });
+
+await test("CI status is read from cache and never from the redraw path", async () => {
+  // B10 is a network call. It lives behind the same detached refresh the
+  // pull request uses, and disappears rather than going stale, because a
+  // green tick ten minutes old is worse than none.
+  const { makeHome, withHome } = await import("./fixtures/home.js");
+  const home = makeHome();
+  await withHome(home, async () => {
+    const { writeEntry, repoKey } = await import("../../src/cache.js");
+    const { getCiStatus } = await import("../../src/git.js");
+    process.env.CLAUDE_STATUSLINE_NO_REFRESH = "1";
+
+    const dir = "/tmp/some-repo";
+    assert.equal(getCiStatus(dir, { now: T0 }), null, "nothing cached, nothing shown");
+
+    writeEntry(repoKey(dir), "ci", { conclusion: "success", status: "completed", workflow: "CI" }, { now: T0 });
+    assert.deepEqual(getCiStatus(dir, { now: T0 + 1000 }).conclusion, "success");
+    assert.equal(getCiStatus(dir, { now: T0 + 120_000 }), null, "past its maximum age it goes");
+  });
+});
+
+await test("a CI result renders as a mark and a workflow name", () => {
+  const render = (ci) =>
+    stripAnsi(
+      renderPayload(fullPayload(), {
+        sources: { ...gitSources(), getCiStatus: () => ci },
+        trackChanges: false,
+        now: T0,
+        ...WIDE,
+      })
+    );
+
+  assert.match(render({ conclusion: "success", status: "completed", workflow: "CI" }), /✓ CI/);
+  assert.match(render({ conclusion: "failure", status: "completed", workflow: "CI" }), /✗ CI/);
+  assert.match(render({ conclusion: null, status: "in_progress", workflow: "CI" }), /◐ CI/);
+  assert.doesNotMatch(render(null), /[✓✗◐]/);
+});
