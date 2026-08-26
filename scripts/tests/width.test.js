@@ -45,6 +45,11 @@ for (const ascii of [false, true]) {
       trackChanges: false,
       asciiArrows: ascii,
       now: NOW,
+      // The constitutional limit is what this asserts, so it is what the
+      // render is given. Without it the suite would assert 120 while
+      // rendering at whatever width the runner pinned.
+      maxWidth: LIMIT,
+      maxHeight: 40,
     });
     for (const [i, line] of stripAnsi(out).split("\n").entries()) {
       const width = displayWidth(line);
@@ -53,10 +58,10 @@ for (const ascii of [false, true]) {
   });
 }
 
-await test("the trim order follows data-model.md, step by step", () => {
-  // Line 4's widest realistic form is 117 columns, so the guard normally
-  // never fires. Narrowing the limit is how the order gets exercised
-  // without inventing content no session would produce.
+await test("a narrow line drops by priority, not by position", () => {
+  // Feature 002 replaced feature 001's fixed trim ladder with the priority
+  // table (item D4). The lowest-priority segment on line 4 is the savings
+  // figure, so it is what goes first, wherever it sits in the line.
   const line4At = (maxWidth) =>
     stripAnsi(
       renderPayload(widestPayload, { sources: widest, trackChanges: false, now: NOW, maxWidth })
@@ -64,21 +69,50 @@ await test("the trim order follows data-model.md, step by step", () => {
       .split("\n")
       .pop();
 
-  const untouched = line4At(200);
-  assert.match(untouched, /7d 100% ·/, "with room, the named moment stays");
-  assert.match(untouched, /rtk/);
+  const roomy = line4At(200);
+  assert.match(roomy, /rtk/, "with room, everything renders");
 
-  // Step 1: the named moment, which the countdown beside it conveys anyway.
-  const step1 = line4At(displayWidth(untouched) - 1);
-  assert.doesNotMatch(step1, /7d 100% ·/);
-  assert.match(step1, /resets in 1h00m/, "a countdown outlives the named moment");
+  // Narrowing by a few columns is absorbed by the bar, which scales with the
+  // terminal (E3), so nothing has to be dropped. Past that, the priority
+  // table decides, and the savings figure at 40 is the first to go.
+  const tight = line4At(100);
+  assert.doesNotMatch(tight, /rtk/, "priority 40 is the first to go");
+  assert.match(tight, /Context [░█▓▒!]* ?100%/, "priority 100 stays");
 
-  // Steps 2 and 3: the countdown text, keeping the clock faces. Step 4:
-  // the savings figure, the only thing on the line not about this session.
-  const step4 = line4At(60);
-  assert.doesNotMatch(step4, /resets in/);
-  assert.doesNotMatch(step4, /rtk/);
-  assert.match(step4, /Context 100%/, "usage figures are never what gets dropped");
+  const tighter = line4At(40);
+  assert.match(tighter, /Context/, "the top of the table survives to the end");
+});
+
+await test("dropping a segment is preferred to shortening one", () => {
+  // The two mechanisms interact, and the order matters. Dropping the
+  // lowest-priority segment recovers more width than shortening a surviving
+  // one, so priority runs first and the content ladder only fires when
+  // dropping cannot help. That is why the 7-day segment keeps its weekday
+  // right up until the segment itself goes.
+  const line4At = (maxWidth) =>
+    stripAnsi(
+      renderPayload(widestPayload, { sources: widest, trackChanges: false, now: NOW, maxWidth })
+    )
+      .split("\n")
+      .pop();
+
+  const wide = line4At(200);
+  assert.match(wide, /rtk/);
+  assert.match(wide, /7d 100% ·/);
+
+  // 90 columns: the savings figure goes, priority 40.
+  const at90 = line4At(90);
+  assert.doesNotMatch(at90, /rtk/);
+  assert.match(at90, /7d 100% ·/, "a surviving segment keeps everything it says");
+
+  // 70: the 7-day countdown goes too, priority 78, while the 5-hour one
+  // stays at 80. The table decides, not the position on the line.
+  const at70 = line4At(70);
+  assert.match(at70, /5h 100%/);
+  assert.equal((at70.match(/resets in/g) || []).length, 0, "the right-aligned countdowns go together");
+
+  // 45: down to the top of the table.
+  assert.match(line4At(45), /Context [░█▓▒!]* ?100%/);
 });
 
 await test("an unconstrained line keeps everything, so the guard costs nothing normally", () => {
@@ -101,7 +135,7 @@ await test("an unconstrained line keeps everything, so the guard costs nothing n
 await test("a very long directory name is shortened from the left, keeping the end", () => {
   const long = "/tmp/" + "segment-".repeat(20) + "end";
   const out = stripAnsi(
-    renderPayload({ cwd: long }, { sources: gitSources(), trackChanges: false, now: NOW })
+    renderPayload({ cwd: long }, { sources: gitSources(), trackChanges: false, now: NOW, maxWidth: LIMIT })
   );
   const line1 = out.split("\n")[0];
   assert.ok(displayWidth(line1) <= LIMIT, `line 1 is ${displayWidth(line1)} columns`);

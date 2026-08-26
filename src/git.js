@@ -114,6 +114,7 @@ export function parsePorcelainV2(text) {
   let behind = null;
   let changed = 0;
   let untracked = 0;
+  let conflicts = 0;
   let skipNext = false;
 
   for (const record of records) {
@@ -133,7 +134,10 @@ export function parsePorcelainV2(text) {
         behind = Number(m[2]);
       }
     } else if (record.startsWith("? ")) untracked++;
-    else if (record.startsWith("1 ") || record.startsWith("u ")) changed++;
+    // An unmerged path is a conflict, not an ordinary change. Counting it as
+    // one understated a state that stops everything until it is resolved.
+    else if (record.startsWith("u ")) conflicts++;
+    else if (record.startsWith("1 ")) changed++;
     else if (record.startsWith("2 ")) {
       changed++;
       skipNext = true;
@@ -152,6 +156,7 @@ export function parsePorcelainV2(text) {
     behind,
     changed,
     untracked,
+    conflicts,
   };
 }
 
@@ -231,6 +236,41 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
 }
 
 /**
+ * One shape for a pull request, whichever source answered.
+ *
+ * The payload sends `{number, url, review_state, kind}`; `gh pr view` sends
+ * `{number, state, isDraft, url}`. They describe the same thing in different
+ * words, and the renderer should not have to know which one it got.
+ *
+ * A draft is a review state rather than a separate flag, because that is
+ * what the payload calls it and it is the more useful reading: what matters
+ * is where the request stands, and "draft" is one of the places it can be.
+ */
+export function normalizePr(raw, source) {
+  if (!raw || typeof raw.number !== "number") return null;
+  const review = raw.isDraft
+    ? "draft"
+    : raw.review_state || (raw.state ? String(raw.state).toLowerCase() : null);
+  return {
+    number: raw.number,
+    url: raw.url ?? null,
+    review,
+    kind: raw.kind === "mr" ? "mr" : "pr",
+    source,
+  };
+}
+
+/**
+ * The repository's web URL, from the identity the payload parsed out of the
+ * origin remote. Absent outside a repository, or with no origin configured,
+ * in which case `getRemoteUrl` is still there to ask git directly.
+ */
+export function repoUrlFromPayload(repo) {
+  if (!repo?.host || !repo.owner || !repo.name) return null;
+  return `https://${repo.host}/${repo.owner}/${repo.name}`;
+}
+
+/**
  * Pull request state, read from cache only.
  *
  * `gh pr view` costs 540 ms on a warm network and its whole timeout when
@@ -269,4 +309,40 @@ export function probeGitInfo(cwd, timeout) {
   return parsePorcelainV2(
     gitText(["--no-optional-locks", "status", "--porcelain=v2", "--branch", "-z"], cwd, timeout)
   );
+}
+
+/**
+ * The last CI run's conclusion for this branch, from `gh run list`.
+ *
+ * A network call, so it never runs during a redraw: it lives behind the
+ * same detached refresh the pull request lookup uses, and a value older
+ * than its maximum age disappears rather than going stale. A green tick
+ * that is actually ten minutes old is worse than no tick.
+ */
+export function probeCiStatus(cwd, timeout = 5000) {
+  try {
+    const out = execFileSync(
+      "gh",
+      ["run", "list", "--limit", "1", "--json", "conclusion,status,workflowName"],
+      { cwd, timeout, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true }
+    );
+    const [run] = JSON.parse(out);
+    if (!run) return null;
+    return {
+      conclusion: run.conclusion || null,
+      status: run.status || null,
+      workflow: run.workflowName || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** CI status, read from cache only, refreshed in the background. */
+export function getCiStatus(cwd, { now = Date.now() } = {}) {
+  const key = repoKey(cwd);
+  const entry = readEntry(key, "ci");
+  if (shouldRefresh("ci", entry, now)) spawnRefresh(key, "ci", cwd, { now });
+  if (!entry || now - entry.at > (MAX_AGE_MS.ci ?? 60_000)) return null;
+  return entry.value;
 }

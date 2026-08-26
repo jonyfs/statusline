@@ -10,7 +10,7 @@
  */
 
 import { writeEntry, takeLock } from "./cache.js";
-import { probeGitInfo, probePrInfo } from "./git.js";
+import { probeGitInfo, probePrInfo, probeCiStatus } from "./git.js";
 import { probeRtkSavings } from "./rtk.js";
 import { REFRESH_BUDGET_MS } from "./freshness.js";
 
@@ -26,6 +26,7 @@ const PROBES = {
   },
   pr: (cwd) => probePrInfo(cwd, REFRESH_BUDGET_MS.gh),
   rtk: (cwd) => probeRtkSavings(cwd, REFRESH_BUDGET_MS.rtk),
+  ci: (cwd) => probeCiStatus(cwd, REFRESH_BUDGET_MS.gh),
 };
 
 export async function runRefresh(name, key, cwd, { now = Date.now() } = {}) {

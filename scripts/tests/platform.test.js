@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import os from "node:os";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { ansiToSvg } from "../../src/preview/ansiToSvg.js";
 import { test } from "../test-harness.js";
 import { pathToFileUrl, buildOpenTabScript } from "../../src/openTerminalTab.js";
 import { buildCommandForTest } from "../../src/install.js";
@@ -66,21 +68,42 @@ await test("expiry label names the real day, not a fake one", () => {
   assert.equal(resetMomentLabel(at("2026-08-27T18:30:00"), now), "Thu 18:30");
 });
 
-await test("change tracking animates on change and decays after the window", () => {
+await test("change tracking marks a change in colour and decays after the window", () => {
+  // Feature 002 replaced the icon frame sequence with a colour shift, item
+  // E10. The icon holds still now; the segment brightens instead.
   const id = `smoke-${process.pid}`;
   const t0 = 1787000000000;
+  const palette = { lavender: "#b4befe" };
 
   trackChanges(id, { branch: "main" }, { now: t0 });
   const onFirstRender = trackChanges(id, { branch: "main" }, { now: t0 + 100 });
-  assert.equal(onFirstRender.isChanged("branch"), false, "unchanged value must not animate");
+  assert.equal(onFirstRender.isChanged("branch"), false, "unchanged value must not highlight");
+  assert.equal(onFirstRender.colourFor("branch", "lavender", palette), "lavender");
 
   const changed = trackChanges(id, { branch: "feature" }, { now: t0 + 1000 });
   assert.equal(changed.isChanged("branch"), true);
-  assert.notEqual(changed.iconFor("branch", "STATIC"), "STATIC", "changed icon must differ");
+  const highlighted = changed.colourFor("branch", "lavender", palette);
+  assert.match(highlighted, /^#[0-9a-f]{6}$/, "a changed segment renders a literal colour");
+  assert.notEqual(highlighted, "#b4befe", "and a lighter one than it started with");
 
   const expired = trackChanges(id, { branch: "feature" }, { now: t0 + 40000 });
   assert.equal(expired.isChanged("branch"), false, "highlight must decay");
-  assert.equal(expired.iconFor("branch", "STATIC"), "STATIC", "icon must revert");
+  assert.equal(expired.colourFor("branch", "lavender", palette), "lavender", "colour must revert");
+});
+
+await test("only the four segments in the change channel highlight", () => {
+  // Principle X, as amended: each colour channel carries one meaning, so
+  // change-highlighting and the ramp must not touch the same segment.
+  const id = `channel-${process.pid}`;
+  const t0 = 1787000000000;
+  const palette = { yellow: "#f9e2af", green: "#a6e3a1" };
+
+  trackChanges(id, { branch: "a", context: "10" }, { now: t0 });
+  const changed = trackChanges(id, { branch: "b", context: "90" }, { now: t0 + 1000 });
+
+  assert.notEqual(changed.colourFor("branch", "yellow", palette), "yellow", "branch highlights");
+  assert.equal(changed.colourFor("context", "yellow", palette), "yellow", "a ramped segment never does");
+  assert.equal(changed.colourFor("effort", "green", palette), "green", "nor does one outside the set");
 });
 
 await test("change tracking can be disabled for reproducible output", () => {
@@ -118,4 +141,56 @@ await test("git status is never fetched from the network", () => {
   // user's last fetch, which is a documented limitation, not a bug.
   const src = readSource("src/git.js");
   assert.doesNotMatch(src, /git fetch|git pull|git remote update/, "must not hit the network");
+});
+
+await test("no preview ships a private-use character as text", () => {
+  // Principle VIII: these SVGs must render for a viewer with no Nerd Font,
+  // GitHub's README renderer included. A Nerd Font codepoint written as text
+  // rather than as an embedded outline shows them tofu. The commit icon on a
+  // detached HEAD shipped that way once, because the converter fell through
+  // to its text branch for any codepoint missing from glyphs.json.
+  const dir = fileURLToPath(new URL("../../docs/previews/", import.meta.url));
+  for (const name of readdirSync(dir).filter((f) => f.endsWith(".svg"))) {
+    const svg = readFileSync(path.join(dir, name), "utf8");
+    const pua = [...svg].filter((ch) => {
+      const cp = ch.codePointAt(0);
+      return cp >= 0xe000 && cp <= 0xf8ff;
+    });
+    assert.equal(pua.length, 0, `${name} carries ${pua.length} private-use character(s) as text`);
+  }
+});
+
+await test("the preview converter refuses a glyph it cannot draw", () => {
+  const ESC = String.fromCharCode(27);
+  const unknown = String.fromCodePoint(0xf5ff); // in the private use area, not embedded
+  assert.throws(
+    () => ansiToSvg(`${ESC}[48;2;69;71;90m ${unknown} ${ESC}[0m`),
+    /No outline for U\+F5FF/,
+    "an un-embedded glyph must fail loudly rather than ship as text"
+  );
+});
+
+await test("preview generation pins the terminal size as well as the clock", () => {
+  // The renderer reads COLUMNS and LINES now. Without pinning them, a preview
+  // generated in a narrow window would commit a narrower bar than one
+  // generated in a wide one, and CI's staleness check would fail on a diff
+  // that reflects a window size rather than a code change.
+  const src = readFileSync(new URL("../generate-previews.js", import.meta.url), "utf8");
+  assert.match(src, /PREVIEW_WIDTH\s*=\s*\d+/, "generator must pin a width");
+  assert.match(src, /PREVIEW_HEIGHT\s*=\s*\d+/, "generator must pin a height");
+  assert.match(src, /maxWidth: PREVIEW_WIDTH/, "every scenario must use it");
+});
+
+await test("preview fixtures stub every probe the renderer can reach", () => {
+  // Principle VIII: a preview must not read the machine that generated it.
+  // A probe missing from the stub list falls through to the real one, which
+  // is how preview generation started spawning background refreshes on a CI
+  // runner and crashed the build.
+  const src = readFileSync(new URL("../preview-fixtures.js", import.meta.url), "utf8");
+  const renderer = readSource("src/render.js");
+  const probes = [...renderer.matchAll(/probe\.(get\w+)\(/g)].map((m) => m[1]);
+  assert.ok(probes.length >= 5, "the renderer should have several probes");
+  for (const probe of new Set(probes)) {
+    assert.match(src, new RegExp(`${probe}:`), `preview fixtures do not stub ${probe}`);
+  }
 });

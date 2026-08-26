@@ -19,13 +19,21 @@
 // node ...` is not valid shell on Windows (Principle IX).
 process.env.TZ = "UTC";
 
+// Previews must not depend on the terminal that generated them. The renderer
+// now reads COLUMNS and LINES, so a preview made in a narrow window would
+// commit a narrower bar than one made in a wide one, and CI's staleness
+// check would fail on a diff that reflects a window size. Every scenario
+// below therefore renders at a fixed size.
+const PREVIEW_WIDTH = 120;
+const PREVIEW_HEIGHT = 40;
+
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderPayload } from "../src/render.js";
 import { ansiToSvg } from "../src/preview/ansiToSvg.js";
 import { PALETTES } from "../src/theme.js";
-import { SCENARIOS, FLAVOR_SCENARIO, FIXED_NOW } from "./preview-fixtures.js";
+import { SCENARIOS, FLAVOR_SCENARIO, EXTRA_FLAVORS, FIXED_NOW } from "./preview-fixtures.js";
 
 const OUT_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -54,7 +62,13 @@ function main() {
 
   for (const scenario of SCENARIOS) {
     const ansi = withFrozenClock(() =>
-      renderPayload(scenario.payload, { sources: scenario.sources, trackChanges: false })
+      renderPayload(scenario.payload, {
+        sources: scenario.sources,
+        trackChanges: false,
+        // A scenario may pin its own size when the size is the point.
+        maxWidth: scenario.width ?? PREVIEW_WIDTH,
+        maxHeight: scenario.height ?? PREVIEW_HEIGHT,
+      })
     );
     const svg = ansiToSvg(ansi, {
       title: scenario.title,
@@ -65,12 +79,14 @@ function main() {
     written.push(scenario.file);
   }
 
-  for (const flavor of ["mocha", "frappe", "macchiato", "latte"]) {
+  for (const flavor of ["mocha", "frappe", "macchiato", "latte", ...EXTRA_FLAVORS]) {
     const ansi = withFrozenClock(() =>
       renderPayload(FLAVOR_SCENARIO.payload, {
         flavor,
         sources: FLAVOR_SCENARIO.sources,
         trackChanges: false,
+        maxWidth: PREVIEW_WIDTH,
+        maxHeight: PREVIEW_HEIGHT,
       })
     );
     const svg = ansiToSvg(ansi, {
@@ -87,6 +103,8 @@ function main() {
       asciiArrows: true,
       sources: FLAVOR_SCENARIO.sources,
       trackChanges: false,
+      maxWidth: PREVIEW_WIDTH,
+      maxHeight: PREVIEW_HEIGHT,
     })
   );
   writeFileSync(

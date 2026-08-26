@@ -1,0 +1,1419 @@
+<title>Statusline Redesign Board</title>
+<style>
+  :root {
+    --ground: #f2f2f7;
+    --surface: #ffffff;
+    --surface-2: #eceCf3;
+    --line: #d9d9e3;
+    --line-strong: #c2c2d0;
+    --ink: #1e1e2e;
+    --ink-soft: #4c4f69;
+    --ink-mute: #7c7f93;
+    --accent: #5a5fd8;
+    --accent-soft: #e6e7fb;
+    --good: #40a02b;
+    --warn: #df8e1d;
+    --crit: #d20f39;
+    --chip: #dcdce8;
+    --used: #179299;
+    --shadow: 0 1px 2px rgba(30, 30, 46, .06), 0 8px 24px rgba(30, 30, 46, .05);
+    --term-bg: #1e1e2e;
+    --term-ink: #cdd6f4;
+
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #14141f;
+      --surface: #1c1c2a;
+      --surface-2: #23233340;
+      --line: #2e2e40;
+      --line-strong: #3d3d52;
+      --ink: #d9def0;
+      --ink-soft: #a9b0c9;
+      --ink-mute: #7f86a1;
+      --accent: #b4befe;
+      --accent-soft: #2a2c46;
+      --good: #a6e3a1;
+      --warn: #f9e2af;
+      --crit: #f38ba8;
+      --chip: #2c2c40;
+      --used: #94e2d5;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px rgba(0, 0, 0, .25);
+      --term-bg: #11111b;
+      --term-ink: #cdd6f4;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #14141f;
+    --surface: #1c1c2a;
+    --surface-2: #23233340;
+    --line: #2e2e40;
+    --line-strong: #3d3d52;
+    --ink: #d9def0;
+    --ink-soft: #a9b0c9;
+    --ink-mute: #7f86a1;
+    --accent: #b4befe;
+    --accent-soft: #2a2c46;
+    --good: #a6e3a1;
+    --warn: #f9e2af;
+    --crit: #f38ba8;
+    --chip: #2c2c40;
+    --used: #94e2d5;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px rgba(0, 0, 0, .25);
+    --term-bg: #11111b;
+    --term-ink: #cdd6f4;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px 96px; }
+
+  /* ---------- masthead ---------- */
+
+  header.top { padding: 56px 0 28px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.06;
+    letter-spacing: -.01em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  .lede { font-size: 17px; color: var(--ink-soft); max-width: 62ch; margin: 0 0 8px; }
+  .lede + .lede { margin-top: 14px; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 28px; margin: 30px 0 4px; }
+  .stat .n {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .stat .l {
+    font-size: 12px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  /* ---------- terminal preview ---------- */
+
+  .term {
+    margin: 34px 0 0;
+    background: var(--term-bg);
+    border-radius: 10px;
+    padding: 18px 18px 20px;
+    overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+  .term-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #6c7086;
+    margin-bottom: 12px;
+  }
+  .bar { display: flex; width: max-content; margin-bottom: 5px; font-family: var(--mono); font-size: 13px; }
+  .bar:last-child { margin-bottom: 0; }
+  .seg { padding: 2px 10px 2px 8px; color: #11111b; white-space: nowrap; display: flex; align-items: center; }
+  .cap { width: 0; height: 0; border-top: 12px solid transparent; border-bottom: 12px solid transparent; }
+
+  /* ---------- layout ---------- */
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px; align-items: start; margin-top: 44px; }
+  @media (max-width: 960px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+
+  /* ---------- groups ---------- */
+
+  section.group { margin-bottom: 44px; scroll-margin-top: 20px; }
+  .group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .group-head h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 26px;
+    margin: 0;
+    letter-spacing: -.005em;
+  }
+  .group-count {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-mute);
+    font-variant-numeric: tabular-nums;
+  }
+  .group-note { color: var(--ink-soft); max-width: 62ch; margin: 0 0 18px; font-size: 14.5px; }
+
+  /* ---------- option cards ---------- */
+
+  .opt {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: border-color .12s ease, box-shadow .12s ease;
+  }
+  .opt[data-on="1"] { border-color: var(--accent); box-shadow: var(--shadow); }
+  .opt[data-used="1"] { background: var(--surface-2); }
+
+  .opt-main { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; padding: 14px 16px; }
+
+  .opt input[type="checkbox"] {
+    appearance: none;
+    width: 20px; height: 20px;
+    margin: 2px 0 0;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 4px;
+    background: var(--surface);
+    cursor: pointer;
+    position: relative;
+  }
+  .opt input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+  .opt input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute; left: 6px; top: 2px;
+    width: 5px; height: 10px;
+    border: solid var(--surface);
+    border-width: 0 2px 2px 0;
+    transform: rotate(42deg);
+  }
+  .opt input[type="checkbox"]:disabled { cursor: not-allowed; opacity: .5; }
+
+  .opt-title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .opt-id {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-mute);
+    font-variant-numeric: tabular-nums;
+  }
+  .opt-name { font-weight: 600; font-size: 15px; }
+  label.opt-label { cursor: pointer; display: block; }
+
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--chip);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .tag.free { color: var(--good); }
+  .tag.cost { color: var(--warn); }
+  .tag.heavy { color: var(--crit); }
+  .tag.used { color: var(--used); }
+  .tag.amend { color: var(--crit); }
+
+  .pro-con { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin-top: 12px; font-size: 14px; }
+  @media (max-width: 620px) { .pro-con { grid-template-columns: 1fr; } }
+  .pro-con div { color: var(--ink-soft); }
+  .pro-con b {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .feed { margin-top: 10px; font-size: 13.5px; color: var(--ink-mute); }
+  .feed code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--chip);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink-soft);
+  }
+  .srcs { margin-top: 8px; font-size: 12.5px; color: var(--ink-mute); }
+  .srcs a { margin-right: 10px; }
+
+  /* ---------- choices revealed on select ---------- */
+
+  .choices { display: none; border-top: 1px dashed var(--line); padding: 14px 16px 16px 54px; }
+  .opt[data-on="1"] .choices { display: block; }
+  .choice-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .choice-row:last-child { margin-bottom: 0; }
+  .choice-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    min-width: 74px;
+  }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    font-size: 13px;
+    padding: 5px 11px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-soft);
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .pill[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+  .pill .ex { font-family: var(--mono); font-size: 12px; opacity: .8; margin-left: 6px; }
+  .needs { color: var(--crit); font-size: 12.5px; font-family: var(--mono); }
+
+  /* ---------- selection panel ---------- */
+
+  aside {
+    position: sticky;
+    top: 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 960px) { aside { position: static; } }
+  aside h3 { font-family: var(--serif); font-weight: 400; font-size: 20px; margin: 0 0 4px; }
+  .sel-count { font-family: var(--mono); font-size: 34px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .sel-sub { font-size: 13px; color: var(--ink-mute); margin-bottom: 16px; }
+  .sel-list { list-style: none; margin: 0 0 16px; padding: 0; max-height: 42vh; overflow-y: auto; }
+  .sel-list li {
+    font-size: 13.5px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-soft);
+    display: flex;
+    gap: 8px;
+  }
+  .sel-list li:last-child { border-bottom: 0; }
+  .sel-list .sid { font-family: var(--mono); font-size: 12px; color: var(--ink-mute); flex: none; }
+  .sel-list .swhere { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+  .sel-empty { font-size: 13.5px; color: var(--ink-mute); font-style: italic; margin-bottom: 16px; }
+  .btns { display: flex; flex-direction: column; gap: 8px; }
+  button.act {
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 9px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--surface);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  button.act.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line-strong); }
+  button.act:disabled { opacity: .45; cursor: not-allowed; }
+  .out {
+    margin-top: 14px;
+    width: 100%;
+    min-height: 150px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--ground);
+    color: var(--ink-soft);
+    resize: vertical;
+    display: none;
+  }
+  .out.on { display: block; }
+
+  /* ---------- footer / sources ---------- */
+
+  .sources { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 28px; }
+  .sources h2 { font-family: var(--serif); font-weight: 400; font-size: 24px; margin: 0 0 6px; }
+  .sources p { color: var(--ink-soft); max-width: 62ch; margin: 0 0 18px; font-size: 14.5px; }
+  ol.srclist { columns: 2; column-gap: 40px; padding-left: 20px; margin: 0; font-size: 13.5px; }
+  @media (max-width: 720px) { ol.srclist { columns: 1; } }
+  ol.srclist li { break-inside: avoid; margin-bottom: 7px; color: var(--ink-mute); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">Statusline · review board · 26 August 2026</p>
+    <h1>Everything the bar could show, and every way it could show it</h1>
+    <p class="lede">
+      Every option below is a change somebody could make to this statusline. None of them
+      is recommended, ranked, or pre-selected. <strong>Tick what you want.</strong> Where an
+      option can take more than one form, pick the form. Where it could go on more than one
+      line, say which. Then copy the summary and hand it back, and only those items get built.
+    </p>
+    <p class="lede">
+      Two findings shaped the catalogue. The payload Claude Code already sends carries the open
+      pull request, the repository identity, session cost, token counts, worktree, vim mode and
+      a dozen other fields this bar ignores, so several segments cost a subprocess for something
+      arriving free. And <code style="font-family: var(--mono); font-size: 13px;">COLUMNS</code>
+      is set before the script runs, so the real terminal width is knowable rather than assumed
+      at 120.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><div class="n" id="stat-opts">0</div><div class="l">options</div></div>
+      <div class="stat"><div class="n" id="stat-groups">0</div><div class="l">groups</div></div>
+      <div class="stat"><div class="n">41</div><div class="l">sources</div></div>
+      <div class="stat"><div class="n">47 ms</div><div class="l">redraw p95 today</div></div>
+      <div class="stat"><div class="n">120</div><div class="l">column budget</div></div>
+    </div>
+
+    <div class="term">
+      <div class="term-label">what it renders today</div>
+      <div id="preview"></div>
+    </div>
+  </header>
+
+  <div class="cols">
+    <main id="catalogue"></main>
+
+    <aside>
+      <h3>Your selection</h3>
+      <div class="sel-count" id="count">0</div>
+      <div class="sel-sub" id="countsub">nothing selected yet</div>
+      <ul class="sel-list" id="sellist"></ul>
+      <div class="sel-empty" id="selempty">Tick an option and it appears here.</div>
+      <div class="btns">
+        <button class="act" id="copy" disabled>Copy selection</button>
+        <button class="act ghost" id="show" disabled>Show as text</button>
+        <button class="act ghost" id="clear" disabled>Clear all</button>
+      </div>
+      <textarea class="out" id="out" readonly aria-label="Selection as text"></textarea>
+    </aside>
+  </div>
+
+  <div class="sources">
+    <h2>Sources</h2>
+    <p>
+      Forty-one references behind the options above: the official payload documentation,
+      other statuslines and what they chose to show, the open issues about width and
+      truncation, and the design and accessibility work on reading a bar at a glance.
+    </p>
+    <ol class="srclist" id="srclist"></ol>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------ *
+   * Current bar, drawn from the real renderer's output on 26 Aug 2026.
+   * ------------------------------------------------------------------ */
+  var C = {
+    surface1: "#45475a", lavender: "#b4befe", mauve: "#cba6f7", blue: "#89b4fa",
+    green: "#a6e3a1", sapphire: "#74c7ec", peach: "#fab387", red: "#f38ba8",
+    yellow: "#f9e2af", teal: "#94e2d5", flamingo: "#f2cdcd", term: "#1e1e2e"
+  };
+
+  var PREVIEW = [
+    [["surface1", "📁 statusline"], ["lavender", "⎇ main"], ["mauve", "◉ 3  ⊞ 7"], ["blue", "⎇ PR #12 open"]],
+    [["green", "🧩 humanizer"], ["sapphire", "🧩 speckit-plan"], ["mauve", "🧩 dataviz"]],
+    [["red", "🤖 Opus 5"], ["peach", "⚡ high"]],
+    [["yellow", "🧠 Context 38%"], ["green", "⏱ 5h 24%"], ["peach", "🕐 resets in 1h29m"], ["sapphire", "📅 7d 61% · Sat 00:09"], ["peach", "🕛 resets in 3d 0h"], ["mauve", "🦀 rtk 80% saved"]]
+  ];
+
+  function drawPreview() {
+    var host = document.getElementById("preview");
+    PREVIEW.forEach(function (line) {
+      var row = document.createElement("div");
+      row.className = "bar";
+      line.forEach(function (seg, i) {
+        var box = document.createElement("span");
+        box.className = "seg";
+        box.style.background = C[seg[0]];
+        box.textContent = seg[1];
+        row.appendChild(box);
+        var cap = document.createElement("span");
+        cap.className = "cap";
+        cap.style.borderLeft = "10px solid " + C[seg[0]];
+        var next = line[i + 1];
+        cap.style.background = next ? C[next[0]] : "transparent";
+        row.appendChild(cap);
+      });
+      host.appendChild(row);
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Sources
+   * ------------------------------------------------------------------ */
+  var SOURCES = [
+    ["docs", "Claude Code: Customize your status line (payload fields, COLUMNS, refreshInterval, debounce)", "https://code.claude.com/docs/en/statusline"],
+    ["ccstatusline", "sirmalloc/ccstatusline: widget catalogue, powerline, gradients, flex separators", "https://github.com/sirmalloc/ccstatusline"],
+    ["hud", "jarrodwatts/claude-hud: tool activity, agents, todo progress", "https://github.com/jarrodwatts/claude-hud"],
+    ["compare", "Yigit Konur: Claude Code statuslines compared (24 repositories)", "https://yigitkonur.com/research/claude-code-statuslines-compared"],
+    ["powerline", "Owloops/claude-powerline: vim-style powerline, segment wizard", "https://github.com/Owloops/claude-powerline"],
+    ["cometix", "Haleclipse/CCometixLine: Rust statusline, TUI config, themes", "https://github.com/Haleclipse/CCometixLine"],
+    ["kcchien", "kcchien/claude-code-statusline: gradient bar, smart hiding, cost", "https://github.com/kcchien/claude-code-statusline"],
+    ["claudeline", "fredrikaverpil/claudeline: minimal Go statusline, early compaction warning", "https://github.com/fredrikaverpil/claudeline"],
+    ["ccusage", "ccusage statusline integration: burn rate, block cost, projections", "https://ccusage.com/guide/statusline"],
+    ["ccusage-doc", "ccusage/ccusage statusline guide (cost-source modes)", "https://github.com/ccusage/ccusage/blob/main/docs/guide/statusline.md"],
+    ["gallery", "statuslin.es: community gallery of rendered status lines", "https://statuslin.es/"],
+    ["gallery-cost", "statuslin.es: the status lines that track cost", "https://statuslin.es/status-lines/cost"],
+    ["warren", "warrendurling/claude-statusline: live context gauge, per-model token counts", "https://github.com/warrendurling/claude-statusline"],
+    ["hell0", "hell0github/claude-statusline: context, cost, session reset time", "https://github.com/hell0github/claude-statusline"],
+    ["yas", "tmck-code/yet-another-statusline: inspired by terminal monitors", "https://github.com/tmck-code/yet-another-statusline"],
+    ["ccjun", "AwesomeJun/CC-statusline: reasoning-effort indicator, 1M context support", "https://github.com/AwesomeJun/CC-statusline"],
+    ["felipe", "Felipe Elias: a configurable status line built on Starship's module idea", "https://felipeelias.github.io/2026/03/17/claude-statusline.html"],
+    ["dandoes", "Dan Does Code: tracking worktrees and usage in a custom statusline", "https://www.dandoescode.com/blog/claude-code-custom-statusline"],
+    ["jerad", "Jerad Bitner: leveling up Claude Code with a statusline", "https://jeradbitner.com/blog/claude-code-statusline"],
+    ["rolle", "therolle.com: building a custom Claude Code statusline", "https://therolle.com/posts/2026/building-claude-code-statusline/"],
+    ["andrew", "Andrew Connell: tracking token and quota usage in the status line", "https://www.andrewconnell.com/articles/claude-code-cli-statusline/"],
+    ["dui", "Gist: two-line bar with context breakdown, per-call tokens, 5h/7d limits and cost", "https://gist.github.com/dui/816853e5a5200d66be621d619b3090e5"],
+    ["akcodez", "Gist: complete field reference and ready-to-use statusline scripts", "https://gist.github.com/AKCodez/ffb420ba6a7662b5c3dda2edce7783de"],
+    ["plribeiro", "Gist: color-coded context bar with autocompact threshold", "https://gist.github.com/plribeiro3000/17354a5214a97f59c8fef9e37b30c87e"],
+    ["issue-multiline", "claude-code #36417: multi-line statusline truncated as one string", "https://github.com/anthropics/claude-code/issues/36417"],
+    ["issue-narrow", "claude-code #28750: second line disappears on narrow terminals", "https://github.com/anthropics/claude-code/issues/28750"],
+    ["issue-align", "claude-code #33017: request for left/right alignment and width-aware layout", "https://github.com/anthropics/claude-code/issues/33017"],
+    ["issue-cols", "claude-code #22115: pass terminal columns to the command", "https://github.com/anthropics/claude-code/issues/22115"],
+    ["issue-compact", "claude-code #5720: warn before auto-compact", "https://github.com/anthropics/claude-code/issues/5720"],
+    ["issue-nf", "claude-code #49270: Nerd Font glyphs not rendering in the statusline", "https://github.com/anthropics/claude-code/issues/49270"],
+    ["zenn", "Zenn: a context warning system built from hooks and the statusline", "https://zenn.dev/trust_delta/articles/claude-code-context-warning-001?locale=en"],
+    ["catppuccin", "Catppuccin style guide: which colour carries which meaning", "https://github.com/catppuccin/catppuccin/blob/main/docs/style-guide.md"],
+    ["glance", "Julian Scaff: designing for glanceable interfaces and preattentive vision", "https://medium.com/design-bootcamp/design-for-glanceable-interfaces-how-preattentive-vision-shapes-intuitive-interactions-d2042b119280"],
+    ["preattentive", "Ryan Posternak: preattentive attributes and how they apply to data displays", "https://uxdesign.cc/preattentive-attributes-of-visual-perception-and-their-application-to-data-visualizations-7b0fb50e1375"],
+    ["healey", "Christopher Healey, NC State: perception in visualization", "https://www.csc2.ncsu.edu/faculty/healey/PP/"],
+    ["webaim", "WebAIM: contrast and colour accessibility", "https://webaim.org/articles/contrast/"],
+    ["section508", "Section508.gov: making colour usage accessible", "https://www.section508.gov/create/making-color-usage-accessible/"],
+    ["iterm", "iTerm2 status bar: priority-ordered components and stable positioning", "https://iterm2.com/documentation-status-bar.html"],
+    ["nerdfonts", "Nerd Fonts issue #1198: patched glyphs wider than one monospace cell", "https://github.com/ryanoasis/nerd-fonts/issues/1198"],
+    ["eaw", "Unicode L2/16-027: emoji and East Asian Width in terminals", "https://www.unicode.org/L2/L2016/16027-emoji-terminals-eaw.pdf"],
+    ["starship", "Starship presets and the module-per-fact model", "https://starship.rs/presets/"]
+  ];
+
+  var LINES = ["line 1", "line 2", "line 3", "line 4", "a new line", "you decide"];
+
+  /* ------------------------------------------------------------------ *
+   * The catalogue.
+   *   feed  – where the value comes from
+   *   cost  – what it costs a redraw
+   *   pro / con – the case each way, stated so neither wins by default
+   *   forms – named variants, with a rendered example
+   *   where – placement choices, or null when placement is not a question
+   * ------------------------------------------------------------------ */
+  var GROUPS = [
+    {
+      id: "A",
+      name: "Values the payload already sends and the bar ignores",
+      note: "Every one of these arrives on stdin at no cost. The bar currently uses six of the payload's fields and drops the rest on the floor. Two of them are values this project pays a subprocess to compute instead.",
+      opts: [
+        {
+          id: "A1", name: "Pull request from the payload instead of the gh CLI",
+          feed: "<code>pr.number</code>, <code>pr.url</code>, <code>pr.review_state</code>, <code>pr.kind</code>",
+          cost: "free", tags: ["free", "replaces a subprocess"],
+          pro: "The bar already shows a PR, but pays 540 ms of gh on a warm network to learn it, cached behind a background refresh. The payload has it for nothing, and adds the review state, which the bar cannot show today.",
+          con: "The field is absent until Claude Code finds a PR, and mirrors its own footer badge, so it may lag your own gh output by a moment. GitLab merge requests need v2.1.234 or later.",
+          forms: [
+            ["Number only", "PR #12"],
+            ["Number and state", "PR #12 open"],
+            ["Number, state, review", "PR #12 approved"],
+            ["Review state as colour only", "PR #12"]
+          ],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A2", name: "Repository identity from the payload instead of git remote",
+          feed: "<code>workspace.repo.host</code>, <code>.owner</code>, <code>.name</code>",
+          cost: "free", tags: ["free", "replaces a subprocess"],
+          pro: "The branch and PR links are built from a cached git remote call today. The payload parses the origin remote for you, host included, which also makes the GitLab case work without new code.",
+          con: "Absent outside a repository or when there is no origin, so the git call stays as a fallback either way.",
+          forms: [
+            ["Links only, nothing rendered", "(invisible)"],
+            ["Owner and repo as text", "anthropics/claude-code"],
+            ["Repo name only", "claude-code"]
+          ],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A3", name: "Session cost in dollars",
+          feed: "<code>cost.total_cost_usd</code>", cost: "free", tags: ["free"],
+          pro: "The single most common segment in every other statusline in the survey. It answers what a session is costing while you can still do something about it.",
+          con: "Anthropic computes it client-side and says it may differ from the bill. On a subscription it is a number that does not correspond to anything you pay.",
+          forms: [["Dollars", "$0.42"], ["Dollars and cents, always two", "$0.42"], ["Rounded, hidden under a dollar", "$1"]],
+          where: true, srcs: ["docs", "ccusage", "gallery-cost", "compare"]
+        },
+        {
+          id: "A4", name: "Session duration",
+          feed: "<code>cost.total_duration_ms</code>", cost: "free", tags: ["free"],
+          pro: "Wall-clock time since the session started. Useful next to the 5-hour window, since the two together say how much of the window this session has eaten.",
+          con: "A clock that only counts up. It competes for width with the reset countdowns, which say something more actionable.",
+          forms: [["Hours and minutes", "1h04m"], ["Minutes only", "64m"], ["Compact", "1:04"]],
+          where: true, srcs: ["docs", "ccusage"]
+        },
+        {
+          id: "A5", name: "Time spent waiting on the API",
+          feed: "<code>cost.total_api_duration_ms</code>", cost: "free", tags: ["free"],
+          pro: "Separates thinking time from your own. A session that is 80% API wait is a different problem from one that is 80% you reading.",
+          con: "Diagnostic rather than operational. Nothing you do in the moment changes it.",
+          forms: [["Absolute", "api 22m"], ["Share of the session", "api 34%"]],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A6", name: "Lines added and removed this session",
+          feed: "<code>cost.total_lines_added</code>, <code>.total_lines_removed</code>", cost: "free", tags: ["free"],
+          pro: "A size-of-change figure that needs no git call, and it counts what the session did rather than what the tree looks like.",
+          con: "Overlaps with the working-tree counters already on line 1, which answer a similar question from a different angle.",
+          forms: [["Both", "+156 − 23"], ["Net", "+133"], ["Added only", "+156"]],
+          where: true, srcs: ["docs", "ccstatusline"]
+        },
+        {
+          id: "A7", name: "Token counts, not just the percentage",
+          feed: "<code>context_window.total_input_tokens</code>, <code>.total_output_tokens</code>", cost: "free", tags: ["free"],
+          pro: "A percentage of an unstated total is half a fact. Tokens are the unit the limit is actually in.",
+          con: "Two more numbers on the busiest line, and most decisions only need the percentage.",
+          forms: [["Input and output", "15.5k in · 1.2k out"], ["Combined", "16.7k"], ["Used of total", "16.7k / 200k"]],
+          where: true, srcs: ["docs", "ccstatusline", "warren"]
+        },
+        {
+          id: "A8", name: "Context window size, so 200k and 1M look different",
+          feed: "<code>context_window.context_window_size</code>", cost: "free", tags: ["free"],
+          pro: "38% of 200k and 38% of 1M are very different amounts of room. Right now the bar cannot tell them apart.",
+          con: "Redundant on any session that never uses an extended-context model.",
+          forms: [["Always", "38% of 200k"], ["Only when it is not 200k", "38% of 1M"], ["As a suffix on the model", "Opus 5 · 1M"]],
+          where: true, srcs: ["docs", "ccjun"]
+        },
+        {
+          id: "A9", name: "Cache hit ratio",
+          feed: "<code>context_window.current_usage.cache_read_input_tokens</code> and <code>.cache_creation_input_tokens</code>", cost: "free", tags: ["free"],
+          pro: "Cache reads cost a tenth of fresh input and writes cost more than it. The ratio is the clearest signal of whether a session is being efficient.",
+          con: "Needs explaining to anyone who has not thought about prompt caching, and there is nothing to do about it mid-session.",
+          forms: [["Ratio", "cache 87%"], ["Read and write tokens", "↓0 2.0k ↑ 5.0k"], ["Read tokens only", "cache 2.0k"]],
+          where: true, srcs: ["docs", "ccstatusline"]
+        },
+        {
+          id: "A10", name: "The 200k warning flag",
+          feed: "<code>exceeds_200k_tokens</code>", cost: "free", tags: ["free"],
+          pro: "A boolean the payload computes for you, at a fixed threshold, whatever the window size.",
+          con: "Says almost the same thing the context percentage already says, at one specific point.",
+          forms: [["A marker when true", "⚠ 200k"], ["Colour on the context segment only", "Context 38%"]],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A11", name: "Fast mode",
+          feed: "<code>fast_mode</code>", cost: "free", tags: ["free"],
+          pro: "Changes how output arrives. Knowing it is on explains behaviour you would otherwise wonder about.",
+          con: "You turned it on yourself, and it rarely changes mid-session.",
+          forms: [["Marker when on", "⚡fast"], ["Model name suffix", "Opus 5 (fast)"]],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A12", name: "Extended thinking on or off",
+          feed: "<code>thinking.enabled</code>", cost: "free", tags: ["free"],
+          pro: "Sits naturally beside the effort level, and together they describe how the model is set up right now.",
+          con: "Another near-static flag on a line that is meant for things that change.",
+          forms: [["Marker when on", "ὊD"], ["Merged into the effort segment", "high · thinking"]],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A13", name: "Vim mode",
+          feed: "<code>vim.mode</code>", cost: "free", tags: ["free"],
+          pro: "If you use vim mode, which mode you are in is the single most useful thing a bar can tell you, and it changes constantly.",
+          con: "Renders nothing at all unless vim mode is enabled.",
+          forms: [["Word", "NORMAL"], ["Letter", "N"], ["Colour band only", "■"]],
+          where: true, srcs: ["docs", "ccstatusline"]
+        },
+        {
+          id: "A14", name: "Agent name",
+          feed: "<code>agent.name</code>", cost: "free", tags: ["free"],
+          pro: "When a session runs under an agent, the bar currently gives no sign of it. That is exactly the case where you most want to know.",
+          con: "Absent in ordinary sessions, so it costs nothing and shows nothing most of the time.",
+          forms: [["Name", "security-reviewer"], ["Marker plus name", "⚙ security-reviewer"]],
+          where: true, srcs: ["docs", "hud"]
+        },
+        {
+          id: "A15", name: "Session name",
+          feed: "<code>session_name</code>", cost: "free", tags: ["free"],
+          pro: "Tells one terminal from another when several sessions are open, which is what the field exists for.",
+          con: "Only populated once you name a session or Claude Code generates a title, and it can be long.",
+          forms: [["Full name", "refactor-auth"], ["Truncated to 16", "refactor-auth…"]],
+          where: true, srcs: ["docs", "ccstatusline"]
+        },
+        {
+          id: "A16", name: "Claude Code version",
+          feed: "<code>version</code>", cost: "free", tags: ["free"],
+          pro: "Useful when a payload field appears or disappears under you, which is how half the fields on this page came to exist.",
+          con: "Static for the whole session, and you can read it from the CLI any time.",
+          forms: [["Number", "2.1.90"], ["Only when a field is missing", "(conditional)"]],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A17", name: "Working directory versus project directory",
+          feed: "<code>workspace.current_dir</code> against <code>workspace.project_dir</code>", cost: "free", tags: ["free"],
+          pro: "The bar shows one path and calls it the directory. When Claude has moved somewhere else in the session, that is worth seeing.",
+          con: "They are the same value in most sessions, so the segment usually adds nothing.",
+          forms: [["Both when they differ", "statusline → src"], ["A marker when they differ", "statusline*"]],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A18", name: "Added directories",
+          feed: "<code>workspace.added_dirs</code>", cost: "free", tags: ["free"],
+          pro: "A session with three directories added behaves differently from one with none, and nothing on the bar says so.",
+          con: "Rare, and a count without names is not much of an answer.",
+          forms: [["Count", "+2 dirs"], ["Count with names on hover", "+2 dirs"]],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A19", name: "Worktree identity",
+          feed: "<code>workspace.git_worktree</code>, <code>worktree.name</code>, <code>.branch</code>, <code>.original_branch</code>",
+          cost: "free", tags: ["free"],
+          pro: "Working in worktrees is exactly when you most need to know which one you are in, and the branch name alone does not always say.",
+          con: "Absent in the main tree, and the branch segment already carries most of the signal.",
+          forms: [["Worktree name", "⎇ feature-xyz"], ["Name and origin branch", "feature-xyz ← main"], ["Marker on the branch segment", "main·wt"]],
+          where: true, srcs: ["docs", "dandoes"]
+        },
+        {
+          id: "A20", name: "Prompt id",
+          feed: "<code>prompt_id</code>", cost: "free", tags: ["free"],
+          pro: "Correlates what you are seeing with OpenTelemetry events if you collect them.",
+          con: "A UUID on a status bar. Nothing reads it at a glance.",
+          forms: [["First 8 characters", "550e8400"], ["Full UUID", "550e8400-e29b-…"]],
+          where: true, srcs: ["docs"]
+        },
+        {
+          id: "A21", name: "Effort level", used: true,
+          feed: "<code>effort.level</code>", cost: "free", tags: ["used"],
+          pro: "Already on line 3, behind the lightning bolt.",
+          con: "Listed so the catalogue is complete. Selecting it means changing how it renders, not adding it.",
+          forms: null, where: false, srcs: ["docs"]
+        },
+        {
+          id: "A22", name: "Output style", used: true,
+          feed: "<code>output_style.name</code>", cost: "free", tags: ["used"],
+          pro: "Already on line 3 in its own segment, added in the previous feature.",
+          con: "Listed for completeness. Selecting it means changing how it renders.",
+          forms: null, where: false, srcs: ["docs"]
+        }
+      ]
+    },
+    {
+      id: "B",
+      name: "Values that would have to be computed or fetched",
+      note: "None of these arrive free. Each states what it costs against the 300 ms a redraw is allowed, and whether it would have to live behind the background refresh the way the pull request lookup does.",
+      opts: [
+        {
+          id: "B1", name: "Burn rate on the 5-hour window",
+          feed: "derived: samples of <code>rate_limits.five_hour.used_percentage</code> stored per session",
+          cost: "a few ms, plus a small state file", tags: ["cost"],
+          pro: "A percentage says where you are. A rate says whether you will get there before the window resets, which is the decision you actually make.",
+          con: "Needs history, so it is wrong for the first minutes of a session and after any gap in sampling.",
+          forms: [["Percent per hour", "9%/h"], ["Arrow only", "↑↑"], ["Dollars per hour", "$0.12/h"]],
+          where: true, srcs: ["ccusage", "gallery-cost", "compare"]
+        },
+        {
+          id: "B2", name: "Projected exhaustion time",
+          feed: "derived from B1 and <code>resets_at</code>", cost: "free once B1 exists", tags: ["cost", "needs B1"],
+          pro: "Turns two numbers into the sentence you were going to say out loud anyway: at this rate the window runs out before it resets.",
+          con: "A projection is a guess. Presenting it beside measured numbers risks it being read as one.",
+          forms: [["Time", "empty ~16:40"], ["Verdict only when it lands short", "⚠ short by 40m"]],
+          where: true, srcs: ["ccusage"]
+        },
+        {
+          id: "B3", name: "Distance to auto-compaction",
+          feed: "derived from <code>context_window</code> and the compaction threshold",
+          cost: "free", tags: ["free"],
+          pro: "Auto-compact fires around 95% and takes the conversation with it. Everyone who has been surprised by it built a warning afterwards.",
+          con: "The threshold is not in the payload, so the number is inferred and could drift from what Claude Code actually does.",
+          forms: [["Tokens left", "34k to compact"], ["Percent left", "57% to compact"], ["Warning only past a threshold", "⚠ compacting soon"]],
+          where: true, srcs: ["issue-compact", "claudeline", "zenn", "plribeiro"]
+        },
+        {
+          id: "B4", name: "Context trend over the session",
+          feed: "derived: percentage samples stored per session", cost: "a few ms, plus a state file", tags: ["cost"],
+          pro: "A sparkline of the last dozen redraws shows whether context is creeping or jumping, which a single number never does.",
+          con: "Eight characters of width for a shape, on a bar where width is the scarce thing.",
+          forms: [["Sparkline", "▁▂▄▅▇"], ["Arrow", "↗"], ["Delta since last redraw", "+2%"]],
+          where: true, srcs: ["glance", "preattentive", "gallery"]
+        },
+        {
+          id: "B5", name: "Cost per hour",
+          feed: "derived from <code>cost.total_cost_usd</code> and <code>cost.total_duration_ms</code>", cost: "free", tags: ["free"],
+          pro: "Needs no history at all, unlike the other rates here: both inputs are in every payload.",
+          con: "Averaged over the whole session, so it lags badly after any idle stretch.",
+          forms: [["Dollars per hour", "$0.39/h"], ["Cents per minute", "0.6¢/m"]],
+          where: true, srcs: ["ccusage", "docs"]
+        },
+        {
+          id: "B6", name: "Today's cost across every session",
+          feed: "a scan of the transcript directory, or the ccusage CLI", cost: "hundreds of ms, background refresh only", tags: ["heavy"],
+          pro: "Session cost answers the wrong question when you have had six sessions today.",
+          con: "The most expensive thing on this page. It cannot go on the redraw path, and it means either a dependency or a directory scan.",
+          forms: [["Today", "$4.10 today"], ["Session and today", "$0.42 / $4.10"]],
+          where: true, srcs: ["ccusage", "ccusage-doc", "gallery-cost"]
+        },
+        {
+          id: "B7", name: "Staged and unstaged counted separately",
+          feed: "already parsed from <code>git status --porcelain=v2</code>", cost: "free", tags: ["free"],
+          pro: "The parser already sees the difference and throws it away. Staged and unstaged are different states of mind.",
+          con: "A third and fourth number in the working-tree cluster, which is already four glyphs wide.",
+          forms: [["Both", "● 3 ✦ 2"], ["Staged only when non-zero", "✦ 2"]],
+          where: true, srcs: ["ccstatusline", "cometix"]
+        },
+        {
+          id: "B8", name: "Merge conflicts",
+          feed: "the <code>u</code> records in <code>git status --porcelain=v2</code>", cost: "free", tags: ["free"],
+          pro: "Already parsed and counted as ordinary changes today, which understates a state that stops everything.",
+          con: "During a conflict you generally know. The bar is not where you find out.",
+          forms: [["Count", "✖ 2"], ["Marker only", "✖"]],
+          where: true, srcs: ["ccstatusline", "cometix"]
+        },
+        {
+          id: "B9", name: "Stash count",
+          feed: "<code>git stash list</code>", cost: "about 10 ms, one more process", tags: ["cost"],
+          pro: "Stashes are easy to forget and cheap to display.",
+          con: "Another git process on the redraw path, for something that changes a few times a week.",
+          forms: [["Count", "⚇ 2"], ["Only when non-zero", "⚇ 2"]],
+          where: true, srcs: ["ccstatusline"]
+        },
+        {
+          id: "B10", name: "CI status of the last run",
+          feed: "<code>gh run list</code>", cost: "hundreds of ms, background refresh only", tags: ["heavy"],
+          pro: "Closes the loop after a push without leaving the terminal.",
+          con: "A network call, so it can only ever be a cached value, and a stale green is worse than no green.",
+          forms: [["Symbol", "✓"], ["Symbol and workflow", "✓ CI"], ["Only when failing", "✗ CI"]],
+          where: true, srcs: ["ccstatusline", "compare"]
+        },
+        {
+          id: "B11", name: "Time since the last commit",
+          feed: "<code>git log -1 --format=%ct</code>", cost: "about 8 ms", tags: ["cost"],
+          pro: "A gentle nudge that two hours of work are still uncommitted.",
+          con: "The uncommitted-changes counter already says that, with more precision.",
+          forms: [["Relative", "2h ago"], ["Only past a threshold", "⚠ 2h"]],
+          where: true, srcs: ["ccstatusline"]
+        },
+        {
+          id: "B12", name: "A clock",
+          feed: "the system clock, with <code>refreshInterval</code> set", cost: "free, but forces a timer", tags: ["cost", "needs F1"],
+          pro: "Reset countdowns are already time-based; a clock beside them makes the arithmetic disappear.",
+          con: "Useless without a refresh interval, since the bar only redraws on events, and a timer means the command runs when nothing has changed.",
+          forms: [["24-hour", "14:32"], ["With seconds", "14:32:07"]],
+          where: true, srcs: ["docs"]
+        }
+      ]
+    },
+    {
+      id: "C",
+      name: "Things to remove or merge",
+      note: "A catalogue that only adds is a catalogue that ends in a wrapped line. These take something away.",
+      opts: [
+        {
+          id: "C1", name: "Drop the gh subprocess entirely",
+          feed: "depends on A1", cost: "saves a 5-second background process", tags: ["free", "needs A1"],
+          pro: "If the pull request comes from the payload, the gh lookup, its cache entry, its lock and its refresh path all become dead weight.",
+          con: "gh knows about pull requests the payload may not have found yet, and it works on older Claude Code versions.",
+          forms: [["Remove it", "—"], ["Keep it as a fallback when pr is absent", "—"]],
+          where: false, srcs: ["docs"]
+        },
+        {
+          id: "C2", name: "Drop the git remote lookup",
+          feed: "depends on A2", cost: "saves one git process a day", tags: ["free", "needs A2"],
+          pro: "Same argument as C1, for a value that changes even less often.",
+          con: "The payload only reports origin. A repository whose links should point somewhere else would lose them.",
+          forms: [["Remove it", "—"], ["Keep it as a fallback", "—"]],
+          where: false, srcs: ["docs"]
+        },
+        {
+          id: "C3", name: "Merge model, effort and output style into one segment",
+          feed: "existing", cost: "free, saves width", tags: ["free"],
+          pro: "Three segments with three separators for one idea: how the model is configured. Merging saves roughly eight columns.",
+          con: "The three change on different schedules, and separate segments let the animation highlight exactly which one moved.",
+          forms: [["One segment", "Opus 5 · high · explanatory"], ["Two: model, then the rest", "Opus 5 | high · explanatory"]],
+          where: false, srcs: ["starship", "glance"]
+        },
+        {
+          id: "C4", name: "Drop the named weekday on the 7-day segment",
+          feed: "existing", cost: "free, saves about twelve columns", tags: ["free"],
+          pro: "The countdown beside it already says when the window resets. This is the first thing the width guard trims anyway.",
+          con: "“resets in 3d 0h” takes arithmetic. “Sat 00:09” does not.",
+          forms: [["Remove it", "7d 61%"], ["Keep it only past 24 hours", "7d 61% · Sat"]],
+          where: false, srcs: ["glance"]
+        },
+        {
+          id: "C5", name: "Drop the rtk segment",
+          feed: "existing", cost: "free, saves about eighteen columns", tags: ["free"],
+          pro: "It is the only thing on line 4 that is not about this session, and it moves slowly enough that a glance rarely tells you anything new.",
+          con: "It is the one number that says a tool is earning its keep.",
+          forms: [["Remove it", "—"], ["Only show it when it moves by five points", "rtk 80%"]],
+          where: false, srcs: ["glance"]
+        },
+        {
+          id: "C6", name: "Collapse the two reset countdowns into one segment",
+          feed: "existing", cost: "free, saves a separator and padding", tags: ["free"],
+          pro: "Two clock faces and two countdowns occupy a third of line 4 to say two things that are read together.",
+          con: "Merging means one of the two clock faces stops matching its own reset hour, which is the point of having them.",
+          forms: [["One segment, both", "⏱ 1h29m / 3d"], ["Only the sooner of the two", "⏱ 1h29m"]],
+          where: false, srcs: ["glance", "iterm"]
+        },
+        {
+          id: "C7", name: "Drop the directory when it repeats the repository name",
+          feed: "existing plus A2", cost: "free", tags: ["free", "needs A2"],
+          pro: "“statusline” followed by the branch of the statusline repository says the same word twice.",
+          con: "The directory is the first thing on the bar and the one people navigate by. Making it conditional makes the bar's shape change under you.",
+          forms: [["Drop when identical", "—"], ["Always keep it", "—"]],
+          where: false, srcs: ["glance", "iterm"]
+        }
+      ]
+    },
+    {
+      id: "D",
+      name: "Layout and structure",
+      note: "How many lines, in what order, and what happens when the terminal is too narrow to hold them. The four-line structure is fixed by this project's constitution, so anything that changes the count needs an amendment; those options say so.",
+      opts: [
+        {
+          id: "D1", name: "How many lines the bar occupies",
+          feed: "structural", cost: "free", tags: ["amend"],
+          pro: "Four lines is a lot of terminal. Other statuslines in the survey run one or two and fit the same information by dropping labels.",
+          con: "Principle II fixes four lines, and every preview, test and README image assumes it. Changing it is an amendment plus a regeneration of everything.",
+          forms: [["Keep four", "4"], ["Three: fold model into line 1", "3"], ["Two: git and usage", "2"], ["One, dense", "1"], ["Adaptive by terminal height", "auto"]],
+          where: false, srcs: ["docs", "compare", "issue-narrow", "gallery"]
+        },
+        {
+          id: "D2", name: "Use the real terminal width instead of assuming 120",
+          feed: "<code>COLUMNS</code> environment variable, Claude Code v2.1.153+",
+          cost: "free", tags: ["free"],
+          pro: "The width guard added last week trims at a hardcoded 120 for everyone. The actual width is sitting in the environment.",
+          con: "On older Claude Code versions the variable is absent, so the constant stays as a fallback and there are now two behaviours to test.",
+          forms: [["Use COLUMNS, fall back to 120", "auto"], ["Use COLUMNS minus a margin", "auto − 4"]],
+          where: false, srcs: ["docs", "issue-cols", "issue-align"]
+        },
+        {
+          id: "D3", name: "Right-aligned group on each line",
+          feed: "<code>COLUMNS</code> plus padding", cost: "free", tags: ["free", "needs D2"],
+          pro: "Puts volatile numbers in a fixed position on the right, so your eye lands in the same place every time instead of tracking a moving segment.",
+          con: "Claude Code puts its own notifications on the right of that row and may truncate what is there. Powerline separators also point one way, so a right-aligned group needs mirrored caps.",
+          forms: [["Usage right, git left", "↔"], ["Reset countdowns right", "↔"], ["No alignment", "—"]],
+          where: false, srcs: ["issue-align", "ccstatusline", "docs", "iterm"]
+        },
+        {
+          id: "D4", name: "What gets dropped first on a narrow terminal",
+          feed: "structural", cost: "free", tags: ["free"],
+          pro: "There is an order today, defined in the previous feature: weekday, then countdown text, then savings, then the directory shortens. You may want a different one.",
+          con: "Any order is wrong for somebody. The current one at least trims decoration before data.",
+          forms: [["Keep the current order", "—"], ["Drop whole segments instead of shortening", "—"], ["Drop line 4 before shortening anything", "—"], ["Priority per segment, iTerm2 style", "—"]],
+          where: false, srcs: ["iterm", "issue-narrow", "issue-multiline", "ccstatusline"]
+        },
+        {
+          id: "D5", name: "Order of the lines",
+          feed: "structural", cost: "free", tags: ["free"],
+          pro: "The first line is the one you actually read. Whether that should be where you are or how much you have left is a real choice.",
+          con: "Muscle memory is worth something, and every committed preview shows the current order.",
+          forms: [["Keep: place, skills, model, usage", "—"], ["Usage first", "—"], ["Model first", "—"]],
+          where: false, srcs: ["glance", "preattentive", "compare"]
+        },
+        {
+          id: "D6", name: "Order of segments inside line 1",
+          feed: "structural", cost: "free", tags: ["free"],
+          pro: "Several statuslines put the branch first, on the grounds that which branch you are on is the thing you most need to not get wrong.",
+          con: "The directory first matches how the eye reads a path, and matches every screenshot in the README.",
+          forms: [["Directory, branch, state, PR", "—"], ["Branch, directory, state, PR", "—"], ["Branch, state, PR, directory", "—"]],
+          where: false, srcs: ["compare", "gallery", "glance"]
+        },
+        {
+          id: "D7", name: "How the skills line renders",
+          feed: "existing", cost: "free", tags: ["free"],
+          pro: "One coloured chip per skill costs a separator and two spaces each. Three skills spend about a third of the line on padding.",
+          con: "The chips are the most legible thing on the bar, and colour is what makes them countable at a glance.",
+          forms: [["Chips, one colour each", "🧩 a  🧩 b"], ["One chip, comma separated", "🧩 a, b, c"], ["Count only", "🧩 3"], ["Most recent only", "🧩 a +2"]],
+          where: false, srcs: ["glance", "ccstatusline"]
+        },
+        {
+          id: "D8", name: "Column alignment across lines",
+          feed: "structural, needs measured widths", cost: "a few ms", tags: ["cost"],
+          pro: "Aligning segment boundaries down the lines turns four bars into a small table, which is much easier to scan.",
+          con: "It means padding, which means every line is as wide as the widest one. On a narrow terminal that is the opposite of what you want.",
+          forms: [["Align all lines", "—"], ["Align lines 1 and 4 only", "—"], ["No alignment", "—"]],
+          where: false, srcs: ["ccstatusline", "iterm"]
+        },
+        {
+          id: "D9", name: "Separators between segments",
+          feed: "structural", cost: "free", tags: ["amend"],
+          pro: "Powerline arrows cost a column each and need a Nerd Font. Thin separators or plain spacing cost less and work everywhere.",
+          con: "Principle I fixes the Powerline separator as the project's whole visual identity. Changing it is an amendment.",
+          forms: [["Powerline arrows", "▶"], ["Thin bar", "|"], ["Space only", " "], ["Powerline, thin as a fallback", "▶/|"]],
+          where: false, srcs: ["starship", "issue-nf", "nerdfonts", "gallery"]
+        },
+        {
+          id: "D10", name: "Colour bands: per segment or per line",
+          feed: "structural", cost: "free", tags: ["free"],
+          pro: "One band per line reads as four objects rather than fifteen, which is easier to parse and much easier to keep accessible.",
+          con: "Per-segment colour is how the current design distinguishes things, and it is the Starship convention this project was built to match.",
+          forms: [["Per segment, as today", "—"], ["One colour per line", "—"], ["Colour only where it means something", "—"]],
+          where: false, srcs: ["catppuccin", "glance", "preattentive", "starship"]
+        }
+      ]
+    },
+    {
+      id: "E",
+      name: "How a number is drawn",
+      note: "Bars, ramps, icons, rounding. These change nothing about what the bar knows, only about how fast you can read it.",
+      opts: [
+        {
+          id: "E1", name: "Context as a bar rather than a number",
+          feed: "existing", cost: "free", tags: ["free"],
+          pro: "Length is preattentive: a bar is judged in under a quarter of a second without reading. A percentage has to be read and compared.",
+          con: "A bar costs eight to sixteen columns for a value a number gives in four, and it is less precise.",
+          forms: [["Bar only", "███░░░░░"], ["Bar and number", "███░░ 38%"], ["Number only, as today", "38%"]],
+          where: false, srcs: ["preattentive", "healey", "glance", "kcchien", "warren"]
+        },
+        {
+          id: "E2", name: "Bar style",
+          feed: "existing", cost: "free", tags: ["free", "needs E1"],
+          pro: "Block characters work in every font; braille packs four times the resolution into the same cell; a truecolor gradient carries the ramp inside the bar itself.",
+          con: "Braille is unreadable to some people and confuses screen readers. Gradients need a truecolor terminal.",
+          forms: [["Blocks", "███░░"], ["Braille", "⣿⣿⠁"], ["Gradient blocks", "███░░"], ["ASCII", "[###--]"]],
+          where: false, srcs: ["kcchien", "ccstatusline", "eaw", "section508"]
+        },
+        {
+          id: "E3", name: "Bar width",
+          feed: "existing", cost: "free", tags: ["free", "needs E1"],
+          pro: "Wider bars resolve smaller differences. Narrower bars leave room for everything else.",
+          con: "Every column here comes out of another segment's budget.",
+          forms: [["8 columns", "███░░░░░"], ["10 columns", "████░░░░░░"], ["16 columns", "██████░░░░"], ["Scaled to terminal width", "auto"]],
+          where: false, srcs: ["ccstatusline", "kcchien"]
+        },
+        {
+          id: "E4", name: "Colour ramp on the context figure",
+          feed: "existing", cost: "free", tags: ["free"],
+          pro: "Colour is preattentive in the same way length is, and everyone in the survey uses a ramp. Right now the context segment is yellow at 2% and yellow at 98%.",
+          con: "A ramp that changes on a value that moves every redraw makes the line flicker, which is the reason usage was excluded from the animation rules.",
+          forms: [["Green, yellow, red at 50/80", "█"], ["Green, yellow, red at 60/85", "█"], ["Four steps at 50/70/85", "█"], ["No ramp, as today", "█"]],
+          where: false, srcs: ["kcchien", "warren", "plribeiro", "catppuccin", "preattentive"]
+        },
+        {
+          id: "E5", name: "Colour ramp on the rate limits",
+          feed: "existing", cost: "free", tags: ["free"],
+          pro: "The 5-hour and 7-day figures are the ones with a hard consequence at the end, and they move slowly enough that a ramp will not flicker.",
+          con: "Two more colours competing with the palette that currently distinguishes segments from each other.",
+          forms: [["Same thresholds as context", "█"], ["Later: 70/90", "█"], ["Only past 90", "█"], ["No ramp", "█"]],
+          where: false, srcs: ["kcchien", "catppuccin", "andrew"]
+        },
+        {
+          id: "E6", name: "Never carry meaning in colour alone",
+          feed: "structural", cost: "free, costs a little width", tags: ["free"],
+          pro: "Around one man in twelve cannot separate red from green. Section 508 requires colour never to be the only carrier, and the ramps above would otherwise break that.",
+          con: "A word or symbol beside every ramped number costs columns on a bar that is already tight.",
+          forms: [["Symbol beside the colour", "⚠ 88%"], ["Word beside the colour", "high 88%"], ["Shape of the bar changes too", "███!"], ["Colour alone", "88%"]],
+          where: false, srcs: ["section508", "webaim", "healey"]
+        },
+        {
+          id: "E7", name: "Icon set",
+          feed: "existing", cost: "free", tags: ["free"],
+          pro: "Nerd Font glyphs are single-width and consistent. Emoji are double-width and render differently on every platform. Some people want neither.",
+          con: "The current design mixes both, and there is an open Claude Code issue about Nerd Font glyphs not rendering in the statusline at all.",
+          forms: [["Nerd Font plus emoji, as today", "⎇ 🧠"], ["Nerd Font only", "⎇"], ["Emoji only", "🧠"], ["Text labels, no icons", "ctx"]],
+          where: false, srcs: ["issue-nf", "nerdfonts", "eaw", "starship"]
+        },
+        {
+          id: "E8", name: "Dim the secondary segments",
+          feed: "structural", cost: "free", tags: ["free"],
+          pro: "Everything on the bar is currently equally loud. Dimming what rarely matters is the cheapest way to make what matters stand out.",
+          con: "Contrast against the Catppuccin backgrounds is already the tight constraint, and Latte has the least headroom of the four flavours.",
+          forms: [["Dim the reset countdowns", "—"], ["Dim everything except usage", "—"], ["Dim nothing, as today", "—"]],
+          where: false, srcs: ["catppuccin", "webaim", "glance"]
+        },
+        {
+          id: "E9", name: "Number formatting",
+          feed: "structural", cost: "free", tags: ["free"],
+          pro: "Token counts are long. Abbreviating them keeps a column count predictable, which matters more than the last three digits.",
+          con: "Abbreviation loses precision exactly when you are close to a limit.",
+          forms: [["Abbreviated", "16.7k"], ["Grouped", "16,700"], ["Percent to one decimal", "38.4%"], ["Percent rounded, as today", "38%"]],
+          where: false, srcs: ["ccstatusline", "glance"]
+        },
+        {
+          id: "E10", name: "Animation on change",
+          feed: "existing", cost: "free", tags: ["free"],
+          pro: "The bar already cycles an icon for thirty seconds when branch, PR, skills, model or effort change. It could cover more, or less.",
+          con: "Principle X deliberately excludes anything that changes every redraw. Widening the set risks a bar in permanent motion.",
+          forms: [["Keep the current set", "—"], ["Add the new segments you select", "—"], ["Remove animation entirely", "—"], ["Highlight with colour instead of frames", "—"]],
+          where: false, srcs: ["glance", "preattentive"]
+        }
+      ]
+    },
+    {
+      id: "F",
+      name: "Behaviour and mechanics",
+      note: "Nothing here changes what is on the bar. It changes when it runs, how it is configured, and what else it can drive.",
+      opts: [
+        {
+          id: "F1", name: "Set a refresh interval",
+          feed: "<code>statusLine.refreshInterval</code> in settings", cost: "one redraw per interval", tags: ["cost"],
+          pro: "Updates are event-driven and go quiet while the session is idle, so countdowns freeze exactly when you are waiting on something. An interval keeps them honest.",
+          con: "It runs the command when nothing has changed, which is the polling this project deliberately does not do.",
+          forms: [["Every 10 seconds", "10s"], ["Every 30 seconds", "30s"], ["Every 60 seconds", "60s"], ["Leave it unset", "—"]],
+          where: false, srcs: ["docs"]
+        },
+        {
+          id: "F2", name: "Customise the subagent task rows",
+          feed: "the task-row command, with a <code>tasks</code> array on stdin", cost: "a separate command", tags: ["cost"],
+          pro: "A whole surface this project does not touch. Each row carries model, effort, token count and context size, so a running subagent could show its own context bar.",
+          con: "It is a second command with a second contract to keep working, and it only appears while subagents are running.",
+          forms: [["Match the statusline's style", "—"], ["Context bar per task", "—"], ["Leave the default rows", "—"]],
+          where: false, srcs: ["docs", "hud"]
+        },
+        {
+          id: "F3", name: "Themes beyond Catppuccin",
+          feed: "structural", cost: "free", tags: ["amend"],
+          pro: "Every comparable tool ships Nord, Gruvbox, Dracula and Tokyo Night. People theme their whole terminal and want the bar to match.",
+          con: "Principle I names the Catppuccin palette as the project's identity, so this needs an amendment, and each theme is another set of previews to keep current.",
+          forms: [["Catppuccin only, as today", "—"], ["Add Nord and Gruvbox", "—"], ["Add a custom-palette file", "—"]],
+          where: false, srcs: ["ccstatusline", "cometix", "powerline", "gallery"]
+        },
+        {
+          id: "F4", name: "A config file instead of environment variables",
+          feed: "structural", cost: "one file read per redraw", tags: ["cost"],
+          pro: "Four environment variables is already awkward, and every option on this page that ships makes it worse. Everyone else uses a JSON file, several with a TUI to edit it.",
+          con: "A file read on the redraw path, a schema to version, and a migration for anyone already setting the variables.",
+          forms: [["Environment variables, as today", "—"], ["JSON file, variables still win", "—"], ["JSON file plus a config command", "—"]],
+          where: false, srcs: ["ccstatusline", "powerline", "cometix", "felipe"]
+        },
+        {
+          id: "F5", name: "Per-repository configuration",
+          feed: "structural", cost: "one file read per redraw", tags: ["cost", "needs F4"],
+          pro: "A monorepo and a scratch repository do not want the same bar.",
+          con: "Configuration that lives in a repository is configuration that travels to everyone who clones it.",
+          forms: [["Off", "—"], ["Read a file from the repository root", "—"], ["Read it only outside the home directory", "—"]],
+          where: false, srcs: ["starship", "docs"]
+        },
+        {
+          id: "F6", name: "Show whether Claude is working or idle",
+          feed: "transcript tail, or a hook", cost: "a few ms, or a hook", tags: ["cost"],
+          pro: "The bar looks identical whether Claude is thinking or waiting for you. Claude HUD makes this its main idea, and it is the thing people say they miss.",
+          con: "The statusline hides during permission prompts and some interactions, so the one moment you most want it is a moment it may not be on screen.",
+          forms: [["Working or idle marker", "●"], ["Current tool", "Edit auth.ts"], ["Elapsed on the current turn", "12s"]],
+          where: true, srcs: ["hud", "docs", "compare"]
+        },
+        {
+          id: "F7", name: "Todo progress from the transcript",
+          feed: "the todo entries in the transcript", cost: "part of the existing tail read", tags: ["cost"],
+          pro: "The tail of the transcript is already read every redraw for skills. Todos are in the same file, and “2 of 5” is a real answer to “how far along is this”.",
+          con: "It is the transcript format, which is not a contract, and a wrong todo count is worse than none.",
+          forms: [["Count", "▸ 2/5"], ["Count and current item", "▸ Fix auth (2/5)"], ["Bar", "██░░░"]],
+          where: true, srcs: ["hud", "docs"]
+        }
+      ]
+    }
+  ];
+
+  /* ------------------------------------------------------------------ *
+   * State
+   * ------------------------------------------------------------------ */
+  var KEY = "statusline-review-v1";
+  var state = load();
+
+  function load() {
+    try {
+      var raw = window.localStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function save() {
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (e) {
+      /* private mode, or storage disabled: selections just will not persist */
+    }
+  }
+
+  function srcLinks(ids) {
+    return (ids || []).map(function (id) {
+      var s = SOURCES.filter(function (r) { return r[0] === id; })[0];
+      return s ? '<a href="' + s[2] + '" target="_blank" rel="noopener">' + s[0] + '</a>' : "";
+    }).join("");
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Render
+   * ------------------------------------------------------------------ */
+  function render() {
+    var host = document.getElementById("catalogue");
+    var total = 0;
+
+    GROUPS.forEach(function (g) {
+      total += g.opts.length;
+      var sec = document.createElement("section");
+      sec.className = "group";
+      sec.id = "g" + g.id;
+
+      var head = document.createElement("div");
+      head.className = "group-head";
+      head.innerHTML = '<h2>' + g.name + '</h2><span class="group-count">' + g.opts.length + ' options</span>';
+      sec.appendChild(head);
+
+      var note = document.createElement("p");
+      note.className = "group-note";
+      note.textContent = g.note;
+      sec.appendChild(note);
+
+      g.opts.forEach(function (o) {
+        sec.appendChild(optionCard(o));
+      });
+
+      host.appendChild(sec);
+    });
+
+    document.getElementById("stat-opts").textContent = total;
+    document.getElementById("stat-groups").textContent = GROUPS.length;
+
+    var list = document.getElementById("srclist");
+    SOURCES.forEach(function (s) {
+      var li = document.createElement("li");
+      li.innerHTML = '<a href="' + s[2] + '" target="_blank" rel="noopener">' + s[1] + '</a>';
+      list.appendChild(li);
+    });
+  }
+
+  function optionCard(o) {
+    var card = document.createElement("article");
+    card.className = "opt";
+    card.id = "opt-" + o.id;
+    if (o.used) card.setAttribute("data-used", "1");
+
+    var sel = state[o.id] || {};
+    card.setAttribute("data-on", sel.on ? "1" : "0");
+
+    var main = document.createElement("div");
+    main.className = "opt-main";
+
+    var box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = Boolean(sel.on);
+    box.id = "cb-" + o.id;
+    box.setAttribute("aria-label", "Select " + o.name);
+
+    var body = document.createElement("div");
+    var tags = (o.tags || []).map(function (t) {
+      var cls = t === "free" ? "free" : t === "heavy" ? "heavy" : t === "used" ? "used" :
+        t.indexOf("amend") === 0 ? "amend" : t === "cost" ? "cost" : "";
+      return '<span class="tag ' + cls + '">' + t + "</span>";
+    }).join("");
+
+    body.innerHTML =
+      '<label class="opt-label" for="cb-' + o.id + '">' +
+        '<span class="opt-title"><span class="opt-id">' + o.id + '</span>' +
+        '<span class="opt-name">' + o.name + '</span></span>' +
+      "</label>" +
+      '<div class="tags">' + tags + "</div>" +
+      '<div class="pro-con">' +
+        "<div><b>For</b>" + o.pro + "</div>" +
+        "<div><b>Against</b>" + o.con + "</div>" +
+      "</div>" +
+      '<div class="feed">Fed by ' + o.feed + " · cost: " + o.cost + "</div>" +
+      '<div class="srcs">' + srcLinks(o.srcs) + "</div>";
+
+    main.appendChild(box);
+    main.appendChild(body);
+    card.appendChild(main);
+
+    var choices = document.createElement("div");
+    choices.className = "choices";
+
+    if (o.forms) {
+      choices.appendChild(pillRow("Form", o.forms.map(function (f, i) {
+        return { key: String(i), label: f[0], ex: f[1] };
+      }), o.id, "form"));
+    }
+    if (o.where) {
+      choices.appendChild(pillRow("Where", LINES.map(function (l, i) {
+        return { key: String(i), label: l, ex: "" };
+      }), o.id, "where"));
+    }
+    if (!o.forms && !o.where) {
+      var p = document.createElement("div");
+      p.className = "choice-row";
+      p.innerHTML = '<span class="choice-label">Note</span><span style="font-size:13.5px;color:var(--ink-soft)">Selected as-is. Nothing further to choose.</span>';
+      choices.appendChild(p);
+    }
+    card.appendChild(choices);
+
+    box.addEventListener("change", function () {
+      var s = state[o.id] || {};
+      s.on = box.checked;
+      state[o.id] = s;
+      card.setAttribute("data-on", box.checked ? "1" : "0");
+      save();
+      refreshPanel();
+    });
+
+    return card;
+  }
+
+  function pillRow(label, items, optId, field) {
+    var row = document.createElement("div");
+    row.className = "choice-row";
+    var lab = document.createElement("span");
+    lab.className = "choice-label";
+    lab.textContent = label;
+    row.appendChild(lab);
+
+    var pills = document.createElement("div");
+    pills.className = "pills";
+    items.forEach(function (it) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "pill";
+      b.innerHTML = it.label + (it.ex ? '<span class="ex">' + it.ex + "</span>" : "");
+      var sel = state[optId] || {};
+      b.setAttribute("aria-pressed", sel[field] === it.key ? "true" : "false");
+      b.addEventListener("click", function () {
+        var s = state[optId] || {};
+        s[field] = s[field] === it.key ? null : it.key;
+        state[optId] = s;
+        Array.prototype.forEach.call(pills.children, function (other) {
+          other.setAttribute("aria-pressed", "false");
+        });
+        if (s[field] !== null) b.setAttribute("aria-pressed", "true");
+        save();
+        refreshPanel();
+      });
+      pills.appendChild(b);
+    });
+    row.appendChild(pills);
+    return row;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Selection panel
+   * ------------------------------------------------------------------ */
+  function selected() {
+    var out = [];
+    GROUPS.forEach(function (g) {
+      g.opts.forEach(function (o) {
+        var s = state[o.id];
+        if (!s || !s.on) return;
+        var form = o.forms && s.form != null ? o.forms[Number(s.form)][0] : null;
+        var where = o.where && s.where != null ? LINES[Number(s.where)] : null;
+        var missing = [];
+        if (o.forms && !form) missing.push("form");
+        if (o.where && !where) missing.push("placement");
+        out.push({ id: o.id, name: o.name, form: form, where: where, missing: missing });
+      });
+    });
+    return out;
+  }
+
+  function refreshPanel() {
+    var rows = selected();
+    var list = document.getElementById("sellist");
+    var empty = document.getElementById("selempty");
+    var incomplete = rows.filter(function (r) { return r.missing.length; }).length;
+
+    document.getElementById("count").textContent = rows.length;
+    document.getElementById("countsub").textContent = rows.length === 0
+      ? "nothing selected yet"
+      : (incomplete
+        ? incomplete + (incomplete === 1 ? " still needs a choice" : " still need a choice")
+        : "ready to hand back");
+
+    list.innerHTML = "";
+    rows.forEach(function (r) {
+      var li = document.createElement("li");
+      var detail = [];
+      if (r.form) detail.push(r.form);
+      if (r.where) detail.push(r.where);
+      li.innerHTML = '<span class="sid">' + r.id + "</span><span>" + r.name +
+        (detail.length ? ' <span class="swhere">' + detail.join(" · ") + "</span>" : "") +
+        (r.missing.length ? ' <span class="needs">pick a ' + r.missing.join(" and a ") + "</span>" : "") +
+        "</span>";
+      list.appendChild(li);
+    });
+
+    empty.style.display = rows.length ? "none" : "block";
+    document.getElementById("copy").disabled = rows.length === 0;
+    document.getElementById("show").disabled = rows.length === 0;
+    document.getElementById("clear").disabled = rows.length === 0;
+
+    var box = document.getElementById("out");
+    if (box.classList.contains("on")) box.value = asText(rows);
+  }
+
+  function asText(rows) {
+    if (!rows.length) return "Nothing selected.";
+    var lines = ["Statusline review selection (" + rows.length + " item" + (rows.length === 1 ? "" : "s") + "):", ""];
+    rows.forEach(function (r) {
+      var bits = [];
+      if (r.form) bits.push("form: " + r.form);
+      if (r.where) bits.push("where: " + r.where);
+      if (r.missing.length) bits.push("UNDECIDED: " + r.missing.join(", "));
+      lines.push("- " + r.id + " " + r.name + (bits.length ? " (" + bits.join("; ") + ")" : ""));
+    });
+    lines.push("");
+    lines.push("Everything not listed above stays exactly as it is.");
+    return lines.join("\n");
+  }
+
+  document.getElementById("copy").addEventListener("click", function () {
+    var text = asText(selected());
+    var btn = this;
+    function done(ok) {
+      btn.textContent = ok ? "Copied" : "Press ⌘C to copy";
+      setTimeout(function () { btn.textContent = "Copy selection"; }, 1800);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { showText(text); done(false); });
+    } else {
+      showText(text);
+      done(false);
+    }
+  });
+
+  function showText(text) {
+    var box = document.getElementById("out");
+    box.classList.add("on");
+    box.value = text;
+    box.select();
+  }
+
+  document.getElementById("show").addEventListener("click", function () {
+    showText(asText(selected()));
+  });
+
+  document.getElementById("clear").addEventListener("click", function () {
+    if (!window.confirm("Clear every selection?")) return;
+    state = {};
+    save();
+    document.getElementById("catalogue").innerHTML = "";
+    document.getElementById("srclist").innerHTML = "";
+    render();
+    refreshPanel();
+    document.getElementById("out").classList.remove("on");
+  });
+
+  drawPreview();
+  render();
+  refreshPanel();
+})();
+</script>

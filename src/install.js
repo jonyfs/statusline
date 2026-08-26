@@ -112,6 +112,21 @@ export function buildHookCommand() {
   return buildCommand(process.execPath, CLI_PATH, "note-skill");
 }
 
+/** The command that draws the subagent task rows (item F2). */
+export function buildTaskRowCommand() {
+  return buildCommand(process.execPath, CLI_PATH, "task-rows");
+}
+
+/**
+ * How often Claude Code re-runs the command on its own, in seconds.
+ *
+ * Updates are event-driven, and the events go quiet while a session is
+ * idle. The countdowns and the clock are exactly the segments that keep
+ * changing while nothing else does, so without an interval they freeze at
+ * whatever they said when the last event fired. Item F1's chosen value.
+ */
+export const REFRESH_INTERVAL_SECONDS = 60;
+
 /** Whether a command string belongs to this plugin's own CLI. */
 function isOurCommand(command) {
   const normalize = (p) =>
@@ -155,7 +170,11 @@ function removeHook(settings) {
   return true;
 }
 
-export function install({ registerHook: wantHook = true } = {}) {
+export function install({
+  registerHook: wantHook = true,
+  refreshInterval: wantInterval = true,
+  taskRows: wantTaskRows = true,
+} = {}) {
   assertNotRunningFromNpxCache();
 
   const settings = loadSettings();
@@ -165,6 +184,8 @@ export function install({ registerHook: wantHook = true } = {}) {
   const alreadyInstalled = settings.statusLine?.command === command;
 
   settings.statusLine = { type: "command", command };
+  if (wantInterval) settings.statusLine.refreshInterval = REFRESH_INTERVAL_SECONDS;
+  if (wantTaskRows) settings.statusLine.taskCommand = buildTaskRowCommand();
   // Registering by default keeps the skills line immediate for everyone,
   // and `--no-hook` is there for anyone who would rather not have a hook
   // in their settings. Asking interactively would break both idempotence
@@ -179,6 +200,8 @@ export function install({ registerHook: wantHook = true } = {}) {
     command,
     hookRegistered: Boolean(hookCommand),
     hookCommand,
+    refreshInterval: wantInterval ? REFRESH_INTERVAL_SECONDS : null,
+    taskRows: Boolean(wantTaskRows),
     alreadyInstalled,
   };
 }
@@ -196,6 +219,9 @@ export function uninstall() {
     return { changed: false, reason: `${file} does not exist.` };
   }
   const settings = loadSettings();
+  // The whole statusLine object goes, so the refresh interval and the task
+  // command it carries go with it. Both were written by this install and
+  // neither outlives it.
   const hasStatusLine = settings.statusLine && isOurCommand(settings.statusLine.command);
   const hasHook = (settings?.hooks?.PostToolUse || []).some((group) =>
     (group?.hooks || []).some((h) => isOurCommand(h?.command))

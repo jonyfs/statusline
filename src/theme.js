@@ -27,10 +27,47 @@ export const PALETTES = {
     sapphire: "#209fb5", blue: "#1e66f5", lavender: "#7287fd", mauve: "#8839ef",
     flamingo: "#dd7878", teal: "#179299", pink: "#ea76cb",
   },
+
+  // Two palettes from outside Catppuccin, allowed by the v4.0.0 amendment to
+  // Principle I. People theme their whole terminal, and a bar that clashes
+  // with the rest of it is a bar they turn off. Neither is the default:
+  // Catppuccin Mocha is still what this looks like when nobody has chosen.
+  //
+  // Every token the Catppuccin flavors define is defined here too, so no
+  // segment can reference a colour that exists in one theme and not another.
+  nord: {
+    crust: "#2e3440", mantle: "#3b4252", base: "#434c5e",
+    surface1: "#4c566a", surface2: "#616e88", text: "#eceff4",
+    red: "#bf616a", peach: "#d08770", yellow: "#ebcb8b", green: "#a3be8c",
+    sapphire: "#88c0d0", blue: "#5e81ac", lavender: "#81a1c1", mauve: "#b48ead",
+    flamingo: "#d8dee9", teal: "#8fbcbb", pink: "#cbb0c7",
+  },
+  gruvbox: {
+    crust: "#1d2021", mantle: "#282828", base: "#32302f",
+    surface1: "#504945", surface2: "#665c54", text: "#ebdbb2",
+    red: "#fb4934", peach: "#fe8019", yellow: "#fabd2f", green: "#b8bb26",
+    sapphire: "#8ec07c", blue: "#83a598", lavender: "#bdae93", mauve: "#b16286",
+    flamingo: "#d5c4a1", teal: "#689d6a", pink: "#d3869b",
+  },
 };
 
 const POWERLINE_ARROW = "";
+const POWERLINE_THIN = "\u{E0B1}";
 const ASCII_ARROW = "▸";
+
+/**
+ * Which separator to draw.
+ *
+ * Powerline is the default and the design. A thin separator is a declared
+ * fallback for a terminal that can reach the private use area but renders
+ * the solid arrow badly, which the v4.0.0 amendment to Principle I allows
+ * as long as it is asked for rather than assumed.
+ */
+export function separatorFor({ asciiArrows = false, style = process.env.CLAUDE_STATUSLINE_SEPARATOR } = {}) {
+  if (asciiArrows) return ASCII_ARROW;
+  if (style === "thin") return POWERLINE_THIN;
+  return POWERLINE_ARROW;
+}
 
 function hexToRgb(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -65,24 +102,46 @@ function hyperlink(url, text) {
  * reference starship.toml convention of light-text-on-solid-background.
  * An optional `url` makes the segment's text a clickable OSC 8 hyperlink.
  */
+
+/**
+ * A lighter version of a colour, for marking a segment that just changed.
+ *
+ * Colour is preattentive: a brighter block is noticed before it is read,
+ * where a swapped glyph has to be recognised, and it does not require the
+ * reader to have seen the previous frame. The segment keeps its own hue, so
+ * it still says which segment it is.
+ */
+export function lighten(hex, ratio = 0.45) {
+  const [r, g, b] = hexToRgb(hex);
+  const mix = (c) => Math.round(c + (255 - c) * ratio);
+  return `#${[mix(r), mix(g), mix(b)].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** A palette colour by name, or a literal hex when one is handed in. */
+export function resolveColour(palette, colour) {
+  if (typeof colour === "string" && colour.startsWith("#")) return colour;
+  return palette[colour];
+}
+
 export function renderRow(palette, segments, { asciiArrows = false } = {}) {
-  const arrow = asciiArrows ? ASCII_ARROW : POWERLINE_ARROW;
+  const arrow = separatorFor({ asciiArrows });
   let out = "";
   segments.forEach((seg, i) => {
     const segFg = seg.color === "surface1" || seg.color === "surface2" ? palette.text : palette.crust;
+    const segBg = resolveColour(palette, seg.color);
     if (i > 0) {
-      const prev = segments[i - 1].color;
-      out += `${fg(palette[prev])}${bg(palette[seg.color])}${arrow}`;
+      const prev = resolveColour(palette, segments[i - 1].color);
+      out += `${fg(prev)}${bg(segBg)}${arrow}`;
     }
     const text = seg.url ? hyperlink(seg.url, seg.text) : seg.text;
-    out += `${bg(palette[seg.color])}${fg(segFg)}${text}`;
+    out += `${bg(segBg)}${fg(segFg)}${text}`;
   });
   const last = segments[segments.length - 1];
   // Reset before the closing cap: without it, the arrow inherits the last
   // segment's own background (still active from the loop above) and its
   // triangle becomes invisible — same-color foreground on same-color
   // background — instead of fading into the terminal's real background.
-  out += `${RESET}${fg(palette[last.color])}${arrow}${RESET}`;
+  out += `${RESET}${fg(resolveColour(palette, last.color))}${arrow}${RESET}`;
   return out;
 }
 

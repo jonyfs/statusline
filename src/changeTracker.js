@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { lighten } from "./theme.js";
+import { pushSample } from "./samples.js";
 
 /**
  * Marks segments that changed since the previous render, and cycles their
@@ -28,16 +30,22 @@ const SWEPT_DIRS = [STATE_DIR, path.join(STATUSLINE_DIR, "cache"), path.join(STA
 const HIGHLIGHT_MS = 30_000;
 const STALE_STATE_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Frames a changed icon cycles through, per tracked segment kind. */
-const FRAMES = {
-  branch: ["🌱", "🌿", "🌳", "🌿"],
-  pr: ["🔵", "🔷", "🔹", "🔷"],
-  skills: ["✨", "🌟", "⭐", "🌟"],
-  model: ["🔆", "🔅", "🔆", "🔅"],
-  effort: ["⚡", "✨", "⚡", "✨"],
-  ahead: ["⏫", "🔼", "⏫", "🔼"],
-  behind: ["⏬", "🔽", "⏬", "🔽"],
-};
+/**
+ * Which segments mark a change, and how.
+ *
+ * The mark is a colour shift rather than a sequence of icon frames. Colour
+ * is preattentive: a brighter block is noticed before it is read, where a
+ * swapped glyph has to be recognised, and it does not ask the reader to have
+ * seen the previous frame. The segment keeps its own hue, so it still says
+ * which segment it is.
+ *
+ * The list is short on purpose. Principle X, as amended, requires each
+ * colour channel to carry one meaning, so these four are exactly the
+ * segments the ramp does not touch. Ahead, behind and effort used to
+ * animate; they now hold still, because their colour has no second meaning
+ * to spare and their numbers speak for themselves.
+ */
+const HIGHLIGHTED = new Set(["branch", "pr", "skills", "model"]);
 
 function sessionStateFile(sessionId) {
   const safe = String(sessionId || "default").replace(/[^A-Za-z0-9_-]/g, "_");
@@ -92,9 +100,16 @@ function saveState(sessionId, state) {
  * the line permanently animated and the highlight would stop meaning
  * anything.
  */
-export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = true } = {}) {
+export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = true, sample = null } = {}) {
   if (!enabled) {
-    return { isChanged: () => false, iconFor: (_key, staticIcon) => staticIcon };
+    return {
+      isChanged: () => false,
+      colourFor: (_key, base) => base,
+      iconFor: (_key, staticIcon) => staticIcon,
+      samples: [],
+      lastShown: {},
+      remember: () => {},
+    };
   }
 
   const previous = loadState(sessionId);
@@ -112,17 +127,44 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
     if (now - at > HIGHLIGHT_MS) delete changedAt[key];
   }
 
+  // The short history four segments read: a burn rate, a projection, a
+  // trend, and the rule that the savings figure only renders once it has
+  // moved. It rides in the file that already exists rather than a second
+  // store, and is bounded so the file cannot grow.
+  const samples = sample ? pushSample(previous?.samples, { at: now, ...sample }) : previous?.samples || [];
+  const lastShown = { ...(previous?.lastShown || {}) };
+
   // Swept once per session, on its first render — deterministic, and
   // frequent enough given each session starts exactly once.
   if (!previous) pruneStaleState(now);
-  saveState(sessionId, { snapshot, changedAt, frame });
+
+  const pendingShown = {};
+  const persist = () =>
+    saveState(sessionId, { snapshot, changedAt, frame, samples, lastShown: { ...lastShown, ...pendingShown } });
+  persist();
 
   return {
     isChanged: (key) => Object.hasOwn(changedAt, key),
-    iconFor: (key, staticIcon) => {
-      if (!Object.hasOwn(changedAt, key)) return staticIcon;
-      const frames = FRAMES[key];
-      return frames ? frames[frame % frames.length] : staticIcon;
+    /**
+     * The colour a segment renders in: its own, or a lighter version of it
+     * while the change is still recent. A segment outside the highlighted
+     * set always gets its own colour back.
+     */
+    colourFor: (key, base, palette) => {
+      if (!HIGHLIGHTED.has(key) || !Object.hasOwn(changedAt, key)) return base;
+      const hex = palette?.[base];
+      return hex ? lighten(hex) : base;
+    },
+    /** Kept so a caller can still ask, and always answers with the icon. */
+    iconFor: (_key, staticIcon) => staticIcon,
+    /** The sample ring, for whatever wants to read a direction out of it. */
+    samples,
+    /** What each throttled segment last showed, so it knows when to move. */
+    lastShown,
+    /** Records a value as shown, for the next redraw to compare against. */
+    remember: (key, value) => {
+      pendingShown[key] = value;
+      persist();
     },
   };
 }

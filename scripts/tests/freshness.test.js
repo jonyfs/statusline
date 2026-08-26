@@ -55,10 +55,10 @@ await test("usage segments keep their slot and show ?% instead of disappearing",
   // has nothing; these five must not, or a reader cannot tell "unknown"
   // from "the segment moved".
   const plain = stripAnsi(renderPayload({}, { sources: emptySources }));
-  assert.match(plain, /Context \?%/);
+  assert.match(plain, /Context [░█▓▒]* ?\?%/);
   assert.match(plain, /5h \?%/);
   assert.match(plain, /7d \?%/);
-  assert.match(plain, /reset time unknown/);
+  assert.match(plain, /reset unknown/);
   assert.doesNotMatch(plain, /NaN|undefined|null/);
 });
 
@@ -69,7 +69,7 @@ await test("a partial payload leaves the present figures alone", () => {
       { sources: emptySources }
     )
   );
-  assert.match(plain, /Context 41%/);
+  assert.match(plain, /Context [░█▓▒]* ?41%/);
   assert.match(plain, /5h \?%/);
   assert.match(plain, /7d \?%/);
 });

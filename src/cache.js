@@ -157,6 +157,14 @@ export function spawnRefresh(key, name, cwd, { now = Date.now() } = {}) {
       stdio: "ignore",
       windowsHide: true,
     });
+    // A spawn that fails does so asynchronously, as an 'error' event. With
+    // no listener Node treats it as an unhandled error and takes the whole
+    // process down, which turned a refresh that could not start into a
+    // statusline that did not render. Nothing here needs the refresh to
+    // succeed; releasing the lock is enough.
+    child.on("error", () => {
+      takeLock(key, name, { now, release: true });
+    });
     child.unref();
     return true;
   } catch {

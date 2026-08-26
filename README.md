@@ -5,8 +5,11 @@ shows where you are (directory, git branch, working-tree state, open pull
 request), which skills are active, which model and effort you're on, and how
 much of your context window and rate limits you've burned through.
 
-Every redraw finishes in about 47 milliseconds at the 95th percentile,
+Every redraw finishes in about 25 milliseconds at the 95th percentile,
 measured against a 75 MB session transcript, and never waits on the network.
+The bar fits itself to the terminal it is in: it reads the real width and
+height, drops the least important segments before it would overflow, and
+sheds whole lines rather than wrapping on a short window.
 
 ![Full statusline](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/full.svg)
 
@@ -21,11 +24,8 @@ the code does, because they *are* what the code does.
 | 3 | Model, effort level, output style |
 | 4 | Context window, 5-hour and 7-day usage with their reset countdowns, rtk savings |
 
-A segment with nothing to say is dropped rather than shown empty, so the
-bar is only as wide as what you have. No line goes past 120 columns either:
-if one would, the least useful content comes off first, starting with the
-weekday beside the 7-day figure, which the countdown next to it already
-tells you.
+A segment with nothing to say is dropped rather than shown empty, so the bar
+is only as wide as what you have.
 
 ## Install
 
@@ -44,13 +44,22 @@ The install step backs up your existing `~/.claude/settings.json` to
 updates the moment a skill runs, and leaves every other setting alone. Run
 it as many times as you like; it does the same thing each time.
 
-If you'd rather it didn't touch your hooks:
+Install also sets `refreshInterval: 60`, so the countdowns and the clock keep
+moving while a session sits idle and Claude Code stops sending events, and a
+`taskCommand` so the rows for running subagents are drawn in the same style
+as the bar.
+
+Each of the three is optional:
 
 ```bash
 node ~/.claude/statusline-plugin/bin/cli.js install --no-hook
+node ~/.claude/statusline-plugin/bin/cli.js install --no-refresh-interval
+node ~/.claude/statusline-plugin/bin/cli.js install --no-task-rows
 ```
 
-Everything still works; skills just appear a beat later.
+Everything still works without them; skills just appear a beat later, the
+countdowns freeze while you are idle, and subagent rows keep Claude Code's
+own styling.
 
 Clone it wherever you want. The path above is only a suggestion, but pick
 somewhere permanent: the install writes that path into your settings, so a
@@ -109,6 +118,42 @@ show `?%` and `reset time unknown`. Nothing gets estimated to fill the gap:
 
 ![Missing payload fields](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/missing-fields.svg)
 
+## It fits the terminal, whatever size that is
+
+Claude Code tells the script the terminal's width and height before running
+it, so the bar knows what it has to work with instead of assuming.
+
+**Too narrow.** Every segment carries a priority, and a line is filled from
+the most important down until the next one would not fit. What you lose is
+what matters least, not whatever happened to be last in the code. Position
+stays independent of priority, so nothing slides sideways when a neighbour
+disappears.
+
+Six segments are the last to go: context, branch, directory, the 5-hour
+window, the model, and the 7-day window. Measured in this repository:
+
+| Width | What goes |
+|---|---|
+| 120 and up | nothing |
+| 100 | the rtk figure |
+| 80 | the 7-day countdown; the 5-hour one stays |
+| 60 | both countdowns; the three usage figures remain |
+
+![Eighty columns](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/narrow.svg)
+
+**Too short.** Lines are shed rather than wrapped, because a wrapped bar
+costs more rows than it saves and Claude Code truncates rather than wraps.
+Skills go first, then the model line, then the directory line. Line 4 is the
+last one standing: it carries the limits whose consequences you cannot undo.
+Everything comes back the moment the window does.
+
+![A two-row window](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/short-window.svg)
+
+The full priority table lives in
+[`specs/002-statusline-design-review/data-model.md`](specs/002-statusline-design-review/data-model.md).
+Changing a number in it changes what you see on a narrow terminal, which is
+why it sits in a file you can read rather than inside a render function.
+
 ## Themes
 
 Set `CLAUDE_STATUSLINE_FLAVOR` to any of the four Catppuccin flavors:
@@ -120,16 +165,84 @@ Set `CLAUDE_STATUSLINE_FLAVOR` to any of the four Catppuccin flavors:
 | `macchiato` | ![macchiato](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-macchiato.svg) |
 | `latte` | ![latte](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-latte.svg) |
 
+Two palettes from outside Catppuccin ship as well, for terminals themed
+around them. Neither is the default:
+
+| Flavor | Preview |
+|---|---|
+| `nord` | ![nord](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-nord.svg) |
+| `gruvbox` | ![gruvbox](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-gruvbox.svg) |
+
 No Nerd Font in your terminal? `CLAUDE_STATUSLINE_ASCII=1` swaps the
 Powerline separator for a plain arrow:
 
 ![ASCII fallback](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/ascii-fallback.svg)
 
+## Reading a level at a glance
+
+The context figure renders as a bar beside its number, and the bar's colour
+follows the level: green below 60%, yellow to 85%, red above it. The 5-hour
+and 7-day figures use the same thresholds, so all three read the same way.
+
+Colour is not the only carrier, because around one man in twelve cannot
+separate red from green. Each band draws a different character, so the band
+survives a greyscale screenshot and a terminal with a broken palette:
+
+| Band | Bar | Also |
+|---|---|---|
+| below 60% | `████░░░░░░` | |
+| 60% to 85% | `▓▓▓▓▓▓▓░░░` | |
+| above 85% | `▒▒▒▒▒▒▒▒▒▒` | a trailing `!` |
+
+![Close to the limit](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/near-compaction.svg)
+
+The bar scales with the terminal: eight cells under 100 columns, ten up to
+160, sixteen above. An unknown percentage draws an empty track rather than
+disappearing, so the line's width does not jump when the payload skips a
+field.
+
+Both reset countdowns share a single dimmed segment on the right of line 4:
+`🕞 1h29m / 3d`. The clock face is the sooner of the two windows, since that
+is the one about to matter. Two clock faces and two spelled-out countdowns
+used to spend a third of the line saying two things that are read together.
+
+The weekday beside the 7-day figure appears only when the reset is more than
+a day out. Inside a day the countdown already says it, and the weekday would
+be today's or tomorrow's name for no gain.
+
+The savings figure waits until it has moved five points before it renders
+again. It is the slowest thing on the bar, and a number that says the same
+thing every redraw is a number nobody reads.
+
+## What line 4 can tell you
+
+Beyond the three usage percentages and their countdowns, the payload carries
+enough to answer most of what you would otherwise run a command for. All of
+it is free: it arrives on stdin with everything else.
+
+| Segment | Reads |
+|---|---|
+| `16.7k / 200k` | tokens in the context window, against the window's size |
+| `200k window` | the window size on its own, so 200k and 1M never look alike |
+| `⚠ 200k` | Claude Code's own fixed-threshold flag |
+| `⏳ 1h04m` | wall-clock time since the session started |
+| `api 22m` | how much of that was spent waiting on the API |
+| `+156 −23` | lines added and removed this session |
+
+They sit low in the priority table, so on a narrow terminal they are the
+first to go and the three percentages stay.
+
 ## Model, effort and output style
 
-Line 3 names the model. Beside it, an effort level appears behind a
-lightning bolt when the session has one, and a non-default output style
-appears behind a palette icon. They are separate segments on purpose: they
+Line 3 names the model. Beside it, one segment carries how the model is
+configured: the effort level behind a lightning bolt, and a non-default
+output style behind a palette icon, separated by a dot. They are the same
+idea seen twice and they change together, so they share a block rather than
+spending three separators on one thought. Whichever half exists renders; if
+neither does, the segment is not there.
+
+After that comes the agent's name, when the session runs under one, and the
+session's name once you have given it one with `--name` or `/rename`. They are separate segments on purpose: they
 are different settings, and until recently the output style was rendered in
 the effort slot whenever no effort level was present, which read as an
 effort level called "explanatory".
@@ -145,7 +258,23 @@ or inline in the `statusLine.command` string in `settings.json`.
 | `CLAUDE_STATUSLINE_ASCII=1` | Drops the Powerline separator for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json`, for when a field changes shape in some future version |
-| `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request and rtk segments then show only what is already cached. Used when generating previews and running tests |
+| `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
+| `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
+
+### Per-repository settings
+
+A monorepo and a scratch repository do not want the same bar, and neither
+wants you to export a variable to say so. Drop a `.statusline.json` at the
+repository root:
+
+```json
+{ "flavor": "gruvbox", "separator": "thin", "skillWindowMin": 60 }
+```
+
+Four keys are read: `flavor`, `ascii`, `separator` and `skillWindowMin`.
+Anything else in the file is ignored. An environment variable always wins,
+and a file in your home directory is ignored entirely, because settings that
+live in a repository travel to everyone who clones it.
 
 ## Platform support
 
@@ -177,22 +306,24 @@ state in as JSON: the model, the context window, the rate limits.
 
 What the script does with that has one rule: a redraw has 300 milliseconds
 and it does not go over. Measured on this machine against a real 75 MB
-session transcript, a redraw takes 46 milliseconds at the 95th percentile
-over 100 runs. You can check that yourself:
+session transcript, a redraw takes 25 milliseconds at the 95th percentile.
+You can check that yourself:
 
 ```bash
 node scripts/bench.js --runs 100
 ```
 
-Cheap things are read on every redraw: the model and usage figures come
-straight off stdin, one `git status` answers the branch, the working-tree
-counts and the divergence in about 30 milliseconds, and the skills come
-from the tail of the transcript rather than the whole file.
+Cheap things are read on every redraw: the model, the usage figures, the
+pull request and the repository's identity come straight off stdin, one `git
+status` answers the branch, the working-tree counts and the divergence in
+about 30 milliseconds, and the skills come from the tail of the transcript
+rather than the whole file.
 
-Two things are too expensive for that. `gh pr view` takes about half a
-second on a good network and its full timeout when it can't reach GitHub,
-and the `rtk` figure is a process launch for a number that barely moves.
-Both are read from a small cache under `~/.claude/statusline/cache/`, and
+Two things are too expensive for that. `gh pr view`, when it is needed at
+all, takes about half a second on a good network and its full timeout when
+it can't reach GitHub, and the `rtk` figure is a process launch for a number
+that barely moves. Both are read from a small cache under
+`~/.claude/statusline/cache/`, and
 when a cached value is halfway to expiring the redraw starts a one-shot
 background process that refreshes it and exits. Pull request and savings
 values are shown for up to a minute; past that the segment disappears
@@ -211,10 +342,15 @@ When something looks wrong, ask:
 node bin/cli.js doctor
 ```
 
-That prints one row per segment: what it shows, where the value came from,
-how old it is, what the source cost, and, for anything read from cache, the
-result of a live probe beside it. Every segment that isn't on the line says
-why not.
+That prints one row per segment: its priority, which line it belongs to,
+what it shows, where the value came from, how old it is, what the source
+cost, and, for anything read from cache, the result of a live probe beside
+it. Every segment that isn't on the line says why not.
+
+The header answers the two questions people actually ask. `terminal: 96
+columns, 24 rows` explains a segment that is missing because there was no
+room for it, and `history: 3 samples` explains why the burn rate has not
+appeared yet.
 
 ## Where the numbers come from
 
@@ -229,17 +365,26 @@ this thing doesn't invent numbers to fill space.
 **The rtk savings figure** comes from `rtk gain --format json`, and only
 appears when `rtk` is installed.
 
-**Pull request info** needs the `gh` CLI, authenticated, in a GitHub repo
-with an open PR for your branch. Miss any of those and the segment simply
-isn't there.
+**Pull request info** comes from Claude Code itself, which sends the open
+pull request for your branch along with everything else: its number, its URL
+and its review state. That last one is why the segment can say `PR #12
+approved` rather than just `PR #12 open`. On a GitLab remote the same fields
+describe the branch's merge request, and the segment says `MR` instead.
 
-It is never looked up during a redraw. `gh pr view` takes about half a
-second on a good network and its full timeout when it can't reach GitHub,
-which is more than a redraw is allowed to spend in total. The value comes
-from cache, refreshed in the background, and is shown for at most a minute
-before it goes away rather than sit there being wrong. The same is true of
-the savings figure. So the first redraw in a fresh clone has no PR segment,
-and the next one does.
+When Claude Code doesn't send it, either because it hasn't found the pull
+request yet or because you're on a version that predates the field, `gh pr
+view` answers instead. That call takes about half a second on a good network
+and its full timeout when it can't reach GitHub, so it never runs during a
+redraw: the value comes from cache, refreshed in the background, and is shown
+for at most a minute before it goes away rather than sit there being wrong.
+The savings figure works the same way.
+
+`node bin/cli.js doctor` tells you which of the two answered.
+
+**The repository's owner and name** come from the same place. Claude Code
+parses them out of your `origin` remote, host included, so the branch and
+pull request links are built without asking git. `git remote get-url` is
+still the fallback.
 
 **Active skills** come from one of two places. Install registers a
 `PostToolUse` hook that appends each skill invocation to a small
@@ -291,6 +436,12 @@ upstream to compare against:
 
 ![No upstream](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/no-upstream.svg)
 
+Two more things sit on line 1 when they have something to say. A worktree
+names itself and the branch it came from (`my-feature ← main`), because the
+branch name alone does not always tell you which tree you are in. And if
+Claude has moved during the session, the directory it started in appears
+after the one it is in now (`📁 src ← statusline`).
+
 A detached HEAD shows the commit id behind a commit icon, and doesn't link
 anywhere, because a commit is not a branch:
 
@@ -333,36 +484,28 @@ is listed as "repo_push" and draws a downward arrow, and `F45D` is listed
 as "arrow_up" and draws a signpost. Either would have put a
 wrong-direction arrow on line 1.
 
-## Icons react when something changes
+## Segments brighten when something changes
 
-When a value differs from the last redraw, that segment's icon runs through
-a short animation and settles back after thirty seconds. It tracks branch,
-ahead/behind, pull request, active skills, model and effort.
+When a tracked value differs from the last redraw, that segment's colour
+brightens for thirty seconds and then settles back. It tracks four things:
+branch, pull request, active skills, and model.
 
-Usage percentages are left out on purpose. They move on nearly every redraw,
-so animating them would leave the bar permanently twitching and the
-highlight would stop meaning anything.
+Colour rather than a moving icon, because colour is noticed before it is
+read: you see a brighter block without looking at it, where a swapped glyph
+has to be recognised, and you do not need to have seen the frame before it.
+The segment keeps its own hue, so it still says which segment it is.
 
-About the animation: a status bar is printed once and is then static text.
-The process exits; nothing can redraw it. So frames advance one per redraw,
-roughly every five or six seconds while you're active. It reads as a slow
-pulse that catches your eye, not as motion. ANSI blink would have been the
-alternative, but plenty of terminals ignore it and where it works it's an
-accessibility problem.
+Four segments and no more, because the usage figures already use colour to
+say which band they are in. A colour on the bar means one thing wherever you
+find it: a level on context and the two rate limits, a recent change on the
+other four, and plain identity everywhere else.
 
-Switching branch looks like this over successive redraws:
-
-```
-redraw 1   📁 statusline   main            static
-redraw 2   📁 statusline   main
-redraw 3   📁 statusline  🌳 feature/x      changed
-redraw 4   📁 statusline  🌿 feature/x
-redraw 5   📁 statusline  🌱 feature/x
-...        📁 statusline   feature/x       back to static after 30s
-```
+Usage percentages are left out of change tracking on purpose. They move on
+nearly every redraw, so highlighting them would leave the bar permanently
+lit and the highlight would stop meaning anything.
 
 State lives in `~/.claude/statusline/state/`, one file per session, swept
-after a week. If it can't be read or written, you just get no animation.
+after a week. If it can't be read or written, you just get no highlighting.
 
 ## What it writes to disk
 

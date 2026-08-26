@@ -126,21 +126,23 @@ await test("outputStyle: present when set, absent when default or missing", () =
 
 await test("context, fiveHour, sevenDay: present, and ?% rather than absent", () => {
   const full = render(payload, everything);
-  assert.match(full, /Context 26%/);
+  assert.match(full, /Context [░█▓▒]* ?26%/);
   assert.match(full, /5h 20%/);
   assert.match(full, /7d 77%/);
 
   const empty = render({}, emptySources);
-  assert.match(empty, /Context \?%/);
+  assert.match(empty, /Context [░█▓▒]* ?\?%/);
   assert.match(empty, /5h \?%/);
   assert.match(empty, /7d \?%/);
 });
 
-await test("fiveHourReset, sevenDayReset: countdowns present, unknown when absent", () => {
+await test("resetMerged: both countdowns in one segment, absent when unknown", () => {
+  // C6 merged them. The face is the sooner of the two windows, and the two
+  // countdowns render side by side without repeating the word "resets".
   const full = render(payload, everything);
-  assert.match(full, /resets in 1h00m/);
-  assert.match(full, /resets in 3d 0h/);
-  assert.match(render({}, emptySources), /reset time unknown/);
+  assert.match(full, /1h00m \/ 3d/);
+  const empty = render({}, emptySources);
+  assert.doesNotMatch(empty, /\d+h\d+m/, "no countdown without a reset time");
 });
 
 await test("rtk: present when installed, absent when not", () => {

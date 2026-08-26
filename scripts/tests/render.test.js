@@ -8,14 +8,14 @@ await test("renders with a fully populated payload", () => {
   const out = renderPayload(fullPayload({ cwd: process.cwd() }), { sources: emptySources });
   const plain = stripAnsi(out);
   assert.match(plain, /Sonnet 5/);
-  assert.match(plain, /Context 26%/);
+  assert.match(plain, /Context [░█▓▒]* ?26%/);
   assert.match(plain, /5h 20%/);
   assert.match(plain, /7d 77%/);
 });
 
 await test("degrades to ?% instead of inventing numbers", () => {
   const plain = stripAnsi(renderPayload({}, { sources: emptySources }));
-  assert.match(plain, /Context \?%/);
+  assert.match(plain, /Context [░█▓▒]* ?\?%/);
   assert.match(plain, /5h \?%/);
   assert.doesNotMatch(plain, /NaN|undefined|null/);
 });

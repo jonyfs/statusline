@@ -81,7 +81,11 @@ await test("usage figures come from the payload and nowhere else", () => {
 });
 
 await test("an unknown reset renders as text, not as a blank or a guess", () => {
-  const plain = stripAnsi(renderPayload({}, { sources: emptySources, trackChanges: false }));
-  const matches = plain.match(/reset time unknown/g) || [];
-  assert.equal(matches.length, 2, "both windows must say so rather than show an empty slot");
+  // C6 merged the two countdowns into one segment, so there is one place to
+  // say it now rather than two. A bare clock face would be the empty slot
+  // Principle III rules out.
+  const plain = stripAnsi(
+    renderPayload({}, { sources: emptySources, trackChanges: false, maxWidth: 200, maxHeight: 40 })
+  );
+  assert.match(plain, /reset unknown/);
 });

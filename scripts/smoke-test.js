@@ -13,6 +13,12 @@
  * exercised against a throwaway HOME built by tests/fixtures/home.js.
  */
 
+// The renderer reads COLUMNS and LINES now, so a suite that inherited them
+// would pass or fail by the size of the window it was run in. Pin them, and
+// let the cases that care about size pass their own.
+process.env.COLUMNS = process.env.CLAUDE_STATUSLINE_TEST_COLUMNS || "200";
+process.env.LINES = process.env.CLAUDE_STATUSLINE_TEST_LINES || "40";
+
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";

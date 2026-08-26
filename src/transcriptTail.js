@@ -162,3 +162,91 @@ export function scanTailForSkills(
   const { truncated, bytesRead } = collect();
   return { skills: found.slice(0, limit), truncated, bytesRead };
 }
+
+/**
+ * One pass over the tail for everything the bar reads from a transcript:
+ * the skills, the todo list, and when the session last did anything.
+ *
+ * It is the same walk `scanTailForSkills` makes, and it stops on the same
+ * limits. Reading the file three times for three answers would have tripled
+ * the only cost on the redraw path that ever grew.
+ */
+export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Date.now(), byteCap, budgetMs } = {}) {
+  const cutoff = now - windowMs;
+  const skills = [];
+  const seen = new Set();
+  let todos = null;
+  let lastAt = null;
+  let consecutiveOld = 0;
+  const OLD_ENTRY_PATIENCE = 200;
+
+  const { truncated, bytesRead } = readTailLines(file, {
+    byteCap,
+    budgetMs,
+    enough: (acc) => {
+      let entry;
+      try {
+        entry = JSON.parse(acc[acc.length - 1]);
+      } catch {
+        return false;
+      }
+
+      const stamp = Date.parse(entry?.timestamp ?? "");
+      let inWindow = true;
+      if (Number.isFinite(stamp)) {
+        // The newest usable stamp is the last thing the session did. The
+        // walk runs newest-first, so the first one seen is the answer.
+        if (lastAt === null && stamp <= now) lastAt = stamp;
+        if (stamp < cutoff || stamp > now) {
+          inWindow = false;
+          consecutiveOld++;
+          if (consecutiveOld > OLD_ENTRY_PATIENCE) return true;
+        } else {
+          consecutiveOld = 0;
+        }
+      } else {
+        consecutiveOld = 0;
+      }
+
+      const blocks = entry?.message?.content;
+      if (!Array.isArray(blocks)) return false;
+
+      for (const block of blocks) {
+        if (block?.type !== "tool_use") continue;
+        const name = String(block.name || "").toLowerCase();
+
+        // A skill outside the activity window has expired. A todo list has
+        // not: a list written an hour ago is still the list, because it
+        // says its own state rather than relying on how recently it was
+        // touched.
+        if (name === "skill" && inWindow) {
+          const skillName = block.input?.skill || block.input?.name;
+          if (skillName && !seen.has(skillName)) {
+            seen.add(skillName);
+            skills.push(skillName);
+          }
+        } else if (todos === null && (name === "todowrite" || name === "todo_write")) {
+          const list = block.input?.todos;
+          if (Array.isArray(list)) todos = summariseTodos(list);
+        }
+      }
+
+      // Stop once both questions are answered.
+      return skills.length >= limit && todos !== null;
+    },
+  });
+
+  return { skills: skills.slice(0, limit), todos, lastAt, truncated, bytesRead };
+}
+
+/**
+ * A todo list, reduced to what fits on a bar: how many are done, how many
+ * there are, and what is being worked on now.
+ */
+function summariseTodos(list) {
+  const total = list.length;
+  if (!total) return null;
+  const done = list.filter((t) => t?.status === "completed").length;
+  const active = list.find((t) => t?.status === "in_progress");
+  return { done, total, current: active?.content ?? active?.activeForm ?? null };
+}
