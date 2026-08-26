@@ -178,8 +178,18 @@ The bar scales with the terminal: eight cells under 100 columns, ten up to
 disappearing, so the line's width does not jump when the payload skips a
 field.
 
-The reset countdowns are dimmed. They are context for the figures beside
-them rather than figures in their own right.
+Both reset countdowns share a single dimmed segment on the right of line 4:
+`🕞 1h29m / 3d`. The clock face is the sooner of the two windows, since that
+is the one about to matter. Two clock faces and two spelled-out countdowns
+used to spend a third of the line saying two things that are read together.
+
+The weekday beside the 7-day figure appears only when the reset is more than
+a day out. Inside a day the countdown already says it, and the weekday would
+be today's or tomorrow's name for no gain.
+
+The savings figure waits until it has moved five points before it renders
+again. It is the slowest thing on the bar, and a number that says the same
+thing every redraw is a number nobody reads.
 
 ## What line 4 can tell you
 
@@ -201,11 +211,15 @@ first to go and the three percentages stay.
 
 ## Model, effort and output style
 
-Line 3 names the model. Beside it, an effort level appears behind a
-lightning bolt when the session has one, a non-default output style appears
-behind a palette icon, the agent's name appears when the session runs under
-one, and the session's name appears once you have given it one with
-`--name` or `/rename`. They are separate segments on purpose: they
+Line 3 names the model. Beside it, one segment carries how the model is
+configured: the effort level behind a lightning bolt, and a non-default
+output style behind a palette icon, separated by a dot. They are the same
+idea seen twice and they change together, so they share a block rather than
+spending three separators on one thought. Whichever half exists renders; if
+neither does, the segment is not there.
+
+After that comes the agent's name, when the session runs under one, and the
+session's name once you have given it one with `--name` or `/rename`. They are separate segments on purpose: they
 are different settings, and until recently the output style was rendered in
 the effort slot whenever no effort level was present, which read as an
 effort level called "explanatory".

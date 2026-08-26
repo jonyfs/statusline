@@ -112,3 +112,14 @@ export function formatDuration(ms) {
   const hours = Math.floor(minutes / 60);
   return hours > 0 ? `${hours}h${String(minutes % 60).padStart(2, "0")}m` : `${minutes}m`;
 }
+
+/**
+ * A countdown with no words, for the segment that carries two of them.
+ * `1h29m`, `3d`, or null when the moment is unknown or long past.
+ */
+export function shortCountdown(resetsAtSeconds, now = Date.now()) {
+  const full = formatResetCountdown(resetsAtSeconds, now);
+  if (full === null) return null;
+  if (full === "resetting now") return "now";
+  return full.replace(/^resets in /, "").replace(/ (\d+)h$/, "");
+}

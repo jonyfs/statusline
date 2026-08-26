@@ -58,7 +58,7 @@ await test("usage segments keep their slot and show ?% instead of disappearing",
   assert.match(plain, /Context [░█▓▒]* ?\?%/);
   assert.match(plain, /5h \?%/);
   assert.match(plain, /7d \?%/);
-  assert.match(plain, /reset time unknown/);
+  assert.match(plain, /reset unknown/);
   assert.doesNotMatch(plain, /NaN|undefined|null/);
 });
 

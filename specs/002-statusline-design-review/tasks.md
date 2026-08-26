@@ -126,12 +126,12 @@ description: "Task list for the selected statusline redesign"
 
 **Purpose**: Take width back. Cheapest once the registry exists.
 
-- [ ] T045 [P] Write `scripts/tests/merges.test.js` covering each merge and removal in its chosen form
-- [ ] T046 Merge effort and output style into one segment beside the model [C3]
-- [ ] T047 Show the weekday only past 24 hours [C4]
-- [ ] T048 Show rtk only when it has moved five points [C5]
-- [ ] T049 Collapse the two reset countdowns into one segment carrying both [C6]
-- [ ] T050 Keep the directory even when it repeats the repository name, and record why [C7]
+- [X] T045 [P] Write `scripts/tests/merges.test.js` covering each merge and removal in its chosen form
+- [X] T046 Merge effort and output style into one segment beside the model [C3]
+- [X] T047 Show the weekday only past 24 hours [C4]
+- [X] T048 Show rtk only when it has moved five points [C5]
+- [X] T049 Collapse the two reset countdowns into one segment carrying both [C6]
+- [X] T050 Keep the directory even when it repeats the repository name, and record why [C7]
 
 **Checkpoint**: The line is shorter than it was two phases ago, with more on it.
 
@@ -141,9 +141,9 @@ description: "Task list for the selected statusline redesign"
 
 **Purpose**: The four items that need history, the conflict count that is already parsed, and the clock.
 
-- [ ] T051 [P] Write `scripts/tests/samples.test.js`: the ring holds at most 60 samples, evicts oldest first, survives a corrupt state file, and yields nothing until 5 samples span 60 seconds
+- [X] T051 [P] Write `scripts/tests/samples.test.js`: the ring holds at most 60 samples, evicts oldest first, survives a corrupt state file, and yields nothing until 5 samples span 60 seconds
 - [ ] T052 [P] Write `scripts/tests/rates.test.js`: burn rate, projection and sparkline are absent below the sample threshold and correct above it; a projection that lands past the reset is marked
-- [ ] T053 Create `src/samples.js`: the bounded ring in the existing session state file
+- [X] T053 Create `src/samples.js`: the bounded ring in the existing session state file
 - [ ] T054 Burn rate on the 5-hour window, percent per hour, ramped [B1]
 - [ ] T055 Projected exhaustion time [B2]
 - [ ] T056 [P] Distance to auto-compaction, a warning past the threshold [B3]

@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSy
 import path from "node:path";
 import os from "node:os";
 import { lighten } from "./theme.js";
+import { pushSample } from "./samples.js";
 
 /**
  * Marks segments that changed since the previous render, and cycles their
@@ -99,12 +100,15 @@ function saveState(sessionId, state) {
  * the line permanently animated and the highlight would stop meaning
  * anything.
  */
-export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = true } = {}) {
+export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = true, sample = null } = {}) {
   if (!enabled) {
     return {
       isChanged: () => false,
       colourFor: (_key, base) => base,
       iconFor: (_key, staticIcon) => staticIcon,
+      samples: [],
+      lastShown: {},
+      remember: () => {},
     };
   }
 
@@ -123,10 +127,21 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
     if (now - at > HIGHLIGHT_MS) delete changedAt[key];
   }
 
+  // The short history four segments read: a burn rate, a projection, a
+  // trend, and the rule that the savings figure only renders once it has
+  // moved. It rides in the file that already exists rather than a second
+  // store, and is bounded so the file cannot grow.
+  const samples = sample ? pushSample(previous?.samples, { at: now, ...sample }) : previous?.samples || [];
+  const lastShown = { ...(previous?.lastShown || {}) };
+
   // Swept once per session, on its first render — deterministic, and
   // frequent enough given each session starts exactly once.
   if (!previous) pruneStaleState(now);
-  saveState(sessionId, { snapshot, changedAt, frame });
+
+  const pendingShown = {};
+  const persist = () =>
+    saveState(sessionId, { snapshot, changedAt, frame, samples, lastShown: { ...lastShown, ...pendingShown } });
+  persist();
 
   return {
     isChanged: (key) => Object.hasOwn(changedAt, key),
@@ -142,5 +157,14 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
     },
     /** Kept so a caller can still ask, and always answers with the icon. */
     iconFor: (_key, staticIcon) => staticIcon,
+    /** The sample ring, for whatever wants to read a direction out of it. */
+    samples,
+    /** What each throttled segment last showed, so it knows when to move. */
+    lastShown,
+    /** Records a value as shown, for the next redraw to compare against. */
+    remember: (key, value) => {
+      pendingShown[key] = value;
+      persist();
+    },
   };
 }

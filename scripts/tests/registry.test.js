@@ -67,11 +67,12 @@ await test("a segment can be looked up by key", () => {
   assert.equal(segment("nothing-called-this"), undefined);
 });
 
-await test("the reset countdowns are the right-aligned group", () => {
-  // D3's chosen form. Everything else is left-aligned, so the volatile
-  // numbers land in the same place on every redraw.
+await test("the reset countdown is the right-aligned group", () => {
+  // D3's chosen form, after C6 merged the two countdowns into one segment.
+  // Everything else is left-aligned, so the volatile numbers land in the
+  // same place on every redraw.
   const right = SEGMENTS.filter((s) => s.align === "right").map((s) => s.key);
-  assert.deepEqual(right, ["fiveHourReset", "sevenDayReset"]);
+  assert.deepEqual(right, ["resetMerged"]);
 });
 
 await test("the rendered lines follow the registry's order", async () => {

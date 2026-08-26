@@ -57,17 +57,22 @@ export const SEGMENTS = [
 
   // Line 3: how the model is configured.
   { key: "model", line: 3, order: 10, align: "left", priority: 92, colour: "change", source: "payload" },
-  { key: "effort", line: 3, order: 20, align: "left", priority: 74, colour: "identity", source: "payload" },
-  { key: "outputStyle", line: 3, order: 30, align: "left", priority: 72, colour: "identity", source: "payload" },
+  // C3's chosen form: model, then everything else about how it is
+  // configured, in one segment. Three separators for one idea was two too
+  // many, and they change on the same schedule anyway.
+  { key: "effortStyle", line: 3, order: 20, align: "left", priority: 74, colour: "identity", source: "payload" },
   { key: "agent", line: 3, order: 40, align: "left", priority: 71, colour: "identity", source: "payload" },
   { key: "sessionName", line: 3, order: 50, align: "left", priority: 54, colour: "identity", source: "payload" },
 
   // Line 4: what is running out.
   { key: "context", line: 4, order: 10, align: "left", priority: 100, colour: "ramp", source: "payload" },
   { key: "fiveHour", line: 4, order: 20, align: "left", priority: 94, colour: "ramp", source: "payload" },
-  { key: "fiveHourReset", line: 4, order: 30, align: "right", priority: 80, colour: "identity", source: "payload" },
   { key: "sevenDay", line: 4, order: 40, align: "left", priority: 90, colour: "ramp", source: "payload" },
-  { key: "sevenDayReset", line: 4, order: 50, align: "right", priority: 78, colour: "identity", source: "payload" },
+  // C6: one segment carrying both countdowns. Two clock faces and two
+  // countdowns spent a third of the line saying two things that are read
+  // together. The face shown is the sooner of the two, since that is the
+  // one about to matter.
+  { key: "resetMerged", line: 4, order: 50, align: "right", priority: 80, colour: "identity", source: "payload" },
   { key: "tokens", line: 4, order: 12, align: "left", priority: 62, colour: "identity", source: "payload" },
   { key: "contextSize", line: 4, order: 14, align: "left", priority: 60, colour: "identity", source: "payload" },
   { key: "exceeds200k", line: 4, order: 16, align: "left", priority: 58, colour: "identity", source: "payload" },

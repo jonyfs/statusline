@@ -5,6 +5,7 @@ import {
   getContextPercent,
   getRateLimits,
   formatResetCountdown,
+  shortCountdown,
   getContextTokens,
   getSessionCost,
   formatDuration,
@@ -17,6 +18,7 @@ import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel } from "./segments.js";
 import { bar, rampColour } from "./ramp.js";
+import { movedBy } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, terminalWidth, terminalHeight } from "./layout.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
@@ -329,7 +331,14 @@ export function renderReadings(
       model: modelName,
       effort: effort ?? "",
     },
-    { enabled: tracking, now }
+    {
+      enabled: tracking,
+      now,
+      // The four segments that need a direction rather than a value read
+      // from here. Sampling costs one small write on a file that is already
+      // written every redraw.
+      sample: { contextPct: ctxPct, fiveHourPct, rtkPct },
+    }
   );
 
   const palette = PALETTES[flavor] || PALETTES.mocha;
@@ -462,11 +471,14 @@ export function renderReadings(
       color: changes.colourFor("model", "red", palette),
       text: ` 🤖 ${modelName} `,
     }),
-    effort: () => (effort ? { color: "peach", text: ` ⚡ ${effort} ` } : null),
-    outputStyle: () =>
-      outputStyle && outputStyle !== "default"
-        ? { color: "flamingo", text: ` 🎨 ${outputStyle} ` }
-        : null,
+    // C3: how the model is configured, in one segment. Effort and output
+    // style are the same idea seen twice, and they change together.
+    effortStyle: () => {
+      const parts = [];
+      if (effort) parts.push(`⚡ ${effort}`);
+      if (outputStyle && outputStyle !== "default") parts.push(`🎨 ${outputStyle}`);
+      return parts.length ? { color: "peach", text: ` ${parts.join(" · ")} ` } : null;
+    },
     // A14: a session running under an agent gave no sign of it, which is
     // exactly the case where you most want to know.
     agent: () => {
@@ -494,6 +506,19 @@ export function renderReadings(
   const fiveHourClock = clockFaceFor(fiveHourResetsAt) ?? g.clock;
   const sevenDayClock = clockFaceFor(sevenDayResetsAt) ?? g.clock;
   const sevenDayMoment = resetMomentLabel(sevenDayResetsAt, new Date(now));
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const farOutMoment =
+    typeof sevenDayResetsAt === "number" && sevenDayResetsAt * 1000 - now > ONE_DAY_MS
+      ? sevenDayMoment
+      : null;
+  // Whichever window resets first owns the clock face on the merged segment.
+  const soonerClock =
+    typeof fiveHourResetsAt === "number" && typeof sevenDayResetsAt === "number"
+      ? fiveHourResetsAt <= sevenDayResetsAt
+        ? fiveHourClock
+        : sevenDayClock
+      : (typeof fiveHourResetsAt === "number" ? fiveHourClock : null) ??
+        (typeof sevenDayResetsAt === "number" ? sevenDayClock : null);
 
   const line4Content = {
     // The three ramped segments. Colour says which band the level is in, and
@@ -511,21 +536,39 @@ export function renderReadings(
       color: rampColour(fiveHourPct, "green"),
       text: ` ⏱️ 5h ${fiveHourPct ?? "?"}% `,
     }),
-    fiveHourReset: (o) => ({
-      // E8: dimmed, because a countdown is context for the figure beside it
-      // rather than the figure itself.
-      color: "surface2",
-      text: ` ${fiveHourClock}${o.fiveHourText ? ` ${fiveHourResetLabel}` : ""} `,
-    }),
     sevenDay: (o) => ({
       color: rampColour(sevenDayPct, "sapphire"),
-      text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${o.moment && sevenDayMoment ? ` · ${sevenDayMoment}` : ""} `,
+      // C4's chosen form: the weekday only when the reset is more than a day
+      // out. Inside a day the countdown beside it says everything, and the
+      // weekday would be today's or tomorrow's name for no gain.
+      text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${o.moment && farOutMoment ? ` · ${farOutMoment}` : ""} `,
     }),
-    sevenDayReset: (o) => ({
-      color: "surface2",
-      text: ` ${sevenDayClock}${o.sevenDayText ? ` ${sevenDayResetLabel}` : ""} `,
-    }),
-    rtk: (o) => (o.rtk && rtkPct !== null ? { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` } : null),
+    // C6: both countdowns, one segment. The clock face is the sooner of the
+    // two, since that is the one about to matter.
+    // E8: dimmed, being context for the figures beside it rather than a
+    // figure itself.
+    resetMerged: (o) => {
+      const both = [
+        o.fiveHourText ? shortCountdown(fiveHourResetsAt, now) : null,
+        o.sevenDayText ? shortCountdown(sevenDayResetsAt, now) : null,
+      ].filter(Boolean);
+      const face = soonerClock ?? g.clock;
+      // An unknown reset says so. A bare clock face would be the empty slot
+      // Principle III rules out: the reader could not tell "no reset time in
+      // the payload" from "the segment lost its text".
+      if (!both.length) return { color: "surface2", text: ` ${face} reset unknown ` };
+      return { color: "surface2", text: ` ${face} ${both.join(" / ")} ` };
+    },
+    // C5's chosen form: the savings figure only earns its width once it has
+    // moved five points. It is the slowest-moving thing on the line, and a
+    // number that says the same thing every redraw is a number nobody reads.
+    rtk: (o) => {
+      if (!o.rtk || rtkPct === null) return null;
+      const shown = changes.lastShown?.rtk;
+      if (!movedBy(shown, rtkPct, 5)) return null;
+      changes.remember?.("rtk", rtkPct);
+      return { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` };
+    },
 
     // A7: a percentage of an unstated total is half a fact. Tokens are the
     // unit the limit is actually in.
