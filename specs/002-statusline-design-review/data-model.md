@@ -65,23 +65,24 @@ in bands rather than assigned one by one, so the intent survives later edits.
 
 **Band 40-69, the first to go.** Useful, not decisive.
 
+Four rows that once sat here were removed from the bar on 2026-08-26 after
+being seen in place: `tokens` at 62, `trend` at 52, `apiTime` at 46 and
+`clock` at 42. They are still in the catalogue, unselected, if they are ever
+worth the width again.
+
 | Priority | Segment |
 |---|---|
 | 68 | `activity` (working or idle) |
 | 66 | `burnRate` |
 | 64 | `projection` |
-| 62 | `tokens` (used of total) |
 | 60 | `contextSize` (200k or 1M) |
 | 58 | `exceeds200k` |
 | 56 | `ci` |
 | 54 | `sessionName` |
-| 52 | `trend` (sparkline) |
 | 50 | `duration` |
 | 48 | `linesChanged` |
-| 46 | `apiTime` |
 | 45 | `repo` (owner and name, from the payload) |
 | 44 | `projectDir` (when it differs from cwd) |
-| 42 | `clock` |
 | 40 | `rtk` (only when it moved five points) |
 
 The bands say what the ordering means, so a later addition can be placed by asking which

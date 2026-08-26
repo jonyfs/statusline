@@ -57,8 +57,6 @@ const DESCRIBE = {
   sessionName: ["sessionName", (v) => v ?? null],
   context: ["context", (v) => (v === null ? "?%" : `${v}%`)],
   compaction: ["context", (v) => (typeof v === "number" && v >= 85 ? "warning shown" : null)],
-  trend: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
-  tokens: ["tokens", (v) => (v?.used ? `${v.used} of ${v.size ?? "?"}` : null)],
   contextSize: ["tokens", (v) => (v?.size ? String(v.size) : null)],
   exceeds200k: ["tokens", (v) => (v?.exceeds200k ? "over" : null)],
   fiveHour: ["fiveHour", (v) => (v === null ? "?%" : `${v}%`)],
@@ -68,8 +66,6 @@ const DESCRIBE = {
   resetMerged: ["fiveHourReset", (v, now) => formatResetCountdown(v, now) ?? "reset time unknown"],
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
-  apiTime: ["sessionCost", (v) => (v?.apiMs ? `${Math.round(v.apiMs / 60000)}m` : null)],
-  clock: ["dir", () => "from the system clock"],
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
   dir: ["dir", (v) => v ?? null],
 };

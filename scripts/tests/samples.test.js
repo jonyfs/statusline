@@ -5,8 +5,6 @@ import {
   hasEnough,
   ratePerHour,
   projectFull,
-  seriesOf,
-  sparkline,
   movedBy,
   MAX_SAMPLES,
   MIN_SAMPLES_FOR_RATE,
@@ -78,25 +76,6 @@ await test("a series already at the limit projects now", () => {
   full[0].fiveHourPct = 90;
   const at = projectFull(full, "fiveHourPct", T0);
   assert.equal(at, T0);
-});
-
-await test("a sparkline needs two points and scales to its own range", () => {
-  assert.equal(sparkline([]), null);
-  assert.equal(sparkline([5]), null);
-
-  const flat = sparkline([50, 50, 50, 50]);
-  assert.equal(new Set(flat).size, 1, "a flat series reads as flat");
-
-  const rising = sparkline([0, 25, 50, 75, 100]);
-  assert.equal(rising[0], "▁");
-  assert.equal(rising[rising.length - 1], "█");
-  assert.equal(rising.length, 5);
-});
-
-await test("the series is the last few usable values, oldest first", () => {
-  const s = seriesOf(ring(20), "contextPct", 8);
-  assert.equal(s.length, 8);
-  assert.equal(s[s.length - 1], 29, "the newest value is last");
 });
 
 await test("a value only counts as moved once it has moved far enough", () => {

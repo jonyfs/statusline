@@ -44,10 +44,14 @@ await test("duration degrades rather than showing nonsense", () => {
 });
 
 // A5 -----------------------------------------------------------------------
+//
+// The API-time segment was removed on 2026-08-26 for costing width on the
+// line that runs out of it first. The payload reader stays, because the
+// duration segment beside it uses the same one.
 
-await test("api time renders absolute, per A5's chosen form", () => {
-  assert.match(render(rich()), /api 22m/);
-  assert.doesNotMatch(render(fullPayload()), /api /);
+await test("the api figure is read even though nothing shows it", () => {
+  assert.equal(getSessionCost(rich()).apiMs, 1_320_000);
+  assert.doesNotMatch(render(rich()), /api /, "no segment renders it");
 });
 
 // A6 -----------------------------------------------------------------------
@@ -64,15 +68,17 @@ await test("a session that only added lines still shows both sides", () => {
 
 // A7 and A8 ----------------------------------------------------------------
 
-await test("token counts render as used of total", () => {
-  assert.match(render(rich()), /16\.7k \/ 200k/);
+await test("the token count is read, and no longer shown", () => {
+  // A7 was removed on 2026-08-26: the used-of-total figure repeated the
+  // window size that A8 shows on its own, on the line with the least room.
+  assert.equal(getContextTokens(rich()).used, 16700);
+  assert.doesNotMatch(render(rich()), /16\.7k/);
 });
 
 await test("the window size renders, so 200k and 1M look different", () => {
   assert.match(render(rich()), /200k window/);
   const big = render(rich({ context_window: { used_percentage: 4, total_input_tokens: 40000, total_output_tokens: 0, context_window_size: 1000000 } }));
   assert.match(big, /1M window/);
-  assert.match(big, /40k \/ 1M/);
 });
 
 await test("abbreviation keeps a predictable column count", () => {
@@ -84,10 +90,8 @@ await test("abbreviation keeps a predictable column count", () => {
   assert.equal(abbreviate(null), null);
 });
 
-await test("tokens and window size are absent when the payload omits them", () => {
-  const out = render(fullPayload());
-  assert.doesNotMatch(out, /window/);
-  assert.doesNotMatch(out, /\/ 200k/);
+await test("the window size is absent when the payload omits it", () => {
+  assert.doesNotMatch(render(fullPayload()), /window/);
 });
 
 // A10 ----------------------------------------------------------------------

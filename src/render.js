@@ -27,7 +27,7 @@ import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel } from "./segments.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
-import { movedBy, ratePerHour, projectFull, seriesOf, sparkline } from "./samples.js";
+import { movedBy, ratePerHour, projectFull } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, terminalWidth, terminalHeight } from "./layout.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
@@ -678,30 +678,6 @@ export function renderReadings(
       const mm = String(d.getMinutes()).padStart(2, "0");
       return { color: "red", text: ` empty ~${hh}:${mm} ` };
     },
-    // B4: a shape says whether context is creeping or jumping, which a
-    // single number never does.
-    trend: () => {
-      const spark = sparkline(seriesOf(changes.samples, "contextPct", 8));
-      return spark ? { color: "surface2", text: ` ${spark} ` } : null;
-    },
-    // B12: the countdowns beside it are already time-based; a clock makes
-    // the arithmetic disappear. It needs the refresh interval to stay
-    // honest while the session is idle.
-    clock: () => {
-      const d = new Date(now);
-      return {
-        color: "surface2",
-        text: ` ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} `,
-      };
-    },
-    // A7: a percentage of an unstated total is half a fact. Tokens are the
-    // unit the limit is actually in.
-    tokens: () => {
-      const t = shows("tokens") ? readings.tokens.value : null;
-      if (!t || t.used === null) return null;
-      const total = t.size ? ` / ${abbreviate(t.size)}` : "";
-      return { color: "surface2", text: ` ${abbreviate(t.used)}${total} ` };
-    },
     // A8: 38% of 200k and 38% of 1M are very different amounts of room.
     contextSize: () => {
       const t = shows("tokens") ? readings.tokens.value : null;
@@ -723,11 +699,6 @@ export function renderReadings(
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       if (!c || (c.linesAdded === null && c.linesRemoved === null)) return null;
       return { color: "green", text: ` +${c.linesAdded ?? 0} −${c.linesRemoved ?? 0} ` };
-    },
-    apiTime: () => {
-      const c = shows("sessionCost") ? readings.sessionCost.value : null;
-      const label = formatDuration(c?.apiMs);
-      return label ? { color: "surface2", text: ` api ${label} ` } : null;
     },
   };
 

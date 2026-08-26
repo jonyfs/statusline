@@ -84,34 +84,6 @@ export function projectFull(samples, field, now) {
   return now + ((100 - current) / rate) * 3_600_000;
 }
 
-/** The last `count` values of a field, oldest first, for a sparkline. */
-export function seriesOf(samples, field, count = 8) {
-  return (samples || [])
-    .map((s) => numberOrNull(s?.[field]))
-    .filter((v) => v !== null)
-    .slice(-count);
-}
-
-const SPARK = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
-
-/**
- * A sparkline over a series, scaled to the series' own range so a flat line
- * reads as flat rather than as whatever the absolute values happen to be.
- * Empty when there is not enough to draw.
- */
-export function sparkline(series) {
-  if (!series || series.length < 2) return null;
-  const min = Math.min(...series);
-  const max = Math.max(...series);
-  const span = max - min;
-  return series
-    .map((v) => {
-      const level = span === 0 ? 0 : (v - min) / span;
-      return SPARK[Math.min(SPARK.length - 1, Math.round(level * (SPARK.length - 1)))];
-    })
-    .join("");
-}
-
 /**
  * Whether a value has moved far enough from the last one shown to be worth
  * the width. Item C5's chosen form for the savings figure: five points.

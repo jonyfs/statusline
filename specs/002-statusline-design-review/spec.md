@@ -313,6 +313,15 @@ scope only as far as C3 changes how they are grouped.
 
 ### Revised after seeing it
 
+**Four segments were taken off the line on 2026-08-26**, after the same
+look: A7 (token counts as used-of-total), B4 (the context sparkline), A5
+(the API-wait figure) and B12 (the clock). Each was built as selected and
+each cost width on line 4, which is the line that runs out of room first.
+A7 in particular repeated the window size that A8 renders beside it. The
+payload readers behind them stay, since the segments that remain use the
+same ones.
+
+
 **E1, the context bar, was removed on 2026-08-26.** It rendered as chosen,
 was looked at, and cost ten to sixteen columns on the widest line to say what
 the number said in three. The band it carried without relying on colour is

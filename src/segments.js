@@ -78,16 +78,12 @@ export const SEGMENTS = [
   // one about to matter.
   { key: "resetMerged", line: 4, order: 50, align: "right", priority: 80, colour: "identity", source: "payload" },
   { key: "compaction", line: 4, order: 11, align: "left", priority: 78, colour: "identity", source: "payload" },
-  { key: "trend", line: 4, order: 13, align: "left", priority: 52, colour: "identity", source: "samples" },
   { key: "burnRate", line: 4, order: 22, align: "left", priority: 66, colour: "ramp", source: "samples" },
   { key: "projection", line: 4, order: 24, align: "left", priority: 64, colour: "identity", source: "samples" },
-  { key: "tokens", line: 4, order: 12, align: "left", priority: 62, colour: "identity", source: "payload" },
   { key: "contextSize", line: 4, order: 14, align: "left", priority: 60, colour: "identity", source: "payload" },
   { key: "exceeds200k", line: 4, order: 16, align: "left", priority: 58, colour: "identity", source: "payload" },
   { key: "duration", line: 4, order: 55, align: "left", priority: 50, colour: "identity", source: "payload" },
   { key: "linesChanged", line: 4, order: 56, align: "left", priority: 48, colour: "identity", source: "payload" },
-  { key: "apiTime", line: 4, order: 57, align: "left", priority: 46, colour: "identity", source: "payload" },
-  { key: "clock", line: 4, order: 58, align: "left", priority: 42, colour: "identity", source: "clock" },
   { key: "rtk", line: 4, order: 60, align: "left", priority: 40, colour: "identity", source: "rtk" },
 ];
 

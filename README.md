@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 | 1 | Working directory, branch, worktree, uncommitted and untracked counts, merge conflicts, commits to push and pull, open pull request, last CI run |
 | 2 | Skills used recently, todo progress, whether Claude is working or idle |
 | 3 | Model, effort level, output style, agent, session name |
-| 4 | Context window with its trend, token counts, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, lines changed, rtk savings |
+| 4 | Context window, its size, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, lines changed, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -45,8 +45,8 @@ The install step backs up your existing `~/.claude/settings.json` to
 updates the moment a skill runs, and leaves every other setting alone. Run
 it as many times as you like; it does the same thing each time.
 
-Install also sets `refreshInterval: 60`, so the countdowns and the clock keep
-moving while a session sits idle and Claude Code stops sending events, and a
+Install also sets `refreshInterval: 60`, so the countdowns keep moving while
+a session sits idle and Claude Code stops sending events, and a
 `taskCommand` so the rows for running subagents are drawn in the same style
 as the bar.
 
@@ -244,15 +244,14 @@ Line 1 gained two more, both about states that stop you:
 
 ## Where a number is heading
 
-Three segments answer direction rather than position, and none of them
-speaks until it has enough history to mean it: five samples spanning a
-minute, which is roughly the first minute of a session.
+Two segments answer direction rather than position, and neither speaks until
+it has enough history to mean it: five samples spanning a minute, which is
+roughly the first minute of a session.
 
 | Segment | Says |
 |---|---|
 | `↑ 9%/h` | how fast the 5-hour window is filling |
 | `empty ~16:40` | when it would run out, and only when that lands before the window resets |
-| `▁▂▄▅▇` | the context window's shape over the last eight redraws |
 
 A rate drawn from twelve seconds of history swings wildly, and a number that
 swings beside measured ones gets read as measured. So they render nothing
@@ -275,15 +274,19 @@ it is free: it arrives on stdin with everything else.
 
 | Segment | Reads |
 |---|---|
-| `16.7k / 200k` | tokens in the context window, against the window's size |
-| `200k window` | the window size on its own, so 200k and 1M never look alike |
+| `200k window` | the window size, so 200k and 1M never look alike |
 | `⚠ 200k` | Claude Code's own fixed-threshold flag |
 | `⏳ 1h04m` | wall-clock time since the session started |
-| `api 22m` | how much of that was spent waiting on the API |
 | `+156 −23` | lines added and removed this session |
 
 They sit low in the priority table, so on a narrow terminal they are the
 first to go and the three percentages stay.
+
+Four more were built and then taken off the line on 2026-08-26, for costing
+width on the line that runs out of it first: the token count as
+used-of-total, which repeated the window size shown beside it; the context
+sparkline; the API-wait figure; and the clock. The payload readers behind
+them are still there, feeding the segments that remain.
 
 ## Model, effort and output style
 

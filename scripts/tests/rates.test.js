@@ -70,11 +70,13 @@ await test("the projection only renders when it lands before the reset", () => {
   assert.match(overTime(`proj-steep-${process.pid}`, steep), /empty ~\d\d:\d\d/);
 });
 
-await test("a sparkline appears once there are two samples to draw", () => {
+await test("no sparkline: the trend segment was removed", () => {
+  // Removed on 2026-08-26. The ring it read from stays, because the burn
+  // rate and the projection are still drawn from it.
   const steps = [];
   for (let i = 0; i < 6; i++) steps.push({ at: i * 20_000, context: 10 + i * 5, fiveHour: 10 });
   const out = overTime(`spark-${process.pid}`, steps);
-  assert.match(out, /[▁▂▃▄▅▆▇█]{2,}/, "the trend is drawn");
+  assert.doesNotMatch(out, /[▁▂▃▄▅▆▇]/);
 });
 
 await test("the compaction warning appears near the limit and not before", () => {

@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="775" height="93" viewBox="0 0 775 93" role="img" aria-label="A window with room for two rows — lines are shed, never wrapped">
-<rect width="775" height="93" rx="8" fill="#1e1e2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="697" height="93" viewBox="0 0 697 93" role="img" aria-label="A window with room for two rows — lines are shed, never wrapped">
+<rect width="697" height="93" rx="8" fill="#1e1e2e"/>
 <text x="10" y="18" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12" fill="#9399b2">A window with room for two rows — lines are shed, never wrapped</text>
 <rect x="10.00" y="36" width="147.00" height="22" fill="rgb(69,71,90)"/>
 <text x="29.60" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">📁</text>
@@ -75,13 +75,5 @@
 <text x="632.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">/</text>
 <text x="651.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">3</text>
 <text x="661.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">d</text>
-<rect x="676.40" y="61" width="9.80" height="22" fill="rgb(88,91,112)"/>
 <path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(88,91,112)" transform="translate(676.40 77.00) scale(0.00821 -0.00821)"/>
-<rect x="686.20" y="61" width="68.60" height="22" fill="rgb(88,91,112)"/>
-<text x="700.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">1</text>
-<text x="710.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
-<text x="720.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">:</text>
-<text x="730.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
-<text x="740.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(88,91,112)" transform="translate(754.80 77.00) scale(0.00821 -0.00821)"/>
 </svg>
