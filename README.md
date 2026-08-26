@@ -1,6 +1,7 @@
 # Claude Statusline (Catppuccin Powerline)
 
-A four-line status bar for Claude Code, in Catppuccin Powerline colors. It
+A four-line status bar for Claude Code, in Catppuccin Powerline colors, that
+sheds lines rather than wrapping when the window is too short for four. It
 shows where you are (directory, git branch, working-tree state, open pull
 request), which skills are active, which model and effort you're on, and how
 much of your context window and rate limits you've burned through.
@@ -19,10 +20,10 @@ the code does, because they *are* what the code does.
 
 | Line | What's on it |
 |---|---|
-| 1 | Working directory, branch, uncommitted and untracked counts, commits to push and pull, open pull request |
-| 2 | Skills used recently, one chip each. Missing entirely when there are none |
-| 3 | Model, effort level, output style |
-| 4 | Context window, 5-hour and 7-day usage with their reset countdowns, rtk savings |
+| 1 | Working directory, branch, worktree, uncommitted and untracked counts, merge conflicts, commits to push and pull, open pull request, last CI run |
+| 2 | Skills used recently, todo progress, whether Claude is working or idle |
+| 3 | Model, effort level, output style, agent, session name |
+| 4 | Context window with its bar and trend, token counts, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, lines changed, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -213,6 +214,57 @@ be today's or tomorrow's name for no gain.
 The savings figure waits until it has moved five points before it renders
 again. It is the slowest thing on the bar, and a number that says the same
 thing every redraw is a number nobody reads.
+
+## What it knows about the work
+
+Line 2 carries what the session is doing, not just what is loaded. Alongside
+the skills:
+
+- `▸ Fix authentication (1/3)` is the todo list, reduced to what is being
+  worked on and how far along it is. It comes from the same tail read that
+  finds the skills, so it costs nothing extra. A list survives longer than a
+  skill does: a skill expires after thirty minutes because nothing announces
+  that it stopped, while a list says its own state.
+- `● working` or `○ idle` says whether the transcript grew in the last ten
+  seconds. It is an approximation, and the honest one available: nothing
+  emits "thinking now", and the bar hides during permission prompts anyway.
+  A session with no transcript shows neither, because a session this script
+  cannot see is not a session doing nothing.
+
+Line 1 gained two more, both about states that stop you:
+
+- `✖ 2` counts merge conflicts. The parser always saw them and folded them
+  into the changed-file count, which understated a state that halts
+  everything until it is resolved.
+- `✓ CI` is the last workflow run for the branch. It is a network call, so
+  it never happens during a redraw: the value comes from cache, refreshed in
+  the background, and disappears rather than going stale. A green tick that
+  is actually ten minutes old is worse than no tick.
+
+## Where a number is heading
+
+Three segments answer direction rather than position, and none of them
+speaks until it has enough history to mean it: five samples spanning a
+minute, which is roughly the first minute of a session.
+
+| Segment | Says |
+|---|---|
+| `↑ 9%/h` | how fast the 5-hour window is filling |
+| `empty ~16:40` | when it would run out, and only when that lands before the window resets |
+| `▁▂▄▅▇` | the context window's shape over the last eight redraws |
+
+A rate drawn from twelve seconds of history swings wildly, and a number that
+swings beside measured ones gets read as measured. So they render nothing
+instead.
+
+`⚠ compacting soon` appears when the context window is close enough to
+auto-compaction to do something about it. The threshold is not in the
+payload, so this is inferred: it warns rather than counting down to a number
+it cannot know exactly.
+
+The samples live in the same per-session file as the change highlighting,
+bounded at sixty, swept after a week. `doctor` reports how many there are,
+which is what answers "why is there no burn rate yet".
 
 ## What line 4 can tell you
 
@@ -418,6 +470,7 @@ so a clean branch in sync with its remote adds nothing at all.
 | diff-added marker | Untracked files git isn't watching yet |
 | cloud up | Commits you have that the remote doesn't, waiting to be pushed |
 | cloud down | Commits the remote has that you don't, waiting to be pulled |
+| `✖` | Paths with merge conflicts, counted apart from ordinary changes |
 
 These are GitHub's own Octicons, the same marks you see in a diff view.
 Three modified files, seven untracked, two commits to push and five to
@@ -590,6 +643,13 @@ Measure a redraw, or inspect one:
 node scripts/bench.js --runs 100
 node bin/cli.js doctor
 ```
+
+The CLI has three more subcommands you would not normally type. `refresh`
+is what the detached background process runs to update one cached value,
+`note-skill` is what the `PostToolUse` hook calls, and `task-rows` is what
+Claude Code calls to draw the rows for running subagents. Install wires all
+three up; they exist as subcommands so there is one binary to install and
+one path to match on uninstall.
 
 `bench.js` prints p50, p95 and the worst run, plus what each source cost, so
 a slow one names itself. Point it somewhere specific with `--cwd` and
