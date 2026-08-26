@@ -33,7 +33,7 @@ import { fileURLToPath } from "node:url";
 import { renderPayload } from "../src/render.js";
 import { ansiToSvg } from "../src/preview/ansiToSvg.js";
 import { PALETTES } from "../src/theme.js";
-import { SCENARIOS, FLAVOR_SCENARIO, FIXED_NOW } from "./preview-fixtures.js";
+import { SCENARIOS, FLAVOR_SCENARIO, EXTRA_FLAVORS, FIXED_NOW } from "./preview-fixtures.js";
 
 const OUT_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -78,7 +78,7 @@ function main() {
     written.push(scenario.file);
   }
 
-  for (const flavor of ["mocha", "frappe", "macchiato", "latte"]) {
+  for (const flavor of ["mocha", "frappe", "macchiato", "latte", ...EXTRA_FLAVORS]) {
     const ansi = withFrozenClock(() =>
       renderPayload(FLAVOR_SCENARIO.payload, {
         flavor,

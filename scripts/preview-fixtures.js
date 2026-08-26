@@ -228,6 +228,8 @@ export const SCENARIOS = [
   },
 ];
 
+export const EXTRA_FLAVORS = ["nord", "gruvbox"];
+
 export const FLAVOR_SCENARIO = {
   payload: SCENARIOS[0].payload,
   sources: SCENARIOS[0].sources,

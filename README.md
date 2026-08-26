@@ -44,13 +44,22 @@ The install step backs up your existing `~/.claude/settings.json` to
 updates the moment a skill runs, and leaves every other setting alone. Run
 it as many times as you like; it does the same thing each time.
 
-If you'd rather it didn't touch your hooks:
+Install also sets `refreshInterval: 60`, so the countdowns and the clock keep
+moving while a session sits idle and Claude Code stops sending events, and a
+`taskCommand` so the rows for running subagents are drawn in the same style
+as the bar.
+
+Each of the three is optional:
 
 ```bash
 node ~/.claude/statusline-plugin/bin/cli.js install --no-hook
+node ~/.claude/statusline-plugin/bin/cli.js install --no-refresh-interval
+node ~/.claude/statusline-plugin/bin/cli.js install --no-task-rows
 ```
 
-Everything still works; skills just appear a beat later.
+Everything still works without them; skills just appear a beat later, the
+countdowns freeze while you are idle, and subagent rows keep Claude Code's
+own styling.
 
 Clone it wherever you want. The path above is only a suggestion, but pick
 somewhere permanent: the install writes that path into your settings, so a
@@ -152,6 +161,14 @@ Set `CLAUDE_STATUSLINE_FLAVOR` to any of the four Catppuccin flavors:
 | `macchiato` | ![macchiato](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-macchiato.svg) |
 | `latte` | ![latte](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-latte.svg) |
 
+Two palettes from outside Catppuccin ship as well, for terminals themed
+around them. Neither is the default:
+
+| Flavor | Preview |
+|---|---|
+| `nord` | ![nord](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-nord.svg) |
+| `gruvbox` | ![gruvbox](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-gruvbox.svg) |
+
 No Nerd Font in your terminal? `CLAUDE_STATUSLINE_ASCII=1` swaps the
 Powerline separator for a plain arrow:
 
@@ -235,7 +252,23 @@ or inline in the `statusLine.command` string in `settings.json`.
 | `CLAUDE_STATUSLINE_ASCII=1` | Drops the Powerline separator for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json`, for when a field changes shape in some future version |
-| `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request and rtk segments then show only what is already cached. Used when generating previews and running tests |
+| `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
+| `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
+
+### Per-repository settings
+
+A monorepo and a scratch repository do not want the same bar, and neither
+wants you to export a variable to say so. Drop a `.statusline.json` at the
+repository root:
+
+```json
+{ "flavor": "gruvbox", "separator": "thin", "skillWindowMin": 60 }
+```
+
+Four keys are read: `flavor`, `ascii`, `separator` and `skillWindowMin`.
+Anything else in the file is ignored. An environment variable always wins,
+and a file in your home directory is ignored entirely, because settings that
+live in a repository travel to everyone who clones it.
 
 ## Platform support
 

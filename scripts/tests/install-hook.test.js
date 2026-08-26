@@ -112,3 +112,39 @@ await test("install backs the settings up before touching them", async () => {
     assert.deepEqual(JSON.parse(readFileSync(result.backupPath, "utf8")), { theme: "light" });
   });
 });
+
+await test("install writes the refresh interval and the task-row command", async () => {
+  // Item F1 at 60 seconds, and F2. Both live in settings.json beside the
+  // command, so only the installer can put them there.
+  const home = makeHome({});
+  await withHome(home, () => {
+    const result = install();
+    assert.equal(result.refreshInterval, 60);
+    assert.equal(result.taskRows, true);
+
+    const { statusLine } = home.read();
+    assert.equal(statusLine.refreshInterval, 60);
+    assert.match(statusLine.taskCommand, /task-rows$/);
+    assert.ok(statusLine.taskCommand.startsWith(`"${process.execPath}"`), "spawned commands use the running interpreter");
+  });
+});
+
+await test("each addition can be skipped on its own", async () => {
+  const home = makeHome({});
+  await withHome(home, () => {
+    install({ refreshInterval: false, taskRows: false });
+    const { statusLine } = home.read();
+    assert.equal(statusLine.refreshInterval, undefined, "--no-refresh-interval leaves it out");
+    assert.equal(statusLine.taskCommand, undefined, "--no-task-rows leaves it out");
+    assert.match(statusLine.command, /render$/, "the statusline itself is still installed");
+  });
+});
+
+await test("uninstall takes the interval and the task command with it", async () => {
+  const home = makeHome({ theme: "dark" });
+  await withHome(home, () => {
+    install();
+    uninstall();
+    assert.deepEqual(home.read(), { theme: "dark" }, "everything this install wrote is gone");
+  });
+});

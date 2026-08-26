@@ -20,12 +20,18 @@ function renderFallback() {
 async function main() {
   switch (subcommand) {
     case "install": {
-      const result = install({ registerHook: !rest.includes("--no-hook") });
+      const result = install({
+        registerHook: !rest.includes("--no-hook"),
+        refreshInterval: !rest.includes("--no-refresh-interval"),
+        taskRows: !rest.includes("--no-task-rows"),
+      });
       console.log(`Statusline installed.`);
       console.log(`  Settings file: ${result.settingsPath}`);
       console.log(`  Backup saved:  ${result.backupPath}`);
       console.log(`  Command:       ${result.command}`);
       console.log(`  Skill hook:    ${result.hookRegistered ? "registered (PostToolUse: Skill)" : "skipped"}`);
+      console.log(`  Refresh every: ${result.refreshInterval ? `${result.refreshInterval}s` : "only on events"}`);
+      console.log(`  Task rows:     ${result.taskRows ? "styled by this plugin" : "left to Claude Code"}`);
       if (result.alreadyInstalled) console.log(`  (was already installed — safe to run again)`);
       break;
     }
@@ -51,6 +57,12 @@ async function main() {
       await runRefresh(name, key, process.cwd());
       break;
     }
+    case "task-rows": {
+      const { runTaskRows } = await import("../src/taskRows.js");
+      const out = await runTaskRows();
+      if (out) process.stdout.write(out + "\n");
+      break;
+    }
     case "note-skill": {
       const { runNoteSkill } = await import("../src/skillEvents.js");
       await runNoteSkill();
@@ -58,8 +70,16 @@ async function main() {
     }
     case "render":
     case undefined: {
-      const flavor = process.env.CLAUDE_STATUSLINE_FLAVOR || "mocha";
-      const asciiArrows = process.env.CLAUDE_STATUSLINE_ASCII === "1";
+      // Environment first, then the repository's own file, then the
+      // default. A monorepo and a scratch repository do not want the same
+      // bar, and neither wants to export a variable to say so.
+      const { resolveSettings } = await import("../src/config.js");
+      const settings = resolveSettings(process.cwd());
+      const { flavor, asciiArrows } = settings;
+      if (settings.separator) process.env.CLAUDE_STATUSLINE_SEPARATOR = settings.separator;
+      if (settings.skillWindowMin) {
+        process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN = String(settings.skillWindowMin);
+      }
       let out;
       try {
         if (process.env.CLAUDE_STATUSLINE_TEST_THROW === "1") {

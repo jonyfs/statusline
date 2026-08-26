@@ -171,14 +171,14 @@ description: "Task list for the selected statusline redesign"
 
 ## Phase 10: Themes, configuration, interval, task rows [F1, F2, F3, F5]
 
-- [ ] T065 [P] Write `scripts/tests/themes.test.js`: Nord and Gruvbox define every token the Catppuccin flavors define; neither is the default; every segment renders in all six
-- [ ] T066 [P] Write `scripts/tests/task-rows.test.js` against `contracts/task-rows.md`: one JSON line per overridden row, an omitted id keeps the default, an empty content hides the row, and a row never exceeds `columns`
-- [ ] T067 [P] Write `scripts/tests/settings.test.js` against `contracts/settings.md`: install writes `refreshInterval: 60` and the task-row command, `--no-refresh-interval` skips the interval, and uninstall removes both
-- [ ] T068 Add Nord and Gruvbox to `src/theme.js` [F3]
-- [ ] T069 Add the thin separator fallback, with Powerline still the default [D9]
-- [ ] T070 Create `src/taskRows.js` and the `task-rows` subcommand [F2]
-- [ ] T071 Write `refreshInterval: 60` and the task-row command in `src/install.js`, both removable by uninstall [F1, F2]
-- [ ] T072 Per-repository configuration, read from the repository root, ignored inside the home directory [F5]
+- [X] T065 [P] Write `scripts/tests/themes.test.js`: Nord and Gruvbox define every token the Catppuccin flavors define; neither is the default; every segment renders in all six
+- [X] T066 [P] Write `scripts/tests/task-rows.test.js` against `contracts/task-rows.md`: one JSON line per overridden row, an omitted id keeps the default, an empty content hides the row, and a row never exceeds `columns`
+- [X] T067 [P] Write `scripts/tests/settings.test.js` against `contracts/settings.md`: install writes `refreshInterval: 60` and the task-row command, `--no-refresh-interval` skips the interval, and uninstall removes both
+- [X] T068 Add Nord and Gruvbox to `src/theme.js` [F3]
+- [X] T069 Add the thin separator fallback, with Powerline still the default [D9]
+- [X] T070 Create `src/taskRows.js` and the `task-rows` subcommand [F2]
+- [X] T071 Write `refreshInterval: 60` and the task-row command in `src/install.js`, both removable by uninstall [F1, F2]
+- [X] T072 Per-repository configuration, read from the repository root, ignored inside the home directory [F5]
 
 **Checkpoint**: The bar matches the terminal it lives in, and keeps its countdowns honest while idle.
 
