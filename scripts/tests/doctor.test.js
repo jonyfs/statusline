@@ -33,7 +33,7 @@ await test("every segment on the line appears in the report", () => {
   // countdowns into one segment, so the names moved.
   for (const key of [
     "dir", "branch", "worktree", "upstream", "pr", "skills", "model",
-    "effortStyle", "context", "fiveHour", "sevenDay", "resetMerged", "rtk",
+    "effort", "context", "fiveHour", "sevenDay", "resetMerged", "rtk",
   ]) {
     assert.ok(keys.includes(key), `${key} is missing from the report`);
   }

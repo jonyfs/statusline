@@ -12,29 +12,20 @@ const render = (payload, sources = gitSources(), extra = {}) =>
   stripAnsi(renderPayload(payload, { sources, trackChanges: false, now: NOW, ...WIDE, ...extra }));
 
 // C3 -----------------------------------------------------------------------
+//
+// C3 merged effort with the output style. On 2026-08-26 the output style
+// came off the bar entirely, so line 3 is the model and the effort.
 
-await test("effort and output style share one segment beside the model", () => {
+await test("line 3 carries the model and the effort, and stops there", () => {
   const line3 = render(
     fullPayload({ effort: { level: "high" }, output_style: { name: "explanatory" } })
   )
     .split("\n")
     .find((l) => l.includes("🤖"));
 
-  assert.match(line3, /⚡ high · 🎨 explanatory/, "one segment, both facts");
+  assert.match(line3, /⚡ high/);
+  assert.doesNotMatch(line3, /explanatory/);
   assert.ok(line3.indexOf("Sonnet 5") < line3.indexOf("high"), "the model still comes first");
-});
-
-await test("the merged segment renders whichever half exists", () => {
-  const effortOnly = render(fullPayload({ effort: { level: "xhigh" } }));
-  assert.match(effortOnly, /⚡ xhigh/);
-  assert.doesNotMatch(effortOnly, /🎨/);
-
-  const styleOnly = render(fullPayload({ effort: undefined, output_style: { name: "learning" } }));
-  assert.match(styleOnly, /🎨 learning/);
-  assert.doesNotMatch(styleOnly, /⚡/);
-
-  const neither = render(fullPayload({ effort: undefined }));
-  assert.doesNotMatch(neither, /⚡|🎨/, "nothing to say, no segment");
 });
 
 // C4 -----------------------------------------------------------------------

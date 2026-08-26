@@ -75,7 +75,10 @@ export function readTailLines(
         const line = parts[i];
         if (!line) continue;
         lines.push(line);
-        if (enough(lines)) return { lines, truncated: false, bytesRead };
+        // The caller gets the running byte count, so a walk that has gone
+        // past what it was looking for can stop on distance rather than on
+        // a count of entries whose size it cannot predict.
+        if (enough(lines, { bytesRead })) return { lines, truncated: false, bytesRead };
       }
     }
 
@@ -179,11 +182,18 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
   let lastAt = null;
   let consecutiveOld = 0;
   const OLD_ENTRY_PATIENCE = 200;
+  // How far to keep walking after the first entry from outside the window.
+  // Entry sizes vary by two orders of magnitude between sessions, so a
+  // count of entries is not a bound on work: on a real 6 MB transcript, 200
+  // of them ran past the whole 4 MB cap, and the scan spent 34 ms on every
+  // redraw finding nothing. Bytes are the thing actually being spent.
+  const BYTES_PAST_WINDOW = 512 * 1024;
+  let bytesAtFirstOld = null;
 
   const { truncated, bytesRead } = readTailLines(file, {
     byteCap,
     budgetMs,
-    enough: (acc) => {
+    enough: (acc, { bytesRead: soFar } = {}) => {
       let entry;
       try {
         entry = JSON.parse(acc[acc.length - 1]);
@@ -200,9 +210,12 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
         if (stamp < cutoff || stamp > now) {
           inWindow = false;
           consecutiveOld++;
+          if (bytesAtFirstOld === null) bytesAtFirstOld = soFar ?? 0;
           if (consecutiveOld > OLD_ENTRY_PATIENCE) return true;
+          if ((soFar ?? 0) - bytesAtFirstOld > BYTES_PAST_WINDOW) return true;
         } else {
           consecutiveOld = 0;
+          bytesAtFirstOld = null;
         }
       } else {
         consecutiveOld = 0;

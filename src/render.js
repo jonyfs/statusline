@@ -158,8 +158,8 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
  * line that shows three of five without saying so claims those three are
  * all of them (FR-013).
  */
-const SKILLS_SHOWN = 3;
-const SKILLS_PROBED = 10;
+const SKILLS_SHOWN = 5;
+const SKILLS_PROBED = 12;
 
 function skillsReading(timed, probe, payload) {
   // The session id lets the hook's event file be found. Without one, or
@@ -530,16 +530,19 @@ export function renderReadings(
   // stated rather than left silent: "these three" and "three of five" are
   // different claims, and only one of them is true (FR-013).
   if (skills.length) {
-    const skillIcon = "🧩";
-    const l2 = skills.map((name, i) => ({
-      key: `skills:${i}`,
-      color: changes.colourFor("skills", SKILL_CHIP_COLORS[i % SKILL_CHIP_COLORS.length], palette),
-      text: ` ${skillIcon} ${name} `,
-    }));
+    // D7's chosen form: one chip carrying the list, not one chip per skill.
+    // A chip per skill spent a separator and two spaces on each name, so
+    // three of them gave up a third of the line to padding. As one list they
+    // read as one fact, which is what they are: what is shaping the work
+    // right now.
     const hidden = readings.skills.hiddenCount ?? 0;
-    if (hidden > 0) {
-      l2.push({ key: "skills:more", color: "surface2", text: ` +${hidden} more ` });
-    }
+    const l2 = [
+      {
+        key: "skills",
+        color: changes.colourFor("skills", "green", palette),
+        text: ` 🧩 ${skills.join(", ")}${hidden > 0 ? ` +${hidden}` : ""} `,
+      },
+    ];
     pushLine2Extras(l2);
     lines.push(renderRow(palette, fit(l2), opts));
     rendered.push(2);
@@ -564,25 +567,7 @@ export function renderReadings(
       color: changes.colourFor("model", "red", palette),
       text: ` 🤖 ${modelName} `,
     }),
-    // C3: how the model is configured, in one segment. Effort and output
-    // style are the same idea seen twice, and they change together.
-    effortStyle: () => {
-      const parts = [];
-      if (effort) parts.push(`⚡ ${effort}`);
-      if (outputStyle && outputStyle !== "default") parts.push(`🎨 ${outputStyle}`);
-      return parts.length ? { color: "peach", text: ` ${parts.join(" · ")} ` } : null;
-    },
-    // A14: a session running under an agent gave no sign of it, which is
-    // exactly the case where you most want to know.
-    agent: () => {
-      const name = shows("agent") ? readings.agent.value : null;
-      return name ? { color: "pink", text: ` ⚙ ${name} ` } : null;
-    },
-    // A15: tells one terminal from another when several sessions are open.
-    sessionName: () => {
-      const name = shows("sessionName") ? readings.sessionName.value : null;
-      return name ? { color: "surface2", text: ` ${name} ` } : null;
-    },
+    effort: () => (effort ? { color: "peach", text: ` ⚡ ${effort} ` } : null),
   };
   const l3 = byLine(3)
     .map((s) => {
@@ -695,17 +680,6 @@ export function renderReadings(
       const hh = String(d.getHours()).padStart(2, "0");
       const mm = String(d.getMinutes()).padStart(2, "0");
       return { color: "red", text: ` empty ~${hh}:${mm} ` };
-    },
-    // A8: 38% of 200k and 38% of 1M are very different amounts of room.
-    contextSize: () => {
-      const t = shows("tokens") ? readings.tokens.value : null;
-      return t?.size ? { color: "surface2", text: ` ${abbreviate(t.size)} window ` } : null;
-    },
-    // A10: the payload computes this at a fixed threshold, whatever the
-    // window size, so it says something the percentage cannot.
-    exceeds200k: () => {
-      const t = shows("tokens") ? readings.tokens.value : null;
-      return t?.exceeds200k ? { color: "red", text: ` ⚠ 200k ` } : null;
     },
     // A4, A5, A6: what the session has spent, in time and in lines.
     duration: () => {

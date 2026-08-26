@@ -21,23 +21,20 @@ await test("an output style is never shown behind the effort icon", () => {
   assert.doesNotMatch(rendered, /⚡/, "with no effort level there is no effort segment");
 });
 
-await test("an output style gets its own segment and its own icon", () => {
-  assert.match(line3({ model: { display_name: "M" }, output_style: { name: "explanatory" } }), /🎨 explanatory/);
-});
-
-await test("both render side by side when both are set", () => {
+await test("line 3 is the model and the effort, and nothing after them", () => {
+  // Narrowed on 2026-08-26. The output style, the agent name and the session
+  // name were all here; none changes often enough to hold a slot beside two
+  // things that do.
   const rendered = line3({
     model: { display_name: "M" },
     effort: { level: "xhigh" },
     output_style: { name: "learning" },
+    agent: { name: "reviewer" },
+    session_name: "some-session",
   });
+  assert.match(rendered, /🤖 M/);
   assert.match(rendered, /⚡ xhigh/);
-  assert.match(rendered, /🎨 learning/);
-  assert.ok(rendered.indexOf("xhigh") < rendered.indexOf("learning"), "effort comes first");
-});
-
-await test("the default output style is not worth a segment", () => {
-  assert.doesNotMatch(line3({ model: { display_name: "M" }, output_style: { name: "default" } }), /🎨/);
+  assert.doesNotMatch(rendered, /learning|reviewer|some-session/);
 });
 
 await test("line 3 is never empty: the model always has a name", () => {

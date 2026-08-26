@@ -75,10 +75,10 @@ await test("the token count is read, and no longer shown", () => {
   assert.doesNotMatch(render(rich()), /16\.7k/);
 });
 
-await test("the window size renders, so 200k and 1M look different", () => {
-  assert.match(render(rich()), /200k window/);
-  const big = render(rich({ context_window: { used_percentage: 4, total_input_tokens: 40000, total_output_tokens: 0, context_window_size: 1000000 } }));
-  assert.match(big, /1M window/);
+await test("the window size is read, and no longer shown", () => {
+  // Taken off the bar on 2026-08-26, with the 200k flag beside it.
+  assert.equal(getContextTokens(rich()).size, 200000);
+  assert.doesNotMatch(render(rich()), /window/);
 });
 
 await test("abbreviation keeps a predictable column count", () => {
@@ -90,15 +90,13 @@ await test("abbreviation keeps a predictable column count", () => {
   assert.equal(abbreviate(null), null);
 });
 
-await test("the window size is absent when the payload omits it", () => {
-  assert.doesNotMatch(render(fullPayload()), /window/);
-});
+
 
 // A10 ----------------------------------------------------------------------
 
-await test("the 200k flag renders only when the payload sets it", () => {
-  assert.doesNotMatch(render(rich()), /⚠ 200k/);
-  assert.match(render(rich({ exceeds_200k_tokens: true })), /⚠ 200k/);
+await test("the 200k flag is read, and no longer shown", () => {
+  assert.equal(getContextTokens(rich({ exceeds_200k_tokens: true })).exceeds200k, true);
+  assert.doesNotMatch(render(rich({ exceeds_200k_tokens: true })), /⚠ 200k/);
 });
 
 await test("getContextTokens reads only what the payload sent", () => {
@@ -115,16 +113,14 @@ await test("getContextTokens reads only what the payload sent", () => {
 
 // A14 ----------------------------------------------------------------------
 
-await test("an agent name renders with its marker", () => {
-  assert.match(render(rich({ agent: { name: "security-reviewer" } })), /⚙ security-reviewer/);
-  assert.doesNotMatch(render(rich()), /⚙/);
+await test("the agent name came off line 3 on 2026-08-26", () => {
+  assert.doesNotMatch(render(rich({ agent: { name: "security-reviewer" } })), /security-reviewer/);
 });
 
 // A15 ----------------------------------------------------------------------
 
-await test("a session name renders in full", () => {
-  assert.match(render(rich({ session_name: "refactor-auth" })), /refactor-auth/);
-  assert.doesNotMatch(render(rich()), /refactor-auth/);
+await test("the session name came off line 3 on 2026-08-26", () => {
+  assert.doesNotMatch(render(rich({ session_name: "refactor-auth" })), /refactor-auth/);
 });
 
 // A17 ----------------------------------------------------------------------
@@ -170,7 +166,7 @@ await test("no worktree, no segment", () => {
 
 await test("every new segment is absent outside a session that carries it", () => {
   const bare = render({}, emptySources);
-  for (const marker of [/⏳/, /api /, /\+\d+ −/, /window/, /⚠ 200k/, /⚙ /]) {
+  for (const marker of [/⏳/, /api /, /\+\d+ −/, /window/, /⚠ 200k/]) {
     assert.doesNotMatch(bare, marker, `${marker} rendered with nothing to render from`);
   }
 });

@@ -61,7 +61,7 @@
 <text x="700.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">f</text>
 <text x="710.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
 <path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(137,180,250)" transform="translate(725.40 52.00) scale(0.00821 -0.00821)"/>
-<rect x="10.00" y="61" width="156.80" height="22" fill="rgb(166,227,161)"/>
+<rect x="10.00" y="61" width="245.00" height="22" fill="rgb(166,227,161)"/>
 <text x="29.60" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🧩</text>
 <text x="54.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">c</text>
 <text x="63.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">o</text>
@@ -74,18 +74,15 @@
 <text x="132.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
 <text x="142.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
 <text x="152.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">w</text>
-<rect x="166.80" y="61" width="9.80" height="22" fill="rgb(116,199,236)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,227,161)" transform="translate(166.80 77.00) scale(0.00821 -0.00821)"/>
-<rect x="176.60" y="61" width="117.60" height="22" fill="rgb(116,199,236)"/>
-<text x="196.20" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🧩</text>
-<text x="220.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<text x="230.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="240.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="250.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="259.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
-<text x="269.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
-<text x="279.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">z</text>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(116,199,236)" transform="translate(294.20 77.00) scale(0.00821 -0.00821)"/>
+<text x="161.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">,</text>
+<text x="181.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<text x="191.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="201.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="210.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="220.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
+<text x="230.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
+<text x="240.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">z</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,227,161)" transform="translate(255.00 77.00) scale(0.00821 -0.00821)"/>
 <rect x="10.00" y="86" width="127.40" height="22" fill="rgb(243,139,168)"/>
 <text x="29.60" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🤖</text>
 <text x="54.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">S</text>

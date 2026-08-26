@@ -313,6 +313,17 @@ scope only as far as C3 changes how they are grouped.
 
 ### Revised after seeing it
 
+**Line 3 was narrowed to the model and the effort on 2026-08-26.** The
+output style (A22), the agent name (A14) and the session name (A15) came
+off: none changes often enough to hold a permanent slot beside two things
+that do. The window size (A8) and the 200k flag (A10) came off line 4 the
+same day, for the same reason as the four below.
+
+**D7 was delivered late.** The selection asked for the skills as one chip
+carrying a comma-separated list, and the implementation kept one chip per
+skill through phases 2 to 11. Corrected on 2026-08-26, with the shown count
+raised from three to five since a list is far more compact than five chips.
+
 **Four segments were taken off the line on 2026-08-26**, after the same
 look: A7 (token counts as used-of-total), B4 (the context sparkline), A5
 (the API-wait figure) and B12 (the clock). Each was built as selected and

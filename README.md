@@ -21,9 +21,9 @@ the code does, because they *are* what the code does.
 | Line | What's on it |
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run |
-| 2 | Skills used recently, todo progress, whether Claude is working or idle |
-| 3 | Model, effort level, output style, agent, session name |
-| 4 | Context window, its size, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, rtk savings |
+| 2 | Skills used recently, as one list, then todo progress and whether Claude is working or idle |
+| 3 | Model and effort level |
+| 4 | Context window, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -218,8 +218,14 @@ thing every redraw is a number nobody reads.
 
 ## What it knows about the work
 
-Line 2 carries what the session is doing, not just what is loaded. Alongside
-the skills:
+Line 2 opens with the skills in play, as one chip carrying the list rather
+than one chip per name: `🧩 humanizer, dataviz, mermaid`. A chip each spent a
+separator and two spaces on every name, so three of them gave up a third of
+the line to padding, and they read as three facts when they are one. Five
+names fit; past that the rest are counted (`+2`) rather than dropped
+silently.
+
+Then what the session is doing:
 
 - `▸ Fix authentication (1/3)` is the todo list, reduced to what is being
   worked on and how far along it is. It comes from the same tail read that
@@ -282,30 +288,23 @@ it is free: it arrives on stdin with everything else.
 
 | Segment | Reads |
 |---|---|
-| `200k window` | the window size, so 200k and 1M never look alike |
-| `⚠ 200k` | Claude Code's own fixed-threshold flag |
 | `⏳ 1h04m` | wall-clock time since the session started |
 
 They sit low in the priority table, so on a narrow terminal they are the
 first to go and the three percentages stay.
 
-Four more were built and then taken off the line on 2026-08-26, for costing
+Six more were built and then taken off the line on 2026-08-26, for costing
 width on the line that runs out of it first: the token count as
-used-of-total, which repeated the window size shown beside it; the context
-sparkline; the API-wait figure; and the clock. The payload readers behind
-them are still there, feeding the segments that remain.
+used-of-total, the window size, the 200k flag, the context sparkline, the
+API-wait figure and the clock. The payload readers behind them are still
+there, feeding the segments that remain.
 
 ## Model, effort and output style
 
-Line 3 names the model. Beside it, one segment carries how the model is
-configured: the effort level behind a lightning bolt, and a non-default
-output style behind a palette icon, separated by a dot. They are the same
-idea seen twice and they change together, so they share a block rather than
-spending three separators on one thought. Whichever half exists renders; if
-neither does, the segment is not there.
-
-After that comes the agent's name, when the session runs under one, and the
-session's name once you have given it one with `--name` or `/rename`. They are separate segments on purpose: they
+Line 3 names the model, and beside it the effort level behind a lightning
+bolt. Nothing else. The output style, the agent name and the session name
+all lived here at one point and came off on 2026-08-26: none of them changes
+often enough to hold a permanent slot next to two things that do. They are separate segments on purpose: they
 are different settings, and until recently the output style was rendered in
 the effort slot whenever no effort level was present, which read as an
 effort level called "explanatory".

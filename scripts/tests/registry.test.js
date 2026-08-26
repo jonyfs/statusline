@@ -98,10 +98,9 @@ await test("the rendered lines follow the registry's order", async () => {
 
   const line3 = out.split("\n").find((l) => l.includes("🤖"));
   assert.ok(line3.indexOf("Sonnet 5") < line3.indexOf("high"), "model precedes effort, per order 10 and 20");
-  assert.ok(line3.indexOf("high") < line3.indexOf("explanatory"), "effort precedes output style");
 
   const line4 = out.split("\n").pop();
-  const positions = ["Context", "5h", "7d", "rtk"].map((t) => line4.indexOf(t));
+  const positions = ["Context", "5h", "7d"].map((t) => line4.indexOf(t));
   assert.deepEqual(
     positions,
     [...positions].sort((a, b) => a - b),
