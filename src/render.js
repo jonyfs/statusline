@@ -609,9 +609,14 @@ export function renderReadings(
     // three, on the line that is already the widest. It is gone; the band it
     // carried is now a one-character mark, so the meaning still survives
     // without colour (item E6, and Section 508).
+    // The context figure carries its level in colour only. The band mark it
+    // used to carry was removed on 2026-08-26 at the owner's request, so
+    // this is the one ramped segment where colour is the sole carrier. The
+    // 5-hour and 7-day figures beside it still mark their band, and they
+    // are the ones with a consequence you cannot undo.
     context: () => ({
       color: rampColour(ctxPct, "yellow"),
-      text: ` 🧠 Context ${ctxPct ?? "?"}%${bandMark(ctxPct)} `,
+      text: ` 🧠 Context ${ctxPct ?? "?"}% `,
     }),
     fiveHour: () => ({
       color: rampColour(fiveHourPct, "green"),
@@ -651,14 +656,6 @@ export function renderReadings(
       return { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` };
     },
 
-    // B3: auto-compaction fires around 95% and takes the conversation with
-    // it. The threshold is not in the payload, so this is inferred, and it
-    // says so by warning rather than by counting down to a number it cannot
-    // know exactly.
-    compaction: () => {
-      if (typeof ctxPct !== "number" || ctxPct < 85) return null;
-      return { color: "red", text: ` ⚠ compacting soon ` };
-    },
     // B1: a percentage says where you are; a rate says whether you get there
     // before the window resets, which is the decision you actually make.
     burnRate: () => {

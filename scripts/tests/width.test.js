@@ -72,10 +72,9 @@ await test("a narrow line drops by priority, not by position", () => {
   const roomy = line4At(200);
   assert.match(roomy, /rtk/, "with room, everything renders");
 
-  // Narrowing by a few columns is absorbed by the bar, which scales with the
-  // terminal (E3), so nothing has to be dropped. Past that, the priority
-  // table decides, and the savings figure at 40 is the first to go.
-  const tight = line4At(100);
+  // Line 4 has lost enough segments that it fits inside 100 columns on its
+  // own, so the priority table only gets to decide below that.
+  const tight = line4At(70);
   assert.doesNotMatch(tight, /rtk/, "priority 40 is the first to go");
   assert.match(tight, /Context 100%/, "priority 100 stays");
 

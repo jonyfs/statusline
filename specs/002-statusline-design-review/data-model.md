@@ -59,7 +59,6 @@ in bands rather than assigned one by one, so the intent survives later edits.
 | 84 | `upstream` (ahead, behind) |
 | 82 | `pr` (number, state, review) |
 | 80 | `resetMerged` (both countdowns, one segment) |
-| 78 | `compaction` (warning past the threshold) |
 | 76 | `skills` (one chip, comma separated) |
 | 74 | `effortStyle` (effort with output style) |
 | 71 | `agent` |
@@ -121,8 +120,11 @@ The ramp thresholds are the ones selected in E4, applied to the rate limits too,
 asked. `burnRate` joins the ramp because it is a rate against the same limit, and a rate
 that would exhaust the window before it resets is the definition of red.
 
-Since colour alone may not carry meaning (E6, and Section 508), every ramped segment also
-carries a mark: nothing below 60, `▴` from 60 to 85, `▲` above 85. The distinction
+Since colour alone may not carry meaning (E6, and Section 508), a ramped segment also
+carries a mark: nothing below 60, `▴` from 60 to 85, `▲` above 85. The context figure is
+the exception, at the owner's instruction on 2026-08-26: it takes the colour without the
+mark, so on that one segment the level is carried by colour alone. The two rate limits,
+whose consequence cannot be undone, keep theirs. The distinction
 survives a screenshot in greyscale and a reader who cannot separate red from green.
 
 This was the bar's job until 2026-08-26, when the bar was removed from the statusline for

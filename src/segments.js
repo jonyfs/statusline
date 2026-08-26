@@ -81,7 +81,6 @@ export const SEGMENTS = [
   // together. The face shown is the sooner of the two, since that is the
   // one about to matter.
   { key: "resetMerged", line: 4, order: 50, align: "right", priority: 80, colour: "identity", source: "payload" },
-  { key: "compaction", line: 4, order: 11, align: "left", priority: 78, colour: "identity", source: "payload" },
   { key: "burnRate", line: 4, order: 22, align: "left", priority: 66, colour: "ramp", source: "samples" },
   { key: "projection", line: 4, order: 24, align: "left", priority: 64, colour: "identity", source: "samples" },
   { key: "duration", line: 4, order: 55, align: "left", priority: 50, colour: "identity", source: "payload" },

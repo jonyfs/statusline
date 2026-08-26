@@ -190,11 +190,16 @@ separate red from green. Each band past the first adds a mark:
 
 | Band | Renders as |
 |---|---|
-| below 60% | `Context 41%` |
-| 60% to 85% | `Context 72%▴` |
-| above 85% | `Context 94%▲` |
+| below 60% | `5h 41%` |
+| 60% to 85% | `5h 72%▴` |
+| above 85% | `5h 94%▲` |
 
 Nothing is wrong needs no symbol, which is why the safe band has none.
+
+The context figure is the exception: it takes the colour and not the mark,
+so on that one segment the level is carried by colour alone. The two rate
+limits keep theirs, and they are the ones whose consequence you cannot
+undo.
 
 ![Close to the limit](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/near-compaction.svg)
 
@@ -270,11 +275,6 @@ roughly the first minute of a session.
 A rate drawn from twelve seconds of history swings wildly, and a number that
 swings beside measured ones gets read as measured. So they render nothing
 instead.
-
-`⚠ compacting soon` appears when the context window is close enough to
-auto-compaction to do something about it. The threshold is not in the
-payload, so this is inferred: it warns rather than counting down to a number
-it cannot know exactly.
 
 The samples live in the same per-session file as the change highlighting,
 bounded at sixty, swept after a week. `doctor` reports how many there are,

@@ -103,8 +103,11 @@ await test("the ramp reaches the rate limits as well, per E5", () => {
   assert.doesNotMatch(safe, /[▴▲]/, "nothing is wrong needs no symbol");
   assert.match(warn, /▴/);
   assert.match(hot, /▲/);
-  // Three of them: context, 5-hour and 7-day all carry the mark.
-  assert.equal((hot.match(/▲/g) || []).length, 3);
+  // Two of them. The context figure carries its level in colour alone since
+  // 2026-08-26; the two rate limits, which have the consequence you cannot
+  // undo, still mark their band.
+  assert.equal((hot.match(/▲/g) || []).length, 2);
+  assert.doesNotMatch(hot.slice(0, hot.indexOf("5h")), /▲/, "and none of them is the context figure");
 });
 
 await test("the band survives without colour, per E6", () => {
