@@ -41,16 +41,16 @@ description: "Task list for the selected statusline redesign"
 
 **Purpose**: Real width, priority-driven degradation, line shedding. Still fifteen segments, but they now degrade by intent instead of by source order.
 
-- [ ] T005 [P] Write `scripts/tests/layout.test.js`: width comes from `COLUMNS` and falls back to 120 when absent; at 200, 120, 100 and 80 columns the surviving segments are exactly those the priority table predicts; a segment never changes position because a neighbour disappeared
-- [ ] T006 [P] Write `scripts/tests/shedding.test.js`: at `LINES` 40, 8, 6 and 4 the rendered line count is 4, 4, 3 and 1 respectively, following the order skills, model, place, with line 4 last; every line returns when the rows do
-- [ ] T007 Create `src/layout.js` with `terminalWidth()` and `terminalHeight()` reading `COLUMNS` and `LINES` [D2]
-- [ ] T008 Add priority fill to `src/layout.js`: fill each line by descending priority until the next segment would exceed the width [D4]
-- [ ] T009 Add line shedding to `src/layout.js`, in the order skills, model, place, keeping line 4 to the end [D1]
-- [ ] T010 Add right alignment to `src/layout.js`: a group of segments drawn from the far edge inward [D3]
-- [ ] T011 Add column alignment across lines to `src/layout.js`, and make it yield to the width limit when the two conflict [D8]
-- [ ] T012 [P] Add `E0B1`, `E0B2` and `E0B3` to `scripts/extract-glyphs.py` and regenerate `src/preview/glyphs.json`, so right-aligned and thin separators can be drawn
-- [ ] T013 Wire `src/render.js` to `src/layout.js`, and mark the reset countdowns as the right-aligned group [D3]
-- [ ] T014 Run the width and shedding checks from quickstart.md at 200, 120, 100, 80 and 60 columns
+- [X] T005 [P] Write `scripts/tests/layout.test.js`: width comes from `COLUMNS` and falls back to 120 when absent; at 200, 120, 100 and 80 columns the surviving segments are exactly those the priority table predicts; a segment never changes position because a neighbour disappeared
+- [X] T006 [P] Write `scripts/tests/shedding.test.js`: at `LINES` 40, 8, 6 and 4 the rendered line count is 4, 4, 3 and 1 respectively, following the order skills, model, place, with line 4 last; every line returns when the rows do
+- [X] T007 Create `src/layout.js` with `terminalWidth()` and `terminalHeight()` reading `COLUMNS` and `LINES` [D2]
+- [X] T008 Add priority fill to `src/layout.js`: fill each line by descending priority until the next segment would exceed the width [D4]
+- [X] T009 Add line shedding to `src/layout.js`, in the order skills, model, place, keeping line 4 to the end [D1]
+- [X] T010 Add right alignment to `src/layout.js`: a group of segments drawn from the far edge inward [D3]
+- [X] T011 Add column alignment across lines to `src/layout.js`, and make it yield to the width limit when the two conflict [D8]
+- [X] T012 [P] Add `E0B1`, `E0B2` and `E0B3` to `scripts/extract-glyphs.py` and regenerate `src/preview/glyphs.json`, so right-aligned and thin separators can be drawn
+- [X] T013 Wire `src/render.js` to `src/layout.js`, and mark the reset countdowns as the right-aligned group [D3]
+- [X] T014 Run the width and shedding checks from quickstart.md at 200, 120, 100, 80 and 60 columns
 
 **Checkpoint**: The bar fits any terminal, and what it drops is what the table says it drops.
 

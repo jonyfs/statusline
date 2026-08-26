@@ -148,3 +148,14 @@ await test("the preview converter refuses a glyph it cannot draw", () => {
     "an un-embedded glyph must fail loudly rather than ship as text"
   );
 });
+
+await test("preview generation pins the terminal size as well as the clock", () => {
+  // The renderer reads COLUMNS and LINES now. Without pinning them, a preview
+  // generated in a narrow window would commit a narrower bar than one
+  // generated in a wide one, and CI's staleness check would fail on a diff
+  // that reflects a window size rather than a code change.
+  const src = readFileSync(new URL("../generate-previews.js", import.meta.url), "utf8");
+  assert.match(src, /PREVIEW_WIDTH\s*=\s*\d+/, "generator must pin a width");
+  assert.match(src, /PREVIEW_HEIGHT\s*=\s*\d+/, "generator must pin a height");
+  assert.match(src, /maxWidth: PREVIEW_WIDTH/, "every scenario must use it");
+});

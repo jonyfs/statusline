@@ -21,6 +21,9 @@ FONT = "/Users/jony/Library/Fonts/FiraCodeNerdFontMono-Regular.ttf"
 # Only the Nerd Font private-use glyphs the statusline actually emits.
 WANTED = {
     "E0B0": 0xE0B0,  # powerline right-pointing separator
+    "E0B2": 0xE0B2,  # powerline left-pointing separator, for a right-aligned group
+    "E0B1": 0xE0B1,  # powerline thin right-pointing, the no-Nerd-Font fallback
+    "E0B3": 0xE0B3,  # powerline thin left-pointing, its mirror
     "F418": 0xF418,  # nf-oct-git_branch
     "F43A": 0xF43A,  # nf-oct-clock
     "F407": 0xF407,  # nf-oct-git_pull_request

@@ -8,6 +8,7 @@ import { clockFaceFor, resetMomentLabel } from "./timeIcons.js";
 import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel } from "./segments.js";
+import { fitToWidth, alignColumns, linesToRender, terminalWidth, terminalHeight } from "./layout.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
 // characters: pasted literals silently vanished from this file once
@@ -205,7 +206,17 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
  */
 export function renderPayload(
   payload,
-  { asciiArrows = false, flavor = "mocha", sources = {}, trackChanges: tracking = true, now = Date.now(), maxWidth = MAX_LINE_WIDTH } = {}
+  {
+    asciiArrows = false,
+    flavor = "mocha",
+    sources = {},
+    trackChanges: tracking = true,
+    now = Date.now(),
+    // Both default to what the terminal reports. A caller that passes them
+    // is a test or a preview, where the point is a fixed size.
+    maxWidth = terminalWidth(),
+    maxHeight = terminalHeight(),
+  } = {}
 ) {
   const probe = {
     getGitInfo,
@@ -218,11 +229,24 @@ export function renderPayload(
   };
 
   const readings = gather(payload, probe, { now });
-  return renderReadings(readings, payload, { asciiArrows, flavor, tracking, now, maxWidth });
+  return renderReadings(readings, payload, { asciiArrows, flavor, tracking, now, maxWidth, maxHeight });
 }
 
 /** Turns readings into the lines. Split out so the diagnostic can reuse `gather`. */
-export function renderReadings(readings, payload, { asciiArrows = false, flavor = "mocha", tracking = true, now = Date.now(), maxWidth = MAX_LINE_WIDTH } = {}) {
+export function renderReadings(
+  readings,
+  payload,
+  {
+    asciiArrows = false,
+    flavor = "mocha",
+    tracking = true,
+    now = Date.now(),
+    // The real terminal, when Claude Code tells us what it is. The old
+    // constant survives as the fallback for versions that do not.
+    maxWidth = terminalWidth(),
+    maxHeight = terminalHeight(),
+  } = {}
+) {
   // The segment key decides the maximum age; the reading name says where
   // to look. They differ for the git snapshot, which three segments share.
   const shows = (key, name = key) => isRenderable(key, readings[name], now);
@@ -270,10 +294,23 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
   const opts = { asciiArrows };
   const lines = [];
 
+  /**
+   * Attaches each descriptor's registry row and drops the least important
+   * until the row fits the terminal. A skill chip has no registry row of its
+   * own, so the whole line inherits the skills priority.
+   */
+  const fit = (row) => {
+    const withPriority = row.map((seg) => {
+      const meta = segment(seg.key) || segment(String(seg.key).split(":")[0]);
+      return { align: "left", priority: meta?.priority ?? 50, ...meta, ...seg };
+    });
+    return fitToWidth(withPriority, maxWidth);
+  };
+
   // Line 1: working directory, then branch, ahead/behind, PR — each name
   // is an OSC 8 hyperlink when a target is known (dir -> file://, branch ->
   // GitHub tree view, PR -> PR page), with no visible URL text.
-  const dirSegment = (label) => ({ color: "surface1", text: ` 📁 ${label} `, url: dirUrl });
+  const dirSegment = (label) => ({ key: "dir", color: "surface1", text: ` 📁 ${label} `, url: dirUrl });
   const l1 = [dirSegment(dirLabel)];
   if (git) {
     const detached = git.detached === true || git.branch === "(detached)";
@@ -282,6 +319,7 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
     // and drawing a branch icon beside it would say otherwise.
     const branchUrl = !detached && remoteUrl ? `${remoteUrl}/tree/${git.branch}` : null;
     l1.push({
+      key: "branch",
       color: "lavender",
       text: ` ${detached ? g.commit : changes.iconFor("branch", g.branch)} ${label} `,
       url: branchUrl,
@@ -299,11 +337,12 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
     if (git.ahead) state.push(`${changes.iconFor("ahead", g.push)} ${git.ahead}`);
     if (git.behind) state.push(`${changes.iconFor("behind", g.pull)} ${git.behind}`);
     if (state.length) {
-      l1.push({ color: "mauve", text: ` ${state.join("  ")} ` });
+      l1.push({ key: "worktreeState", color: "mauve", text: ` ${state.join("  ")} ` });
     }
     if (pr) {
       const prState = pr.isDraft ? "draft" : String(pr.state).toLowerCase();
       l1.push({
+        key: "pr",
         color: "blue",
         text: ` ${changes.iconFor("pr", g.pr)} PR #${pr.number} ${prState} `,
         url: pr.url,
@@ -314,13 +353,13 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
   // because the end of a path identifies it and the start rarely does.
   // Nothing else on this line is dropped — a branch, a count of uncommitted
   // work and a pull request are all things the reader asked for.
-  let line1 = renderRow(palette, l1, opts);
+  let line1 = renderRow(palette, fit(l1), opts);
   if (displayWidth(line1) > maxWidth) {
     const over = displayWidth(line1) - maxWidth;
     const keep = Math.max(3, dirLabel.length - over - 1);
     if (keep < dirLabel.length) {
       l1[0] = dirSegment(`…${dirLabel.slice(dirLabel.length - keep)}`);
-      line1 = renderRow(palette, l1, opts);
+      line1 = renderRow(palette, fit(l1), opts);
     }
   }
   lines.push(line1);
@@ -332,14 +371,15 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
   if (skills.length) {
     const skillIcon = changes.iconFor("skills", "🧩");
     const l2 = skills.map((name, i) => ({
+      key: `skills:${i}`,
       color: SKILL_CHIP_COLORS[i % SKILL_CHIP_COLORS.length],
       text: ` ${skillIcon} ${name} `,
     }));
     const hidden = readings.skills.hiddenCount ?? 0;
     if (hidden > 0) {
-      l2.push({ color: "surface2", text: ` +${hidden} more ` });
+      l2.push({ key: "skills:more", color: "surface2", text: ` +${hidden} more ` });
     }
-    lines.push(renderRow(palette, l2, opts));
+    lines.push(renderRow(palette, fit(l2), opts));
   }
 
   // Line 3: model, then effort and output style as separate segments. They
@@ -358,9 +398,12 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
         : null,
   };
   const l3 = byLine(3)
-    .map((s) => line3Content[s.key]?.())
+    .map((s) => {
+      const built = line3Content[s.key]?.();
+      return built ? { key: s.key, ...built } : null;
+    })
     .filter(Boolean);
-  lines.push(renderRow(palette, l3, opts));
+  lines.push(renderRow(palette, fit(l3), opts));
 
   // Line 4: context / 5h window + its reset / 7d window + its reset / rtk.
   // Each reset segment's clock face is the actual hour the window resets,
@@ -391,7 +434,10 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
   const buildLine4 = ({ moment = true, fiveHourText = true, sevenDayText = true, rtk = true } = {}) => {
     const opt = { moment, fiveHourText, sevenDayText, rtk };
     return byLine(4)
-      .map((s) => line4Content[s.key]?.(opt))
+      .map((s) => {
+        const built = line4Content[s.key]?.(opt);
+        return built ? { key: s.key, ...built } : null;
+      })
       .filter(Boolean);
   };
 
@@ -407,12 +453,17 @@ export function renderReadings(readings, payload, { asciiArrows = false, flavor 
     { moment: false, fiveHourText: false, sevenDayText: false },
     { moment: false, fiveHourText: false, sevenDayText: false, rtk: false },
   ];
-  let line4 = renderRow(palette, buildLine4(TRIM_STEPS[0]), opts);
+  let line4 = renderRow(palette, fit(buildLine4(TRIM_STEPS[0])), opts);
   for (const step of TRIM_STEPS.slice(1)) {
     if (displayWidth(line4) <= maxWidth) break;
-    line4 = renderRow(palette, buildLine4(step), opts);
+    line4 = renderRow(palette, fit(buildLine4(step)), opts);
   }
   lines.push(line4);
 
-  return lines.join("\n");
+  // Which lines the window has room for. Everything comes back the moment
+  // the rows do: shedding answers the terminal, it is not a mode the bar
+  // gets stuck in.
+  const present = [1, skills.length ? 2 : null, 3, 4].filter(Boolean);
+  const keep = linesToRender(maxHeight, present);
+  return lines.filter((_, i) => keep.includes(present[i])).join("\n");
 }
