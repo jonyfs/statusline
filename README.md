@@ -5,8 +5,11 @@ shows where you are (directory, git branch, working-tree state, open pull
 request), which skills are active, which model and effort you're on, and how
 much of your context window and rate limits you've burned through.
 
-Every redraw finishes in about 47 milliseconds at the 95th percentile,
+Every redraw finishes in about 31 milliseconds at the 95th percentile,
 measured against a 75 MB session transcript, and never waits on the network.
+The bar fits itself to the terminal it is in: it reads the real width and
+height, drops the least important segments before it would overflow, and
+sheds whole lines rather than wrapping on a short window.
 
 ![Full statusline](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/full.svg)
 
@@ -21,11 +24,8 @@ the code does, because they *are* what the code does.
 | 3 | Model, effort level, output style |
 | 4 | Context window, 5-hour and 7-day usage with their reset countdowns, rtk savings |
 
-A segment with nothing to say is dropped rather than shown empty, so the
-bar is only as wide as what you have. No line goes past 120 columns either:
-if one would, the least useful content comes off first, starting with the
-weekday beside the 7-day figure, which the countdown next to it already
-tells you.
+A segment with nothing to say is dropped rather than shown empty, so the bar
+is only as wide as what you have.
 
 ## Install
 
@@ -109,6 +109,38 @@ show `?%` and `reset time unknown`. Nothing gets estimated to fill the gap:
 
 ![Missing payload fields](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/missing-fields.svg)
 
+## It fits the terminal, whatever size that is
+
+Claude Code tells the script the terminal's width and height before running
+it, so the bar knows what it has to work with instead of assuming.
+
+**Too narrow.** Every segment carries a priority, and a line is filled from
+the most important down until the next one would not fit. What you lose is
+what matters least, not whatever happened to be last in the code. Position
+stays independent of priority, so nothing slides sideways when a neighbour
+disappears.
+
+Six segments are the last to go: context, branch, directory, the 5-hour
+window, the model, and the 7-day window. Measured in this repository:
+
+| Width | What goes |
+|---|---|
+| 120 and up | nothing |
+| 100 | the rtk figure |
+| 80 | the 7-day countdown; the 5-hour one stays |
+| 60 | both countdowns; the three usage figures remain |
+
+**Too short.** Lines are shed rather than wrapped, because a wrapped bar
+costs more rows than it saves and Claude Code truncates rather than wraps.
+Skills go first, then the model line, then the directory line. Line 4 is the
+last one standing: it carries the limits whose consequences you cannot undo.
+Everything comes back the moment the window does.
+
+The full priority table lives in
+[`specs/002-statusline-design-review/data-model.md`](specs/002-statusline-design-review/data-model.md).
+Changing a number in it changes what you see on a narrow terminal, which is
+why it sits in a file you can read rather than inside a render function.
+
 ## Themes
 
 Set `CLAUDE_STATUSLINE_FLAVOR` to any of the four Catppuccin flavors:
@@ -177,22 +209,24 @@ state in as JSON: the model, the context window, the rate limits.
 
 What the script does with that has one rule: a redraw has 300 milliseconds
 and it does not go over. Measured on this machine against a real 75 MB
-session transcript, a redraw takes 46 milliseconds at the 95th percentile
-over 100 runs. You can check that yourself:
+session transcript, a redraw takes 31 milliseconds at the 95th percentile.
+You can check that yourself:
 
 ```bash
 node scripts/bench.js --runs 100
 ```
 
-Cheap things are read on every redraw: the model and usage figures come
-straight off stdin, one `git status` answers the branch, the working-tree
-counts and the divergence in about 30 milliseconds, and the skills come
-from the tail of the transcript rather than the whole file.
+Cheap things are read on every redraw: the model, the usage figures, the
+pull request and the repository's identity come straight off stdin, one `git
+status` answers the branch, the working-tree counts and the divergence in
+about 30 milliseconds, and the skills come from the tail of the transcript
+rather than the whole file.
 
-Two things are too expensive for that. `gh pr view` takes about half a
-second on a good network and its full timeout when it can't reach GitHub,
-and the `rtk` figure is a process launch for a number that barely moves.
-Both are read from a small cache under `~/.claude/statusline/cache/`, and
+Two things are too expensive for that. `gh pr view`, when it is needed at
+all, takes about half a second on a good network and its full timeout when
+it can't reach GitHub, and the `rtk` figure is a process launch for a number
+that barely moves. Both are read from a small cache under
+`~/.claude/statusline/cache/`, and
 when a cached value is halfway to expiring the redraw starts a one-shot
 background process that refreshes it and exits. Pull request and savings
 values are shown for up to a minute; past that the segment disappears
@@ -229,17 +263,26 @@ this thing doesn't invent numbers to fill space.
 **The rtk savings figure** comes from `rtk gain --format json`, and only
 appears when `rtk` is installed.
 
-**Pull request info** needs the `gh` CLI, authenticated, in a GitHub repo
-with an open PR for your branch. Miss any of those and the segment simply
-isn't there.
+**Pull request info** comes from Claude Code itself, which sends the open
+pull request for your branch along with everything else: its number, its URL
+and its review state. That last one is why the segment can say `PR #12
+approved` rather than just `PR #12 open`. On a GitLab remote the same fields
+describe the branch's merge request, and the segment says `MR` instead.
 
-It is never looked up during a redraw. `gh pr view` takes about half a
-second on a good network and its full timeout when it can't reach GitHub,
-which is more than a redraw is allowed to spend in total. The value comes
-from cache, refreshed in the background, and is shown for at most a minute
-before it goes away rather than sit there being wrong. The same is true of
-the savings figure. So the first redraw in a fresh clone has no PR segment,
-and the next one does.
+When Claude Code doesn't send it, either because it hasn't found the pull
+request yet or because you're on a version that predates the field, `gh pr
+view` answers instead. That call takes about half a second on a good network
+and its full timeout when it can't reach GitHub, so it never runs during a
+redraw: the value comes from cache, refreshed in the background, and is shown
+for at most a minute before it goes away rather than sit there being wrong.
+The savings figure works the same way.
+
+`node bin/cli.js doctor` tells you which of the two answered.
+
+**The repository's owner and name** come from the same place. Claude Code
+parses them out of your `origin` remote, host included, so the branch and
+pull request links are built without asking git. `git remote get-url` is
+still the fallback.
 
 **Active skills** come from one of two places. Install registers a
 `PostToolUse` hook that appends each skill invocation to a small

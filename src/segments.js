@@ -44,6 +44,7 @@ export const PRIORITY_BANDS = {
 export const SEGMENTS = [
   // Line 1: where you are, and what state it is in.
   { key: "dir", line: 1, order: 10, align: "left", priority: 96, colour: "identity", source: "payload" },
+  { key: "repo", line: 1, order: 15, align: "left", priority: 44, colour: "identity", source: "payload" },
   { key: "branch", line: 1, order: 20, align: "left", priority: 98, colour: "change", source: "git" },
   { key: "worktreeState", line: 1, order: 30, align: "left", priority: 86, colour: "identity", source: "git" },
   { key: "upstream", line: 1, order: 40, align: "left", priority: 84, colour: "identity", source: "git" },

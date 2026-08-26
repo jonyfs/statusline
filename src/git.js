@@ -231,6 +231,41 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
 }
 
 /**
+ * One shape for a pull request, whichever source answered.
+ *
+ * The payload sends `{number, url, review_state, kind}`; `gh pr view` sends
+ * `{number, state, isDraft, url}`. They describe the same thing in different
+ * words, and the renderer should not have to know which one it got.
+ *
+ * A draft is a review state rather than a separate flag, because that is
+ * what the payload calls it and it is the more useful reading: what matters
+ * is where the request stands, and "draft" is one of the places it can be.
+ */
+export function normalizePr(raw, source) {
+  if (!raw || typeof raw.number !== "number") return null;
+  const review = raw.isDraft
+    ? "draft"
+    : raw.review_state || (raw.state ? String(raw.state).toLowerCase() : null);
+  return {
+    number: raw.number,
+    url: raw.url ?? null,
+    review,
+    kind: raw.kind === "mr" ? "mr" : "pr",
+    source,
+  };
+}
+
+/**
+ * The repository's web URL, from the identity the payload parsed out of the
+ * origin remote. Absent outside a repository, or with no origin configured,
+ * in which case `getRemoteUrl` is still there to ask git directly.
+ */
+export function repoUrlFromPayload(repo) {
+  if (!repo?.host || !repo.owner || !repo.name) return null;
+  return `https://${repo.host}/${repo.owner}/${repo.name}`;
+}
+
+/**
  * Pull request state, read from cache only.
  *
  * `gh pr view` costs 540 ms on a warm network and its whole timeout when

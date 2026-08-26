@@ -60,12 +60,12 @@ description: "Task list for the selected statusline redesign"
 
 **Purpose**: The two segments that pay a subprocess for something the payload already sends. This step pays for itself on the first redraw.
 
-- [ ] T015 [P] Write `scripts/tests/payload-pr.test.js`: the PR renders from `pr.number`, `pr.state` and `pr.review_state`; `gh` is not called when the field is present; `gh` is still called when it is absent; `pr.kind` renders a merge request without breaking on the Claude Code version that omits it
-- [ ] T016 [P] Write `scripts/tests/payload-repo.test.js`: branch and directory links are built from `workspace.repo`; `git remote` is not called when it is present, and is called when it is not
-- [ ] T017 Read `pr` from the payload in `src/render.js` and `src/git.js`, with the `gh` lookup kept as the fallback [A1, C1]
-- [ ] T018 Read `workspace.repo` for link construction, with `git remote get-url` kept as the fallback [A2, C2]
-- [ ] T019 Render the review state on the PR segment, per A1's chosen form [A1]
-- [ ] T020 Render owner and repo as text, per A2's chosen form [A2]
+- [X] T015 [P] Write `scripts/tests/payload-pr.test.js`: the PR renders from `pr.number`, `pr.state` and `pr.review_state`; `gh` is not called when the field is present; `gh` is still called when it is absent; `pr.kind` renders a merge request without breaking on the Claude Code version that omits it
+- [X] T016 [P] Write `scripts/tests/payload-repo.test.js`: branch and directory links are built from `workspace.repo`; `git remote` is not called when it is present, and is called when it is not
+- [X] T017 Read `pr` from the payload in `src/render.js` and `src/git.js`, with the `gh` lookup kept as the fallback [A1, C1]
+- [X] T018 Read `workspace.repo` for link construction, with `git remote get-url` kept as the fallback [A2, C2]
+- [X] T019 Render the review state on the PR segment, per A1's chosen form [A1]
+- [X] T020 Render owner and repo as text, per A2's chosen form [A2]
 
 **Checkpoint**: Two subprocesses become fallbacks, and the PR segment says more than it did.
 

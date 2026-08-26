@@ -39,7 +39,20 @@ export const SCENARIOS = [
   {
     file: "full.svg",
     title: "Everything available — GitHub repo with an open PR, skills active, rtk installed",
-    payload: basePayload,
+    payload: {
+      ...basePayload,
+      // Both of these come from Claude Code's own payload rather than from a
+      // subprocess, which is what feature 002 changed.
+      workspace: {
+        ...basePayload.workspace,
+        repo: { host: "github.com", owner: "jonyfs", name: "statusline" },
+      },
+      pr: {
+        number: 128,
+        url: "https://github.com/jonyfs/statusline/pull/128",
+        review_state: "approved",
+      },
+    },
     sources: {
       ...noSources,
       getGitInfo: () => ({ branch: "feature/preview-images", upstream: "origin/feature/preview-images", ahead: 2, behind: 0, changed: 4, untracked: 1 }),

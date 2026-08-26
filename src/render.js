@@ -1,5 +1,5 @@
 import { PALETTES, renderRow, displayWidth } from "./theme.js";
-import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl } from "./git.js";
+import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl, normalizePr, repoUrlFromPayload } from "./git.js";
 import { getActiveSkills } from "./skills.js";
 import { getContextPercent, getRateLimits, formatResetCountdown } from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
@@ -172,14 +172,32 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
 
   const git = timed("git", () => probe.getGitInfo(cwd));
   const hasRepo = git.value !== null;
+  const payloadPr = normalizePr(payload?.pr, "payload");
+  const payloadRepoUrl = repoUrlFromPayload(payload?.workspace?.repo);
 
   return {
     cwd,
     dir: reading({ value: getDirLabel(cwd), at: now, source: "payload" }),
     dirUrl: timed("payload", () => probe.getDirUrl(cwd)),
     git,
-    remote: hasRepo ? timed("git", () => probe.getRemoteUrl(cwd)) : missing("git", "not a repository"),
-    pr: hasRepo ? timed("gh", () => probe.getPrInfo(cwd)) : missing("gh", "not a repository"),
+    // The payload carries both of these, and did all along. Asking git and
+    // gh for them cost a subprocess each: 540 ms for `gh pr view` on a warm
+    // network, and its whole timeout when it cannot reach GitHub. The probes
+    // stay as fallbacks, for a Claude Code too old to send the fields or a
+    // pull request it has not found yet.
+    remote: hasRepo
+      ? payloadRepoUrl
+        ? reading({ value: payloadRepoUrl, at: now, source: "payload" })
+        : timed("git", () => probe.getRemoteUrl(cwd))
+      : missing("git", "not a repository"),
+    repo: hasRepo
+      ? reading({ value: payload?.workspace?.repo ?? null, at: now, source: "payload" })
+      : missing("payload", "not a repository"),
+    pr: hasRepo
+      ? payloadPr
+        ? reading({ value: payloadPr, at: now, source: "payload" })
+        : timed("gh", () => normalizePr(probe.getPrInfo(cwd), "gh"))
+      : missing("gh", "not a repository"),
     skills: skillsReading(timed, probe, payload),
     rtk: timed("rtk", () => probe.getRtkSavings(cwd)),
     model: reading({
@@ -339,12 +357,22 @@ export function renderReadings(
     if (state.length) {
       l1.push({ key: "worktreeState", color: "mauve", text: ` ${state.join("  ")} ` });
     }
+    // A2's chosen form: owner and repo as text. It repeats the directory in
+    // a repository whose folder is named after it, and says something the
+    // directory cannot in one that is not.
+    const repo = shows("repo") ? readings.repo.value : null;
+    if (repo?.owner && repo.name) {
+      l1.push({ key: "repo", color: "surface2", text: ` ${repo.owner}/${repo.name} ` });
+    }
     if (pr) {
-      const prState = pr.isDraft ? "draft" : String(pr.state).toLowerCase();
+      // `changes_requested` is the one review state too long to spell out on
+      // a line this tight, and "changes" says it.
+      const review = pr.review === "changes_requested" ? "changes" : pr.review;
+      const label = pr.kind === "mr" ? "MR" : "PR";
       l1.push({
         key: "pr",
         color: "blue",
-        text: ` ${changes.iconFor("pr", g.pr)} PR #${pr.number} ${prState} `,
+        text: ` ${changes.iconFor("pr", g.pr)} ${label} #${pr.number}${review ? ` ${review}` : ""} `,
         url: pr.url,
       });
     }

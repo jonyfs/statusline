@@ -29,6 +29,9 @@ export const MAX_AGE_MS = {
   worktree: 5_000,
   upstream: 5_000,
   remote: 24 * 60 * 60 * 1000,
+  // Identity parsed by Claude Code from the origin remote. It arrives with
+  // the payload, so it is as current as the redraw.
+  repo: REDRAW_INTERVAL_MS,
   // Not a segment: the cache key the three git-derived segments share.
   git: 5_000,
   pr: 60_000,

@@ -11,7 +11,7 @@
  */
 
 import { gather, renderReadings } from "./render.js";
-import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl, probeGitInfo, probePrInfo } from "./git.js";
+import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl, probeGitInfo, probePrInfo, normalizePr } from "./git.js";
 import { getActiveSkills } from "./skills.js";
 import { getRtkSavings, probeRtkSavings } from "./rtk.js";
 import { formatResetCountdown } from "./tokens.js";
@@ -25,7 +25,8 @@ const SEGMENTS = [
   { key: "branch", reading: "git", line: 1, describe: (v) => (v?.detached ? `${v.branch} (detached)` : v?.branch) },
   { key: "worktree", reading: "git", line: 1, describe: (v) => (v ? `${v.changed} changed, ${v.untracked} untracked` : null) },
   { key: "upstream", reading: "git", line: 1, describe: (v) => (v?.upstream ? `${v.upstream} +${v.ahead} -${v.behind}` : null) },
-  { key: "pr", reading: "pr", line: 1, describe: (v) => (v ? `#${v.number} ${v.isDraft ? "draft" : String(v.state).toLowerCase()}` : null) },
+  { key: "pr", reading: "pr", line: 1, describe: (v) => (v ? `#${v.number} ${v.review ?? "open"}${v.source ? ` (${v.source})` : ""}` : null) },
+  { key: "repo", reading: "repo", line: 1, describe: (v) => (v?.owner ? `${v.owner}/${v.name}` : null) },
   { key: "skills", reading: "skills", line: 2, describe: (v) => (v?.length ? v.join(", ") : null) },
   { key: "model", reading: "model", line: 3 },
   { key: "effort", reading: "effort", line: 3 },
@@ -44,7 +45,7 @@ const LIVE_PROBES = {
   branch: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
   worktree: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
   upstream: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
-  pr: (cwd) => probePrInfo(cwd, REFRESH_BUDGET_MS.gh),
+  pr: (cwd) => normalizePr(probePrInfo(cwd, REFRESH_BUDGET_MS.gh), "gh"),
   rtk: (cwd) => probeRtkSavings(cwd, REFRESH_BUDGET_MS.rtk),
 };
 

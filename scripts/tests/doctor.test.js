@@ -84,7 +84,10 @@ await test("a cached segment reports the cached reading and a live probe separat
   // the live result is what the line shows, which it is not.
   const report = buildReport(payload, { now: NOW, live: true, probe });
   const pr = report.segments.find((s) => s.key === "pr");
-  assert.equal(pr.value, "#4 open", "the cached reading is what the line shows");
+  // The probe returns gh's shape and the renderer normalizes it, so the
+  // diagnostic reports the normalized review state rather than gh's wording.
+  assert.match(pr.value, /^#4 open/, "the cached reading is what the line shows");
+  assert.match(pr.value, /\(gh\)/, "and the diagnostic says which source answered");
   assert.ok("live" in pr, "the live probe must be reported alongside it");
   assert.equal(typeof pr.liveTookMs, "number");
 
