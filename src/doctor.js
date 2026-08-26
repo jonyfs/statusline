@@ -1,0 +1,216 @@
+/**
+ * `doctor`: what the statusline just read, where each value came from, how
+ * old it is, and what it cost.
+ *
+ * Two rules shape this. It gathers through the same path the renderer
+ * uses, so it cannot describe behaviour the renderer does not have. And
+ * where a segment reads from cache, it reports both: the cached reading
+ * the redraw would use, and a live probe run for the diagnostic's own
+ * benefit. One column would have to pretend the two are the same thing,
+ * and the whole point of the command is to show where they differ.
+ */
+
+import { gather, renderReadings } from "./render.js";
+import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl, probeGitInfo, probePrInfo } from "./git.js";
+import { getActiveSkills } from "./skills.js";
+import { getRtkSavings, probeRtkSavings } from "./rtk.js";
+import { formatResetCountdown } from "./tokens.js";
+import { getOpenTabUrl } from "./openTerminalTab.js";
+import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
+import { displayWidth } from "./theme.js";
+
+/** Which reading backs each segment, in the order the segments render. */
+const SEGMENTS = [
+  { key: "dir", reading: "dir", line: 1 },
+  { key: "branch", reading: "git", line: 1, describe: (v) => (v?.detached ? `${v.branch} (detached)` : v?.branch) },
+  { key: "worktree", reading: "git", line: 1, describe: (v) => (v ? `${v.changed} changed, ${v.untracked} untracked` : null) },
+  { key: "upstream", reading: "git", line: 1, describe: (v) => (v?.upstream ? `${v.upstream} +${v.ahead} -${v.behind}` : null) },
+  { key: "pr", reading: "pr", line: 1, describe: (v) => (v ? `#${v.number} ${v.isDraft ? "draft" : String(v.state).toLowerCase()}` : null) },
+  { key: "skills", reading: "skills", line: 2, describe: (v) => (v?.length ? v.join(", ") : null) },
+  { key: "model", reading: "model", line: 3 },
+  { key: "effort", reading: "effort", line: 3 },
+  { key: "outputStyle", reading: "outputStyle", line: 3 },
+  { key: "context", reading: "context", line: 4, describe: (v) => (v === null ? "?%" : `${v}%`) },
+  { key: "fiveHour", reading: "fiveHour", line: 4, describe: (v) => (v === null ? "?%" : `${v}%`) },
+  { key: "fiveHourReset", reading: "fiveHourReset", line: 4, describe: (v, now) => formatResetCountdown(v, now) ?? "reset time unknown" },
+  { key: "sevenDay", reading: "sevenDay", line: 4, describe: (v) => (v === null ? "?%" : `${v}%`) },
+  { key: "sevenDayReset", reading: "sevenDayReset", line: 4, describe: (v, now) => formatResetCountdown(v, now) ?? "reset time unknown" },
+  { key: "rtk", reading: "rtk", line: 4, describe: (v) => (v === null ? null : `${v}% saved`) },
+  { key: "remote", reading: "remote", line: 1 },
+];
+
+/** Segments whose value comes from cache, and the live probe for each. */
+const LIVE_PROBES = {
+  branch: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
+  worktree: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
+  upstream: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
+  pr: (cwd) => probePrInfo(cwd, REFRESH_BUDGET_MS.gh),
+  rtk: (cwd) => probeRtkSavings(cwd, REFRESH_BUDGET_MS.rtk),
+};
+
+/**
+ * Why a segment is not on the line. The distinction that matters is
+ * between "there is nothing to show here" and "the source failed", which
+ * a blank line cannot express (FR-017).
+ */
+function absenceReason(segment, reading, readings, now) {
+  if (!reading) return "no reading";
+  if (reading.error) return `source failed: ${reading.error}`;
+
+  const inRepo = readings?.git?.value != null;
+  if (Array.isArray(reading.value) && reading.value.length === 0) {
+    return segment.key === "skills" ? "no skill used inside the activity window" : "nothing to show";
+  }
+  if (reading.value === null || reading.value === undefined) {
+    if (["branch", "worktree", "upstream", "remote"].includes(segment.key) && !inRepo) {
+      return "not a git repository";
+    }
+    if (segment.key === "pr") {
+      return inRepo
+        ? "no open pull request for this branch, or nothing cached yet"
+        : "not a git repository";
+    }
+    if (segment.key === "rtk") return "rtk not installed, or nothing cached yet";
+    if (segment.key === "effort") return "the payload carries no effort level";
+    if (segment.key === "outputStyle") return "no output style set";
+    return "nothing to show";
+  }
+  const age = ageMs(reading, now);
+  if (age > MAX_AGE_MS[segment.key]) {
+    return `value is ${Math.round(age / 1000)}s old, past its ${Math.round(MAX_AGE_MS[segment.key] / 1000)}s limit`;
+  }
+  if (segment.key === "outputStyle" && reading.value === "default") return "the default style is not worth a segment";
+  if (segment.key === "worktree" && reading.value.changed === 0 && reading.value.untracked === 0) {
+    return "a clean tree adds no counters";
+  }
+  if (segment.key === "upstream" && reading.value.upstream === null) return "the branch has no upstream";
+  return "not rendered";
+}
+
+async function readStdin() {
+  if (process.stdin.isTTY) return "";
+  return new Promise((resolve) => {
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => (data += chunk));
+    process.stdin.on("end", () => resolve(data));
+    process.stdin.on("error", () => resolve(data));
+  });
+}
+
+export function buildReport(payload, { now = Date.now(), live = true, probe } = {}) {
+  const probes = probe || {
+    getGitInfo,
+    getPrInfo,
+    getRemoteUrl,
+    getActiveSkills,
+    getRtkSavings,
+    getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
+  };
+
+  const started = Date.now();
+  const readings = gather(payload, probes, { now });
+  const rendered = renderReadings(readings, payload, { tracking: false, now });
+  const elapsedMs = Date.now() - started;
+
+  const rows = SEGMENTS.map((segment) => {
+    const reading = readings[segment.reading];
+    const shown = isRenderable(segment.key, reading, now);
+    const describe = segment.describe || ((v) => (v === null || v === undefined ? null : String(v)));
+    const value = shown ? describe(reading.value, now) : null;
+
+    const row = {
+      key: segment.key,
+      line: segment.line,
+      rendered: Boolean(shown && value !== null),
+      value: value ?? "—",
+      source: reading?.source ?? "none",
+      ageMs: Math.max(0, Math.round(ageMs(reading, now))),
+      fresh: reading?.fresh ?? false,
+      tookMs: reading?.tookMs ?? 0,
+    };
+    if (!row.rendered) row.reason = absenceReason(segment, reading, readings, now);
+
+    if (live && LIVE_PROBES[segment.key]) {
+      const at = Date.now();
+      let probed = null;
+      try {
+        probed = LIVE_PROBES[segment.key](readings.cwd);
+      } catch (err) {
+        probed = null;
+        row.liveError = err?.message || String(err);
+      }
+      row.live = probed === null ? "—" : describe(probed, now) ?? "—";
+      row.liveTookMs = Date.now() - at;
+    }
+    return row;
+  });
+
+  return {
+    cwd: readings.cwd,
+    elapsedMs,
+    budgets: { redrawMs: 300, sources: SOURCE_BUDGET_MS, refresh: REFRESH_BUDGET_MS },
+    // Numbered by what was printed, not by the four-line scheme: with no
+    // skills the second printed row is line 3's content, and calling it
+    // "line 2" in a diagnostic would be the diagnostic lying.
+    rows: rendered.split("\n").map((line, i) => ({ row: i + 1, width: displayWidth(line) })),
+    segments: rows,
+  };
+}
+
+function pad(text, width) {
+  const value = String(text);
+  if (value.length > width - 1) return value.slice(0, width - 2) + "… ";
+  return value + " ".repeat(width - value.length);
+}
+
+export function formatReport(report) {
+  const header = [
+    pad("segment", 14),
+    pad("line", 5),
+    pad("shown", 6),
+    pad("value", 36),
+    pad("source", 11),
+    pad("age", 8),
+    pad("cost", 8),
+    pad("live", 28),
+  ].join("");
+
+  const rows = report.segments.map((row) => {
+    const live = row.live === undefined ? "" : `${row.live} (${row.liveTookMs} ms)`;
+    return [
+      pad(row.key, 14),
+      pad(row.line, 5),
+      pad(row.rendered ? "yes" : "no", 6),
+      pad(row.rendered ? row.value : row.reason, 36),
+      pad(row.source, 11),
+      pad(`${(row.ageMs / 1000).toFixed(1)}s`, 8),
+      pad(`${row.tookMs} ms`, 8),
+      pad(live, 28),
+    ].join("");
+  });
+
+  const widths = report.rows.map((l) => `row ${l.row}: ${l.width} columns`).join(", ");
+  return [
+    `working directory: ${report.cwd}`,
+    `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,
+    `rendered ${widths}`,
+    "",
+    header,
+    "-".repeat(header.length),
+    ...rows,
+  ].join("\n");
+}
+
+export async function runDoctor({ json = false, now = Date.now() } = {}) {
+  const raw = await readStdin();
+  let payload = {};
+  try {
+    payload = raw ? JSON.parse(raw) : {};
+  } catch {
+    payload = {};
+  }
+
+  const report = buildReport(payload, { now });
+  return json ? JSON.stringify(report, null, 2) : formatReport(report);
+}

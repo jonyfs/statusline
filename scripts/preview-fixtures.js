@@ -42,7 +42,7 @@ export const SCENARIOS = [
     payload: basePayload,
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "feature/preview-images", ahead: 2, behind: 0, changed: 4, untracked: 1 }),
+      getGitInfo: () => ({ branch: "feature/preview-images", upstream: "origin/feature/preview-images", ahead: 2, behind: 0, changed: 4, untracked: 1 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getPrInfo: () => ({ number: 128, state: "OPEN", isDraft: false, url: "https://github.com/jonyfs/statusline/pull/128" }),
       getActiveSkills: () => ["code-review", "dataviz", "artifact-design"],
@@ -55,7 +55,7 @@ export const SCENARIOS = [
     payload: basePayload,
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getActiveSkills: () => ["code-review"],
       getRtkSavings: () => 81,
@@ -89,7 +89,7 @@ export const SCENARIOS = [
     },
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
     },
   },
@@ -101,6 +101,7 @@ export const SCENARIOS = [
       ...noSources,
       getGitInfo: () => ({
         branch: "feature/git-state",
+        upstream: "origin/feature/git-state",
         ahead: 2,
         behind: 5,
         changed: 3,
@@ -119,6 +120,7 @@ export const SCENARIOS = [
       ...noSources,
       getGitInfo: () => ({
         branch: "feature/git-state",
+        upstream: "origin/feature/git-state",
         ahead: 0,
         behind: 0,
         changed: 0,
@@ -135,7 +137,7 @@ export const SCENARIOS = [
     payload: basePayload,
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "fix/reset-countdown", ahead: 3, behind: 7, changed: 1, untracked: 0 }),
+      getGitInfo: () => ({ branch: "fix/reset-countdown", upstream: "origin/fix/reset-countdown", ahead: 3, behind: 7, changed: 1, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getPrInfo: () => ({ number: 131, state: "OPEN", isDraft: true, url: "https://github.com/jonyfs/statusline/pull/131" }),
       getActiveSkills: () => ["code-review", "dataviz"],
@@ -155,9 +157,59 @@ export const SCENARIOS = [
     },
     sources: {
       ...noSources,
-      getGitInfo: () => ({ branch: "main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getActiveSkills: () => ["code-review", "dataviz", "artifact-design"],
+      getRtkSavings: () => 81,
+    },
+  },
+  {
+    file: "no-upstream.svg",
+    title: "A branch with no upstream — no ahead/behind counters at all, which is not the same as being in sync",
+    payload: basePayload,
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({
+        branch: "local-only-work",
+        upstream: null,
+        ahead: null,
+        behind: null,
+        changed: 2,
+        untracked: 1,
+      }),
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+    },
+  },
+  {
+    file: "detached-head.svg",
+    title: "Detached HEAD — the commit id behind a commit icon, with no branch link",
+    payload: basePayload,
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({
+        branch: "9f21c04",
+        detached: true,
+        oid: "9f21c04b8e5d2a17c3f6",
+        upstream: null,
+        ahead: null,
+        behind: null,
+        changed: 0,
+        untracked: 0,
+      }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getRtkSavings: () => 81,
+    },
+  },
+  {
+    file: "skills-truncated.svg",
+    title: "More skills active than the line shows — the rest are counted rather than hidden",
+    payload: { ...basePayload, output_style: { name: "explanatory" } },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review", "dataviz", "artifact-design", "humanizer", "mermaid"],
       getRtkSavings: () => 81,
     },
   },

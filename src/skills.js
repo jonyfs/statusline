@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { scanTailForSkills } from "./transcriptTail.js";
+import { readSkillEvents } from "./skillEvents.js";
 
 /**
  * How long a skill counts as active after it was last invoked.
@@ -18,7 +19,7 @@ import { readFileSync } from "node:fs";
  */
 const DEFAULT_WINDOW_MS = 30 * 60 * 1000;
 
-function windowMs() {
+export function windowMs() {
   const raw = process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN;
   if (!raw) return DEFAULT_WINDOW_MS;
   const minutes = Number(raw);
@@ -31,63 +32,45 @@ function windowMs() {
  * Skills invoked recently in the current session, most recent first,
  * deduplicated by name and dropped once they fall outside the window.
  *
+ * Two paths lead here, and they agree on the answer. The optional
+ * `PostToolUse` hook appends each invocation to a small per-session file,
+ * which is a few hundred bytes to read and is written the moment the skill
+ * runs. Without the hook, the transcript's tail is scanned instead, which
+ * costs more and reacts only once the entry has been flushed. The hook is
+ * an accelerator, never a dependency: the fallback is the source of truth
+ * for correctness.
+ *
  * The transcript format is not a stable public contract, so every step is
  * defensive: a parse failure yields fewer skills rather than a crash, and
  * an entry with no usable timestamp is kept rather than discarded, since
  * dropping it would hide a skill that may well be active.
  */
-export function getActiveSkills(transcriptPath, limit = 3, { now = Date.now() } = {}) {
+export function getActiveSkills(transcriptPath, limit = 3, { now = Date.now(), sessionId } = {}) {
+  const window = windowMs();
+
+  if (sessionId) {
+    const fromHook = readSkillEvents(sessionId, { limit, windowMs: window, now });
+    if (fromHook.length) return fromHook;
+  }
+
   if (!transcriptPath) return [];
-  let lines;
-  try {
-    lines = readFileSync(transcriptPath, "utf8").split("\n").filter(Boolean);
-  } catch {
-    return [];
-  }
+  return scanTailForSkills(transcriptPath, { limit, windowMs: window, now }).skills;
+}
 
-  const cutoff = now - windowMs();
-  const found = [];
-  const seen = new Set();
+/**
+ * The same scan, with the bookkeeping the diagnostic needs: how much was
+ * read, and whether the walk gave up before it ran out of material.
+ */
+export function getActiveSkillsDetailed(transcriptPath, limit = 3, { now = Date.now(), sessionId } = {}) {
+  const window = windowMs();
 
-  // Scan a bounded slice of the tail rather than stopping at the first
-  // out-of-window entry. Transcript order is close to chronological but
-  // not strictly so: a real session had 16 out-of-order timestamps and 90
-  // entries carrying none at all within its last 400 lines, so an
-  // early break would have stopped on one stray old entry and hidden
-  // every skill behind it. The cap keeps the read cheap on a long
-  // session while leaving correctness to the per-entry check below.
-  const MAX_SCAN = 2000;
-  const stop = Math.max(0, lines.length - MAX_SCAN);
-
-  for (let i = lines.length - 1; i >= stop && found.length < limit; i--) {
-    let entry;
-    try {
-      entry = JSON.parse(lines[i]);
-    } catch {
-      continue;
-    }
-
-    const blocks = entry?.message?.content;
-    if (!Array.isArray(blocks)) continue;
-
-    // An entry with no parseable timestamp is kept: dropping it would
-    // hide a skill that may well be active, which is the worse error.
-    // Entries stamped after `now` are skipped too. At runtime that never
-    // happens, but without the check the window is only half a window and
-    // the behaviour cannot be tested at a chosen instant.
-    const stamp = Date.parse(entry?.timestamp ?? "");
-    if (Number.isFinite(stamp) && (stamp < cutoff || stamp > now)) continue;
-
-    for (const block of blocks) {
-      if (block?.type !== "tool_use") continue;
-      if (String(block.name || "").toLowerCase() !== "skill") continue;
-      const skillName = block.input?.skill || block.input?.name;
-      if (skillName && !seen.has(skillName)) {
-        seen.add(skillName);
-        found.push(skillName);
-      }
+  if (sessionId) {
+    const fromHook = readSkillEvents(sessionId, { limit, windowMs: window, now });
+    if (fromHook.length) {
+      return { skills: fromHook, truncated: false, bytesRead: 0, source: "hook" };
     }
   }
 
-  return found;
+  if (!transcriptPath) return { skills: [], truncated: false, bytesRead: 0, source: "transcript" };
+  return { ...scanTailForSkills(transcriptPath, { limit, windowMs: window, now }), source: "transcript" };
 }

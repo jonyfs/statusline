@@ -5,6 +5,9 @@
  *
  *   context_window: { used_percentage, remaining_percentage, ... }
  *   rate_limits: { five_hour: { used_percentage, resets_at }, seven_day: { ... } }
+ *
+ * A field the payload does not carry stays null here and renders as `?%`.
+ * Principle III forbids standing an estimate in its place.
  */
 
 export function getContextPercent(payload) {
@@ -24,12 +27,25 @@ export function getRateLimits(payload) {
 }
 
 /**
- * `resetsAt` is a Unix timestamp in seconds, as returned by the payload.
+ * How long a window is judged to be "resetting now" once its moment has
+ * passed. Inside this grace period the reset is genuinely happening; past
+ * it, the payload is describing a moment that is over, and the honest
+ * answer is that the next reset time is unknown rather than a countdown
+ * that has been saying "now" for three hours.
  */
-export function formatResetCountdown(resetsAtSeconds) {
-  if (typeof resetsAtSeconds !== "number") return null;
-  const diffMs = resetsAtSeconds * 1000 - Date.now();
-  if (diffMs <= 0) return "resetting now";
+const RESETTING_GRACE_MS = 2 * 60 * 1000;
+
+/**
+ * `resetsAt` is a Unix timestamp in seconds, as returned by the payload.
+ * `now` is injectable so a countdown can be tested at a chosen instant
+ * rather than only against the wall clock.
+ */
+export function formatResetCountdown(resetsAtSeconds, now = Date.now()) {
+  if (typeof resetsAtSeconds !== "number" || !Number.isFinite(resetsAtSeconds)) return null;
+  const diffMs = resetsAtSeconds * 1000 - now;
+  if (diffMs <= 0) {
+    return diffMs > -RESETTING_GRACE_MS ? "resetting now" : null;
+  }
 
   const totalHours = Math.floor(diffMs / 3600000);
   const minutes = Math.floor((diffMs % 3600000) / 60000);

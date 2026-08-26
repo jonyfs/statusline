@@ -16,7 +16,15 @@ import os from "node:os";
  * holds on its current frame.
  */
 
-const STATE_DIR = path.join(os.homedir(), ".claude", "statusline", "state");
+const STATUSLINE_DIR = path.join(os.homedir(), ".claude", "statusline");
+const STATE_DIR = path.join(STATUSLINE_DIR, "state");
+
+/**
+ * Directories swept alongside the animation state: the per-repository
+ * cache and the per-session skill event files. All three are disposable,
+ * so one sweep with one rule covers them.
+ */
+const SWEPT_DIRS = [STATE_DIR, path.join(STATUSLINE_DIR, "cache"), path.join(STATUSLINE_DIR, "skills")];
 const HIGHLIGHT_MS = 30_000;
 const STALE_STATE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -45,21 +53,24 @@ function loadState(sessionId) {
 }
 
 /**
- * Deletes state for sessions untouched for a week. Without this, every
- * session Claude Code ever opened would leave a file behind forever.
+ * Deletes state, cache and skill-event files untouched for a week. Without
+ * this, every session Claude Code ever opened would leave a file behind
+ * forever, and every repository ever visited would leave a cache.
  */
 function pruneStaleState(now) {
-  try {
-    for (const name of readdirSync(STATE_DIR)) {
-      const file = path.join(STATE_DIR, name);
-      try {
-        if (now - statSync(file).mtimeMs > STALE_STATE_MS) unlinkSync(file);
-      } catch {
-        // a file vanishing mid-sweep is fine
+  for (const dir of SWEPT_DIRS) {
+    try {
+      for (const name of readdirSync(dir)) {
+        const file = path.join(dir, name);
+        try {
+          if (now - statSync(file).mtimeMs > STALE_STATE_MS) unlinkSync(file);
+        } catch {
+          // a file vanishing mid-sweep is fine
+        }
       }
+    } catch {
+      // that directory does not exist yet
     }
-  } catch {
-    // no state dir yet
   }
 }
 
