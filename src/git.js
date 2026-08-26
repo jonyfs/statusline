@@ -114,6 +114,7 @@ export function parsePorcelainV2(text) {
   let behind = null;
   let changed = 0;
   let untracked = 0;
+  let conflicts = 0;
   let skipNext = false;
 
   for (const record of records) {
@@ -133,7 +134,10 @@ export function parsePorcelainV2(text) {
         behind = Number(m[2]);
       }
     } else if (record.startsWith("? ")) untracked++;
-    else if (record.startsWith("1 ") || record.startsWith("u ")) changed++;
+    // An unmerged path is a conflict, not an ordinary change. Counting it as
+    // one understated a state that stops everything until it is resolved.
+    else if (record.startsWith("u ")) conflicts++;
+    else if (record.startsWith("1 ")) changed++;
     else if (record.startsWith("2 ")) {
       changed++;
       skipNext = true;
@@ -152,6 +156,7 @@ export function parsePorcelainV2(text) {
     behind,
     changed,
     untracked,
+    conflicts,
   };
 }
 

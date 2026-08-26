@@ -142,14 +142,14 @@ description: "Task list for the selected statusline redesign"
 **Purpose**: The four items that need history, the conflict count that is already parsed, and the clock.
 
 - [X] T051 [P] Write `scripts/tests/samples.test.js`: the ring holds at most 60 samples, evicts oldest first, survives a corrupt state file, and yields nothing until 5 samples span 60 seconds
-- [ ] T052 [P] Write `scripts/tests/rates.test.js`: burn rate, projection and sparkline are absent below the sample threshold and correct above it; a projection that lands past the reset is marked
+- [X] T052 [P] Write `scripts/tests/rates.test.js`: burn rate, projection and sparkline are absent below the sample threshold and correct above it; a projection that lands past the reset is marked
 - [X] T053 Create `src/samples.js`: the bounded ring in the existing session state file
-- [ ] T054 Burn rate on the 5-hour window, percent per hour, ramped [B1]
-- [ ] T055 Projected exhaustion time [B2]
-- [ ] T056 [P] Distance to auto-compaction, a warning past the threshold [B3]
-- [ ] T057 [P] Context trend as a sparkline [B4]
-- [ ] T058 [P] Merge conflicts, counted from the `u` records already parsed [B8]
-- [ ] T059 [P] A 24-hour clock [B12]
+- [X] T054 Burn rate on the 5-hour window, percent per hour, ramped [B1]
+- [X] T055 Projected exhaustion time [B2]
+- [X] T056 [P] Distance to auto-compaction, a warning past the threshold [B3]
+- [X] T057 [P] Context trend as a sparkline [B4]
+- [X] T058 [P] Merge conflicts, counted from the `u` records already parsed [B8]
+- [X] T059 [P] A 24-hour clock [B12]
 
 **Checkpoint**: The bar says where a number is heading, not only where it is.
 

@@ -33,6 +33,12 @@ export const MAX_AGE_MS = {
   // the payload, so it is as current as the redraw.
   repo: REDRAW_INTERVAL_MS,
   worktree: REDRAW_INTERVAL_MS,
+  conflicts: 5_000,
+  compaction: 1_000,
+  burnRate: REDRAW_INTERVAL_MS,
+  projection: REDRAW_INTERVAL_MS,
+  trend: REDRAW_INTERVAL_MS,
+  clock: REDRAW_INTERVAL_MS,
   projectDir: REDRAW_INTERVAL_MS,
   agent: REDRAW_INTERVAL_MS,
   sessionName: REDRAW_INTERVAL_MS,

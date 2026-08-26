@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="667" height="118" viewBox="0 0 667 118" role="img" aria-label="Older Claude Code with no rate-limit fields — unknown values show ?%, never a guess">
-<rect width="667" height="118" rx="8" fill="#1e1e2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="746" height="118" viewBox="0 0 746 118" role="img" aria-label="Older Claude Code with no rate-limit fields — unknown values show ?%, never a guess">
+<rect width="746" height="118" rx="8" fill="#1e1e2e"/>
 <text x="10" y="18" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12" fill="#9399b2">Older Claude Code with no rate-limit fields — unknown values show ?%, never a guess</text>
 <rect x="10.00" y="36" width="147.00" height="22" fill="rgb(69,71,90)"/>
 <text x="29.60" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">📁</text>
@@ -94,5 +94,13 @@
 <text x="612.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">o</text>
 <text x="622.50" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">w</text>
 <text x="632.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">n</text>
+<rect x="647.00" y="86" width="9.80" height="22" fill="rgb(88,91,112)"/>
 <path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(88,91,112)" transform="translate(647.00 102.00) scale(0.00821 -0.00821)"/>
+<rect x="656.80" y="86" width="68.60" height="22" fill="rgb(88,91,112)"/>
+<text x="671.50" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">1</text>
+<text x="681.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
+<text x="691.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">:</text>
+<text x="700.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
+<text x="710.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(88,91,112)" transform="translate(725.40 102.00) scale(0.00821 -0.00821)"/>
 </svg>

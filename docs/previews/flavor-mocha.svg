@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1001" height="143" viewBox="0 0 1001 143" role="img" aria-label="Catppuccin mocha">
-<rect width="1001" height="143" rx="8" fill="#1e1e2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1059" height="143" viewBox="0 0 1059 143" role="img" aria-label="Catppuccin mocha">
+<rect width="1059" height="143" rx="8" fill="#1e1e2e"/>
 <text x="10" y="18" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12" fill="#9399b2">Catppuccin mocha</text>
 <rect x="10.00" y="36" width="147.00" height="22" fill="rgb(69,71,90)"/>
 <text x="29.60" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">📁</text>
@@ -211,20 +211,28 @@
 <text x="730.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">/</text>
 <text x="749.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">3</text>
 <text x="759.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">d</text>
-<rect x="774.40" y="111" width="9.80" height="22" fill="rgb(203,166,247)"/>
+<rect x="774.40" y="111" width="9.80" height="22" fill="rgb(88,91,112)"/>
 <path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(88,91,112)" transform="translate(774.40 127.00) scale(0.00821 -0.00821)"/>
-<rect x="784.20" y="111" width="176.40" height="22" fill="rgb(203,166,247)"/>
-<text x="803.80" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🦀</text>
-<text x="828.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
-<text x="838.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="847.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">k</text>
-<text x="867.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
-<text x="877.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
-<text x="887.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<text x="906.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
-<text x="916.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="926.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
-<text x="936.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="945.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(203,166,247)" transform="translate(960.60 127.00) scale(0.00821 -0.00821)"/>
+<rect x="784.20" y="111" width="68.60" height="22" fill="rgb(88,91,112)"/>
+<text x="798.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">1</text>
+<text x="808.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
+<text x="818.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">:</text>
+<text x="828.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
+<text x="838.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
+<rect x="852.80" y="111" width="9.80" height="22" fill="rgb(203,166,247)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(88,91,112)" transform="translate(852.80 127.00) scale(0.00821 -0.00821)"/>
+<rect x="862.60" y="111" width="176.40" height="22" fill="rgb(203,166,247)"/>
+<text x="882.20" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🦀</text>
+<text x="906.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
+<text x="916.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="926.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">k</text>
+<text x="945.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
+<text x="955.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
+<text x="965.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
+<text x="985.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
+<text x="994.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="1004.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
+<text x="1014.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="1024.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(203,166,247)" transform="translate(1039.00 127.00) scale(0.00821 -0.00821)"/>
 </svg>

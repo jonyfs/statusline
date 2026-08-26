@@ -18,7 +18,7 @@ import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel } from "./segments.js";
 import { bar, rampColour } from "./ramp.js";
-import { movedBy } from "./samples.js";
+import { movedBy, ratePerHour, projectFull, seriesOf, sparkline } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, terminalWidth, terminalHeight } from "./layout.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
@@ -337,7 +337,16 @@ export function renderReadings(
       // The four segments that need a direction rather than a value read
       // from here. Sampling costs one small write on a file that is already
       // written every redraw.
-      sample: { contextPct: ctxPct, fiveHourPct, rtkPct },
+      //
+      // The raw percentages, not the rounded ones the bar shows. A slope of
+      // a tenth of a point per redraw quantizes into a step of one whole
+      // point when sampled after rounding, and the rate computed from that
+      // is wrong by whatever the rounding happened to do.
+      sample: {
+        contextPct: payload?.context_window?.used_percentage ?? ctxPct,
+        fiveHourPct: payload?.rate_limits?.five_hour?.used_percentage ?? fiveHourPct,
+        rtkPct,
+      },
     }
   );
 
@@ -405,6 +414,11 @@ export function renderReadings(
     const repo = shows("repo") ? readings.repo.value : null;
     if (repo?.owner && repo.name) {
       l1.push({ key: "repo", color: "surface2", text: ` ${repo.owner}/${repo.name} ` });
+    }
+    // B8: an unmerged path stops everything until it is resolved, which is
+    // not what an ordinary changed file means.
+    if (git.conflicts) {
+      l1.push({ key: "conflicts", color: "red", text: ` ✖ ${git.conflicts} ` });
     }
     // A19: which worktree, and what it came from. The branch name alone does
     // not always say, and a worktree is exactly when you need to be sure.
@@ -570,6 +584,52 @@ export function renderReadings(
       return { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` };
     },
 
+    // B3: auto-compaction fires around 95% and takes the conversation with
+    // it. The threshold is not in the payload, so this is inferred, and it
+    // says so by warning rather than by counting down to a number it cannot
+    // know exactly.
+    compaction: () => {
+      if (typeof ctxPct !== "number" || ctxPct < 85) return null;
+      return { color: "red", text: ` ⚠ compacting soon ` };
+    },
+    // B1: a percentage says where you are; a rate says whether you get there
+    // before the window resets, which is the decision you actually make.
+    burnRate: () => {
+      const rate = ratePerHour(changes.samples, "fiveHourPct");
+      if (rate === null || rate <= 0) return null;
+      return {
+        color: rampColour(fiveHourPct, "peach"),
+        text: ` ↑ ${rate.toFixed(rate < 10 ? 1 : 0)}%/h `,
+      };
+    },
+    // B2: the sentence you were going to say out loud anyway. It renders
+    // only when the window would run out before it resets, because that is
+    // the only case where it changes what you do.
+    projection: () => {
+      const at = projectFull(changes.samples, "fiveHourPct", now);
+      if (at === null) return null;
+      if (typeof fiveHourResetsAt === "number" && at >= fiveHourResetsAt * 1000) return null;
+      const d = new Date(at);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return { color: "red", text: ` empty ~${hh}:${mm} ` };
+    },
+    // B4: a shape says whether context is creeping or jumping, which a
+    // single number never does.
+    trend: () => {
+      const spark = sparkline(seriesOf(changes.samples, "contextPct", 8));
+      return spark ? { color: "surface2", text: ` ${spark} ` } : null;
+    },
+    // B12: the countdowns beside it are already time-based; a clock makes
+    // the arithmetic disappear. It needs the refresh interval to stay
+    // honest while the session is idle.
+    clock: () => {
+      const d = new Date(now);
+      return {
+        color: "surface2",
+        text: ` ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")} `,
+      };
+    },
     // A7: a percentage of an unstated total is half a fact. Tokens are the
     // unit the limit is actually in.
     tokens: () => {
