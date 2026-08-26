@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="697" height="143" viewBox="0 0 697 143" role="img" aria-label="Eighty columns — the priority table decides what survives">
-<rect width="697" height="143" rx="8" fill="#1e1e2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="706" height="143" viewBox="0 0 706 143" role="img" aria-label="Eighty columns — the priority table decides what survives">
+<rect width="706" height="143" rx="8" fill="#1e1e2e"/>
 <text x="10" y="18" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12" fill="#9399b2">Eighty columns — the priority table decides what survives</text>
 <rect x="10.00" y="36" width="147.00" height="22" fill="rgb(69,71,90)"/>
 <text x="29.60" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">📁</text>
@@ -48,7 +48,17 @@
 <text x="514.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
 <path d="M150 54Q88 54 44.0 98.0Q0 142 0 204V418Q0 444 19.0 463.0Q38 482 64.0 482.0Q90 482 110 462Q128 444 128 418V204Q128 194 134.0 188.0Q140 182 150 182H1050Q1058 182 1066 188Q1070 194 1070 204V418Q1070 444 1090 462Q1110 482 1136 482Q1162 482 1181.0 463.0Q1200 444 1200 418V204Q1200 140 1156 98Q1112 54 1050 54ZM924 848Q942 830 942.0 803.0Q942 776 923.0 757.0Q904 738 878 738Q852 738 832 758L664 926V440Q664 412 645.0 393.0Q626 374 600.0 374.0Q574 374 555.0 393.0Q536 412 536 440V926L368 758Q348 738 322 738Q296 738 277.0 757.0Q258 776 258.0 803.0Q258 830 276 848L554 1128Q574 1146 600 1146Q626 1146 646 1128Z" fill="rgb(17,17,27)" transform="translate(539.20 52.00) scale(0.00821 -0.00821)"/>
 <text x="563.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">2</text>
+<rect x="578.40" y="36" width="9.80" height="22" fill="rgb(166,227,161)"/>
 <path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(203,166,247)" transform="translate(578.40 52.00) scale(0.00821 -0.00821)"/>
+<rect x="588.20" y="36" width="98.00" height="22" fill="rgb(166,227,161)"/>
+<text x="602.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">+</text>
+<text x="612.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
+<text x="622.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">5</text>
+<text x="632.30" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">6</text>
+<text x="651.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">−</text>
+<text x="661.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">2</text>
+<text x="671.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">3</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,227,161)" transform="translate(686.20 52.00) scale(0.00821 -0.00821)"/>
 <rect x="10.00" y="61" width="156.80" height="22" fill="rgb(166,227,161)"/>
 <text x="29.60" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🧩</text>
 <text x="54.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">c</text>

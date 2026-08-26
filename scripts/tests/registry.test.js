@@ -114,3 +114,46 @@ await test("the colour channels name real segments", async () => {
   assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "sevenDay", "burnRate"]);
   assert.deepEqual(inChannel("change"), ["branch", "pr", "skills", "model"]);
 });
+
+await test("line 1 renders in the registry's order too", async () => {
+  // Lines 3 and 4 composed themselves from the table from the start; lines 1
+  // and 2 were still assembled in whatever order the code pushed them. Now
+  // every line sorts by the table, so moving a segment is a change to the
+  // table rather than to a render function.
+  const { renderPayload } = await import("../../src/render.js");
+  const { stripAnsi } = await import("../test-harness.js");
+  const { fullPayload, gitSources } = await import("./fixtures/sources.js");
+
+  const NOW = Date.parse("2026-08-26T12:00:00.000Z");
+  const line1 = stripAnsi(
+    renderPayload(
+      fullPayload({
+        cwd: "/tmp/project",
+        workspace: {
+          current_dir: "/tmp/project",
+          repo: { host: "github.com", owner: "owner", name: "repo" },
+        },
+        pr: { number: 7, url: "https://x/y/pull/7", review_state: "approved" },
+        cost: { total_lines_added: 12, total_lines_removed: 3 },
+      }),
+      {
+        sources: { ...gitSources({ changed: 2, conflicts: 1 }), getCiStatus: () => null },
+        trackChanges: false,
+        now: NOW,
+        maxWidth: 400,
+        maxHeight: 40,
+      }
+    )
+  ).split("\n")[0];
+
+  const positions = ["project", "owner/repo", "main", "✖ 1", "+12", "PR #7"].map((t) => line1.indexOf(t));
+  assert.ok(
+    positions.every((p) => p >= 0),
+    `something is missing from line 1: ${line1}`
+  );
+  assert.deepEqual(
+    positions,
+    [...positions].sort((a, b) => a - b),
+    `line 1 is out of the registry's order: ${line1}`
+  );
+});

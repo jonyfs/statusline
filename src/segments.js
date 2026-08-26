@@ -50,6 +50,11 @@ export const SEGMENTS = [
   { key: "worktree", line: 1, order: 25, align: "left", priority: 88, colour: "identity", source: "payload" },
   { key: "conflicts", line: 1, order: 28, align: "left", priority: 87, colour: "identity", source: "git" },
   { key: "worktreeState", line: 1, order: 30, align: "left", priority: 86, colour: "identity", source: "git" },
+  // Not repository state: it is what this session changed, from the
+  // payload's own counters rather than from git. It sits here because it
+  // reads as a diff stat and belongs beside the other change counts, and it
+  // keeps its low priority, so it is the first thing line 1 drops.
+  { key: "linesChanged", line: 1, order: 35, align: "left", priority: 48, colour: "identity", source: "payload" },
   { key: "upstream", line: 1, order: 40, align: "left", priority: 84, colour: "identity", source: "git" },
   { key: "pr", line: 1, order: 50, align: "left", priority: 82, colour: "change", source: "gh" },
   { key: "ci", line: 1, order: 60, align: "left", priority: 56, colour: "identity", source: "gh" },
@@ -83,7 +88,6 @@ export const SEGMENTS = [
   { key: "contextSize", line: 4, order: 14, align: "left", priority: 60, colour: "identity", source: "payload" },
   { key: "exceeds200k", line: 4, order: 16, align: "left", priority: 58, colour: "identity", source: "payload" },
   { key: "duration", line: 4, order: 55, align: "left", priority: 50, colour: "identity", source: "payload" },
-  { key: "linesChanged", line: 4, order: 56, align: "left", priority: 48, colour: "identity", source: "payload" },
   { key: "rtk", line: 4, order: 60, align: "left", priority: 40, colour: "identity", source: "rtk" },
 ];
 

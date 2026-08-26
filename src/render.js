@@ -387,8 +387,14 @@ export function renderReadings(
   const fit = (row) => {
     const withPriority = row.map((seg) => {
       const meta = segment(seg.key) || segment(String(seg.key).split(":")[0]);
-      return { align: "left", priority: meta?.priority ?? 50, ...meta, ...seg };
+      return { align: "left", priority: meta?.priority ?? 50, order: meta?.order ?? 999, ...meta, ...seg };
     });
+    // Position comes from the registry, not from the order the code happened
+    // to push things in. Lines 3 and 4 have composed themselves from the
+    // table since phase 1; this makes lines 1 and 2 do the same, so moving a
+    // segment is a change to the table rather than to a render function.
+    // The sort is stable, so the skill chips keep their own sequence.
+    withPriority.sort((a, b) => a.order - b.order);
     return fitToWidth(withPriority, maxWidth);
   };
 
@@ -447,6 +453,18 @@ export function renderReadings(
       const mark = ci.status && ci.status !== "completed" ? "◐" : ci.conclusion === "success" ? "✓" : "✗";
       const colour = mark === "✓" ? "green" : mark === "✗" ? "red" : "yellow";
       l1.push({ key: "ci", color: colour, text: ` ${mark} ${ci.workflow ?? "CI"} ` });
+    }
+    // What this session changed, which is a different question from what the
+    // working tree looks like: the payload counts it, git does not. It sits
+    // beside the tree counters because that is where the eye looks for a
+    // diff stat.
+    const sessionCost = shows("linesChanged", "sessionCost") ? readings.sessionCost.value : null;
+    if (sessionCost && (sessionCost.linesAdded !== null || sessionCost.linesRemoved !== null)) {
+      l1.push({
+        key: "linesChanged",
+        color: "green",
+        text: ` +${sessionCost.linesAdded ?? 0} −${sessionCost.linesRemoved ?? 0} `,
+      });
     }
     // B8: an unmerged path stops everything until it is resolved, which is
     // not what an ordinary changed file means.
@@ -694,11 +712,6 @@ export function renderReadings(
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       const label = formatDuration(c?.durationMs);
       return label ? { color: "surface2", text: ` ⏳ ${label} ` } : null;
-    },
-    linesChanged: () => {
-      const c = shows("sessionCost") ? readings.sessionCost.value : null;
-      if (!c || (c.linesAdded === null && c.linesRemoved === null)) return null;
-      return { color: "green", text: ` +${c.linesAdded ?? 0} −${c.linesRemoved ?? 0} ` };
     },
   };
 

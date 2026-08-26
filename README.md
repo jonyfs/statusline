@@ -20,10 +20,10 @@ the code does, because they *are* what the code does.
 
 | Line | What's on it |
 |---|---|
-| 1 | Working directory, branch, worktree, uncommitted and untracked counts, merge conflicts, commits to push and pull, open pull request, last CI run |
+| 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run |
 | 2 | Skills used recently, todo progress, whether Claude is working or idle |
 | 3 | Model, effort level, output style, agent, session name |
-| 4 | Context window, its size, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, lines changed, rtk savings |
+| 4 | Context window, its size, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -232,6 +232,14 @@ the skills:
   A session with no transcript shows neither, because a session this script
   cannot see is not a session doing nothing.
 
+Everything about the repository lives on line 1, and nothing about it lives
+anywhere else: directory, repository owner and name, branch, worktree,
+uncommitted and untracked counts, merge conflicts, divergence from upstream,
+pull request and CI. `+156 −23` sits there too, though it is the one
+exception in kind: it counts what this session changed, from Claude Code's
+own figures rather than from git, and it is there because that is where the
+eye looks for a diff stat.
+
 Line 1 gained two more, both about states that stop you:
 
 - `✖ 2` counts merge conflicts. The parser always saw them and folded them
@@ -277,7 +285,6 @@ it is free: it arrives on stdin with everything else.
 | `200k window` | the window size, so 200k and 1M never look alike |
 | `⚠ 200k` | Claude Code's own fixed-threshold flag |
 | `⏳ 1h04m` | wall-clock time since the session started |
-| `+156 −23` | lines added and removed this session |
 
 They sit low in the priority table, so on a narrow terminal they are the
 first to go and the three percentages stay.

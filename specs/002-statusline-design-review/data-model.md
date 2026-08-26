@@ -25,7 +25,9 @@ not enough room.
 Two rules that follow from the fields rather than being written into the renderer:
 
 - `order` decides position, `priority` decides presence. A segment never moves because
-  something else disappeared, so the eye can learn where things are.
+  something else disappeared, so the eye can learn where things are. Every line sorts by
+  `order` before rendering, so moving a segment is a change to this table rather than to a
+  render function.
 - A segment declares `colour: "ramp"` or `colour: "change"`, never both. The amended
   Principle X requires the split, and putting it in the registry means a future edit that
   breaks it is visible in a diff rather than buried in a render function.
@@ -80,7 +82,7 @@ worth the width again.
 | 56 | `ci` |
 | 54 | `sessionName` |
 | 50 | `duration` |
-| 48 | `linesChanged` |
+| 48 | `linesChanged` (moved to line 1 on 2026-08-26, beside the other change counts) |
 | 45 | `repo` (owner and name, from the payload) |
 | 44 | `projectDir` (when it differs from cwd) |
 | 40 | `rtk` (only when it moved five points) |
