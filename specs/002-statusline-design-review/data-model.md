@@ -51,7 +51,8 @@ in bands rather than assigned one by one, so the intent survives later edits.
 
 | Priority | Segment |
 |---|---|
-| 88 | `worktree` (conflicts) |
+| 88 | `worktree` (which worktree, and what it came from) |
+| 87 | `conflicts` (merge conflicts, from the records already parsed) |
 | 86 | `worktreeState` (changed, untracked) |
 | 84 | `upstream` (ahead, behind) |
 | 82 | `pr` (number, state, review) |
@@ -59,7 +60,7 @@ in bands rather than assigned one by one, so the intent survives later edits.
 | 78 | `compaction` (warning past the threshold) |
 | 76 | `skills` (one chip, comma separated) |
 | 74 | `effortStyle` (effort with output style) |
-| 72 | `agent` |
+| 71 | `agent` |
 | 70 | `todo` (count and current item) |
 
 **Band 40-69, the first to go.** Useful, not decisive.
@@ -78,6 +79,7 @@ in bands rather than assigned one by one, so the intent survives later edits.
 | 50 | `duration` |
 | 48 | `linesChanged` |
 | 46 | `apiTime` |
+| 45 | `repo` (owner and name, from the payload) |
 | 44 | `projectDir` (when it differs from cwd) |
 | 42 | `clock` |
 | 40 | `rtk` (only when it moved five points) |

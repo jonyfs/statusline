@@ -44,8 +44,10 @@ export const PRIORITY_BANDS = {
 export const SEGMENTS = [
   // Line 1: where you are, and what state it is in.
   { key: "dir", line: 1, order: 10, align: "left", priority: 96, colour: "identity", source: "payload" },
-  { key: "repo", line: 1, order: 15, align: "left", priority: 44, colour: "identity", source: "payload" },
+  { key: "repo", line: 1, order: 15, align: "left", priority: 45, colour: "identity", source: "payload" },
+  { key: "projectDir", line: 1, order: 12, align: "left", priority: 44, colour: "identity", source: "payload" },
   { key: "branch", line: 1, order: 20, align: "left", priority: 98, colour: "change", source: "git" },
+  { key: "worktree", line: 1, order: 25, align: "left", priority: 88, colour: "identity", source: "payload" },
   { key: "worktreeState", line: 1, order: 30, align: "left", priority: 86, colour: "identity", source: "git" },
   { key: "upstream", line: 1, order: 40, align: "left", priority: 84, colour: "identity", source: "git" },
   { key: "pr", line: 1, order: 50, align: "left", priority: 82, colour: "change", source: "gh" },
@@ -57,6 +59,8 @@ export const SEGMENTS = [
   { key: "model", line: 3, order: 10, align: "left", priority: 92, colour: "change", source: "payload" },
   { key: "effort", line: 3, order: 20, align: "left", priority: 74, colour: "identity", source: "payload" },
   { key: "outputStyle", line: 3, order: 30, align: "left", priority: 72, colour: "identity", source: "payload" },
+  { key: "agent", line: 3, order: 40, align: "left", priority: 71, colour: "identity", source: "payload" },
+  { key: "sessionName", line: 3, order: 50, align: "left", priority: 54, colour: "identity", source: "payload" },
 
   // Line 4: what is running out.
   { key: "context", line: 4, order: 10, align: "left", priority: 100, colour: "ramp", source: "payload" },
@@ -64,6 +68,12 @@ export const SEGMENTS = [
   { key: "fiveHourReset", line: 4, order: 30, align: "right", priority: 80, colour: "identity", source: "payload" },
   { key: "sevenDay", line: 4, order: 40, align: "left", priority: 90, colour: "ramp", source: "payload" },
   { key: "sevenDayReset", line: 4, order: 50, align: "right", priority: 78, colour: "identity", source: "payload" },
+  { key: "tokens", line: 4, order: 12, align: "left", priority: 62, colour: "identity", source: "payload" },
+  { key: "contextSize", line: 4, order: 14, align: "left", priority: 60, colour: "identity", source: "payload" },
+  { key: "exceeds200k", line: 4, order: 16, align: "left", priority: 58, colour: "identity", source: "payload" },
+  { key: "duration", line: 4, order: 55, align: "left", priority: 50, colour: "identity", source: "payload" },
+  { key: "linesChanged", line: 4, order: 56, align: "left", priority: 48, colour: "identity", source: "payload" },
+  { key: "apiTime", line: 4, order: 57, align: "left", priority: 46, colour: "identity", source: "payload" },
   { key: "rtk", line: 4, order: 60, align: "left", priority: 40, colour: "identity", source: "rtk" },
 ];
 

@@ -157,11 +157,31 @@ Powerline separator for a plain arrow:
 
 ![ASCII fallback](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/ascii-fallback.svg)
 
+## What line 4 can tell you
+
+Beyond the three usage percentages and their countdowns, the payload carries
+enough to answer most of what you would otherwise run a command for. All of
+it is free: it arrives on stdin with everything else.
+
+| Segment | Reads |
+|---|---|
+| `16.7k / 200k` | tokens in the context window, against the window's size |
+| `200k window` | the window size on its own, so 200k and 1M never look alike |
+| `⚠ 200k` | Claude Code's own fixed-threshold flag |
+| `⏳ 1h04m` | wall-clock time since the session started |
+| `api 22m` | how much of that was spent waiting on the API |
+| `+156 −23` | lines added and removed this session |
+
+They sit low in the priority table, so on a narrow terminal they are the
+first to go and the three percentages stay.
+
 ## Model, effort and output style
 
 Line 3 names the model. Beside it, an effort level appears behind a
-lightning bolt when the session has one, and a non-default output style
-appears behind a palette icon. They are separate segments on purpose: they
+lightning bolt when the session has one, a non-default output style appears
+behind a palette icon, the agent's name appears when the session runs under
+one, and the session's name appears once you have given it one with
+`--name` or `/rename`. They are separate segments on purpose: they
 are different settings, and until recently the output style was rendered in
 the effort slot whenever no effort level was present, which read as an
 effort level called "explanatory".
@@ -333,6 +353,12 @@ because the branch header only carries an ahead/behind pair when there is an
 upstream to compare against:
 
 ![No upstream](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/no-upstream.svg)
+
+Two more things sit on line 1 when they have something to say. A worktree
+names itself and the branch it came from (`my-feature ← main`), because the
+branch name alone does not always tell you which tree you are in. And if
+Claude has moved during the session, the directory it started in appears
+after the one it is in now (`📁 src ← statusline`).
 
 A detached HEAD shows the commit id behind a commit icon, and doesn't link
 anywhere, because a commit is not a branch:

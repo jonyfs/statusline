@@ -1,7 +1,15 @@
 import { PALETTES, renderRow, displayWidth } from "./theme.js";
 import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl, normalizePr, repoUrlFromPayload } from "./git.js";
 import { getActiveSkills } from "./skills.js";
-import { getContextPercent, getRateLimits, formatResetCountdown } from "./tokens.js";
+import {
+  getContextPercent,
+  getRateLimits,
+  formatResetCountdown,
+  getContextTokens,
+  getSessionCost,
+  formatDuration,
+  abbreviate,
+} from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { clockFaceFor, resetMomentLabel } from "./timeIcons.js";
@@ -207,6 +215,22 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     }),
     effort: reading({ value: payload?.effort?.level ?? null, at: now, source: "payload" }),
     outputStyle: reading({ value: payload?.output_style?.name ?? null, at: now, source: "payload" }),
+    // Everything below arrives on stdin. None of it costs a process, and
+    // none of it was on the bar before feature 002.
+    agent: reading({ value: payload?.agent?.name ?? null, at: now, source: "payload" }),
+    sessionName: reading({ value: payload?.session_name ?? null, at: now, source: "payload" }),
+    projectDir: reading({ value: payload?.workspace?.project_dir ?? null, at: now, source: "payload" }),
+    worktree: reading({
+      value: payload?.worktree?.name
+        ? { name: payload.worktree.name, from: payload.worktree.original_branch ?? null }
+        : payload?.workspace?.git_worktree
+          ? { name: payload.workspace.git_worktree, from: null }
+          : null,
+      at: now,
+      source: "payload",
+    }),
+    tokens: reading({ value: getContextTokens(payload), at: now, source: "payload" }),
+    sessionCost: reading({ value: getSessionCost(payload), at: now, source: "payload" }),
     context: reading({ value: getContextPercent(payload), at: now, source: "payload" }),
     fiveHour: reading({ value: fiveHourPct, at: now, source: "payload" }),
     fiveHourReset: reading({ value: fiveHourResetsAt, at: now, source: "payload" }),
@@ -330,6 +354,14 @@ export function renderReadings(
   // GitHub tree view, PR -> PR page), with no visible URL text.
   const dirSegment = (label) => ({ key: "dir", color: "surface1", text: ` 📁 ${label} `, url: dirUrl });
   const l1 = [dirSegment(dirLabel)];
+
+  // A17: Claude can move during a session, and then the directory on the bar
+  // is not the directory the session started in. Both render only when they
+  // differ, because in most sessions they do not.
+  const projectDir = shows("projectDir") ? readings.projectDir.value : null;
+  if (projectDir && projectDir !== readings.cwd) {
+    l1.push({ key: "projectDir", color: "surface2", text: ` ← ${getDirLabel(projectDir)} ` });
+  }
   if (git) {
     const detached = git.detached === true || git.branch === "(detached)";
     const label = detached ? git.oid?.slice(0, 7) || "detached" : git.branch;
@@ -363,6 +395,13 @@ export function renderReadings(
     const repo = shows("repo") ? readings.repo.value : null;
     if (repo?.owner && repo.name) {
       l1.push({ key: "repo", color: "surface2", text: ` ${repo.owner}/${repo.name} ` });
+    }
+    // A19: which worktree, and what it came from. The branch name alone does
+    // not always say, and a worktree is exactly when you need to be sure.
+    const worktree = shows("worktree") ? readings.worktree.value : null;
+    if (worktree) {
+      const from = worktree.from ? ` ← ${worktree.from}` : "";
+      l1.push({ key: "worktree", color: "teal", text: ` ${worktree.name}${from} ` });
     }
     if (pr) {
       // `changes_requested` is the one review state too long to spell out on
@@ -424,6 +463,17 @@ export function renderReadings(
       outputStyle && outputStyle !== "default"
         ? { color: "flamingo", text: ` 🎨 ${outputStyle} ` }
         : null,
+    // A14: a session running under an agent gave no sign of it, which is
+    // exactly the case where you most want to know.
+    agent: () => {
+      const name = shows("agent") ? readings.agent.value : null;
+      return name ? { color: "pink", text: ` ⚙ ${name} ` } : null;
+    },
+    // A15: tells one terminal from another when several sessions are open.
+    sessionName: () => {
+      const name = shows("sessionName") ? readings.sessionName.value : null;
+      return name ? { color: "surface2", text: ` ${name} ` } : null;
+    },
   };
   const l3 = byLine(3)
     .map((s) => {
@@ -457,6 +507,42 @@ export function renderReadings(
       text: ` ${sevenDayClock}${o.sevenDayText ? ` ${sevenDayResetLabel}` : ""} `,
     }),
     rtk: (o) => (o.rtk && rtkPct !== null ? { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` } : null),
+
+    // A7: a percentage of an unstated total is half a fact. Tokens are the
+    // unit the limit is actually in.
+    tokens: () => {
+      const t = shows("tokens") ? readings.tokens.value : null;
+      if (!t || t.used === null) return null;
+      const total = t.size ? ` / ${abbreviate(t.size)}` : "";
+      return { color: "surface2", text: ` ${abbreviate(t.used)}${total} ` };
+    },
+    // A8: 38% of 200k and 38% of 1M are very different amounts of room.
+    contextSize: () => {
+      const t = shows("tokens") ? readings.tokens.value : null;
+      return t?.size ? { color: "surface2", text: ` ${abbreviate(t.size)} window ` } : null;
+    },
+    // A10: the payload computes this at a fixed threshold, whatever the
+    // window size, so it says something the percentage cannot.
+    exceeds200k: () => {
+      const t = shows("tokens") ? readings.tokens.value : null;
+      return t?.exceeds200k ? { color: "red", text: ` ⚠ 200k ` } : null;
+    },
+    // A4, A5, A6: what the session has spent, in time and in lines.
+    duration: () => {
+      const c = shows("sessionCost") ? readings.sessionCost.value : null;
+      const label = formatDuration(c?.durationMs);
+      return label ? { color: "surface2", text: ` ⏳ ${label} ` } : null;
+    },
+    linesChanged: () => {
+      const c = shows("sessionCost") ? readings.sessionCost.value : null;
+      if (!c || (c.linesAdded === null && c.linesRemoved === null)) return null;
+      return { color: "green", text: ` +${c.linesAdded ?? 0} −${c.linesRemoved ?? 0} ` };
+    },
+    apiTime: () => {
+      const c = shows("sessionCost") ? readings.sessionCost.value : null;
+      const label = formatDuration(c?.apiMs);
+      return label ? { color: "surface2", text: ` api ${label} ` } : null;
+    },
   };
 
   const buildLine4 = ({ moment = true, fiveHourText = true, sevenDayText = true, rtk = true } = {}) => {

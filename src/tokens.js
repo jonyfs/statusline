@@ -59,3 +59,56 @@ export function formatResetCountdown(resetsAtSeconds, now = Date.now()) {
   }
   return `resets in ${totalHours}h${String(minutes).padStart(2, "0")}m`;
 }
+
+/**
+ * Token counts are long, and a bar cares more about a predictable column
+ * count than about the last three digits. 16,742 becomes 16.7k; 1,000,000
+ * becomes 1M. Item E9's chosen form.
+ */
+export function abbreviate(n) {
+  if (typeof n !== "number" || !Number.isFinite(n)) return null;
+  if (Math.abs(n) < 1000) return String(Math.round(n));
+  if (Math.abs(n) < 1_000_000) {
+    const k = n / 1000;
+    return `${k >= 100 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}k`;
+  }
+  const m = n / 1_000_000;
+  return `${m >= 100 ? Math.round(m) : m.toFixed(1).replace(/\.0$/, "")}M`;
+}
+
+/**
+ * The context window's own numbers: how many tokens are in it, how big it
+ * is, and whether the payload's fixed 200k flag is set. All three come
+ * straight from the payload; none is estimated.
+ */
+export function getContextTokens(payload) {
+  const cw = payload?.context_window;
+  const input = typeof cw?.total_input_tokens === "number" ? cw.total_input_tokens : null;
+  const output = typeof cw?.total_output_tokens === "number" ? cw.total_output_tokens : null;
+  const size = typeof cw?.context_window_size === "number" ? cw.context_window_size : null;
+  const used = input === null && output === null ? null : (input ?? 0) + (output ?? 0);
+  return { input, output, used, size, exceeds200k: payload?.exceeds_200k_tokens === true };
+}
+
+/**
+ * What the session has cost in time and lines. Dollars are in the payload
+ * too, and were not selected.
+ */
+export function getSessionCost(payload) {
+  const c = payload?.cost;
+  const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return {
+    durationMs: num(c?.total_duration_ms),
+    apiMs: num(c?.total_api_duration_ms),
+    linesAdded: num(c?.total_lines_added),
+    linesRemoved: num(c?.total_lines_removed),
+  };
+}
+
+/** `1h04m`, or `04m` under an hour. Item A4's chosen form. */
+export function formatDuration(ms) {
+  if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return null;
+  const minutes = Math.floor(ms / 60000);
+  const hours = Math.floor(minutes / 60);
+  return hours > 0 ? `${hours}h${String(minutes % 60).padStart(2, "0")}m` : `${minutes}m`;
+}

@@ -75,18 +75,18 @@ description: "Task list for the selected statusline redesign"
 
 **Purpose**: Twelve registry rows and their tests. Each is a payload field with no cost.
 
-- [ ] T021 [P] Write `scripts/tests/payload-segments.test.js` covering every segment below in its present, absent and degraded states
-- [ ] T022 [P] Session duration, hours and minutes [A4]
-- [ ] T023 [P] Time waiting on the API, absolute [A5]
-- [ ] T024 [P] Lines added and removed, both [A6]
-- [ ] T025 [P] Token counts, used of total [A7]
-- [ ] T026 [P] Context window size, always shown [A8]
-- [ ] T027 [P] The 200k flag, a marker when true [A10]
-- [ ] T028 [P] Agent name, marker plus name [A14]
-- [ ] T029 [P] Session name, full [A15]
-- [ ] T030 [P] Working directory against project directory, both when they differ, on line 1 [A17]
-- [ ] T031 [P] Worktree identity, name and origin branch [A19]
-- [ ] T032 Add every new reading to `src/freshness.js` with its maximum age
+- [X] T021 [P] Write `scripts/tests/payload-segments.test.js` covering every segment below in its present, absent and degraded states
+- [X] T022 [P] Session duration, hours and minutes [A4]
+- [X] T023 [P] Time waiting on the API, absolute [A5]
+- [X] T024 [P] Lines added and removed, both [A6]
+- [X] T025 [P] Token counts, used of total [A7]
+- [X] T026 [P] Context window size, always shown [A8]
+- [X] T027 [P] The 200k flag, a marker when true [A10]
+- [X] T028 [P] Agent name, marker plus name [A14]
+- [X] T029 [P] Session name, full [A15]
+- [X] T030 [P] Working directory against project directory, both when they differ, on line 1 [A17]
+- [X] T031 [P] Worktree identity, name and origin branch [A19]
+- [X] T032 Add every new reading to `src/freshness.js` with its maximum age
 
 **Checkpoint**: Everything the payload sends and the owner selected is on the bar.
 

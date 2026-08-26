@@ -32,6 +32,19 @@ export const MAX_AGE_MS = {
   // Identity parsed by Claude Code from the origin remote. It arrives with
   // the payload, so it is as current as the redraw.
   repo: REDRAW_INTERVAL_MS,
+  worktree: REDRAW_INTERVAL_MS,
+  projectDir: REDRAW_INTERVAL_MS,
+  agent: REDRAW_INTERVAL_MS,
+  sessionName: REDRAW_INTERVAL_MS,
+  // Both arrive with the payload, so they are as current as the redraw. The
+  // segments that read them have their own rows further down.
+  tokens: 1_000,
+  sessionCost: 1_000,
+  contextSize: 1_000,
+  exceeds200k: 1_000,
+  duration: 1_000,
+  linesChanged: 1_000,
+  apiTime: 1_000,
   // Not a segment: the cache key the three git-derived segments share.
   git: 5_000,
   pr: 60_000,
