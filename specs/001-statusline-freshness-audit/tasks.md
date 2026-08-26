@@ -182,7 +182,7 @@ install path.
 - [X] T071 [P] Document the new output style segment and the effort split in `README.md`
 - [X] T072 Run every check in [quickstart.md](./quickstart.md) end to end and record the measured p95
 - [X] T073 Confirm CI passes on Linux, macOS and Windows, and that the preview staleness check produces no diff
-- [ ] T074 Pass every markdown file changed in this feature through the `humanizer` skill, then open the pull request from `001-statusline-freshness-audit` — the humanizer pass is done; the pull request is left for whoever decides this is ready to land
+- [X] T074 Pass every markdown file changed in this feature through the `humanizer` skill, then open the pull request from `001-statusline-freshness-audit` (pull request #1)
 
 ---
 
