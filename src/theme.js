@@ -65,24 +65,46 @@ function hyperlink(url, text) {
  * reference starship.toml convention of light-text-on-solid-background.
  * An optional `url` makes the segment's text a clickable OSC 8 hyperlink.
  */
+
+/**
+ * A lighter version of a colour, for marking a segment that just changed.
+ *
+ * Colour is preattentive: a brighter block is noticed before it is read,
+ * where a swapped glyph has to be recognised, and it does not require the
+ * reader to have seen the previous frame. The segment keeps its own hue, so
+ * it still says which segment it is.
+ */
+export function lighten(hex, ratio = 0.45) {
+  const [r, g, b] = hexToRgb(hex);
+  const mix = (c) => Math.round(c + (255 - c) * ratio);
+  return `#${[mix(r), mix(g), mix(b)].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** A palette colour by name, or a literal hex when one is handed in. */
+export function resolveColour(palette, colour) {
+  if (typeof colour === "string" && colour.startsWith("#")) return colour;
+  return palette[colour];
+}
+
 export function renderRow(palette, segments, { asciiArrows = false } = {}) {
   const arrow = asciiArrows ? ASCII_ARROW : POWERLINE_ARROW;
   let out = "";
   segments.forEach((seg, i) => {
     const segFg = seg.color === "surface1" || seg.color === "surface2" ? palette.text : palette.crust;
+    const segBg = resolveColour(palette, seg.color);
     if (i > 0) {
-      const prev = segments[i - 1].color;
-      out += `${fg(palette[prev])}${bg(palette[seg.color])}${arrow}`;
+      const prev = resolveColour(palette, segments[i - 1].color);
+      out += `${fg(prev)}${bg(segBg)}${arrow}`;
     }
     const text = seg.url ? hyperlink(seg.url, seg.text) : seg.text;
-    out += `${bg(palette[seg.color])}${fg(segFg)}${text}`;
+    out += `${bg(segBg)}${fg(segFg)}${text}`;
   });
   const last = segments[segments.length - 1];
   // Reset before the closing cap: without it, the arrow inherits the last
   // segment's own background (still active from the loop above) and its
   // triangle becomes invisible — same-color foreground on same-color
   // background — instead of fading into the terminal's real background.
-  out += `${RESET}${fg(palette[last.color])}${arrow}${RESET}`;
+  out += `${RESET}${fg(resolveColour(palette, last.color))}${arrow}${RESET}`;
   return out;
 }
 

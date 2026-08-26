@@ -371,8 +371,8 @@ export function renderReadings(
     const branchUrl = !detached && remoteUrl ? `${remoteUrl}/tree/${git.branch}` : null;
     l1.push({
       key: "branch",
-      color: "lavender",
-      text: ` ${detached ? g.commit : changes.iconFor("branch", g.branch)} ${label} `,
+      color: changes.colourFor("branch", "lavender", palette),
+      text: ` ${detached ? g.commit : g.branch} ${label} `,
       url: branchUrl,
     });
     // Working-tree state and divergence from upstream, right after the
@@ -385,8 +385,8 @@ export function renderReadings(
     if (git.untracked) state.push(`${g.added} ${git.untracked}`);
     // A null ahead/behind means there is no upstream at all, which is not
     // the same as being in sync with one (FR-012).
-    if (git.ahead) state.push(`${changes.iconFor("ahead", g.push)} ${git.ahead}`);
-    if (git.behind) state.push(`${changes.iconFor("behind", g.pull)} ${git.behind}`);
+    if (git.ahead) state.push(`${g.push} ${git.ahead}`);
+    if (git.behind) state.push(`${g.pull} ${git.behind}`);
     if (state.length) {
       l1.push({ key: "worktreeState", color: "mauve", text: ` ${state.join("  ")} ` });
     }
@@ -411,8 +411,8 @@ export function renderReadings(
       const label = pr.kind === "mr" ? "MR" : "PR";
       l1.push({
         key: "pr",
-        color: "blue",
-        text: ` ${changes.iconFor("pr", g.pr)} ${label} #${pr.number}${review ? ` ${review}` : ""} `,
+        color: changes.colourFor("pr", "blue", palette),
+        text: ` ${g.pr} ${label} #${pr.number}${review ? ` ${review}` : ""} `,
         url: pr.url,
       });
     }
@@ -437,10 +437,10 @@ export function renderReadings(
   // stated rather than left silent: "these three" and "three of five" are
   // different claims, and only one of them is true (FR-013).
   if (skills.length) {
-    const skillIcon = changes.iconFor("skills", "🧩");
+    const skillIcon = "🧩";
     const l2 = skills.map((name, i) => ({
       key: `skills:${i}`,
-      color: SKILL_CHIP_COLORS[i % SKILL_CHIP_COLORS.length],
+      color: changes.colourFor("skills", SKILL_CHIP_COLORS[i % SKILL_CHIP_COLORS.length], palette),
       text: ` ${skillIcon} ${name} `,
     }));
     const hidden = readings.skills.hiddenCount ?? 0;
@@ -458,8 +458,11 @@ export function renderReadings(
   // What each one says is still built here, because that is content, not
   // layout.
   const line3Content = {
-    model: () => ({ color: "red", text: ` ${changes.iconFor("model", "🤖")} ${modelName} ` }),
-    effort: () => (effort ? { color: "peach", text: ` ${changes.iconFor("effort", "⚡")} ${effort} ` } : null),
+    model: () => ({
+      color: changes.colourFor("model", "red", palette),
+      text: ` 🤖 ${modelName} `,
+    }),
+    effort: () => (effort ? { color: "peach", text: ` ⚡ ${effort} ` } : null),
     outputStyle: () =>
       outputStyle && outputStyle !== "default"
         ? { color: "flamingo", text: ` 🎨 ${outputStyle} ` }

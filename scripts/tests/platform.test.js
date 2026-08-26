@@ -68,21 +68,42 @@ await test("expiry label names the real day, not a fake one", () => {
   assert.equal(resetMomentLabel(at("2026-08-27T18:30:00"), now), "Thu 18:30");
 });
 
-await test("change tracking animates on change and decays after the window", () => {
+await test("change tracking marks a change in colour and decays after the window", () => {
+  // Feature 002 replaced the icon frame sequence with a colour shift, item
+  // E10. The icon holds still now; the segment brightens instead.
   const id = `smoke-${process.pid}`;
   const t0 = 1787000000000;
+  const palette = { lavender: "#b4befe" };
 
   trackChanges(id, { branch: "main" }, { now: t0 });
   const onFirstRender = trackChanges(id, { branch: "main" }, { now: t0 + 100 });
-  assert.equal(onFirstRender.isChanged("branch"), false, "unchanged value must not animate");
+  assert.equal(onFirstRender.isChanged("branch"), false, "unchanged value must not highlight");
+  assert.equal(onFirstRender.colourFor("branch", "lavender", palette), "lavender");
 
   const changed = trackChanges(id, { branch: "feature" }, { now: t0 + 1000 });
   assert.equal(changed.isChanged("branch"), true);
-  assert.notEqual(changed.iconFor("branch", "STATIC"), "STATIC", "changed icon must differ");
+  const highlighted = changed.colourFor("branch", "lavender", palette);
+  assert.match(highlighted, /^#[0-9a-f]{6}$/, "a changed segment renders a literal colour");
+  assert.notEqual(highlighted, "#b4befe", "and a lighter one than it started with");
 
   const expired = trackChanges(id, { branch: "feature" }, { now: t0 + 40000 });
   assert.equal(expired.isChanged("branch"), false, "highlight must decay");
-  assert.equal(expired.iconFor("branch", "STATIC"), "STATIC", "icon must revert");
+  assert.equal(expired.colourFor("branch", "lavender", palette), "lavender", "colour must revert");
+});
+
+await test("only the four segments in the change channel highlight", () => {
+  // Principle X, as amended: each colour channel carries one meaning, so
+  // change-highlighting and the ramp must not touch the same segment.
+  const id = `channel-${process.pid}`;
+  const t0 = 1787000000000;
+  const palette = { yellow: "#f9e2af", green: "#a6e3a1" };
+
+  trackChanges(id, { branch: "a", context: "10" }, { now: t0 });
+  const changed = trackChanges(id, { branch: "b", context: "90" }, { now: t0 + 1000 });
+
+  assert.notEqual(changed.colourFor("branch", "yellow", palette), "yellow", "branch highlights");
+  assert.equal(changed.colourFor("context", "yellow", palette), "yellow", "a ramped segment never does");
+  assert.equal(changed.colourFor("effort", "green", palette), "green", "nor does one outside the set");
 });
 
 await test("change tracking can be disabled for reproducible output", () => {

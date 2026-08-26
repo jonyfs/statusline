@@ -426,36 +426,28 @@ is listed as "repo_push" and draws a downward arrow, and `F45D` is listed
 as "arrow_up" and draws a signpost. Either would have put a
 wrong-direction arrow on line 1.
 
-## Icons react when something changes
+## Segments brighten when something changes
 
-When a value differs from the last redraw, that segment's icon runs through
-a short animation and settles back after thirty seconds. It tracks branch,
-ahead/behind, pull request, active skills, model and effort.
+When a tracked value differs from the last redraw, that segment's colour
+brightens for thirty seconds and then settles back. It tracks four things:
+branch, pull request, active skills, and model.
 
-Usage percentages are left out on purpose. They move on nearly every redraw,
-so animating them would leave the bar permanently twitching and the
-highlight would stop meaning anything.
+Colour rather than a moving icon, because colour is noticed before it is
+read: you see a brighter block without looking at it, where a swapped glyph
+has to be recognised, and you do not need to have seen the frame before it.
+The segment keeps its own hue, so it still says which segment it is.
 
-About the animation: a status bar is printed once and is then static text.
-The process exits; nothing can redraw it. So frames advance one per redraw,
-roughly every five or six seconds while you're active. It reads as a slow
-pulse that catches your eye, not as motion. ANSI blink would have been the
-alternative, but plenty of terminals ignore it and where it works it's an
-accessibility problem.
+Four segments and no more, because the usage figures already use colour to
+say which band they are in. A colour on the bar means one thing wherever you
+find it: a level on context and the two rate limits, a recent change on the
+other four, and plain identity everywhere else.
 
-Switching branch looks like this over successive redraws:
-
-```
-redraw 1   📁 statusline   main            static
-redraw 2   📁 statusline   main
-redraw 3   📁 statusline  🌳 feature/x      changed
-redraw 4   📁 statusline  🌿 feature/x
-redraw 5   📁 statusline  🌱 feature/x
-...        📁 statusline   feature/x       back to static after 30s
-```
+Usage percentages are left out of change tracking on purpose. They move on
+nearly every redraw, so highlighting them would leave the bar permanently
+lit and the highlight would stop meaning anything.
 
 State lives in `~/.claude/statusline/state/`, one file per session, swept
-after a week. If it can't be read or written, you just get no animation.
+after a week. If it can't be read or written, you just get no highlighting.
 
 ## What it writes to disk
 

@@ -113,10 +113,10 @@ description: "Task list for the selected statusline redesign"
 
 **Purpose**: Replace the frame animation with a colour shift, on the four segments the split assigns to it.
 
-- [ ] T041 [P] Write `scripts/tests/highlight.test.js`: branch, PR, skills and model brighten for 30 seconds after a change and revert; context, 5-hour, 7-day and burn rate never highlight; no segment carries both channels
-- [ ] T042 Replace the frame sequence in `src/changeTracker.js` with a colour shift [E10]
-- [ ] T043 Assert the channel split in `src/segments.js`, so a row declaring both fails the suite rather than the eye
-- [ ] T044 Update the README's animation section, which describes frames
+- [X] T041 [P] Write `scripts/tests/highlight.test.js`: branch, PR, skills and model brighten for 30 seconds after a change and revert; context, 5-hour, 7-day and burn rate never highlight; no segment carries both channels
+- [X] T042 Replace the frame sequence in `src/changeTracker.js` with a colour shift [E10]
+- [X] T043 Assert the channel split in `src/segments.js`, so a row declaring both fails the suite rather than the eye
+- [X] T044 Update the README's animation section, which describes frames
 
 **Checkpoint**: A colour on the bar means one thing, wherever it is.
 
