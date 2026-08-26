@@ -26,11 +26,20 @@ const basePayload = {
   },
 };
 
+/**
+ * Every probe the renderer can reach, stubbed.
+ *
+ * Principle VIII: a preview must not read the machine that generated it. A
+ * probe missing from this list falls through to the real one, which is how
+ * preview generation started spawning background refreshes on a CI runner.
+ */
 const noSources = {
   getGitInfo: () => null,
   getPrInfo: () => null,
   getRemoteUrl: () => null,
+  getCiStatus: () => null,
   getActiveSkills: () => [],
+  getSessionActivity: () => null,
   getRtkSavings: () => null,
   getDirUrl: () => null,
 };

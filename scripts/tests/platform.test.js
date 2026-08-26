@@ -180,3 +180,17 @@ await test("preview generation pins the terminal size as well as the clock", () 
   assert.match(src, /PREVIEW_HEIGHT\s*=\s*\d+/, "generator must pin a height");
   assert.match(src, /maxWidth: PREVIEW_WIDTH/, "every scenario must use it");
 });
+
+await test("preview fixtures stub every probe the renderer can reach", () => {
+  // Principle VIII: a preview must not read the machine that generated it.
+  // A probe missing from the stub list falls through to the real one, which
+  // is how preview generation started spawning background refreshes on a CI
+  // runner and crashed the build.
+  const src = readFileSync(new URL("../preview-fixtures.js", import.meta.url), "utf8");
+  const renderer = readSource("src/render.js");
+  const probes = [...renderer.matchAll(/probe\.(get\w+)\(/g)].map((m) => m[1]);
+  assert.ok(probes.length >= 5, "the renderer should have several probes");
+  for (const probe of new Set(probes)) {
+    assert.match(src, new RegExp(`${probe}:`), `preview fixtures do not stub ${probe}`);
+  }
+});
