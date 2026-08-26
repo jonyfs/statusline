@@ -1,20 +1,36 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { MAX_AGE_MS, REFRESH_BUDGET_MS } from "./freshness.js";
+import { repoKey, readEntry, shouldRefresh, spawnRefresh } from "./cache.js";
 
 /**
- * Reads token-savings stats from the `rtk` CLI (Rust Token Killer,
- * see ~/.claude/RTK.md) if it's installed. Returns null when rtk is
- * absent, unauthenticated, or its output doesn't parse — the caller
- * omits the segment entirely rather than showing a broken value.
+ * Token-savings stats from the `rtk` CLI (Rust Token Killer), read from
+ * cache only.
+ *
+ * The figure moves slowly and the process costs more than the redraw can
+ * spare, so the redraw reads the last known value and starts a detached
+ * refresh when it is halfway to expiring. With `rtk` absent, or its output
+ * unparseable, nothing is ever cached and the segment simply never
+ * appears, which is what it did before.
  */
-export function getRtkSavings(cwd) {
+export function getRtkSavings(cwd, { now = Date.now() } = {}) {
+  const key = repoKey(cwd);
+  const entry = readEntry(key, "rtk");
+  if (shouldRefresh("rtk", entry, now)) spawnRefresh(key, "rtk", cwd, { now });
+  if (!entry || now - entry.at > MAX_AGE_MS.rtk) return null;
+  return entry.value;
+}
+
+/** The live call, used by the detached refresh and by `doctor`. */
+export function probeRtkSavings(cwd, timeout = REFRESH_BUDGET_MS.rtk) {
   try {
-    const out = execSync("rtk gain --format json", {
+    const out = execFileSync("rtk", ["gain", "--format", "json"], {
       cwd,
-      timeout: 1500,
+      timeout,
+      encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
-    }).toString();
-    const data = JSON.parse(out);
-    const pct = data?.summary?.avg_savings_pct;
+      windowsHide: true,
+    });
+    const pct = JSON.parse(out)?.summary?.avg_savings_pct;
     if (typeof pct !== "number" || !Number.isFinite(pct)) return null;
     return Math.round(pct);
   } catch {

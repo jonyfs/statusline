@@ -24,8 +24,17 @@ Then restart Claude Code, or start a new session.
 
 The install step backs up your existing `~/.claude/settings.json` to
 `~/.claude/statusline/backups/settings.<timestamp>.json`, sets the
-`statusLine` key, and leaves every other setting alone. Run it as many
-times as you like; it does the same thing each time.
+`statusLine` key, registers one `PostToolUse` hook so the skills line
+updates the moment a skill runs, and leaves every other setting alone. Run
+it as many times as you like; it does the same thing each time.
+
+If you'd rather it didn't touch your hooks:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js install --no-hook
+```
+
+Everything still works; skills just appear a beat later.
 
 Clone it wherever you want. The path above is only a suggestion, but pick
 somewhere permanent: the install writes that path into your settings, so a
@@ -45,9 +54,10 @@ No reinstall needed. Your settings still point at the same files.
 node ~/.claude/statusline-plugin/bin/cli.js uninstall
 ```
 
-This only removes the `statusLine` key when it points at this plugin, so if
-you've since switched to something else, yours is left alone. The backups
-stay where they are.
+This removes the `statusLine` key and the hook, and only when they point at
+this plugin, so if you've since switched to something else, yours is left
+alone. Any other `PostToolUse` hook you have is untouched. The backups stay
+where they are.
 
 ## What it looks like when things are missing
 
@@ -97,6 +107,15 @@ Powerline separator for a plain arrow:
 
 ![ASCII fallback](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/ascii-fallback.svg)
 
+## Model, effort and output style
+
+Line 3 names the model. Beside it, an effort level appears behind a
+lightning bolt when the session has one, and a non-default output style
+appears behind a palette icon. They are separate segments on purpose: they
+are different settings, and until recently the output style was rendered in
+the effort slot whenever no effort level was present, which read as an
+effort level called "explanatory".
+
 ## Settings
 
 Configuration is all environment variables. Set them in your shell profile,
@@ -108,6 +127,7 @@ or inline in the `statusLine.command` string in `settings.json`.
 | `CLAUDE_STATUSLINE_ASCII=1` | Drops the Powerline separator for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json`, for when a field changes shape in some future version |
+| `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request and rtk segments then show only what is already cached. Used when generating previews and running tests |
 
 ## Platform support
 
@@ -135,10 +155,48 @@ directory link falls back to revealing the folder in your file manager.
 
 There's no daemon and no polling loop. Claude Code runs the configured
 command itself every time it redraws the status bar, piping the session
-state in as JSON: the model, the context window, the rate limits. The
-script reads that, looks up a few things of its own (git, `gh`, the session
-transcript, `rtk`) and prints four lines. So it's accurate as of the last
-redraw, which happens every five or six seconds while you're working.
+state in as JSON: the model, the context window, the rate limits.
+
+What the script does with that has one rule: a redraw has 300 milliseconds
+and it does not go over. Measured on this machine against a real 75 MB
+session transcript, a redraw takes 46 milliseconds at the 95th percentile
+over 100 runs. You can check that yourself:
+
+```bash
+node scripts/bench.js --runs 100
+```
+
+Cheap things are read on every redraw: the model and usage figures come
+straight off stdin, one `git status` answers the branch, the working-tree
+counts and the divergence in about 30 milliseconds, and the skills come
+from the tail of the transcript rather than the whole file.
+
+Two things are too expensive for that. `gh pr view` takes about half a
+second on a good network and its full timeout when it can't reach GitHub,
+and the `rtk` figure is a process launch for a number that barely moves.
+Both are read from a small cache under `~/.claude/statusline/cache/`, and
+when a cached value is halfway to expiring the redraw starts a one-shot
+background process that refreshes it and exits. Pull request and savings
+values are shown for up to a minute; past that the segment disappears
+rather than showing you something that is no longer true.
+
+The same fallback covers a repository big enough that `git status` can't
+answer in time. In one with 5,000 modified files it takes about 800
+milliseconds, which is most of three redraws, so the redraw uses the
+cached snapshot instead and refreshes it in the background. The first
+redraw after opening such a repository has no git segments; the next one,
+five or six seconds later, does.
+
+When something looks wrong, ask:
+
+```bash
+node bin/cli.js doctor
+```
+
+That prints one row per segment: what it shows, where the value came from,
+how old it is, what the source cost, and, for anything read from cache, the
+result of a live probe beside it. Every segment that isn't on the line says
+why not.
 
 ## Where the numbers come from
 
@@ -157,13 +215,25 @@ appears when `rtk` is installed.
 with an open PR for your branch. Miss any of those and the segment simply
 isn't there.
 
-**Active skills** are read out of the current session transcript by looking
-for Skill tool calls, and they drop off once they have not been used for
-thirty minutes. Claude Code emits no "skill unloaded" event, so a time
-window is the closest honest approximation: without one, a skill invoked
-once stays on the line for the rest of the session. Set
-`CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` to change it. If the transcript
-format ever changes, you'll see no skills rather than a crash.
+**Active skills** come from one of two places. Install registers a
+`PostToolUse` hook that appends each skill invocation to a small
+per-session file, so the line reacts on the very next redraw. Without that
+hook, the tail of the session transcript is scanned instead, which finds
+the same skills a little later, once Claude Code has flushed the file. The
+hook only changes when a skill appears, never which ones do, and
+`node bin/cli.js install --no-hook` skips it.
+
+Skills drop off once they have not been used for thirty minutes. Claude
+Code emits no "skill unloaded" event, so a time window is the closest
+honest approximation: without one, a skill invoked once stays on the line
+for the rest of the session. Set `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` to
+change it. If the transcript format ever changes, you'll see no skills
+rather than a crash.
+
+The line shows three at a time. When more are active, the rest are counted
+(`+2 more`) rather than left out silently:
+
+![Skills truncated](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/skills-truncated.svg)
 
 ## Git and GitHub status
 
@@ -187,6 +257,17 @@ pull looks like this:
 The same branch, once everything is committed, pushed and pulled:
 
 ![Clean branch in sync](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/git-clean.svg)
+
+A branch with no upstream at all shows no counters, which is a different
+thing from being in sync with one. Until recently these looked identical,
+because the command behind them failed and the failure was read as zero:
+
+![No upstream](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/no-upstream.svg)
+
+A detached HEAD shows the commit id behind a commit icon, and doesn't link
+anywhere, because a commit is not a branch:
+
+![Detached HEAD](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/detached-head.svg)
 
 One thing worth knowing about the "behind" count: git compares against the
 copy of the remote branch on your disk, and that copy only moves when you
@@ -264,6 +345,19 @@ how that looks.
 can do that. Everywhere else you get a file manager window. The first click
 may also trigger a one-time macOS Automation permission prompt.
 
+**A segment vanished.** Run `node bin/cli.js doctor`; the row for that
+segment says why. Common answers: the pull request lookup has nothing
+cached yet, `rtk` isn't installed, or the branch has no upstream.
+
+**The bar feels slow.** Run `node scripts/bench.js --runs 100` in the
+repository where it happens. The per-source breakdown at the bottom names
+whichever one is costing the time.
+
+**You'd rather not have the hook in your settings.** Reinstall with
+`node bin/cli.js install --no-hook`. Skills then come from the transcript,
+appearing a beat later. Uninstall removes the hook either way, and leaves
+any other `PostToolUse` hook alone.
+
 **You want the stock status bar back.** Run the uninstall command above.
 
 ## Clickable names
@@ -289,6 +383,17 @@ Run the tests:
 
 ```bash
 node scripts/smoke-test.js
+```
+
+They live one file per concern under `scripts/tests/`, and the runner picks
+up anything matching `*.test.js`. Install and uninstall are exercised
+against a throwaway `HOME`, never yours.
+
+Measure a redraw, or inspect one:
+
+```bash
+node scripts/bench.js --runs 100
+node bin/cli.js doctor
 ```
 
 Regenerate the screenshots after any change to what gets rendered:
