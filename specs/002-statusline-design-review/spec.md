@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-26
 
-**Status**: Draft. The review page is built and published; selection and implementation are pending.
+**Status**: Selected. 55 of 68 options chosen on 2026-08-26; constitution amendment and plan pending.
 
 **Review page**: https://claude.ai/code/artifact/d4d6c710-7db0-45b4-a72a-7ba8e9d27bc6 (source kept at `review-board.html` beside this spec)
 
@@ -219,6 +219,122 @@ change traces to a ticked item and every ticked item is shipped.
   95th percentile and no line exceeds the width limit.
 - **SC-008**: The test suite covers each implemented item in its present and absent
   states.
+
+## The Selection
+
+Handed back on 2026-08-26 from the review page: **55 of the 68 options**. This is the
+scope. Nothing outside this list changes.
+
+### Values taken from the payload (12)
+
+| Item | Form |
+|---|---|
+| A1 Pull request from the payload | number, state, review |
+| A2 Repository identity from the payload | owner and repo as text |
+| A4 Session duration | hours and minutes |
+| A5 Time waiting on the API | absolute |
+| A6 Lines added and removed | both |
+| A7 Token counts | used of total |
+| A8 Context window size | always |
+| A10 The 200k warning flag | marker when true |
+| A14 Agent name | marker plus name |
+| A15 Session name | full name |
+| A17 Working directory versus project directory | both when they differ |
+| A19 Worktree identity | name and origin branch |
+
+A21 (effort) and A22 (output style) were also selected. Both already render; they are in
+scope only as far as C3 changes how they are grouped.
+
+### Values that have to be computed (7)
+
+| Item | Form | Note |
+|---|---|---|
+| B1 Burn rate on the 5-hour window | percent per hour | needs stored samples |
+| B2 Projected exhaustion time | time | derives from B1 |
+| B3 Distance to auto-compaction | warning past a threshold | |
+| B4 Context trend | sparkline | needs stored samples |
+| B8 Merge conflicts | count | already parsed, currently discarded |
+| B10 CI status | symbol and workflow | network, background refresh only |
+| B12 A clock | 24-hour | needs F1 |
+
+### Removals and merges (7)
+
+| Item | Form |
+|---|---|
+| C1 Drop the gh subprocess | keep as a fallback when `pr` is absent |
+| C2 Drop the git remote lookup | keep as a fallback |
+| C3 Merge model, effort and output style | two segments: model, then the rest |
+| C4 The weekday on the 7-day segment | keep only past 24 hours |
+| C5 The rtk segment | show only when it moves by five points |
+| C6 The two reset countdowns | one segment carrying both |
+| C7 Directory that repeats the repository name | always keep it |
+
+### Layout (10)
+
+| Item | Form |
+|---|---|
+| D1 Line count | adaptive by terminal height |
+| D2 Terminal width | use `COLUMNS`, fall back to 120 |
+| D3 Right-aligned group | reset countdowns right |
+| D4 Narrow-terminal behaviour | priority per segment, iTerm2 style |
+| D5 Order of lines | unchanged: place, skills, model, usage |
+| D6 Order inside line 1 | unchanged: directory, branch, state, PR |
+| D7 Skills line | one chip, comma separated |
+| D8 Column alignment | align all lines |
+| D9 Separators | Powerline, thin as a fallback |
+| D10 Colour bands | per segment, as today |
+
+### Encoding (10)
+
+| Item | Form |
+|---|---|
+| E1 Context | bar and number |
+| E2 Bar style | blocks |
+| E3 Bar width | scaled to terminal width |
+| E4 Context ramp | green, yellow, red at 60/85 |
+| E5 Rate-limit ramp | same thresholds as context |
+| E6 Meaning never in colour alone | the bar's shape changes too |
+| E7 Icon set | unchanged: Nerd Font plus emoji |
+| E8 Dim secondary segments | dim the reset countdowns |
+| E9 Number formatting | abbreviated |
+| E10 Change highlighting | colour instead of frames |
+
+### Behaviour (7)
+
+| Item | Form |
+|---|---|
+| F1 Refresh interval | every 60 seconds |
+| F2 Subagent task rows | match the statusline's style |
+| F3 Themes | add Nord and Gruvbox |
+| F4 Configuration | unchanged: environment variables |
+| F5 Per-repository configuration | selected, form left to the implementer |
+| F6 Working or idle | working or idle marker |
+| F7 Todo progress | count and current item |
+
+### Decisions taken on the selection
+
+Four questions came out of reading the selection as a whole, and were answered on
+2026-08-26:
+
+1. **The four items that contradict the constitution** (D1, D9, F3, E10) are to be built,
+   and the constitution amended to allow them. That amendment is a prerequisite of this
+   feature, not a side effect of it.
+2. **Colour carries two meanings and had to be split.** The ramp (E4, E5) applies only to
+   the context and rate-limit segments. Change highlighting (E10) applies only to branch,
+   pull request, skills and model. No segment carries both, so a colour on screen has one
+   meaning wherever you find it.
+3. **The six items left undecided** (A17, B1, B2, B4 and B12 without a placement, F5
+   without a form) are treated as "you decide", the same as the thirty items where that
+   was chosen explicitly. Every such decision is reported back.
+4. **Order of work**: plan and tasks before implementation.
+
+### What the selection does not fit into
+
+Nineteen new segments, a bar, and alignment padding come to roughly 400 columns against a
+120-column limit across four lines. Three selected items are what make that survivable:
+D2 gives the real width, D4 gives each segment a priority, and D1 lets the line count
+follow the terminal. The priority table D4 needs is a design decision in its own right and
+is produced in the plan, for review, before anything is built.
 
 ## Assumptions
 

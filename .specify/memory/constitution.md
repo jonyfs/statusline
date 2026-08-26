@@ -2,7 +2,25 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 3.1.0 (two principles materially expanded)
+- Version: 4.0.0 (three principles redefined, on the owner's explicit instruction after the
+  statusline redesign review of 2026-08-26; see specs/002-statusline-design-review/spec.md)
+- Redefined: I. Starship-Compatible Output — a plain separator is now permitted as a declared
+  fallback for terminals that cannot render the Powerline glyph, and palettes from outside
+  Catppuccin may ship alongside the four flavors. Neither may become the default; Catppuccin
+  Mocha with Powerline arrows is still what the project is when nobody has chosen otherwise
+- Redefined: II. Four-Line Display Structure — four lines is the shape rather than a fixed
+  count. On a terminal too short or too narrow, lines are shed by declared priority instead of
+  wrapping, and the width limit is the real terminal width from COLUMNS rather than a constant
+  120. A terminal with room still shows four
+- Redefined: X. Icons Carry Live State — change highlighting may use a colour shift instead of
+  an icon frame sequence, and a new rule requires each colour channel to carry exactly one
+  meaning: ramp and change-highlight must apply to disjoint sets of segments
+- MAJOR bump: II's "exactly four" and X's "MUST switch to an animation frame sequence" were
+  both binding rules that no longer hold as written
+- Templates: no `.specify/templates/*` changes required
+- Prior versions: 3.1.0 expanded II and X; 3.0.0 redefined IV and XI (clone distribution, no
+  registry); 2.4.1 clarified VIII (pinned timezone); 2.4.0 added XI; 2.3.0 added X; 2.2.0
+  added IX; 2.1.0 added VIII; 2.0.0 redefined II (three-line → four-line)
 - Modified: II. Four-Line Display Structure — line 1 now also carries working-tree state
   (tracked changes, untracked files). The count was already being computed and silently
   discarded, so the statusline could not answer "do I have uncommitted work?"
@@ -18,9 +36,6 @@ Sync Impact Report:
   never fetches — it re-renders every few seconds, and hitting the network that often would be
   hostile to the user's connection and the remote
 - Follow-up: none deferred
-- Prior versions: 3.0.0 redefined IV and XI (clone distribution, no registry); 2.4.1 clarified
-  VIII (pinned timezone); 2.4.0 added XI; 2.3.0 added X; 2.2.0 added IX; 2.1.0 added VIII;
-  2.0.0 redefined II (three-line → four-line)
 - Project Type: clone-installable CLI plugin for Claude Code statusline customization
 - Scope: Local development → distribution as a git repository, released by tag
 - Key Constraints: Starship compatibility, four-line display format, token tracking grounded in
@@ -49,8 +64,11 @@ reference — not a vague "Starship-like" aspiration:
   padded with a leading and trailing space inside the block.
 - **Powerline separators**: segments MUST be joined with the arrow/triangle glyph `` (U+E0B0,
   Nerd Font "powerline" glyph), transitioning `fg:<previous_bg> bg:<next_bg>` between segments,
-  exactly as `[](bg:peach fg:red)` chains directory→git in the reference config. No plain
-  text separators (`|`, `>`, `-`) are permitted between segments.
+  exactly as `[](bg:peach fg:red)` chains directory→git in the reference config. A plain
+  separator is permitted only as a declared fallback for a terminal that cannot render the
+  glyph, never as the default: the Powerline arrow is what the design is, and a bar that
+  silently chose a pipe would be a different design wearing the same name. The existing ASCII
+  mode already establishes this shape, where the fallback is asked for rather than assumed.
 - **Glyphs**: module icons MUST come from Nerd Font icon set (matching the reference config's
   ``  ``  ``  ``-style glyphs for git/branch/language/tool markers), never plain ASCII
   labels, so the line visually matches p10k/Powerline conventions.
@@ -60,7 +78,11 @@ reference — not a vague "Starship-like" aspiration:
 - **Theme variants**: palette MUST be swappable between the four standard Catppuccin flavors
   (mocha/frappe/macchiato/latte) the same way the reference `starship.toml` defines all four
   under `[palettes.*]`, defaulting to mocha (dark) and latte (light) by terminal background
-  detection where feasible.
+  detection where feasible. Palettes from outside Catppuccin MAY ship alongside them, since a
+  bar that clashes with the rest of a terminal is a bar people turn off. Any added palette MUST
+  define every colour token the Catppuccin flavors define, MUST be selected the same way, and
+  MUST NOT become the default: Catppuccin Mocha remains what this project looks like when
+  nobody has chosen anything.
 
 Modules MUST NOT break when the palette variant changes. All prompt strings, separators, and
 color references MUST validate against Starship v1.26+ module/schema conventions, since that
@@ -68,7 +90,7 @@ is the version installed and studied on the reference machine.
 
 ### II. Four-Line Display Structure
 
-Statusline MUST display exactly four information lines, in this order:
+Statusline MUST display four information lines, in this order:
 - **Line 1**: Working directory + git branch + working-tree state (tracked changes, untracked files) + divergence from upstream (ahead, behind) + PR status (existence + number if open)
 - **Line 2**: Active skills for the current session, one chip per skill, each in a distinct palette color, no bullet/prefix glyph
 - **Line 3**: Model name + effort level (current session context)
@@ -76,7 +98,20 @@ Statusline MUST display exactly four information lines, in this order:
 
 Each line independently loadable; failures in one line MUST NOT break others (e.g. no git repo omits
 line 1's branch/PR segments but the line still renders; no active skills omits line 2 entirely).
-Lines MUST fit within 120 characters when rendered.
+
+**Four is the shape, not a floor.** A line with nothing to say is already dropped rather than
+rendered empty, and the same reasoning extends to the terminal: on a window too short or too
+narrow to hold four lines, the statusline MUST shed lines rather than wrap, because a wrapped
+bar costs more rows than the one it was trying to save and Claude Code truncates rather than
+wraps a line that overflows. Shedding MUST follow a declared priority, MUST be driven by the
+terminal dimensions Claude Code reports rather than guessed, and MUST restore every line as
+soon as the room exists. A terminal with room for four lines MUST show four.
+
+Lines MUST fit within the terminal's real width, read from the `COLUMNS` environment variable
+Claude Code sets before running the command, falling back to 120 characters when it is absent.
+Where content exceeds that width, the segments dropped MUST follow a declared per-segment
+priority rather than source order, so what survives on a narrow terminal is what matters most
+rather than what happened to be first.
 
 ### III. Token Tracking Grounded in Real Data
 
@@ -225,9 +260,17 @@ render, producing a slow pulse that draws the eye — never described or documen
 motion, and never implemented with ANSI blink, which many terminals ignore and which is an
 accessibility hazard where it works.
 
-- **Change highlighting**: when a tracked value differs from the previous render, that segment's
-  icon MUST switch to an animation frame sequence, advancing one frame per render, and MUST
-  revert to its static icon once the change is no longer recent (30 seconds).
+- **Change highlighting**: when a tracked value differs from the previous render, that segment
+  MUST mark itself as recently changed, and MUST revert once the change is no longer recent
+  (30 seconds). The mark MAY be an icon frame sequence advancing one frame per render, or a
+  colour shift on the segment. Colour is the stronger signal of the two: it is preattentive,
+  where a swapped glyph has to be recognised, and it does not require the reader to have seen
+  the previous frame.
+- **One meaning per channel**: a colour on the bar MUST mean exactly one thing wherever it
+  appears. Where colour marks change, it MUST NOT also encode a level on the same segment, and
+  where a ramp encodes a level, that segment MUST NOT also use colour to mark change. The two
+  uses MUST be assigned to disjoint sets of segments, and the assignment MUST be written down
+  rather than left to whoever edits next.
 - **Only discrete state is tracked**: branch, ahead/behind, pull request, active skills, model,
   and effort. Usage percentages MUST NOT trigger highlighting — they move on nearly every
   render, so animating them would leave the line permanently in motion and the highlight would
@@ -308,4 +351,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 3.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-24
+**Version**: 4.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-26
