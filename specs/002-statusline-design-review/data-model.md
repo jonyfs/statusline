@@ -119,18 +119,22 @@ asked. `burnRate` joins the ramp because it is a rate against the same limit, an
 that would exhaust the window before it resets is the definition of red.
 
 Since colour alone may not carry meaning (E6, and Section 508), every ramped segment also
-changes the shape of its bar: the bar renders `█` below 60, `▓` from 60 to 85, and `▒`
-with a trailing `!` above 85. The distinction survives a screenshot in greyscale and a
-reader who cannot separate red from green.
+carries a mark: nothing below 60, `▴` from 60 to 85, `▲` above 85. The distinction
+survives a screenshot in greyscale and a reader who cannot separate red from green.
+
+This was the bar's job until 2026-08-26, when the bar was removed from the statusline for
+costing ten to sixteen columns on the widest line to say what the number already said. It
+remains in the subagent task rows, where a row has a whole line to itself.
 
 ## Bars
 
+Used by the subagent task rows only. The statusline itself shows numbers.
+
 | Field | Meaning |
 |---|---|
-| `width` | Scaled to the terminal: 8 columns below 100 columns wide, 10 up to 160, 16 above |
+| `width` | Scaled to the row: 8 columns below 100 columns wide, 10 up to 160, 16 above |
 | `style` | Block characters, per E2 |
-| `fill` | `█` for the filled part, `░` for the rest, with the ramp shape above |
-| `label` | The number renders beside the bar, per E1 |
+| `fill` | `█` for the filled part, `░` for the rest |
 
 ## Sample ring
 

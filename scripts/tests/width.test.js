@@ -77,7 +77,7 @@ await test("a narrow line drops by priority, not by position", () => {
   // table decides, and the savings figure at 40 is the first to go.
   const tight = line4At(100);
   assert.doesNotMatch(tight, /rtk/, "priority 40 is the first to go");
-  assert.match(tight, /Context [░█▓▒!]* ?100%/, "priority 100 stays");
+  assert.match(tight, /Context 100%/, "priority 100 stays");
 
   const tighter = line4At(40);
   assert.match(tighter, /Context/, "the top of the table survives to the end");
@@ -98,12 +98,12 @@ await test("dropping a segment is preferred to shortening one", () => {
 
   const wide = line4At(200);
   assert.match(wide, /rtk/);
-  assert.match(wide, /7d 100% ·/);
+  assert.match(wide, /7d 100%▲ ·/);
 
   // 90 columns: the savings figure goes, priority 40.
   const at90 = line4At(90);
   assert.doesNotMatch(at90, /rtk/);
-  assert.match(at90, /7d 100% ·/, "a surviving segment keeps everything it says");
+  assert.match(at90, /7d 100%▲ ·/, "a surviving segment keeps everything it says");
 
   // 70: the 7-day countdown goes too, priority 78, while the 5-hour one
   // stays at 80. The table decides, not the position on the line.
@@ -112,7 +112,7 @@ await test("dropping a segment is preferred to shortening one", () => {
   assert.equal((at70.match(/resets in/g) || []).length, 0, "the right-aligned countdowns go together");
 
   // 45: down to the top of the table.
-  assert.match(line4At(45), /Context [░█▓▒!]* ?100%/);
+  assert.match(line4At(45), /Context 100%/);
 });
 
 await test("an unconstrained line keeps everything, so the guard costs nothing normally", () => {

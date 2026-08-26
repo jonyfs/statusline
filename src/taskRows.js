@@ -8,8 +8,9 @@
  * which is how both contracts end up half-tested.
  *
  * What it renders is the statusline's own vocabulary, per item F2's chosen
- * form: the same palette, the same bar, the same ramp. A task's context bar
- * reads exactly like the session's.
+ * form: the same palette and the same ramp. It is also the one place a
+ * progress bar still earns its width: a task row has a whole line to itself
+ * and no other number competing for it, which is not true of line 4.
  *
  * Everything here is best effort. A row it cannot render is a row it stays
  * silent about, which leaves Claude Code's own rendering in place.

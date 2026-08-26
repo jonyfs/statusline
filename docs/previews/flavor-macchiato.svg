@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1059" height="143" viewBox="0 0 1059 143" role="img" aria-label="Catppuccin macchiato">
-<rect width="1059" height="143" rx="8" fill="#24273a"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1001" height="143" viewBox="0 0 1001 143" role="img" aria-label="Catppuccin macchiato">
+<rect width="1001" height="143" rx="8" fill="#24273a"/>
 <text x="10" y="18" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12" fill="#9399b2">Catppuccin macchiato</text>
 <rect x="10.00" y="36" width="147.00" height="22" fill="rgb(73,77,100)"/>
 <text x="29.60" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">📁</text>
@@ -149,7 +149,7 @@
 <text x="210.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">g</text>
 <text x="220.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">h</text>
 <path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(245,169,127)" transform="translate(235.40 102.00) scale(0.00821 -0.00821)"/>
-<rect x="10.00" y="111" width="264.60" height="22" fill="rgb(166,218,149)"/>
+<rect x="10.00" y="111" width="156.80" height="22" fill="rgb(166,218,149)"/>
 <text x="29.60" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">🧠</text>
 <text x="54.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">C</text>
 <text x="63.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">o</text>
@@ -158,81 +158,72 @@
 <text x="93.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">e</text>
 <text x="103.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">x</text>
 <text x="112.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">t</text>
-<text x="132.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">█</text>
-<text x="142.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">█</text>
-<text x="152.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">█</text>
-<text x="161.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">░</text>
-<text x="171.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">░</text>
-<text x="181.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">░</text>
-<text x="191.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">░</text>
-<text x="201.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">░</text>
-<text x="210.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">░</text>
-<text x="220.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">░</text>
-<text x="240.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">2</text>
-<text x="250.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">6</text>
-<text x="259.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">%</text>
-<rect x="274.60" y="111" width="9.80" height="22" fill="rgb(166,218,149)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,218,149)" transform="translate(274.60 127.00) scale(0.00821 -0.00821)"/>
-<rect x="284.40" y="111" width="107.80" height="22" fill="rgb(166,218,149)"/>
-<text x="299.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">⏱</text>
-<text x="308.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">️</text>
-<text x="328.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">5</text>
-<text x="338.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">h</text>
-<text x="357.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">2</text>
-<text x="367.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">0</text>
+<text x="132.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">2</text>
+<text x="142.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">6</text>
+<text x="152.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">%</text>
+<rect x="166.80" y="111" width="9.80" height="22" fill="rgb(166,218,149)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,218,149)" transform="translate(166.80 127.00) scale(0.00821 -0.00821)"/>
+<rect x="176.60" y="111" width="107.80" height="22" fill="rgb(166,218,149)"/>
+<text x="191.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">⏱</text>
+<text x="201.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">️</text>
+<text x="220.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">5</text>
+<text x="230.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">h</text>
+<text x="250.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">2</text>
+<text x="259.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">0</text>
+<text x="269.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">%</text>
+<rect x="284.40" y="111" width="9.80" height="22" fill="rgb(238,212,159)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,218,149)" transform="translate(284.40 127.00) scale(0.00821 -0.00821)"/>
+<rect x="294.20" y="111" width="225.40" height="22" fill="rgb(238,212,159)"/>
+<path d="M387 1222V1115H815V1222Q815 1249 835 1267Q853 1286 879.0 1286.0Q905 1286 924.0 1267.0Q943 1248 943 1222V1115H1051Q1113 1115 1157.0 1071.0Q1201 1027 1201 965V64Q1201 1 1157 -42Q1113 -86 1051 -85H151Q89 -85 45 -42Q1 2 1 64V965Q1 1028 45 1071Q89 1115 151 1115H259V1222Q259 1249 277 1267Q297 1286 323.0 1286.0Q349 1286 368.0 1267.0Q387 1248 387 1222ZM129 643V64Q129 55 135.0 49.0Q141 43 151 43H1051Q1059 43 1067 49Q1071 55 1071 64V643ZM1051 986H151Q143 986 135 980Q129 974 129 965V771H1071V965Q1071 974 1067 980Q1059 986 1051 986Z" fill="rgb(24,25,38)" transform="translate(304.00 127.00) scale(0.00821 -0.00821)"/>
+<text x="328.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">7</text>
+<text x="338.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">d</text>
+<text x="357.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">7</text>
+<text x="367.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">7</text>
 <text x="377.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">%</text>
-<rect x="392.20" y="111" width="9.80" height="22" fill="rgb(238,212,159)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,218,149)" transform="translate(392.20 127.00) scale(0.00821 -0.00821)"/>
-<rect x="402.00" y="111" width="215.60" height="22" fill="rgb(238,212,159)"/>
-<path d="M387 1222V1115H815V1222Q815 1249 835 1267Q853 1286 879.0 1286.0Q905 1286 924.0 1267.0Q943 1248 943 1222V1115H1051Q1113 1115 1157.0 1071.0Q1201 1027 1201 965V64Q1201 1 1157 -42Q1113 -86 1051 -85H151Q89 -85 45 -42Q1 2 1 64V965Q1 1028 45 1071Q89 1115 151 1115H259V1222Q259 1249 277 1267Q297 1286 323.0 1286.0Q349 1286 368.0 1267.0Q387 1248 387 1222ZM129 643V64Q129 55 135.0 49.0Q141 43 151 43H1051Q1059 43 1067 49Q1071 55 1071 64V643ZM1051 986H151Q143 986 135 980Q129 974 129 965V771H1071V965Q1071 974 1067 980Q1059 986 1051 986Z" fill="rgb(24,25,38)" transform="translate(411.80 127.00) scale(0.00821 -0.00821)"/>
-<text x="436.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">7</text>
-<text x="446.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">d</text>
-<text x="465.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">7</text>
-<text x="475.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">7</text>
-<text x="485.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">%</text>
-<text x="504.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">·</text>
-<text x="524.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">T</text>
-<text x="534.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">h</text>
-<text x="544.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">u</text>
-<text x="563.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">1</text>
-<text x="573.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">8</text>
-<text x="583.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">:</text>
-<text x="593.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">0</text>
-<text x="602.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">0</text>
-<rect x="617.60" y="111" width="9.80" height="22" fill="rgb(91,96,120)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(238,212,159)" transform="translate(617.60 127.00) scale(0.00821 -0.00821)"/>
-<rect x="627.40" y="111" width="147.00" height="22" fill="rgb(91,96,120)"/>
-<text x="647.00" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">🕑</text>
-<text x="671.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">2</text>
-<text x="681.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">h</text>
-<text x="691.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">0</text>
-<text x="700.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">9</text>
-<text x="710.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">m</text>
-<text x="730.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">/</text>
-<text x="749.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">3</text>
-<text x="759.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">d</text>
-<rect x="774.40" y="111" width="9.80" height="22" fill="rgb(91,96,120)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(91,96,120)" transform="translate(774.40 127.00) scale(0.00821 -0.00821)"/>
-<rect x="784.20" y="111" width="68.60" height="22" fill="rgb(91,96,120)"/>
-<text x="798.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">1</text>
-<text x="808.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">2</text>
-<text x="818.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">:</text>
-<text x="828.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">0</text>
-<text x="838.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">0</text>
-<rect x="852.80" y="111" width="9.80" height="22" fill="rgb(198,160,246)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(91,96,120)" transform="translate(852.80 127.00) scale(0.00821 -0.00821)"/>
-<rect x="862.60" y="111" width="176.40" height="22" fill="rgb(198,160,246)"/>
-<text x="882.20" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">🦀</text>
-<text x="906.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">r</text>
-<text x="916.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">t</text>
-<text x="926.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">k</text>
-<text x="945.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">8</text>
-<text x="955.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">1</text>
-<text x="965.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">%</text>
-<text x="985.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">s</text>
-<text x="994.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">a</text>
-<text x="1004.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">v</text>
-<text x="1014.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">e</text>
-<text x="1024.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">d</text>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(198,160,246)" transform="translate(1039.00 127.00) scale(0.00821 -0.00821)"/>
+<text x="387.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">▴</text>
+<text x="406.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">·</text>
+<text x="426.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">T</text>
+<text x="436.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">h</text>
+<text x="446.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">u</text>
+<text x="465.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">1</text>
+<text x="475.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">8</text>
+<text x="485.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">:</text>
+<text x="495.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">0</text>
+<text x="504.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">0</text>
+<rect x="519.60" y="111" width="9.80" height="22" fill="rgb(91,96,120)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(238,212,159)" transform="translate(519.60 127.00) scale(0.00821 -0.00821)"/>
+<rect x="529.40" y="111" width="147.00" height="22" fill="rgb(91,96,120)"/>
+<text x="549.00" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">🕑</text>
+<text x="573.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">2</text>
+<text x="583.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">h</text>
+<text x="593.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">0</text>
+<text x="602.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">9</text>
+<text x="612.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">m</text>
+<text x="632.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">/</text>
+<text x="651.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">3</text>
+<text x="661.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">d</text>
+<rect x="676.40" y="111" width="9.80" height="22" fill="rgb(91,96,120)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(91,96,120)" transform="translate(676.40 127.00) scale(0.00821 -0.00821)"/>
+<rect x="686.20" y="111" width="68.60" height="22" fill="rgb(91,96,120)"/>
+<text x="700.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">1</text>
+<text x="710.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">2</text>
+<text x="720.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">:</text>
+<text x="730.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">0</text>
+<text x="740.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(202,211,245)">0</text>
+<rect x="754.80" y="111" width="9.80" height="22" fill="rgb(198,160,246)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(91,96,120)" transform="translate(754.80 127.00) scale(0.00821 -0.00821)"/>
+<rect x="764.60" y="111" width="176.40" height="22" fill="rgb(198,160,246)"/>
+<text x="784.20" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">🦀</text>
+<text x="808.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">r</text>
+<text x="818.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">t</text>
+<text x="828.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">k</text>
+<text x="847.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">8</text>
+<text x="857.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">1</text>
+<text x="867.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">%</text>
+<text x="887.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">s</text>
+<text x="896.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">a</text>
+<text x="906.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">v</text>
+<text x="916.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">e</text>
+<text x="926.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(24,25,38)">d</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(198,160,246)" transform="translate(941.00 127.00) scale(0.00821 -0.00821)"/>
 </svg>

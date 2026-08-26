@@ -26,7 +26,7 @@ import { clockFaceFor, resetMomentLabel } from "./timeIcons.js";
 import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel } from "./segments.js";
-import { bar, rampColour } from "./ramp.js";
+import { bar, rampColour, bandMark } from "./ramp.js";
 import { movedBy, ratePerHour, projectFull, seriesOf, sparkline } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, terminalWidth, terminalHeight } from "./layout.js";
 
@@ -602,22 +602,24 @@ export function renderReadings(
     // only carrier (E6). An unknown level keeps the segment's own colour and
     // draws an empty track: `?%` is the honest answer, and a bar that
     // vanished would make the line's width jump.
+    // The bar was ten to sixteen columns for something the number says in
+    // three, on the line that is already the widest. It is gone; the band it
+    // carried is now a one-character mark, so the meaning still survives
+    // without colour (item E6, and Section 508).
     context: () => ({
       color: rampColour(ctxPct, "yellow"),
-      // The label stays. E1 asked for a bar beside the number, not instead
-      // of the word that says what the number is.
-      text: ` 🧠 Context ${bar(ctxPct, maxWidth)} ${ctxPct ?? "?"}% `,
+      text: ` 🧠 Context ${ctxPct ?? "?"}%${bandMark(ctxPct)} `,
     }),
     fiveHour: () => ({
       color: rampColour(fiveHourPct, "green"),
-      text: ` ⏱️ 5h ${fiveHourPct ?? "?"}% `,
+      text: ` ⏱️ 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)} `,
     }),
     sevenDay: (o) => ({
       color: rampColour(sevenDayPct, "sapphire"),
       // C4's chosen form: the weekday only when the reset is more than a day
       // out. Inside a day the countdown beside it says everything, and the
       // weekday would be today's or tomorrow's name for no gain.
-      text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${o.moment && farOutMoment ? ` · ${farOutMoment}` : ""} `,
+      text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${o.moment && farOutMoment ? ` · ${farOutMoment}` : ""} `,
     }),
     // C6: both countdowns, one segment. The clock face is the sooner of the
     // two, since that is the one about to matter.

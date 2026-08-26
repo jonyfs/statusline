@@ -45,6 +45,22 @@ const BANDS = [
   },
 ];
 
+/**
+ * A one-character mark for a band, for segments that show a number without a
+ * bar.
+ *
+ * The bar used to be what carried the band without relying on colour, which
+ * Section 508 requires and item E6 asked for. A number on its own has
+ * nothing to carry it, so it gets a mark instead: two columns at most,
+ * against the ten to sixteen a bar costs. The safe band gets nothing, since
+ * "nothing is wrong" needs no symbol.
+ */
+export function bandMark(pct) {
+  const band = bandFor(pct);
+  if (!band || band.name === "ok") return "";
+  return band.name === "warn" ? "▴" : "▲";
+}
+
 /** The band a percentage falls in. Anything unusable is treated as unknown. */
 export function bandFor(pct) {
   if (typeof pct !== "number" || !Number.isFinite(pct)) return null;

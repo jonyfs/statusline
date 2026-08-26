@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 | 1 | Working directory, branch, worktree, uncommitted and untracked counts, merge conflicts, commits to push and pull, open pull request, last CI run |
 | 2 | Skills used recently, todo progress, whether Claude is working or idle |
 | 3 | Model, effort level, output style, agent, session name |
-| 4 | Context window with its bar and trend, token counts, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, lines changed, rtk savings |
+| 4 | Context window with its trend, token counts, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, lines changed, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -181,26 +181,27 @@ Powerline separator for a plain arrow:
 
 ## Reading a level at a glance
 
-The context figure renders as a bar beside its number, and the bar's colour
-follows the level: green below 60%, yellow to 85%, red above it. The 5-hour
-and 7-day figures use the same thresholds, so all three read the same way.
+The context figure, the 5-hour window and the 7-day window all colour
+themselves by level: green below 60%, yellow to 85%, red above it. Same
+thresholds on all three, so a glance reads them the same way.
 
 Colour is not the only carrier, because around one man in twelve cannot
-separate red from green. Each band draws a different character, so the band
-survives a greyscale screenshot and a terminal with a broken palette:
+separate red from green. Each band past the first adds a mark:
 
-| Band | Bar | Also |
-|---|---|---|
-| below 60% | `████░░░░░░` | |
-| 60% to 85% | `▓▓▓▓▓▓▓░░░` | |
-| above 85% | `▒▒▒▒▒▒▒▒▒▒` | a trailing `!` |
+| Band | Renders as |
+|---|---|
+| below 60% | `Context 41%` |
+| 60% to 85% | `Context 72%▴` |
+| above 85% | `Context 94%▲` |
+
+Nothing is wrong needs no symbol, which is why the safe band has none.
 
 ![Close to the limit](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/near-compaction.svg)
 
-The bar scales with the terminal: eight cells under 100 columns, ten up to
-160, sixteen above. An unknown percentage draws an empty track rather than
-disappearing, so the line's width does not jump when the payload skips a
-field.
+There is no progress bar. An earlier version drew one beside the context
+figure, and it cost ten to sixteen columns on the widest line to say what
+the number already said in three. The bar survives where there is room for
+it: each running subagent gets one on its own row.
 
 Both reset countdowns share a single dimmed segment on the right of line 4:
 `🕞 1h29m / 3d`. The clock face is the sooner of the two windows, since that

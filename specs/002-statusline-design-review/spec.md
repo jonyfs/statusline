@@ -288,7 +288,7 @@ scope only as far as C3 changes how they are grouped.
 
 | Item | Form |
 |---|---|
-| E1 Context | bar and number |
+| E1 Context | bar and number, revised on 2026-08-26 to number only |
 | E2 Bar style | blocks |
 | E3 Bar width | scaled to terminal width |
 | E4 Context ramp | green, yellow, red at 60/85 |
@@ -310,6 +310,15 @@ scope only as far as C3 changes how they are grouped.
 | F5 Per-repository configuration | selected, form left to the implementer |
 | F6 Working or idle | working or idle marker |
 | F7 Todo progress | count and current item |
+
+### Revised after seeing it
+
+**E1, the context bar, was removed on 2026-08-26.** It rendered as chosen,
+was looked at, and cost ten to sixteen columns on the widest line to say what
+the number said in three. The band it carried without relying on colour is
+now a one-character mark, which keeps E6 and Section 508 satisfied at a
+fraction of the width. The bar itself stays in the subagent task rows, where
+a row has a whole line and no other number competing for it.
 
 ### Decisions taken on the selection
 

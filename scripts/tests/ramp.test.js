@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, stripAnsi } from "../test-harness.js";
-import { bandFor, rampColour, bar, barWidth } from "../../src/ramp.js";
+import { bandFor, rampColour, bar, barWidth, bandMark } from "../../src/ramp.js";
 import { renderPayload } from "../../src/render.js";
 import { displayWidth } from "../../src/theme.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
@@ -85,21 +85,41 @@ await test("an unknown percentage draws an empty track, not a missing one", () =
   assert.ok(!bar(null, 120).includes("█"));
 });
 
-await test("the context segment renders a bar and a number, per E1", () => {
+await test("the context segment renders a number, and no bar", () => {
+  // E1 originally chose a bar beside the number. The bar cost ten to
+  // sixteen columns on the widest line for something the number already
+  // said in three, so it was dropped on 2026-08-26.
   const line = atLevel(38);
   assert.match(line, /Context/);
   assert.match(line, /38%/);
-  assert.match(line, /[█▓▒]/, "the bar is there too");
+  assert.doesNotMatch(line, /[█▓▒░]/, "the bar is gone from the statusline");
 });
 
 await test("the ramp reaches the rate limits as well, per E5", () => {
-  // Same thresholds, same three shapes, so a glance reads all three the
-  // same way.
+  // Same thresholds on all three, so a glance reads them the same way.
   const safe = atLevel(20);
+  const warn = atLevel(70);
   const hot = atLevel(95);
-  assert.ok(safe.includes("█"), "green band fill");
-  assert.ok(hot.includes("▒"), "red band fill");
-  assert.ok(hot.includes("!"), "and the mark");
+  assert.doesNotMatch(safe, /[▴▲]/, "nothing is wrong needs no symbol");
+  assert.match(warn, /▴/);
+  assert.match(hot, /▲/);
+  // Three of them: context, 5-hour and 7-day all carry the mark.
+  assert.equal((hot.match(/▲/g) || []).length, 3);
+});
+
+await test("the band survives without colour, per E6", () => {
+  // Section 508: colour may not be the only carrier. The bar used to do
+  // this job; a one-character mark does it now, at a fraction of the width.
+  assert.equal(bandMark(10), "");
+  assert.equal(bandMark(70), "▴");
+  assert.equal(bandMark(95), "▲");
+  assert.equal(bandMark(null), "", "an unknown level has no band to mark");
+});
+
+await test("the bar itself still exists, for the subagent rows", () => {
+  // taskRows.js draws one per running task, where there is a whole row to
+  // spend and no other number competing for it.
+  assert.match(bar(50, 120), /[█░]/);
 });
 
 await test("a bar never renders for a segment the payload left out", () => {
