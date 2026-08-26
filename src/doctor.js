@@ -11,6 +11,7 @@
  */
 
 import { gather, renderReadings } from "./render.js";
+import { SEGMENTS as REGISTRY } from "./segments.js";
 import { getDirLabel, getDirUrl, getGitInfo, getPrInfo, getRemoteUrl, probeGitInfo, probePrInfo, normalizePr } from "./git.js";
 import { getActiveSkills } from "./skills.js";
 import { getRtkSavings, probeRtkSavings } from "./rtk.js";
@@ -18,27 +19,55 @@ import { formatResetCountdown } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
 import { displayWidth } from "./theme.js";
+import { terminalWidth, terminalHeight } from "./layout.js";
 
-/** Which reading backs each segment, in the order the segments render. */
-const SEGMENTS = [
-  { key: "dir", reading: "dir", line: 1 },
-  { key: "branch", reading: "git", line: 1, describe: (v) => (v?.detached ? `${v.branch} (detached)` : v?.branch) },
-  { key: "worktree", reading: "git", line: 1, describe: (v) => (v ? `${v.changed} changed, ${v.untracked} untracked` : null) },
-  { key: "upstream", reading: "git", line: 1, describe: (v) => (v?.upstream ? `${v.upstream} +${v.ahead} -${v.behind}` : null) },
-  { key: "pr", reading: "pr", line: 1, describe: (v) => (v ? `#${v.number} ${v.review ?? "open"}${v.source ? ` (${v.source})` : ""}` : null) },
-  { key: "repo", reading: "repo", line: 1, describe: (v) => (v?.owner ? `${v.owner}/${v.name}` : null) },
-  { key: "skills", reading: "skills", line: 2, describe: (v) => (v?.length ? v.join(", ") : null) },
-  { key: "model", reading: "model", line: 3 },
-  { key: "effort", reading: "effort", line: 3 },
-  { key: "outputStyle", reading: "outputStyle", line: 3 },
-  { key: "context", reading: "context", line: 4, describe: (v) => (v === null ? "?%" : `${v}%`) },
-  { key: "fiveHour", reading: "fiveHour", line: 4, describe: (v) => (v === null ? "?%" : `${v}%`) },
-  { key: "fiveHourReset", reading: "fiveHourReset", line: 4, describe: (v, now) => formatResetCountdown(v, now) ?? "reset time unknown" },
-  { key: "sevenDay", reading: "sevenDay", line: 4, describe: (v) => (v === null ? "?%" : `${v}%`) },
-  { key: "sevenDayReset", reading: "sevenDayReset", line: 4, describe: (v, now) => formatResetCountdown(v, now) ?? "reset time unknown" },
-  { key: "rtk", reading: "rtk", line: 4, describe: (v) => (v === null ? null : `${v}% saved`) },
-  { key: "remote", reading: "remote", line: 1 },
-];
+/**
+ * How to describe each segment's value, and which reading feeds it.
+ *
+ * The row set itself comes from the registry, so a segment added there
+ * shows up here without being listed twice. What lives in this table is
+ * only the part the registry does not know: how to put a value into words.
+ */
+const DESCRIBE = {
+  branch: ["git", (v) => (v?.detached ? `${v.branch} (detached)` : v?.branch)],
+  worktreeState: ["git", (v) => (v ? `${v.changed} changed, ${v.untracked} untracked` : null)],
+  upstream: ["git", (v) => (v?.upstream ? `${v.upstream} +${v.ahead} -${v.behind}` : null)],
+  conflicts: ["git", (v) => (v?.conflicts ? `${v.conflicts} unmerged` : null)],
+  pr: ["pr", (v) => (v ? `#${v.number} ${v.review ?? "open"}${v.source ? ` (${v.source})` : ""}` : null)],
+  repo: ["repo", (v) => (v?.owner ? `${v.owner}/${v.name}` : null)],
+  ci: ["ci", (v) => (v ? `${v.conclusion ?? v.status} ${v.workflow ?? ""}`.trim() : null)],
+  worktree: ["worktree", (v) => (v?.name ? `${v.name}${v.from ? ` from ${v.from}` : ""}` : null)],
+  projectDir: ["projectDir", (v) => v ?? null],
+  skills: ["skills", (v) => (v?.length ? v.join(", ") : null)],
+  todo: ["activity", (v) => (v?.todos ? `${v.todos.done}/${v.todos.total}` : null)],
+  activity: ["activity", (v) => (v ? (v.working ? "working" : "idle") : null)],
+  model: ["model", (v) => v ?? null],
+  effortStyle: ["effort", (v) => v ?? null],
+  agent: ["agent", (v) => v ?? null],
+  sessionName: ["sessionName", (v) => v ?? null],
+  context: ["context", (v) => (v === null ? "?%" : `${v}%`)],
+  compaction: ["context", (v) => (typeof v === "number" && v >= 85 ? "warning shown" : null)],
+  trend: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
+  tokens: ["tokens", (v) => (v?.used ? `${v.used} of ${v.size ?? "?"}` : null)],
+  contextSize: ["tokens", (v) => (v?.size ? String(v.size) : null)],
+  exceeds200k: ["tokens", (v) => (v?.exceeds200k ? "over" : null)],
+  fiveHour: ["fiveHour", (v) => (v === null ? "?%" : `${v}%`)],
+  burnRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
+  projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
+  sevenDay: ["sevenDay", (v) => (v === null ? "?%" : `${v}%`)],
+  resetMerged: ["fiveHourReset", (v, now) => formatResetCountdown(v, now) ?? "reset time unknown"],
+  duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
+  linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
+  apiTime: ["sessionCost", (v) => (v?.apiMs ? `${Math.round(v.apiMs / 60000)}m` : null)],
+  clock: ["dir", () => "from the system clock"],
+  rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
+  dir: ["dir", (v) => v ?? null],
+};
+
+const SEGMENTS = REGISTRY.map((row) => {
+  const [reading, describe] = DESCRIBE[row.key] ?? [row.key, (v) => (v == null ? null : String(v))];
+  return { ...row, reading, describe };
+});
 
 /** Segments whose value comes from cache, and the live probe for each. */
 const LIVE_PROBES = {
@@ -123,6 +152,10 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     const row = {
       key: segment.key,
       line: segment.line,
+      order: segment.order,
+      align: segment.align,
+      priority: segment.priority,
+      colour: segment.colour,
       rendered: Boolean(shown && value !== null),
       value: value ?? "—",
       source: reading?.source ?? "none",
@@ -150,6 +183,10 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
   return {
     cwd: readings.cwd,
     elapsedMs,
+    terminal: { columns: terminalWidth(), rows: terminalHeight() },
+    // Why "no burn rate yet" is the answer during the first minute of a
+    // session, without having to guess at it.
+    samples: (readings.samples?.value ?? []).length,
     budgets: { redrawMs: 300, sources: SOURCE_BUDGET_MS, refresh: REFRESH_BUDGET_MS },
     // Numbered by what was printed, not by the four-line scheme: with no
     // skills the second printed row is line 3's content, and calling it
@@ -169,6 +206,7 @@ export function formatReport(report) {
   const header = [
     pad("segment", 14),
     pad("line", 5),
+    pad("pri", 5),
     pad("shown", 6),
     pad("value", 36),
     pad("source", 11),
@@ -181,7 +219,8 @@ export function formatReport(report) {
     const live = row.live === undefined ? "" : `${row.live} (${row.liveTookMs} ms)`;
     return [
       pad(row.key, 14),
-      pad(row.line, 5),
+      pad(`${row.line}${row.align === "right" ? "→" : ""}`, 5),
+      pad(row.priority, 5),
       pad(row.rendered ? "yes" : "no", 6),
       pad(row.rendered ? row.value : row.reason, 36),
       pad(row.source, 11),
@@ -195,6 +234,8 @@ export function formatReport(report) {
   return [
     `working directory: ${report.cwd}`,
     `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,
+    `terminal: ${report.terminal.columns} columns, ${report.terminal.rows} rows`,
+    `history: ${report.samples} samples (a rate needs 5 spanning a minute)`,
     `rendered ${widths}`,
     "",
     header,

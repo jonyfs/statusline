@@ -29,10 +29,11 @@ await test("every segment on the line appears in the report", () => {
   // SC-007: nothing on screen may be missing from the diagnostic.
   const report = buildReport(payload, { now: NOW, live: false, probe });
   const keys = report.segments.map((s) => s.key);
+  // Feature 002 merged effort with the output style, and the two reset
+  // countdowns into one segment, so the names moved.
   for (const key of [
-    "dir", "branch", "worktree", "upstream", "pr", "skills", "model", "effort",
-    "outputStyle", "context", "fiveHour", "fiveHourReset", "sevenDay",
-    "sevenDayReset", "rtk", "remote",
+    "dir", "branch", "worktree", "upstream", "pr", "skills", "model",
+    "effortStyle", "context", "fiveHour", "sevenDay", "resetMerged", "rtk",
   ]) {
     assert.ok(keys.includes(key), `${key} is missing from the report`);
   }

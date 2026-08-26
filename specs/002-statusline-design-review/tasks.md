@@ -186,9 +186,9 @@ description: "Task list for the selected statusline redesign"
 
 ## Phase 11: The diagnostic [FR-016 carried forward]
 
-- [ ] T073 [P] Write `scripts/tests/doctor-002.test.js`: every row reports priority, line and alignment; a dropped segment says whether it was too narrow or on a shed line
-- [ ] T074 Add priority, line, align and the drop reason to `src/doctor.js`
-- [ ] T075 Report the sample ring's depth, so "no burn rate yet" has an explanation
+- [X] T073 [P] Write `scripts/tests/doctor-002.test.js`: every row reports priority, line and alignment; a dropped segment says whether it was too narrow or on a shed line
+- [X] T074 Add priority, line, align and the drop reason to `src/doctor.js`
+- [X] T075 Report the sample ring's depth, so "no burn rate yet" has an explanation
 
 ---
 

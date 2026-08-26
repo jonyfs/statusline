@@ -336,10 +336,15 @@ When something looks wrong, ask:
 node bin/cli.js doctor
 ```
 
-That prints one row per segment: what it shows, where the value came from,
-how old it is, what the source cost, and, for anything read from cache, the
-result of a live probe beside it. Every segment that isn't on the line says
-why not.
+That prints one row per segment: its priority, which line it belongs to,
+what it shows, where the value came from, how old it is, what the source
+cost, and, for anything read from cache, the result of a live probe beside
+it. Every segment that isn't on the line says why not.
+
+The header answers the two questions people actually ask. `terminal: 96
+columns, 24 rows` explains a segment that is missing because there was no
+room for it, and `history: 3 samples` explains why the burn rate has not
+appeared yet.
 
 ## Where the numbers come from
 

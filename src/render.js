@@ -226,6 +226,9 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
       probe.getSessionActivity(payload?.transcript_path, { now })
     ),
     ci: hasRepo ? timed("gh", () => probe.getCiStatus(cwd)) : missing("gh", "not a repository"),
+    // Exposed so the diagnostic can say how much history exists, which is
+    // why a rate is or is not on the bar yet.
+    samples: reading({ value: [], at: now, source: "samples" }),
     rtk: timed("rtk", () => probe.getRtkSavings(cwd)),
     model: reading({
       value: payload?.model?.display_name || payload?.model?.id || "Claude",
