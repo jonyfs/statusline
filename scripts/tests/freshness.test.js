@@ -3,6 +3,7 @@ import { test, stripAnsi } from "../test-harness.js";
 import { reading, isRenderable, MAX_AGE_MS, SOURCE_BUDGET_MS } from "../../src/freshness.js";
 import { renderPayload } from "../../src/render.js";
 import { emptySources } from "./fixtures/sources.js";
+import { SEGMENTS } from "../../src/segments.js";
 
 const NOW = 1787000000000;
 
@@ -72,4 +73,12 @@ await test("a partial payload leaves the present figures alone", () => {
   assert.match(plain, /Context [░█▓▒]* ?41%/);
   assert.match(plain, /5h \?%/);
   assert.match(plain, /7d \?%/);
+});
+
+await test("every segment in the registry has a maximum age", () => {
+  // `isRenderable` refuses a key it has no allowance for, so a segment
+  // missing from the table renders on the bar and reads as absent in the
+  // diagnostic — the diagnostic contradicting the line it explains.
+  const missing = SEGMENTS.filter((row) => MAX_AGE_MS[row.key] === undefined).map((row) => row.key);
+  assert.deepEqual(missing, []);
 });

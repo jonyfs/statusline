@@ -63,7 +63,17 @@ export function getDirUrl(cwd) {
   return pathToFileUrl(cwd || process.cwd());
 }
 
-function normalizeRemoteToHttps(remote) {
+/**
+ * A remote may carry credentials in its userinfo (`https://user:token@host/...`).
+ * The statusline turns the remote into a link, and a link that carries a token
+ * puts the token on screen and into whatever the terminal does with a URL.
+ */
+function stripCredentials(host) {
+  const at = host.indexOf("@");
+  return at === -1 ? host : host.slice(at + 1);
+}
+
+export function normalizeRemoteToHttps(remote) {
   if (!remote) return null;
   // git@host:owner/repo.git
   let m = remote.match(/^git@([^:]+):(.+?)(\.git)?$/);
@@ -73,7 +83,7 @@ function normalizeRemoteToHttps(remote) {
   if (m) return `https://${m[1]}/${m[2]}`;
   // https://host/owner/repo.git
   m = remote.match(/^https?:\/\/(.+?)(\.git)?$/);
-  if (m) return `https://${m[1]}`;
+  if (m) return `https://${stripCredentials(m[1])}`;
   return null;
 }
 
@@ -279,29 +289,66 @@ export function repoUrlFromPayload(repo) {
  * a detached refresh when it is halfway to expiring. With nothing cached
  * yet, the segment is simply absent until the first refresh lands.
  */
-export function getPrInfo(cwd, { now = Date.now() } = {}) {
+export function getPrInfo(cwd, { now = Date.now(), branch = null } = {}) {
   const key = repoKey(cwd);
   const entry = readEntry(key, "pr");
   if (shouldRefresh("pr", entry, now)) spawnRefresh(key, "pr", cwd, { now });
   if (!entry || now - entry.at > MAX_AGE_MS.pr) return null;
+  // A value cached under another branch describes another branch's pull
+  // request. The cache is per repository, so this is the only thing standing
+  // between a branch switch and a pull request number that belongs elsewhere.
+  if (branch && entry.value?.branch && entry.value.branch !== branch) return null;
   return entry.value;
 }
 
-/** The live `gh` call, used by the detached refresh and by `doctor`. */
-export function probePrInfo(cwd, timeout = 5000) {
+/**
+ * The branch a lookup applies to, so a cached answer can be refused once the
+ * branch has moved on. `gh` always asks about the checked-out branch, and the
+ * cache is keyed by repository, so without this a pull request from the branch
+ * you just left keeps its slot on the line.
+ *
+ * A detached HEAD has no branch name, and `rev-parse --abbrev-ref` says
+ * `HEAD` there. That is not a branch, and treating it as one would match
+ * every detached checkout against every other.
+ */
+export function currentBranch(cwd, timeout = SOURCE_BUDGET_MS.git) {
+  const name = gitText(["rev-parse", "--abbrev-ref", "HEAD"], cwd, timeout);
+  return !name || name === "HEAD" ? null : name;
+}
+
+/**
+ * The live `gh` call, with the difference between the two ways it can come
+ * back empty: this branch has no pull request, or the lookup did not run.
+ *
+ * They are not the same answer. "No pull request" is a fact worth caching,
+ * since it clears whatever the previous branch left there. "The lookup
+ * failed" is not, and overwriting a good value with it would make a network
+ * hiccup look like a closed pull request.
+ */
+export function probePrResult(cwd, timeout = 5000) {
+  const branch = currentBranch(cwd);
   try {
     const out = execFileSync("gh", ["pr", "view", "--json", "number,state,isDraft,url"], {
       cwd,
       timeout,
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
+      stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
     const pr = JSON.parse(out);
-    return { number: pr.number, state: pr.state, isDraft: pr.isDraft, url: pr.url };
-  } catch {
-    return null;
+    return { state: "found", value: { number: pr.number, state: pr.state, isDraft: pr.isDraft, url: pr.url, branch } };
+  } catch (err) {
+    const stderr = String(err?.stderr ?? "");
+    // `gh` says so in words, and its exit code does not distinguish this from
+    // an authentication failure or an unreachable network.
+    if (/no (open )?pull requests? found/i.test(stderr)) return { state: "none", value: null, branch };
+    return { state: "failed", value: null, branch };
   }
+}
+
+/** The pull request itself, for `doctor` and for anything that only wants the value. */
+export function probePrInfo(cwd, timeout = 5000) {
+  return probePrResult(cwd, timeout).value;
 }
 
 /** The live git snapshot, used by the detached refresh and by `doctor`. */
@@ -312,37 +359,61 @@ export function probeGitInfo(cwd, timeout) {
 }
 
 /**
- * The last CI run's conclusion for this branch, from `gh run list`.
+ * The last CI run's conclusion for the checked-out branch, from `gh run list`.
+ *
+ * `--branch` is what makes that sentence true. Without it `gh` answers with
+ * the repository's most recent run whatever branch it belongs to, so a branch
+ * that was never pushed inherited main's green tick — a tick about work that
+ * is not the work on screen.
  *
  * A network call, so it never runs during a redraw: it lives behind the
  * same detached refresh the pull request lookup uses, and a value older
  * than its maximum age disappears rather than going stale. A green tick
  * that is actually ten minutes old is worse than no tick.
  */
-export function probeCiStatus(cwd, timeout = 5000) {
+export function probeCiResult(cwd, timeout = 5000) {
+  const branch = currentBranch(cwd);
+  // With no branch name there is nothing to scope the query to, and an
+  // unscoped answer is the bug this exists to fix.
+  if (!branch) return { state: "none", value: null, branch: null };
   try {
     const out = execFileSync(
       "gh",
-      ["run", "list", "--limit", "1", "--json", "conclusion,status,workflowName"],
-      { cwd, timeout, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true }
+      ["run", "list", "--branch", branch, "--limit", "1", "--json", "conclusion,status,workflowName"],
+      { cwd, timeout, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true }
     );
     const [run] = JSON.parse(out);
-    if (!run) return null;
+    // An empty list is an answer: this branch has no run. Caching it clears
+    // whatever the previous branch left behind.
+    if (!run) return { state: "none", value: null, branch };
     return {
-      conclusion: run.conclusion || null,
-      status: run.status || null,
-      workflow: run.workflowName || null,
+      state: "found",
+      value: {
+        conclusion: run.conclusion || null,
+        status: run.status || null,
+        workflow: run.workflowName || null,
+        branch,
+      },
+      branch,
     };
   } catch {
-    return null;
+    return { state: "failed", value: null, branch };
   }
 }
 
+/** The run itself, for `doctor`. */
+export function probeCiStatus(cwd, timeout = 5000) {
+  return probeCiResult(cwd, timeout).value;
+}
+
 /** CI status, read from cache only, refreshed in the background. */
-export function getCiStatus(cwd, { now = Date.now() } = {}) {
+export function getCiStatus(cwd, { now = Date.now(), branch = null } = {}) {
   const key = repoKey(cwd);
   const entry = readEntry(key, "ci");
   if (shouldRefresh("ci", entry, now)) spawnRefresh(key, "ci", cwd, { now });
   if (!entry || now - entry.at > (MAX_AGE_MS.ci ?? 60_000)) return null;
+  // Same rule as the pull request: a run from another branch says nothing
+  // about this one.
+  if (branch && entry.value?.branch && entry.value.branch !== branch) return null;
   return entry.value;
 }

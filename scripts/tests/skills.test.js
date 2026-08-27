@@ -69,3 +69,13 @@ await test("a missing or unreadable transcript yields no skills, not a crash", (
   assert.deepEqual(getActiveSkills(undefined), []);
   assert.deepEqual(getActiveSkills(path.join(os.tmpdir(), "does-not-exist-12345.jsonl")), []);
 });
+
+await test("the activity scan's skills are reused instead of a second walk", () => {
+  // The activity pass walks the same tail with the same window and collects
+  // the skills on the way past them. Reading the file again cost a second
+  // walk over a transcript that can be megabytes.
+  const missing = path.join(os.tmpdir(), "no-such-transcript.jsonl");
+  assert.deepEqual(getActiveSkills(missing, 3, { scanned: ["alpha", "beta"] }), ["alpha", "beta"]);
+  assert.deepEqual(getActiveSkills(missing, 1, { scanned: ["alpha", "beta"] }), ["alpha"]);
+  assert.deepEqual(getActiveSkills(missing, 3, {}), [], "with nothing scanned it still asks the file");
+});

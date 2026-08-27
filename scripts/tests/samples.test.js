@@ -8,6 +8,8 @@ import {
   movedBy,
   MAX_SAMPLES,
   MIN_SAMPLES_FOR_RATE,
+  MAX_SPAN_MS,
+  MAX_GAP_MS,
 } from "../../src/samples.js";
 
 const T0 = 1787000000000;
@@ -84,4 +86,47 @@ await test("a value only counts as moved once it has moved far enough", () => {
   assert.equal(movedBy(80, 85, 5), true);
   assert.equal(movedBy(80, 75, 5), true, "down counts too");
   assert.equal(movedBy(undefined, 80, 5), true, "the first value always counts");
+});
+
+// Bounding the history --------------------------------------------------
+//
+// The ring is capped by count, and a count is not a bound on time: redraws
+// are event-driven and the installed refresh interval is 60 seconds, so
+// sixty samples can span an hour, or a night in a session left open.
+
+await test("a sample older than the span is dropped, so a rate stays recent", () => {
+  const old = [{ at: T0, contextPct: 10, fiveHourPct: 10, rtkPct: null }];
+  const pushed = pushSample(old, { at: T0 + MAX_SPAN_MS + 60_000, contextPct: 12, fiveHourPct: 12 });
+  assert.equal(pushed.length, 1, "only the new sample survives its own span");
+  assert.equal(pushed[0].fiveHourPct, 12);
+});
+
+await test("a gap nobody observed ends the history rather than stretching it", () => {
+  const before = ring(5, 15_000, 10, 1);
+  const last = before[before.length - 1];
+  const resumed = pushSample(before, {
+    at: last.at + MAX_GAP_MS + 1000,
+    contextPct: 40,
+    fiveHourPct: 40,
+  });
+  assert.equal(resumed.length, 1);
+  assert.equal(ratePerHour(resumed, "fiveHourPct"), null, "one sample is not a rate");
+});
+
+await test("a window that reset starts the history again", () => {
+  // The 5-hour figure only climbs inside its window. A fall of this size is
+  // the window rolling, and a rate spanning the boundary is arithmetic on
+  // two unrelated series.
+  const climbing = ring(6, 15_000, 80, 1);
+  const last = climbing[climbing.length - 1];
+  const afterReset = pushSample(climbing, { at: last.at + 15_000, contextPct: 30, fiveHourPct: 2 });
+  assert.equal(afterReset.length, 1);
+  assert.equal(afterReset[0].fiveHourPct, 2);
+});
+
+await test("an ordinary redraw still extends the history", () => {
+  const before = ring(4, 15_000, 10, 1);
+  const last = before[before.length - 1];
+  const pushed = pushSample(before, { at: last.at + 15_000, contextPct: 20, fiveHourPct: last.fiveHourPct + 1 });
+  assert.equal(pushed.length, 5);
 });

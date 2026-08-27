@@ -16,8 +16,38 @@
  * measured ones gets read as measured.
  */
 
-/** How many samples to keep. Sixty redraws is about six minutes. */
+/** How many samples to keep. */
 export const MAX_SAMPLES = 60;
+
+/**
+ * How far back a rate may reach.
+ *
+ * A count is not a bound on time. Redraws are event-driven, and the installed
+ * refresh interval is 60 seconds, so sixty samples can span an hour — or a
+ * whole night, if the session was left open. A rate drawn across that says
+ * what the average was while nobody was working, presented beside numbers
+ * that describe now.
+ */
+export const MAX_SPAN_MS = 15 * 60_000;
+
+/**
+ * A gap this long ends the history rather than stretching it.
+ *
+ * Nothing was observed across the gap, so the two sides of it are two
+ * different stretches of work, and a line drawn between them is a rate over
+ * a period that was never measured.
+ */
+export const MAX_GAP_MS = 5 * 60_000;
+
+/**
+ * A drop this large in a tracked percentage means the window reset.
+ *
+ * The 5-hour figure only climbs inside its window; when the window rolls it
+ * falls to near nothing. Samples from before that point describe a window
+ * that no longer exists, and a rate spanning the boundary is arithmetic on
+ * two unrelated series.
+ */
+export const RESET_DROP_POINTS = 5;
 
 /** Below these, a rate is not computed at all. */
 export const MIN_SAMPLES_FOR_RATE = 5;
@@ -39,7 +69,21 @@ export function pushSample(samples, sample) {
   // out-of-order sample rather than the whole history.
   const last = ring[ring.length - 1];
   if (last && clean.at < last.at) return ring;
-  return [...ring, clean].slice(-MAX_SAMPLES);
+
+  // Two things end the history rather than extending it: a gap nobody
+  // observed, and a window that reset underneath it.
+  if (last && (clean.at - last.at > MAX_GAP_MS || windowReset(last, clean))) return [clean];
+
+  const kept = [...ring, clean].filter((s) => clean.at - s.at <= MAX_SPAN_MS);
+  return kept.slice(-MAX_SAMPLES);
+}
+
+/** Whether the 5-hour figure fell far enough to mean the window rolled. */
+function windowReset(previous, current) {
+  const before = numberOrNull(previous?.fiveHourPct);
+  const after = numberOrNull(current?.fiveHourPct);
+  if (before === null || after === null) return false;
+  return before - after >= RESET_DROP_POINTS;
 }
 
 function numberOrNull(v) {

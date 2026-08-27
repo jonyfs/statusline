@@ -26,7 +26,6 @@ export const REDRAW_INTERVAL_MS = 6_000;
 export const MAX_AGE_MS = {
   dir: REDRAW_INTERVAL_MS,
   branch: 5_000,
-  worktree: 5_000,
   upstream: 5_000,
   remote: 24 * 60 * 60 * 1000,
   // Identity parsed by Claude Code from the origin remote. It arrives with
@@ -34,6 +33,11 @@ export const MAX_AGE_MS = {
   repo: REDRAW_INTERVAL_MS,
   worktree: REDRAW_INTERVAL_MS,
   conflicts: 5_000,
+  // Counted by the same git snapshot the branch comes from, so it keeps the
+  // same allowance. Without a row here the segment renders and the
+  // diagnostic reports it as absent, which is the diagnostic contradicting
+  // the line it exists to explain.
+  worktreeState: 5_000,
   compaction: 1_000,
   burnRate: REDRAW_INTERVAL_MS,
   projection: REDRAW_INTERVAL_MS,
@@ -73,6 +77,8 @@ export const MAX_AGE_MS = {
   fiveHourReset: 1_000,
   sevenDay: 1_000,
   sevenDayReset: 1_000,
+  // Built from the two reset timestamps above, and as current as they are.
+  resetMerged: 1_000,
 };
 
 /**

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { displayWidth } from "../../src/theme.js";
-import { gitSources, fullPayload } from "./fixtures/sources.js";
+import { emptySources, gitSources, fullPayload } from "./fixtures/sources.js";
 
 const LIMIT = 120;
 const NOW = Date.parse("2026-08-25T12:00:00.000Z");
@@ -138,4 +138,21 @@ await test("a very long directory name is shortened from the left, keeping the e
   );
   const line1 = out.split("\n")[0];
   assert.ok(displayWidth(line1) <= LIMIT, `line 1 is ${displayWidth(line1)} columns`);
+});
+
+await test("a directory name of wide characters is cut by columns, not by characters", () => {
+  // Each of these draws two columns. Counting them as one cut half of what
+  // was needed and left the line over the limit anyway.
+  const wide = "統計行状態表示器の作業ディレクトリ";
+  const out = stripAnsi(
+    renderPayload(fullPayload({ cwd: `/tmp/${wide}` }), {
+      sources: emptySources,
+      trackChanges: false,
+      maxWidth: 24,
+      maxHeight: 40,
+    })
+  );
+  const line1 = out.split("\n")[0];
+  assert.ok(line1.includes("…"), "the label was shortened");
+  assert.ok(displayWidth(line1) <= 24, `line 1 is ${displayWidth(line1)} columns`);
 });

@@ -18,15 +18,28 @@ import { pushSample } from "./samples.js";
  * holds on its current frame.
  */
 
-const STATUSLINE_DIR = path.join(os.homedir(), ".claude", "statusline");
-const STATE_DIR = path.join(STATUSLINE_DIR, "state");
+/**
+ * Resolved per call rather than at import, the way the cache and the skill
+ * events already do it. A path fixed at import time follows whichever home
+ * directory the process started with, which is not the one a test running
+ * against a throwaway HOME means.
+ */
+function statuslineDir() {
+  return path.join(os.homedir(), ".claude", "statusline");
+}
+
+function stateDir() {
+  return path.join(statuslineDir(), "state");
+}
 
 /**
  * Directories swept alongside the animation state: the per-repository
  * cache and the per-session skill event files. All three are disposable,
  * so one sweep with one rule covers them.
  */
-const SWEPT_DIRS = [STATE_DIR, path.join(STATUSLINE_DIR, "cache"), path.join(STATUSLINE_DIR, "skills")];
+function sweptDirs() {
+  return [stateDir(), path.join(statuslineDir(), "cache"), path.join(statuslineDir(), "skills")];
+}
 const HIGHLIGHT_MS = 30_000;
 const STALE_STATE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -49,7 +62,7 @@ const HIGHLIGHTED = new Set(["branch", "pr", "skills", "model"]);
 
 function sessionStateFile(sessionId) {
   const safe = String(sessionId || "default").replace(/[^A-Za-z0-9_-]/g, "_");
-  return path.join(STATE_DIR, `${safe}.json`);
+  return path.join(stateDir(), `${safe}.json`);
 }
 
 function loadState(sessionId) {
@@ -66,7 +79,7 @@ function loadState(sessionId) {
  * forever, and every repository ever visited would leave a cache.
  */
 function pruneStaleState(now) {
-  for (const dir of SWEPT_DIRS) {
+  for (const dir of sweptDirs()) {
     try {
       for (const name of readdirSync(dir)) {
         const file = path.join(dir, name);
@@ -84,7 +97,7 @@ function pruneStaleState(now) {
 
 function saveState(sessionId, state) {
   try {
-    mkdirSync(STATE_DIR, { recursive: true });
+    mkdirSync(stateDir(), { recursive: true });
     writeFileSync(sessionStateFile(sessionId), JSON.stringify(state));
   } catch {
     // best-effort: losing change tracking must never break the statusline

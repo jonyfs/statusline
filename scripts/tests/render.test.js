@@ -3,6 +3,7 @@ import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { PALETTES } from "../../src/theme.js";
 import { emptySources, gitSources, fullPayload } from "./fixtures/sources.js";
+import { makeHome, withHome } from "./fixtures/home.js";
 
 await test("renders with a fully populated payload", () => {
   const out = renderPayload(fullPayload({ cwd: process.cwd() }), { sources: emptySources });
@@ -96,4 +97,59 @@ await test("ASCII mode emits no private-use codepoints at all", () => {
     `ASCII mode leaked ${pua.length} private-use glyph(s): ` +
       pua.map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(" ")
   );
+});
+
+// The throttled savings figure ---------------------------------------------
+
+await test("the savings figure is only remembered once it has actually been drawn", async () => {
+  // It renders when it has moved five points since the last one shown. A
+  // narrow terminal drops it by priority, and recording it as shown there
+  // meant the reader never saw the figure at all: the next redraw compared
+  // against a value that was never on screen and stayed silent.
+  // In a throwaway HOME: what a segment last showed lives in the per-session
+  // state file, and a case that wrote to the real one would pass or fail by
+  // what an earlier run left behind.
+  const home = makeHome();
+  await withHome(home, () => {
+    const payload = fullPayload({ session_id: "rtk-throttle-case", cwd: process.cwd() });
+    const sources = { ...emptySources, getRtkSavings: () => 63 };
+    const narrow = stripAnsi(
+      renderPayload(payload, { sources, now: Date.now(), maxWidth: 46, maxHeight: 40 })
+    );
+    assert.doesNotMatch(narrow, /rtk/, "there is no room for it on a 46-column line");
+
+    const wide = stripAnsi(
+      renderPayload(payload, { sources, now: Date.now(), maxWidth: 400, maxHeight: 40 })
+    );
+    assert.match(wide, /rtk 63% saved/, "the wide redraw is the first time it is shown");
+
+    const again = stripAnsi(
+      renderPayload(payload, { sources, now: Date.now(), maxWidth: 400, maxHeight: 40 })
+    );
+    assert.doesNotMatch(again, /rtk/, "and now it holds until it moves five points");
+  });
+});
+
+// Column alignment ---------------------------------------------------------
+
+await test("the first segment of each line is padded to a common width", () => {
+  const lines = stripAnsi(
+    renderPayload(fullPayload({ cwd: process.cwd() }), {
+      sources: gitSources(),
+      trackChanges: false,
+      maxWidth: 400,
+      maxHeight: 40,
+    })
+  ).split("\n");
+
+  // Each line's first segment ends at the same column, so the boundaries
+  // line up down the bar instead of each line starting its own table.
+  // Written as an escape: a pasted private-use literal has vanished from a
+  // file in this repository before, leaving an empty string that matches
+  // everything and a test that passes without checking anything.
+  const SEPARATOR = "\u{E0B0}";
+  const firstBoundary = (line) => line.indexOf(SEPARATOR, 1);
+  const boundaries = lines.map(firstBoundary).filter((i) => i > 0);
+  assert.ok(boundaries.length >= 2, "more than one line has a boundary to align");
+  assert.equal(new Set(boundaries).size, 1, `boundaries land at ${boundaries.join(", ")}`);
 });
