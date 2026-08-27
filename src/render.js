@@ -27,7 +27,7 @@ import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel } from "./segments.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
-import { movedBy, ratePerHour, projectFull } from "./samples.js";
+import { ratePerHour, projectFull } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight } from "./layout.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
@@ -684,17 +684,20 @@ export function renderReadings(
       if (!both.length) return { color: "surface2", text: ` ${face} reset unknown ` };
       return { color: "surface2", text: ` ${face} ${both.join(" / ")} ` };
     },
-    // C5's chosen form: the savings figure only earns its width once it has
-    // moved five points. It is the slowest-moving thing on the line, and a
-    // number that says the same thing every redraw is a number nobody reads.
-    // Whether it was actually drawn is decided after the line is fitted, not
-    // here: this builder runs once per trim step, and a segment built here
-    // can still be dropped by the width fit. Recording it as shown at this
-    // point meant a narrow terminal remembered a figure the reader never saw,
-    // and then hid it until it moved another five points.
+    // C5 asked for this figure to render only once it had moved five points,
+    // on the reasoning that a number repeating itself every redraw is a
+    // number nobody reads. That reasoning does not survive what the number
+    // is: `rtk gain` reports a lifetime average over thousands of commands,
+    // and a lifetime average does not move five points. The segment showed
+    // itself on a session's first redraw and was never seen again.
+    //
+    // So it renders whenever there is a value. Its width is already governed
+    // by its priority, the lowest on the bar, which makes it the first thing
+    // a narrow line drops — the same outcome the throttle was reaching for,
+    // decided by the terminal rather than by a threshold the figure cannot
+    // cross.
     rtk: (o) => {
       if (!o.rtk || rtkPct === null) return null;
-      if (!movedBy(changes.lastShown?.rtk, rtkPct, 5)) return null;
       return { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` };
     },
 
@@ -755,10 +758,6 @@ export function renderReadings(
     if (rowWidth(l4) <= maxWidth) break;
     l4 = fit(buildLine4(step));
   }
-  // Now that the line is settled, the throttled figure knows whether it was
-  // drawn. Only a segment that survived both the trim and the width fit
-  // counts as shown.
-  if (rtkPct !== null && l4.some((seg) => seg.key === "rtk")) changes.remember?.("rtk", rtkPct);
   rows.push(l4);
   rendered.push(4);
 

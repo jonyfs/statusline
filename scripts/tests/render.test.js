@@ -101,35 +101,6 @@ await test("ASCII mode emits no private-use codepoints at all", () => {
 
 // The throttled savings figure ---------------------------------------------
 
-await test("the savings figure is only remembered once it has actually been drawn", async () => {
-  // It renders when it has moved five points since the last one shown. A
-  // narrow terminal drops it by priority, and recording it as shown there
-  // meant the reader never saw the figure at all: the next redraw compared
-  // against a value that was never on screen and stayed silent.
-  // In a throwaway HOME: what a segment last showed lives in the per-session
-  // state file, and a case that wrote to the real one would pass or fail by
-  // what an earlier run left behind.
-  const home = makeHome();
-  await withHome(home, () => {
-    const payload = fullPayload({ session_id: "rtk-throttle-case", cwd: process.cwd() });
-    const sources = { ...emptySources, getRtkSavings: () => 63 };
-    const narrow = stripAnsi(
-      renderPayload(payload, { sources, now: Date.now(), maxWidth: 46, maxHeight: 40 })
-    );
-    assert.doesNotMatch(narrow, /rtk/, "there is no room for it on a 46-column line");
-
-    const wide = stripAnsi(
-      renderPayload(payload, { sources, now: Date.now(), maxWidth: 400, maxHeight: 40 })
-    );
-    assert.match(wide, /rtk 63% saved/, "the wide redraw is the first time it is shown");
-
-    const again = stripAnsi(
-      renderPayload(payload, { sources, now: Date.now(), maxWidth: 400, maxHeight: 40 })
-    );
-    assert.doesNotMatch(again, /rtk/, "and now it holds until it moves five points");
-  });
-});
-
 // Column alignment ---------------------------------------------------------
 
 await test("the first segment of each line is padded to a common width", () => {

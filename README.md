@@ -220,9 +220,13 @@ The weekday beside the 7-day figure appears only when the reset is more than
 a day out. Inside a day the countdown already says it, and the weekday would
 be today's or tomorrow's name for no gain.
 
-The savings figure waits until it has moved five points before it renders
-again. It is the slowest thing on the bar, and a number that says the same
-thing every redraw is a number nobody reads.
+The savings figure used to wait until it had moved five points before
+rendering again, on the reasoning that a number repeating itself every redraw
+is a number nobody reads. `rtk gain` reports a lifetime average over
+thousands of commands, and a lifetime average never moves five points: the
+segment showed itself once per session and was never seen again. It renders
+whenever there is a value now, and its priority — the lowest on the bar —
+is what takes it off a line with no room.
 
 ## What it knows about the work
 
@@ -439,9 +443,9 @@ stop at a 7-day window, so a monthly number would have to be invented, and
 this thing doesn't invent numbers to fill space.
 
 **The rtk savings figure** comes from `rtk gain --format json`, and only
-appears when `rtk` is installed. It is rtk's own average across everything it
-has proxied rather than a number about this repository, so one cached value
-serves every directory.
+appears when `rtk` is installed. It is rtk's own lifetime average across
+everything it has proxied rather than a number about this repository, so one
+cached value serves every directory.
 
 **Pull request info** comes from Claude Code itself, which sends the open
 pull request for your branch along with everything else: its number, its URL

@@ -108,12 +108,3 @@ await test("the merged reset segment is reported, and reports both windows", () 
   assert.equal(row.rendered, true, "it is on line 4, so the diagnostic must not call it absent");
   assert.match(row.value, /resets in .+ \/ resets in /);
 });
-
-await test("a segment the line held back is not reported as shown", () => {
-  // The savings figure renders once and then waits for five points. The
-  // diagnostic reads the line rather than assuming.
-  const withRtk = { ...probe, getRtkSavings: () => 50 };
-  const payload = fullPayload({ cwd: process.cwd(), session_id: "doctor-throttle-case" });
-  const first = buildReport(payload, { now: NOW, live: false, probe: withRtk });
-  assert.equal(first.segments.find((r) => r.key === "rtk").rendered, true);
-});

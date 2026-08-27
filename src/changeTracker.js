@@ -120,8 +120,6 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
       colourFor: (_key, base) => base,
       iconFor: (_key, staticIcon) => staticIcon,
       samples: [],
-      lastShown: {},
-      remember: () => {},
     };
   }
 
@@ -145,16 +143,12 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
   // moved. It rides in the file that already exists rather than a second
   // store, and is bounded so the file cannot grow.
   const samples = sample ? pushSample(previous?.samples, { at: now, ...sample }) : previous?.samples || [];
-  const lastShown = { ...(previous?.lastShown || {}) };
 
   // Swept once per session, on its first render — deterministic, and
   // frequent enough given each session starts exactly once.
   if (!previous) pruneStaleState(now);
 
-  const pendingShown = {};
-  const persist = () =>
-    saveState(sessionId, { snapshot, changedAt, frame, samples, lastShown: { ...lastShown, ...pendingShown } });
-  persist();
+  saveState(sessionId, { snapshot, changedAt, frame, samples });
 
   return {
     isChanged: (key) => Object.hasOwn(changedAt, key),
@@ -172,12 +166,5 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
     iconFor: (_key, staticIcon) => staticIcon,
     /** The sample ring, for whatever wants to read a direction out of it. */
     samples,
-    /** What each throttled segment last showed, so it knows when to move. */
-    lastShown,
-    /** Records a value as shown, for the next redraw to compare against. */
-    remember: (key, value) => {
-      pendingShown[key] = value;
-      persist();
-    },
   };
 }

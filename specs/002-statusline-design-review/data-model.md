@@ -84,7 +84,7 @@ worth the width again.
 | 48 | `linesChanged` (moved to line 1 on 2026-08-26, beside the other change counts) |
 | 45 | `repo` (owner and name, from the payload) |
 | 44 | `projectDir` (when it differs from cwd) |
-| 40 | `rtk` (only when it moved five points) |
+| 40 | `rtk` (C5's five-point condition dropped on 2026-08-27: `rtk gain` is a lifetime average, which does not move five points, so the segment rendered once per session and never again) |
 
 The bands say what the ordering means, so a later addition can be placed by asking which
 band it belongs in rather than picking a number. Anything that would change what a

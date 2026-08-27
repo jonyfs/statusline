@@ -94,22 +94,6 @@ const LIVE_PROBES = {
 };
 
 /**
- * Segments the renderer may hold back after deciding they could be shown,
- * with what to say when it does.
- */
-const THROTTLED = new Map([["rtk", "unchanged since last shown, which needs five points"]]);
-
-/** The marker text each throttled segment prints, for spotting it in a line. */
-const MARKERS = { rtk: "rtk" };
-
-/** Which of the throttled segments appear in a rendered line. */
-function keysIn(text) {
-  return Object.entries(MARKERS)
-    .filter(([, marker]) => text.includes(marker))
-    .map(([key]) => key);
-}
-
-/**
  * Why a segment is not on the line. The distinction that matters is
  * between "there is nothing to show here" and "the source failed", which
  * a blank line cannot express (FR-017).
@@ -178,10 +162,6 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
   const readings = gather(payload, probes, { now });
   const rendered = renderReadings(readings, payload, { tracking: false, now, asRows: true });
   const elapsedMs = Date.now() - started;
-  // Which keys the bar actually drew. A segment can be renderable and still
-  // be left off by the width fit or by its own throttle, and reporting it as
-  // shown when it is not is the diagnostic describing a line nobody has.
-  const drawnKeys = new Set(rendered.flatMap((entry) => keysIn(entry.text)));
 
   const rows = SEGMENTS.map((segment) => {
     const reading = readings[segment.reading];
@@ -203,11 +183,7 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
       fresh: reading?.fresh ?? false,
       tookMs: reading?.tookMs ?? 0,
     };
-    if (row.rendered && THROTTLED.has(segment.key) && !drawnKeys.has(segment.key)) {
-      row.rendered = false;
-      row.reason = THROTTLED.get(segment.key);
-    }
-    if (!row.rendered) row.reason = row.reason ?? absenceReason(segment, reading, readings, now);
+    if (!row.rendered) row.reason = absenceReason(segment, reading, readings, now);
 
     if (live && LIVE_PROBES[segment.key]) {
       const at = Date.now();
