@@ -52,23 +52,29 @@ const DESCRIBE = {
   todo: ["activity", (v) => (v?.todos ? `${v.todos.done}/${v.todos.total}` : null)],
   activity: ["activity", (v) => (v ? (v.working ? "working" : "idle") : null)],
   model: ["model", (v) => v ?? null],
-  effortStyle: ["effort", (v) => v ?? null],
-  agent: ["agent", (v) => v ?? null],
-  sessionName: ["sessionName", (v) => v ?? null],
+  effort: ["effort", (v) => v ?? null],
   context: ["context", (v) => (v === null ? "?%" : `${v}%`)],
-  compaction: ["context", (v) => (typeof v === "number" && v >= 85 ? "warning shown" : null)],
-  contextSize: ["tokens", (v) => (v?.size ? String(v.size) : null)],
-  exceeds200k: ["tokens", (v) => (v?.exceeds200k ? "over" : null)],
   fiveHour: ["fiveHour", (v) => (v === null ? "?%" : `${v}%`)],
   burnRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   sevenDay: ["sevenDay", (v) => (v === null ? "?%" : `${v}%`)],
-  resetMerged: ["fiveHourReset", (v, now) => formatResetCountdown(v, now) ?? "reset time unknown"],
+  // One segment carrying both countdowns, so the diagnostic reports both. A
+  // row that described only the 5-hour one named half of what is on the line.
+  resetMerged: ["resetMerged", (v, now) => describeResets(v, now)],
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
   dir: ["dir", (v) => v ?? null],
 };
+
+/** Both countdowns, in the order the segment draws them. */
+function describeResets(value, now) {
+  const both = [
+    formatResetCountdown(value?.fiveHour, now),
+    formatResetCountdown(value?.sevenDay, now),
+  ].filter(Boolean);
+  return both.length ? both.join(" / ") : "reset time unknown";
+}
 
 const SEGMENTS = REGISTRY.map((row) => {
   const [reading, describe] = DESCRIBE[row.key] ?? [row.key, (v) => (v == null ? null : String(v))];
@@ -78,7 +84,10 @@ const SEGMENTS = REGISTRY.map((row) => {
 /** Segments whose value comes from cache, and the live probe for each. */
 const LIVE_PROBES = {
   branch: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
-  worktree: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
+  // The worktree segment reads the payload, not git, so there is no live
+  // probe for it: running one compared a worktree name against a git
+  // snapshot and printed whichever field happened to line up.
+  worktreeState: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
   upstream: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
   pr: (cwd) => normalizePr(probePrInfo(cwd, REFRESH_BUDGET_MS.gh), "gh"),
   rtk: (cwd) => probeRtkSavings(cwd, REFRESH_BUDGET_MS.rtk),
@@ -116,7 +125,7 @@ function absenceReason(segment, reading, readings, now) {
     return `value is ${Math.round(age / 1000)}s old, past its ${Math.round(MAX_AGE_MS[segment.key] / 1000)}s limit`;
   }
   if (segment.key === "outputStyle" && reading.value === "default") return "the default style is not worth a segment";
-  if (segment.key === "worktree" && reading.value.changed === 0 && reading.value.untracked === 0) {
+  if (segment.key === "worktreeState" && reading.value.changed === 0 && reading.value.untracked === 0) {
     return "a clean tree adds no counters";
   }
   if (segment.key === "upstream" && reading.value.upstream === null) return "the branch has no upstream";
@@ -151,7 +160,7 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
 
   const started = Date.now();
   const readings = gather(payload, probes, { now });
-  const rendered = renderReadings(readings, payload, { tracking: false, now });
+  const rendered = renderReadings(readings, payload, { tracking: false, now, asRows: true });
   const elapsedMs = Date.now() - started;
 
   const rows = SEGMENTS.map((segment) => {
@@ -202,7 +211,10 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     // Numbered by what was printed, not by the four-line scheme: with no
     // skills the second printed row is line 3's content, and calling it
     // "line 2" in a diagnostic would be the diagnostic lying.
-    rows: rendered.split("\n").map((line, i) => ({ row: i + 1, width: displayWidth(line) })),
+    // Reported by the line each row is, not by where it landed: with no
+    // skills the second printed row is line 3, and calling it row 2 leaves
+    // the reader matching widths against the wrong content.
+    rows: rendered.map((entry, i) => ({ row: i + 1, line: entry.line, width: displayWidth(entry.text) })),
     segments: rows,
   };
 }
@@ -241,7 +253,7 @@ export function formatReport(report) {
     ].join("");
   });
 
-  const widths = report.rows.map((l) => `row ${l.row}: ${l.width} columns`).join(", ");
+  const widths = report.rows.map((l) => `line ${l.line}: ${l.width} columns`).join(", ");
   return [
     `working directory: ${report.cwd}`,
     `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,

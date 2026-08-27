@@ -65,5 +65,13 @@ export function resetMomentLabel(resetsAtSeconds, now = new Date()) {
     d.getDate() === tomorrow.getDate();
 
   if (isTomorrow) return `tomorrow ${hhmm}`;
+
+  // A weekday name only identifies a day inside the coming week. Seven days
+  // out it is today's own name, which reads as today and makes a reset a
+  // week away look imminent. Past six days the date says it instead.
+  const daysAhead = Math.floor((d - now) / (24 * 60 * 60 * 1000));
+  if (daysAhead >= 6) {
+    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} ${hhmm}`;
+  }
   return `${WEEKDAYS[d.getDay()]} ${hhmm}`;
 }

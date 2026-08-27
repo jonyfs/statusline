@@ -12,8 +12,16 @@ import { repoKey, readEntry, shouldRefresh, spawnRefresh } from "./cache.js";
  * unparseable, nothing is ever cached and the segment simply never
  * appears, which is what it did before.
  */
+/**
+ * `rtk gain` reports the average across everything rtk has ever proxied, not
+ * across this repository, so one cache entry serves every directory. Keying
+ * it per repository stored the same global number once per repository and
+ * paid for a fresh lookup in each of them.
+ */
+export const RTK_CACHE_KEY = repoKey("rtk-global");
+
 export function getRtkSavings(cwd, { now = Date.now() } = {}) {
-  const key = repoKey(cwd);
+  const key = RTK_CACHE_KEY;
   const entry = readEntry(key, "rtk");
   if (shouldRefresh("rtk", entry, now)) spawnRefresh(key, "rtk", cwd, { now });
   if (!entry || now - entry.at > MAX_AGE_MS.rtk) return null;

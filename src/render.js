@@ -27,8 +27,8 @@ import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel } from "./segments.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
-import { movedBy, ratePerHour, projectFull } from "./samples.js";
-import { fitToWidth, alignColumns, linesToRender, terminalWidth, terminalHeight } from "./layout.js";
+import { ratePerHour, projectFull } from "./samples.js";
+import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight } from "./layout.js";
 
 // Nerd Font Octicons, written as escapes rather than literal private-use
 // characters: pasted literals silently vanished from this file once
@@ -161,12 +161,16 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
 const SKILLS_SHOWN = 5;
 const SKILLS_PROBED = 12;
 
-function skillsReading(timed, probe, payload) {
+function skillsReading(timed, probe, payload, scanned) {
   // The session id lets the hook's event file be found. Without one, or
   // without the hook, the transcript answers instead and the line is the
-  // same, only slower to react.
+  // same, only slower to react. `scanned` is what the activity pass already
+  // found on that same walk, so the fallback costs no second read.
   const all = timed("transcript", () =>
-    probe.getActiveSkills(payload?.transcript_path, SKILLS_PROBED, { sessionId: payload?.session_id })
+    probe.getActiveSkills(payload?.transcript_path, SKILLS_PROBED, {
+      sessionId: payload?.session_id,
+      scanned,
+    })
   );
   const list = Array.isArray(all.value) ? all.value : [];
   return {
@@ -192,6 +196,17 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
 
   const git = timed("git", () => probe.getGitInfo(cwd));
   const hasRepo = git.value !== null;
+  // A detached HEAD has no branch name to scope a lookup by, and the short
+  // commit id is not one: matching it against a stored branch would refuse
+  // every cached answer instead of the wrong ones.
+  const namedBranch = git.value && !git.value.detached ? git.value.branch : null;
+
+  // One walk over the transcript answers the skills, the todo list and
+  // whether anything happened recently. It runs before the skills reading so
+  // that reading can use what it found rather than walking the file again.
+  const activity = timed("transcript", () =>
+    probe.getSessionActivity(payload?.transcript_path, { now, limit: SKILLS_PROBED })
+  );
   const payloadPr = normalizePr(payload?.pr, "payload");
   const payloadRepoUrl = repoUrlFromPayload(payload?.workspace?.repo);
 
@@ -213,19 +228,20 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     repo: hasRepo
       ? reading({ value: payload?.workspace?.repo ?? null, at: now, source: "payload" })
       : missing("payload", "not a repository"),
+    // Both `gh` lookups are cached per repository and answer about whichever
+    // branch was checked out when they ran, so the branch travels with the
+    // question: a pull request or a run from the branch you just left is not
+    // an older answer, it is an answer about something else.
     pr: hasRepo
       ? payloadPr
         ? reading({ value: payloadPr, at: now, source: "payload" })
-        : timed("gh", () => normalizePr(probe.getPrInfo(cwd), "gh"))
+        : timed("gh", () => normalizePr(probe.getPrInfo(cwd, { branch: namedBranch }), "gh"))
       : missing("gh", "not a repository"),
-    skills: skillsReading(timed, probe, payload),
-    // One pass over the transcript answers all three. Reading the file
-    // three times would have tripled the only cost on this path that ever
-    // grew with the session.
-    activity: timed("transcript", () =>
-      probe.getSessionActivity(payload?.transcript_path, { now })
-    ),
-    ci: hasRepo ? timed("gh", () => probe.getCiStatus(cwd)) : missing("gh", "not a repository"),
+    skills: skillsReading(timed, probe, payload, activity.value?.skills),
+    activity,
+    ci: hasRepo
+      ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
+      : missing("gh", "not a repository"),
     // Exposed so the diagnostic can say how much history exists, which is
     // why a rate is or is not on the bar yet.
     samples: reading({ value: [], at: now, source: "samples" }),
@@ -258,6 +274,17 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     fiveHourReset: reading({ value: fiveHourResetsAt, at: now, source: "payload" }),
     sevenDay: reading({ value: sevenDayPct, at: now, source: "payload" }),
     sevenDayReset: reading({ value: sevenDayResetsAt, at: now, source: "payload" }),
+    // The merged countdown segment draws both moments, so it gets a reading
+    // that holds both. With only the 5-hour one behind it, the diagnostic
+    // described half of what the line shows.
+    resetMerged: reading({
+      value:
+        fiveHourResetsAt === null && sevenDayResetsAt === null
+          ? null
+          : { fiveHour: fiveHourResetsAt, sevenDay: sevenDayResetsAt },
+      at: now,
+      source: "payload",
+    }),
   };
 }
 
@@ -311,6 +338,11 @@ export function renderReadings(
     // constant survives as the fallback for versions that do not.
     maxWidth = terminalWidth(),
     maxHeight = terminalHeight(),
+    // The diagnostic asks for the lines with their line numbers attached, so
+    // it can say "line 3" rather than "the second thing printed". With line 2
+    // absent those are different lines, and the diagnostic exists to explain
+    // the layout rather than to renumber it.
+    asRows = false,
   } = {}
 ) {
   // The segment key decides the maximum age; the reading name says where
@@ -374,7 +406,11 @@ export function renderReadings(
   const palette = PALETTES[flavor] || PALETTES.mocha;
   const g = asciiArrows ? GLYPHS.plain : GLYPHS.nerd;
   const opts = { asciiArrows };
-  const lines = [];
+  // The rows are kept as segment lists until every line exists, because
+  // aligning the first column across the bar needs all of them at once.
+  // Rendering each line to text as it was built is what left that alignment
+  // written but never applied.
+  const rows = [];
   // Which of the four each rendered row is. Shedding needs to know, and a
   // line that renders only sometimes made an index-based guess wrong.
   const rendered = [];
@@ -495,16 +531,19 @@ export function renderReadings(
   // because the end of a path identifies it and the start rarely does.
   // Nothing else on this line is dropped — a branch, a count of uncommitted
   // work and a pull request are all things the reader asked for.
-  let line1 = renderRow(palette, fit(l1), opts);
-  if (displayWidth(line1) > maxWidth) {
-    const over = displayWidth(line1) - maxWidth;
-    const keep = Math.max(3, dirLabel.length - over - 1);
-    if (keep < dirLabel.length) {
-      l1[0] = dirSegment(`…${dirLabel.slice(dirLabel.length - keep)}`);
-      line1 = renderRow(palette, fit(l1), opts);
+  //
+  // Columns, not characters: an emoji or a CJK name occupies two columns per
+  // character, and counting them as one cut too little to fit.
+  let row1 = fit(l1);
+  if (rowWidth(row1) > maxWidth) {
+    const over = rowWidth(row1) - maxWidth;
+    const shortened = trimFromLeft(dirLabel, displayWidth(dirLabel) - over - 1);
+    if (shortened !== null) {
+      l1[0] = dirSegment(shortened);
+      row1 = fit(l1);
     }
   }
-  lines.push(line1);
+  rows.push(row1);
   rendered.push(1);
 
   // F7 and F6, on the line that already describes what the session is doing.
@@ -544,13 +583,13 @@ export function renderReadings(
       },
     ];
     pushLine2Extras(l2);
-    lines.push(renderRow(palette, fit(l2), opts));
+    rows.push(fit(l2));
     rendered.push(2);
   } else {
     const l2 = [];
     pushLine2Extras(l2);
     if (l2.length) {
-      lines.push(renderRow(palette, fit(l2), opts));
+      rows.push(fit(l2));
       rendered.push(2);
     }
   }
@@ -575,7 +614,7 @@ export function renderReadings(
       return built ? { key: s.key, ...built } : null;
     })
     .filter(Boolean);
-  lines.push(renderRow(palette, fit(l3), opts));
+  rows.push(fit(l3));
   rendered.push(3);
 
   // Line 4: context / 5h window + its reset / 7d window + its reset / rtk.
@@ -645,14 +684,20 @@ export function renderReadings(
       if (!both.length) return { color: "surface2", text: ` ${face} reset unknown ` };
       return { color: "surface2", text: ` ${face} ${both.join(" / ")} ` };
     },
-    // C5's chosen form: the savings figure only earns its width once it has
-    // moved five points. It is the slowest-moving thing on the line, and a
-    // number that says the same thing every redraw is a number nobody reads.
+    // C5 asked for this figure to render only once it had moved five points,
+    // on the reasoning that a number repeating itself every redraw is a
+    // number nobody reads. That reasoning does not survive what the number
+    // is: `rtk gain` reports a lifetime average over thousands of commands,
+    // and a lifetime average does not move five points. The segment showed
+    // itself on a session's first redraw and was never seen again.
+    //
+    // So it renders whenever there is a value. Its width is already governed
+    // by its priority, the lowest on the bar, which makes it the first thing
+    // a narrow line drops — the same outcome the throttle was reaching for,
+    // decided by the terminal rather than by a threshold the figure cannot
+    // cross.
     rtk: (o) => {
       if (!o.rtk || rtkPct === null) return null;
-      const shown = changes.lastShown?.rtk;
-      if (!movedBy(shown, rtkPct, 5)) return null;
-      changes.remember?.("rtk", rtkPct);
       return { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` };
     },
 
@@ -708,17 +753,50 @@ export function renderReadings(
     { moment: false, fiveHourText: false, sevenDayText: false },
     { moment: false, fiveHourText: false, sevenDayText: false, rtk: false },
   ];
-  let line4 = renderRow(palette, fit(buildLine4(TRIM_STEPS[0])), opts);
+  let l4 = fit(buildLine4(TRIM_STEPS[0]));
   for (const step of TRIM_STEPS.slice(1)) {
-    if (displayWidth(line4) <= maxWidth) break;
-    line4 = renderRow(palette, fit(buildLine4(step)), opts);
+    if (rowWidth(l4) <= maxWidth) break;
+    l4 = fit(buildLine4(step));
   }
-  lines.push(line4);
+  rows.push(l4);
   rendered.push(4);
 
   // Which lines the window has room for. Everything comes back the moment
   // the rows do: shedding answers the terminal, it is not a mode the bar
   // gets stuck in.
   const keep = linesToRender(maxHeight, rendered);
-  return lines.filter((_, i) => keep.includes(rendered[i])).join("\n");
+  const surviving = rows
+    .map((row, i) => ({ line: rendered[i], row }))
+    .filter((entry) => keep.includes(entry.line));
+  // Padding the first segment of each line to a common width lines the
+  // boundaries up down the bar. It yields to the width limit, line by line,
+  // inside `alignColumns`.
+  const aligned = alignColumns(surviving.map((entry) => entry.row), maxWidth);
+  const drawn = surviving.map((entry, i) => ({
+    line: entry.line,
+    text: renderRow(palette, aligned[i], opts),
+  }));
+  return asRows ? drawn : drawn.map((entry) => entry.text).join("\n");
+}
+
+/**
+ * A label cut from the left to fit `columns`, with a leading ellipsis, or
+ * null when it already fits or cannot usefully be cut.
+ *
+ * Measured in columns rather than characters, so a name written in emoji or
+ * CJK loses the right amount rather than half of it.
+ */
+function trimFromLeft(label, columns) {
+  const target = Math.max(3, columns);
+  if (displayWidth(label) <= target) return null;
+  const chars = [...label];
+  let kept = [];
+  let width = 0;
+  for (let i = chars.length - 1; i >= 0; i--) {
+    const next = width + displayWidth(chars[i]);
+    if (next > target - 1) break;
+    kept.unshift(chars[i]);
+    width = next;
+  }
+  return kept.length ? `…${kept.join("")}` : null;
 }

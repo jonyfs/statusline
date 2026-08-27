@@ -89,3 +89,16 @@ await test("an unknown reset renders as text, not as a blank or a guess", () => 
   );
   assert.match(plain, /reset unknown/);
 });
+
+await test("a reset a week out reads as a date, not as today's weekday", () => {
+  // A weekday name only identifies a day inside the coming week. Seven days
+  // out it is today's own name, and a reset a week away read as imminent.
+  const now = new Date("2026-08-27T10:00:00Z");
+  const sameWeekday = secondsAt("2026-09-03T13:00:00Z");
+  const label = resetMomentLabel(sameWeekday, now);
+  assert.doesNotMatch(label, /Thu/);
+  assert.match(label, /^\d{2}\/\d{2} \d{2}:\d{2}$/);
+
+  // Inside the week the weekday still says it best.
+  assert.match(resetMomentLabel(secondsAt("2026-08-29T13:00:00Z"), now), /^Sat \d{2}:\d{2}$/);
+});

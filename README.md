@@ -128,17 +128,22 @@ it, so the bar knows what it has to work with instead of assuming.
 the most important down until the next one would not fit. What you lose is
 what matters least, not whatever happened to be last in the code. Position
 stays independent of priority, so nothing slides sideways when a neighbour
-disappears.
+disappears. The first segment of every line is padded to the same width, so
+the boundaries line up down the bar and the four lines read as one small
+table — unless the padding would push a line past the limit, in which case
+that line keeps its width and gives up the alignment.
 
 Six segments are the last to go: context, branch, directory, the 5-hour
 window, the model, and the 7-day window. Measured in this repository:
 
 | Width | What goes |
 |---|---|
-| 120 and up | nothing |
-| 100 | the rtk figure |
-| 80 | the 7-day countdown; the 5-hour one stays |
-| 60 | both countdowns; the three usage figures remain |
+| 100 and up | nothing |
+| 80 | the session duration and the rtk figure |
+| 60 | the merged countdown, and on line 1 the CI tick and the lines-changed count |
+
+The three usage figures survive all of it, and so do the directory, the
+branch and the model.
 
 ![Eighty columns](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/narrow.svg)
 
@@ -217,9 +222,13 @@ The weekday beside the 7-day figure appears only when the reset is more than
 a day out. Inside a day the countdown already says it, and the weekday would
 be today's or tomorrow's name for no gain.
 
-The savings figure waits until it has moved five points before it renders
-again. It is the slowest thing on the bar, and a number that says the same
-thing every redraw is a number nobody reads.
+The savings figure used to wait until it had moved five points before
+rendering again, on the reasoning that a number repeating itself every redraw
+is a number nobody reads. `rtk gain` reports a lifetime average over
+thousands of commands, and a lifetime average never moves five points: the
+segment showed itself once per session and was never seen again. It renders
+whenever there is a value now, and its priority — the lowest on the bar —
+is what takes it off a line with no room.
 
 ## What it knows about the work
 
@@ -256,10 +265,15 @@ Line 1 gained two more, both about states that stop you:
 - `✖ 2` counts merge conflicts. The parser always saw them and folded them
   into the changed-file count, which understated a state that halts
   everything until it is resolved.
-- `✓ CI` is the last workflow run for the branch. It is a network call, so
-  it never happens during a redraw: the value comes from cache, refreshed in
-  the background, and disappears rather than going stale. A green tick that
-  is actually ten minutes old is worse than no tick.
+- `✓ CI` is the last workflow run for the branch you are on, and the branch
+  is part of the question: `gh run list` answers with the repository's most
+  recent run unless you scope it, so a branch you never pushed used to
+  inherit main's green tick. It is a network call, so it never happens during
+  a redraw: the value comes from cache, refreshed in the background, and
+  disappears rather than going stale. A tick from another branch, or one that
+  is actually ten minutes old, is worse than no tick. The pull request works
+  the same way, and both vanish the moment you switch branches rather than
+  describing the branch you left.
 
 ## Where a number is heading
 
@@ -277,8 +291,14 @@ swings beside measured ones gets read as measured. So they render nothing
 instead.
 
 The samples live in the same per-session file as the change highlighting,
-bounded at sixty, swept after a week. `doctor` reports how many there are,
-which is what answers "why is there no burn rate yet".
+bounded at sixty and at fifteen minutes, swept after a week. Both bounds
+matter: a count is not a bound on time, and with the installed 60-second
+refresh, sixty samples would otherwise reach back an hour, or across a night
+in a session left open. The history also starts again after a gap of five
+minutes, and when the 5-hour figure drops — that drop is the window
+resetting, and a rate measured across it is arithmetic on two unrelated
+series. `doctor` reports how many samples there are, which is what answers
+"why is there no burn rate yet".
 
 ## What line 4 can tell you
 
@@ -412,7 +432,18 @@ it. Every segment that isn't on the line says why not.
 The header answers the two questions people actually ask. `terminal: 96
 columns, 24 rows` explains a segment that is missing because there was no
 room for it, and `history: 3 samples` explains why the burn rate has not
-appeared yet.
+appeared yet. The widths beside it are named by line — `rendered line 1: 51
+columns, line 3: 17 columns, line 4: 87 columns` — so with the skills line
+absent you are still reading each width against the content that produced
+it.
+
+Two things it reports that are easy to misread as bugs. A pull request or a
+CI tick that vanished the moment you switched branches did not go stale: the
+cached value belongs to the branch you left, and the segment refuses it
+rather than describing the wrong branch. And a burn rate that disappeared
+after a break means the sample history restarted, either because nothing was
+observed for five minutes or because the 5-hour window reset underneath
+it.
 
 ## Where the numbers come from
 
@@ -425,7 +456,9 @@ stop at a 7-day window, so a monthly number would have to be invented, and
 this thing doesn't invent numbers to fill space.
 
 **The rtk savings figure** comes from `rtk gain --format json`, and only
-appears when `rtk` is installed.
+appears when `rtk` is installed. It is rtk's own lifetime average across
+everything it has proxied rather than a number about this repository, so one
+cached value serves every directory.
 
 **Pull request info** comes from Claude Code itself, which sends the open
 pull request for your branch along with everything else: its number, its URL

@@ -45,13 +45,19 @@ export function windowMs() {
  * an entry with no usable timestamp is kept rather than discarded, since
  * dropping it would hide a skill that may well be active.
  */
-export function getActiveSkills(transcriptPath, limit = 3, { now = Date.now(), sessionId } = {}) {
+export function getActiveSkills(transcriptPath, limit = 3, { now = Date.now(), sessionId, scanned } = {}) {
   const window = windowMs();
 
   if (sessionId) {
     const fromHook = readSkillEvents(sessionId, { limit, windowMs: window, now });
     if (fromHook.length) return fromHook;
   }
+
+  // The activity scan walks the same tail with the same window and already
+  // collected the skills on its way past them. Reading the file a second time
+  // costs a second walk over a transcript that can be megabytes, for a list
+  // that is already in hand.
+  if (Array.isArray(scanned)) return scanned.slice(0, limit);
 
   if (!transcriptPath) return [];
   return scanTailForSkills(transcriptPath, { limit, windowMs: window, now }).skills;

@@ -105,27 +105,29 @@ await test("shortCountdown drops the words and keeps the number", () => {
 
 // C5 -----------------------------------------------------------------------
 
-await test("the savings figure waits until it has moved five points", () => {
-  // Tracking off in every other test here, because it writes state. This one
-  // needs it on: the throttle is the state.
+await test("the savings figure renders whenever there is one", () => {
+  // C5 asked for it to wait until it had moved five points. `rtk gain`
+  // reports a lifetime average over thousands of commands, which does not
+  // move five points, so the segment appeared on a session's first redraw
+  // and never again. Its priority is the lowest on the bar, so a narrow line
+  // still drops it first — the terminal decides, not a threshold the figure
+  // cannot cross.
   const session = `merge-test-${process.pid}`;
   const payload = fullPayload({ session_id: session });
   const withRtk = (pct) => ({ ...gitSources(), getRtkSavings: () => pct });
 
-  const first = stripAnsi(
-    renderPayload(payload, { sources: withRtk(80), now: NOW, ...WIDE })
-  );
-  assert.match(first, /rtk 80% saved/, "the first value always shows");
+  const first = stripAnsi(renderPayload(payload, { sources: withRtk(80), now: NOW, ...WIDE }));
+  assert.match(first, /rtk 80% saved/);
 
-  const nudge = stripAnsi(
-    renderPayload(payload, { sources: withRtk(82), now: NOW + 6000, ...WIDE })
+  const again = stripAnsi(
+    renderPayload(payload, { sources: withRtk(80), now: NOW + 6000, ...WIDE })
   );
-  assert.doesNotMatch(nudge, /rtk/, "two points is not worth the width");
+  assert.match(again, /rtk 80% saved/, "an unchanged figure is still the figure");
 
-  const move = stripAnsi(
-    renderPayload(payload, { sources: withRtk(86), now: NOW + 12000, ...WIDE })
+  const narrow = stripAnsi(
+    renderPayload(payload, { sources: withRtk(80), now: NOW + 12000, maxWidth: 60, maxHeight: 40 })
   );
-  assert.match(move, /rtk 86% saved/, "six points is");
+  assert.doesNotMatch(narrow, /rtk/, "a narrow line drops it by priority");
 });
 
 // C7 -----------------------------------------------------------------------

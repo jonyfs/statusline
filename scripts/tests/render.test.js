@@ -3,6 +3,7 @@ import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { PALETTES } from "../../src/theme.js";
 import { emptySources, gitSources, fullPayload } from "./fixtures/sources.js";
+import { makeHome, withHome } from "./fixtures/home.js";
 
 await test("renders with a fully populated payload", () => {
   const out = renderPayload(fullPayload({ cwd: process.cwd() }), { sources: emptySources });
@@ -96,4 +97,30 @@ await test("ASCII mode emits no private-use codepoints at all", () => {
     `ASCII mode leaked ${pua.length} private-use glyph(s): ` +
       pua.map((c) => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(" ")
   );
+});
+
+// The throttled savings figure ---------------------------------------------
+
+// Column alignment ---------------------------------------------------------
+
+await test("the first segment of each line is padded to a common width", () => {
+  const lines = stripAnsi(
+    renderPayload(fullPayload({ cwd: process.cwd() }), {
+      sources: gitSources(),
+      trackChanges: false,
+      maxWidth: 400,
+      maxHeight: 40,
+    })
+  ).split("\n");
+
+  // Each line's first segment ends at the same column, so the boundaries
+  // line up down the bar instead of each line starting its own table.
+  // Written as an escape: a pasted private-use literal has vanished from a
+  // file in this repository before, leaving an empty string that matches
+  // everything and a test that passes without checking anything.
+  const SEPARATOR = "\u{E0B0}";
+  const firstBoundary = (line) => line.indexOf(SEPARATOR, 1);
+  const boundaries = lines.map(firstBoundary).filter((i) => i > 0);
+  assert.ok(boundaries.length >= 2, "more than one line has a boundary to align");
+  assert.equal(new Set(boundaries).size, 1, `boundaries land at ${boundaries.join(", ")}`);
 });
