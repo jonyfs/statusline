@@ -2,9 +2,26 @@
 
 <!-- 
 Sync Impact Report:
-- Version: 4.0.0 (three principles redefined, on the owner's explicit instruction after the
-  statusline redesign review of 2026-08-26; see specs/002-statusline-design-review/spec.md)
-- Redefined: I. Starship-Compatible Output — a plain separator is now permitted as a declared
+- Version: 4.1.0 (II and X expanded, and two sections corrected against the shipped code, after
+  the layout reductions of 2026-08-26 and 2026-08-27; see specs/002-statusline-design-review/)
+- Expanded: II. Four-Line Display Structure — the per-line content lists now match what the
+  segment registry actually renders: line 1 carries the repository and its state, line 2 carries
+  skills, todo and activity, line 3 is the model and the effort level and nothing else, and line 4
+  is what is running out. Three rules are added: every segment's placement MUST be declared as a
+  row in `src/segments.js`; the shedding order MUST be declared (line 2, then 3, then 1, with
+  line 4 last); and a wide element MUST justify its width against the number beside it. Subagent
+  rows are stated not to count toward the four
+- Corrected in II: line 4 was described as carrying "weekly / monthly" windows, which Principle
+  III explicitly forbids — the windows are the 5-hour and the 7-day one
+- Expanded: X. Icons Carry Live State — a ramped segment MUST carry its level in something other
+  than colour where the consequence is irreversible, with the context figure recorded as the one
+  declared exception (owner's decision, 2026-08-26)
+- Corrected: "Integration with Claude's Configuration" described a `hooks.on_prompt_ready` entry.
+  Installation writes the `settings.json` `statusLine` object, as Principle IV already stated
+- MINOR bump: rules are added and stale descriptions corrected; no existing rule is reversed
+- Templates: no `.specify/templates/*` changes required
+- Prior versions: 4.0.0 redefined I, II and X after the redesign review of 2026-08-26
+- Redefined in 4.0.0: I. Starship-Compatible Output — a plain separator is now permitted as a declared
   fallback for terminals that cannot render the Powerline glyph, and palettes from outside
   Catppuccin may ship alongside the four flavors. Neither may become the default; Catppuccin
   Mocha with Powerline arrows is still what the project is when nobody has chosen otherwise
@@ -15,9 +32,8 @@ Sync Impact Report:
 - Redefined: X. Icons Carry Live State — change highlighting may use a colour shift instead of
   an icon frame sequence, and a new rule requires each colour channel to carry exactly one
   meaning: ramp and change-highlight must apply to disjoint sets of segments
-- MAJOR bump: II's "exactly four" and X's "MUST switch to an animation frame sequence" were
-  both binding rules that no longer hold as written
-- Templates: no `.specify/templates/*` changes required
+- 4.0.0 was a MAJOR bump: II's "exactly four" and X's "MUST switch to an animation frame
+  sequence" were both binding rules that no longer held as written
 - Prior versions: 3.1.0 expanded II and X; 3.0.0 redefined IV and XI (clone distribution, no
   registry); 2.4.1 clarified VIII (pinned timezone); 2.4.0 added XI; 2.3.0 added X; 2.2.0
   added IX; 2.1.0 added VIII; 2.0.0 redefined II (three-line → four-line)
@@ -90,28 +106,55 @@ is the version installed and studied on the reference machine.
 
 ### II. Four-Line Display Structure
 
-Statusline MUST display four information lines, in this order:
-- **Line 1**: Working directory + git branch + working-tree state (tracked changes, untracked files) + divergence from upstream (ahead, behind) + PR status (existence + number if open)
-- **Line 2**: Active skills for the current session, one chip per skill, each in a distinct palette color, no bullet/prefix glyph
-- **Line 3**: Model name + effort level (current session context)
-- **Line 4**: Context percentage + token usage windows (weekly / monthly) + rate-limit reset countdown
+Statusline MUST display four information lines, each with a subject a reader can name, in this
+order:
+- **Line 1 — the repository and its state**: working directory, the project directory when it
+  differs, owner and repository, branch, worktree and its state, merge conflicts, lines changed
+  this session, divergence from upstream (ahead, behind), pull request (number, state, review
+  state) and the CI conclusion
+- **Line 2 — what is shaping the work**: active skills for the current session, one chip per
+  skill, each in a distinct palette color and with no bullet or prefix glyph, plus the current
+  todo and the current activity
+- **Line 3 — how the model is configured**: model name and effort level, and nothing else. A
+  setting that does not change often enough to be worth a permanent slot beside those two does
+  not belong on this line
+- **Line 4 — what is running out**: context percentage, 5-hour and 7-day window usage, burn rate
+  and projection, session duration, the merged reset countdown drawn right-aligned, and the token
+  saving figure. There is no monthly window to show, per Principle III
 
 Each line independently loadable; failures in one line MUST NOT break others (e.g. no git repo omits
 line 1's branch/PR segments but the line still renders; no active skills omits line 2 entirely).
+
+**Placement is declared, not implied.** Every segment MUST be a row in `src/segments.js` carrying
+its line, its order within that line, its alignment, its priority and its colour channel. Order
+MUST stay independent of priority, so a segment never moves sideways because a neighbour
+disappeared, and the eye can learn where to look. A segment defined only inside a render function
+is a segment whose narrow-terminal behaviour nobody chose.
+
+**Subagent rows are not statusline lines.** The rows drawn for running subagents come from a
+separate command with its own contract and its own tick. They MUST NOT count toward the four, and
+a row that cannot be rendered MUST leave Claude Code's own rendering in place instead of failing.
 
 **Four is the shape, not a floor.** A line with nothing to say is already dropped rather than
 rendered empty, and the same reasoning extends to the terminal: on a window too short or too
 narrow to hold four lines, the statusline MUST shed lines rather than wrap, because a wrapped
 bar costs more rows than the one it was trying to save and Claude Code truncates rather than
-wraps a line that overflows. Shedding MUST follow a declared priority, MUST be driven by the
-terminal dimensions Claude Code reports rather than guessed, and MUST restore every line as
-soon as the room exists. A terminal with room for four lines MUST show four.
+wraps a line that overflows. Shedding MUST follow a declared order — line 2, then line 3, then
+line 1, with line 4 last, since it carries the limits whose consequences cannot be undone — MUST
+be driven by the terminal dimensions Claude Code reports rather than guessed, and MUST restore
+every line as soon as the room exists. A terminal with room for four lines MUST show four.
 
 Lines MUST fit within the terminal's real width, read from the `COLUMNS` environment variable
 Claude Code sets before running the command, falling back to 120 characters when it is absent.
 Where content exceeds that width, the segments dropped MUST follow a declared per-segment
 priority rather than source order, so what survives on a narrow terminal is what matters most
 rather than what happened to be first.
+
+**A wide element MUST justify its width against the number beside it.** The context progress bar
+spent ten to sixteen columns on the widest line saying what the figure said in three, and was
+removed on 2026-08-26; the same bar still earns its place on a subagent row, which has a whole
+line and no other number competing for it. Width on a shared line goes to something the reader
+cannot already read beside it.
 
 ### III. Token Tracking Grounded in Real Data
 
@@ -266,6 +309,13 @@ accessibility hazard where it works.
   colour shift on the segment. Colour is the stronger signal of the two: it is preattentive,
   where a swapped glyph has to be recognised, and it does not require the reader to have seen
   the previous frame.
+- **Colour is not the only carrier where the consequence is irreversible**: a segment whose
+  colour ramps by level MUST also mark its band in something other than colour (`▴` past 60%,
+  `▲` past 85%), since roughly one man in twelve cannot separate red from green. The context
+  figure is the one declared exception, carrying its level in colour alone at the owner's decision
+  of 2026-08-26. The 5-hour and 7-day figures MUST keep their marks: those are the limits whose
+  consequence a reader cannot undo. Any further exception MUST be recorded here rather than
+  decided in a render function.
 - **One meaning per channel**: a colour on the bar MUST mean exactly one thing wherever it
   appears. Where colour marks change, it MUST NOT also encode a level on the same segment, and
   where a ramp encodes a level, that segment MUST NOT also use colour to mark change. The two
@@ -323,11 +373,10 @@ never ship by accident and the tag is the single source of truth for what was re
 ## Development & Distribution Workflow
 
 **Local Installation Procedure** (v1.0.0 MVP):
-1. Clone repo locally
-2. Clone the repository to a permanent location
-3. Run `statusline-plugin install` to integrate with Claude
-4. Test statusline display in Claude Code
-5. Make edits; auto-reload when settings.json changes
+1. Clone the repository to a permanent location
+2. Run `statusline-plugin install` to integrate with Claude
+3. Test statusline display in Claude Code
+4. Make edits; auto-reload when settings.json changes
 
 **GitHub Publication Checklist**:
 - [ ] README.md complete (what it does, how to use, troubleshooting)
@@ -339,7 +388,10 @@ never ship by accident and the tag is the single source of truth for what was re
 
 ## Integration with Claude's Configuration
 
-Plugin integrates via Claude Code's `settings.json` hooks system. Installation adds a hook entry under `hooks.on_prompt_ready` (or equivalent CLI hook) that injects statusline module. Uninstallation removes only the statusline-specific hook; other hooks untouched.
+Plugin integrates through Claude Code's `settings.json`. Installation writes the `statusLine`
+object and nothing else: its `command`, plus `refreshInterval` and the `taskCommand` for subagent
+rows when those are asked for. Every other setting is left untouched. Uninstallation removes that
+object only when its command points at this plugin's own CLI path, per Principle IV.
 
 Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local.json` (per user/project).
 
@@ -351,4 +403,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 4.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-26
+**Version**: 4.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-27
