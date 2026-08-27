@@ -138,10 +138,12 @@ window, the model, and the 7-day window. Measured in this repository:
 
 | Width | What goes |
 |---|---|
-| 120 and up | nothing |
-| 100 | the rtk figure |
-| 80 | the 7-day countdown; the 5-hour one stays |
-| 60 | both countdowns; the three usage figures remain |
+| 100 and up | nothing |
+| 80 | the session duration and the rtk figure |
+| 60 | the merged countdown, and on line 1 the CI tick and the lines-changed count |
+
+The three usage figures survive all of it, and so do the directory, the
+branch and the model.
 
 ![Eighty columns](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/narrow.svg)
 
@@ -430,7 +432,18 @@ it. Every segment that isn't on the line says why not.
 The header answers the two questions people actually ask. `terminal: 96
 columns, 24 rows` explains a segment that is missing because there was no
 room for it, and `history: 3 samples` explains why the burn rate has not
-appeared yet.
+appeared yet. The widths beside it are named by line — `rendered line 1: 51
+columns, line 3: 17 columns, line 4: 87 columns` — so with the skills line
+absent you are still reading each width against the content that produced
+it.
+
+Two things it reports that are easy to misread as bugs. A pull request or a
+CI tick that vanished the moment you switched branches did not go stale: the
+cached value belongs to the branch you left, and the segment refuses it
+rather than describing the wrong branch. And a burn rate that disappeared
+after a break means the sample history restarted, either because nothing was
+observed for five minutes or because the 5-hour window reset underneath
+it.
 
 ## Where the numbers come from
 
