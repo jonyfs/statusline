@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
-import { renderTaskRow, runTaskRows } from "../../src/taskRows.js";
+import { renderTaskRow, runTaskRows, taskTier } from "../../src/taskRows.js";
 import { displayWidth } from "../../src/theme.js";
 
 const NOW = Date.parse("2026-08-26T12:00:00.000Z");
@@ -85,4 +85,49 @@ await test("elapsed time reads in whatever unit fits", () => {
   assert.match(secs, /20s/);
   assert.match(mins, /10m/);
   assert.match(hours, /1h30m/);
+});
+
+// The tier a row shows. With several subagents in flight, these rows are the only place a person can
+// see that the expensive agent is on the expensive model — a roster on disk says what was DECLARED,
+// and the row says what is RUNNING.
+
+await test("the row spells out the model and the effort it is running at", () => {
+  const text = strip(renderTaskRow(task({ model: "claude-opus-5", effort: "xhigh" }), { columns: 120, now: NOW }).content);
+  assert.match(text, /opus·xhigh/);
+});
+
+await test("the tier is read from an id, a display name or an object alike", () => {
+  assert.equal(taskTier({ model: "claude-opus-5", effort: "xhigh" }).model, "opus");
+  assert.equal(taskTier({ model: "Sonnet 5", effort: "high" }).model, "sonnet");
+  assert.equal(taskTier({ model: { id: "claude-haiku-4-5" }, effort: { level: "low" } }).model, "haiku");
+});
+
+await test("colour is the projection of the tier, so each tier gets its own", () => {
+  const colour = (m, e) => taskTier({ model: m, effort: e }).colour;
+  assert.equal(colour("claude-opus-5", "xhigh"), "red");
+  assert.equal(colour("claude-opus-5", "high"), "peach");
+  assert.equal(colour("claude-sonnet-5", "high"), "yellow");
+  assert.equal(colour("claude-sonnet-5", "medium"), "green");
+  assert.equal(colour("claude-haiku-4-5", "low"), "teal");
+});
+
+await test("the name itself carries the tier colour, so a trimmed row still reads", () => {
+  const row = renderTaskRow(task({ model: "claude-opus-5", effort: "xhigh" }), { columns: 120, now: NOW });
+  // Catppuccin mocha red, the tier colour, applied to the first segment.
+  assert.match(row.content, /^\x1b\[38;2;243;139;168m/);
+});
+
+await test("a task whose model has not resolved gets no tier rather than a guessed one", () => {
+  assert.equal(taskTier({ effort: "high" }), null);
+  const text = strip(renderTaskRow(task({ model: undefined }), { columns: 120, now: NOW }).content);
+  assert.doesNotMatch(text, /opus|sonnet|haiku/);
+});
+
+await test("an unknown model family is not invented into a tier", () => {
+  assert.equal(taskTier({ model: "some-other-model", effort: "high" }), null);
+});
+
+await test("a tier segment never pushes the row past its columns", () => {
+  const row = renderTaskRow(task({ model: "claude-opus-5", effort: "xhigh" }), { columns: 80, now: NOW });
+  assert.ok(displayWidth(strip(row.content)) <= 80, strip(row.content));
 });

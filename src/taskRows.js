@@ -38,6 +38,52 @@ function elapsed(startTime, now) {
 }
 
 /**
+ * The tier a task is running at, from the `model` and `effort` the payload carries.
+ *
+ * Why a row shows this at all: with several subagents in flight, the rows are the only place a
+ * person can see that the expensive one is on the expensive model. A roster on disk says what was
+ * DECLARED; the row says what is RUNNING, and those are different claims — a declared tier is not
+ * proof the harness honoured it, and this is the only view that shows the difference.
+ *
+ * The colour is the projection of the tier, not decoration: same reading at a glance whether or not
+ * the text fits the width. `model` is absent until a task's model resolves (Claude Code v2.1.205),
+ * and a task with no tier gets no segment rather than a guessed one.
+ */
+const TIERS = [
+  { test: (m, e) => m === "opus" && (e === "xhigh" || e === "max"), colour: "red" },
+  { test: (m, e) => m === "opus" && e === "high", colour: "peach" },
+  { test: (m) => m === "opus", colour: "peach" },
+  { test: (m, e) => m === "sonnet" && (e === "high" || e === "xhigh" || e === "max"), colour: "yellow" },
+  { test: (m) => m === "sonnet", colour: "green" },
+  { test: (m) => m === "haiku", colour: "teal" },
+];
+
+/** `model` may arrive as an id, a display name or an object; all three carry the family in text. */
+function modelFamily(model) {
+  const raw =
+    typeof model === "string" ? model : model && (model.id || model.display_name || model.name);
+  if (typeof raw !== "string") return null;
+  const text = raw.toLowerCase();
+  for (const family of ["opus", "sonnet", "haiku", "fable"]) {
+    if (text.includes(family)) return family;
+  }
+  return null;
+}
+
+function effortLevel(effort) {
+  const raw = typeof effort === "string" ? effort : effort && (effort.level || effort.name);
+  return typeof raw === "string" ? raw.toLowerCase() : null;
+}
+
+export function taskTier(task) {
+  const model = modelFamily(task?.model);
+  if (!model) return null;
+  const effort = effortLevel(task?.effort);
+  const match = TIERS.find((t) => t.test(model, effort));
+  return { model, effort, colour: match ? match.colour : "surface2" };
+}
+
+/**
  * One row's body: what the task is, how long it has been at it, and how
  * much of its own context window it has used.
  *
@@ -50,10 +96,19 @@ export function renderTaskRow(task, { columns = 80, palette = PALETTES.mocha, no
   if (!task?.id) return null;
 
   const name = task.name || task.type || "task";
-  const parts = [`${fg(palette.lavender)}${name}${RESET}`];
+  const tier = taskTier(task);
+  // The name carries the tier colour, so the roster reads at a glance even when the row is trimmed
+  // to `columns` and the spelled-out segment is the first thing to go.
+  const nameColour = tier ? palette[tier.colour] ?? palette.lavender : palette.lavender;
+  const parts = [`${fg(nameColour)}${name}${RESET}`];
 
   if (task.description || task.label) {
     parts.push(`${fg(palette.text)}${task.description || task.label}${RESET}`);
+  }
+
+  if (tier) {
+    const label = tier.effort ? `${tier.model}·${tier.effort}` : tier.model;
+    parts.push(`${fg(palette[tier.colour] ?? palette.surface2)}${label}${RESET}`);
   }
 
   const pct =

@@ -32,6 +32,12 @@ One JSON line per row to override: `{"id": "<task id>", "content": "<row body>"}
   for).
 - Renders a per-task context bar from `tokenCount` against `contextWindowSize`, using the
   same ramp and the same shape rule as the main bar.
+- Spells out the tier a task is running at, from `model` and `effort`, and colours the task's
+  name with it: red for opus at xhigh or max, peach for opus otherwise, yellow for sonnet at
+  high or above, green for sonnet otherwise, teal for haiku. With several subagents in
+  flight these rows are the only view of what is RUNNING, as against what a roster on disk
+  says was declared. A task whose `model` has not resolved, or whose family is unknown, gets
+  no tier rather than a guessed one.
 - Respects `columns`. A row never exceeds it, and drops content by the same priority
   discipline the statusline uses.
 - Exits 0 whatever happens. A row it cannot render is a row it stays silent about, which
