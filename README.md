@@ -184,6 +184,12 @@ glyph set at once, icons and Powerline separators together:
 
 ![ASCII fallback](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/ascii-fallback.svg)
 
+Every inline example below is written in that substitute set. The real bar
+draws Nerd Font glyphs, which sit in the private use area and would show most
+readers of this file a box; [Where the icons come from](#where-the-icons-come-from)
+maps each one to its codepoint. The screenshots throughout show the real
+thing, with the outlines baked in.
+
 ## Reading a level at a glance
 
 The context figure, the 5-hour window and the 7-day window all colour
@@ -283,7 +289,7 @@ roughly the first minute of a session.
 
 | Segment | Says |
 |---|---|
-| `↑ 9%/h` | how fast the 5-hour window is filling |
+| `🔥 9%/h` | how fast the 5-hour window is filling |
 | `5h limit ~16:40` | when the 5-hour window would hit its limit, and only when that lands before the window resets |
 
 A rate drawn from twelve seconds of history swings wildly, and a number that
@@ -331,8 +337,9 @@ effort level called "explanatory".
 
 ## Settings
 
-Configuration is all environment variables. Set them in your shell profile,
-or inline in the `statusLine.command` string in `settings.json`.
+Most settings are environment variables. Set them in your shell profile,
+or inline in the `statusLine.command` string in `settings.json`. A repository
+can also carry its own settings in a file, which is the next section.
 
 | Variable | What it does |
 |---|---|
@@ -513,7 +520,7 @@ so a clean branch in sync with its remote adds nothing at all.
 | diff-added marker | Untracked files git isn't watching yet |
 | cloud up | Commits you have that the remote doesn't, waiting to be pushed |
 | cloud down | Commits the remote has that you don't, waiting to be pulled |
-| `✖` | Paths with merge conflicts, counted apart from ordinary changes |
+| alert triangle | Paths with merge conflicts, counted apart from ordinary changes |
 
 These are GitHub's own Octicons, the same marks you see in a diff view.
 Three modified files, seven untracked, two commits to push and five to
@@ -647,11 +654,12 @@ after a week. If it can't be read or written, you just get no highlighting.
 ## What it writes to disk
 
 Everything lives under `~/.claude/statusline/` and all of it is disposable.
-Delete the lot and you lose one redraw's animation and one cache read.
+Delete the lot and you lose one redraw's change highlighting and one cache
+read.
 
 | Directory | What's in it |
 |---|---|
-| `state/` | Animation state, one file per session |
+| `state/` | What each segment looked like last redraw, so a change can be spotted. One file per session |
 | `cache/` | Pull request, savings, remote URL and git snapshot, one file per repository |
 | `skills/` | Skill invocations recorded by the hook, one file per session |
 | `backups/` | Copies of `settings.json` taken before install and uninstall |
@@ -762,8 +770,22 @@ demand: rasterising depends on the installed Chrome and the host's fonts, so
 unlike the SVGs they are not byte-reproducible and are not checked for
 staleness.
 
+One more generated page lives beside its spec rather than in `docs/`:
+
+```bash
+node scripts/generate-animation-board.js
+```
+
+It writes `specs/003-status-change-animations/animation-board.html`, which
+plays candidate animation frames at the rate a terminal actually redraws.
+None of the candidates was adopted, and `decisions.md` beside it says why for
+each; the generator and its frame table are kept so the decision can be
+re-examined against the frames rather than a description of them. Neither
+ships: `scripts/` is not in the package's `files` list.
+
 You only need to regenerate `glyphs.json` if you introduce a new Nerd Font
-glyph, and that needs `fonttools`:
+glyph, and that needs `fonttools`. Set `STATUSLINE_NERD_FONT` if your copy of
+the font is somewhere other than the extractor's default path:
 
 ```bash
 python3 -m venv /tmp/statusline-venv
