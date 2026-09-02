@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
 import { SEGMENTS, byLine, segment, PRIORITY_BANDS } from "../../src/segments.js";
+import { G, re } from "./glyphs.js";
 
 await test("every segment declares the fields the layout needs", () => {
   for (const s of SEGMENTS) {
@@ -96,7 +97,7 @@ await test("the rendered lines follow the registry's order", async () => {
     )
   );
 
-  const line3 = out.split("\n").find((l) => l.includes("🤖"));
+  const line3 = out.split("\n").find((l) => l.includes(G.model));
   assert.ok(line3.indexOf("Sonnet 5") < line3.indexOf("high"), "model precedes effort, per order 10 and 20");
 
   const line4 = out.split("\n").pop();
@@ -145,7 +146,7 @@ await test("line 1 renders in the registry's order too", async () => {
     )
   ).split("\n")[0];
 
-  const positions = ["project", "owner/repo", "main", "✖ 1", "+12", "PR #7"].map((t) => line1.indexOf(t));
+  const positions = ["project", "owner/repo", "main", `${G.conflict} 1`, "+12", "PR #7"].map((t) => line1.indexOf(t));
   assert.ok(
     positions.every((p) => p >= 0),
     `something is missing from line 1: ${line1}`

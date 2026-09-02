@@ -4,6 +4,7 @@ import { renderPayload } from "../../src/render.js";
 import { PALETTES } from "../../src/theme.js";
 import { emptySources, gitSources, fullPayload } from "./fixtures/sources.js";
 import { makeHome, withHome } from "./fixtures/home.js";
+import { displayWidth } from "../../src/theme.js";
 
 await test("renders with a fully populated payload", () => {
   const out = renderPayload(fullPayload({ cwd: process.cwd() }), { sources: emptySources });
@@ -89,7 +90,13 @@ await test("ASCII mode emits no private-use codepoints at all", () => {
   });
   const pua = [...stripAnsi(out)].filter((c) => {
     const cp = c.codePointAt(0);
-    return cp >= 0xe000 && cp <= 0xf8ff;
+    // All three private-use ranges: the Material Design glyphs are mapped
+    // into supplementary plane 15, well above U+F8FF.
+    return (
+      (cp >= 0xe000 && cp <= 0xf8ff) ||
+      (cp >= 0xf0000 && cp <= 0xffffd) ||
+      (cp >= 0x100000 && cp <= 0x10fffd)
+    );
   });
   assert.equal(
     pua.length,
@@ -118,8 +125,17 @@ await test("the first segment of each line is padded to a common width", () => {
   // Written as an escape: a pasted private-use literal has vanished from a
   // file in this repository before, leaving an empty string that matches
   // everything and a test that passes without checking anything.
+  //
+  // Measured in columns, not in code units: the glyphs that open these lines
+  // are one column each but not one code unit each, since the Material
+  // Design range sits above the BMP and arrives as a surrogate pair. An
+  // index into the string would have the lines disagreeing by one while the
+  // terminal drew them flush.
   const SEPARATOR = "\u{E0B0}";
-  const firstBoundary = (line) => line.indexOf(SEPARATOR, 1);
+  const firstBoundary = (line) => {
+    const at = line.indexOf(SEPARATOR, 1);
+    return at > 0 ? displayWidth(line.slice(0, at)) : -1;
+  };
   const boundaries = lines.map(firstBoundary).filter((i) => i > 0);
   assert.ok(boundaries.length >= 2, "more than one line has a boundary to align");
   assert.equal(new Set(boundaries).size, 1, `boundaries land at ${boundaries.join(", ")}`);

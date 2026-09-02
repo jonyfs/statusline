@@ -12,8 +12,17 @@ const NF_CODEPOINTS = new Set(
   Object.keys(GLYPHS.glyphs).map((hex) => parseInt(hex, 16))
 );
 
-/** Private use area: where every Nerd Font glyph lives. */
-const isPrivateUse = (cp) => cp >= 0xe000 && cp <= 0xf8ff;
+/**
+ * Private use: where every Nerd Font glyph lives. Three ranges, not one.
+ * The Octicons sit in the Basic Multilingual Plane's area, but the Material
+ * Design set is mapped into supplementary plane 15, and a check that stopped
+ * at U+F8FF let those through to be written out as text — which is a viewer
+ * with no Nerd Font seeing tofu, the exact failure this guard exists for.
+ */
+const isPrivateUse = (cp) =>
+  (cp >= 0xe000 && cp <= 0xf8ff) ||
+  (cp >= 0xf0000 && cp <= 0xffffd) ||
+  (cp >= 0x100000 && cp <= 0x10fffd);
 
 const CELL_W = 9.8;
 const CELL_H = 22;

@@ -1,145 +1,144 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1059" height="143" viewBox="0 0 1059 143" role="img" aria-label="Close to the weekly rate limit, with a nearly full context window">
-<rect width="1059" height="143" rx="8" fill="#1e1e2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1030" height="143" viewBox="0 0 1030 143" role="img" aria-label="Close to the weekly rate limit, with a nearly full context window">
+<rect width="1030" height="143" rx="8" fill="#1e1e2e"/>
 <text x="10" y="18" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12" fill="#9399b2">Close to the weekly rate limit, with a nearly full context window</text>
-<rect x="10.00" y="36" width="411.60" height="22" fill="rgb(69,71,90)"/>
-<text x="29.60" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">📁</text>
-<text x="54.10" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">s</text>
-<text x="63.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">t</text>
-<text x="73.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">a</text>
-<text x="83.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">t</text>
-<text x="93.30" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">u</text>
-<text x="103.10" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">s</text>
-<text x="112.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">l</text>
-<text x="122.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">i</text>
-<text x="132.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">n</text>
-<text x="142.30" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">e</text>
-<rect x="421.60" y="36" width="9.80" height="22" fill="rgb(180,190,254)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(69,71,90)" transform="translate(421.60 52.00) scale(0.00821 -0.00821)"/>
-<rect x="431.40" y="36" width="78.40" height="22" fill="rgb(180,190,254)"/>
-<path d="M750 1076Q750 1168 816.0 1234.0Q882 1300 975.0 1300.0Q1068 1300 1134.0 1234.0Q1200 1168 1200 1076Q1200 1004 1158 944Q1116 886 1049 864V800Q1049 698 976 624Q903 550 800 550H400Q359 550 329 522Q299 492 300 450V338Q366 314 408.0 256.0Q450 198 450 126Q450 32 384.0 -34.0Q318 -100 225 -100Q132 -100 66 -34Q0 32 0 126Q0 198 42.0 256.0Q84 314 150 338V864Q84 888 42.0 946.0Q0 1004 0 1076Q0 1168 66.0 1234.0Q132 1300 225.0 1300.0Q318 1300 384.0 1234.0Q450 1168 450 1076Q450 1004 408.0 946.0Q366 888 300 864V680Q348 700 400 700H800Q841 700 871.0 730.0Q901 760 900 800V864Q834 888 792.0 946.0Q750 1004 750 1076ZM225 1000Q255 1000 277.0 1022.0Q299 1044 300 1076Q300 1106 278.0 1128.0Q256 1150 225.0 1150.0Q194 1150 172.0 1128.0Q150 1106 150.0 1075.0Q150 1044 172.0 1022.0Q194 1000 225 1000ZM975 1000Q1005 1000 1027.0 1022.0Q1049 1044 1049.0 1075.0Q1049 1106 1028 1128Q1006 1150 975.0 1150.0Q944 1150 922.0 1128.0Q900 1106 900.0 1075.0Q900 1044 922.0 1022.0Q944 1000 975 1000ZM225 50Q255 50 277 72Q299 94 300 126Q300 156 278.0 178.0Q256 200 225.0 200.0Q194 200 172.0 178.0Q150 156 150.0 125.0Q150 94 172.0 72.0Q194 50 225 50Z" fill="rgb(17,17,27)" transform="translate(441.20 52.00) scale(0.00821 -0.00821)"/>
-<text x="465.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">m</text>
-<text x="475.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="485.30" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
-<text x="495.10" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(180,190,254)" transform="translate(509.80 52.00) scale(0.00821 -0.00821)"/>
-<rect x="10.00" y="61" width="411.60" height="22" fill="rgb(166,227,161)"/>
-<text x="29.60" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🧩</text>
-<text x="54.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">c</text>
-<text x="63.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">o</text>
-<text x="73.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<text x="83.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="93.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">-</text>
-<text x="103.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
-<text x="112.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="122.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
-<text x="132.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
-<text x="142.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="152.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">w</text>
-<text x="161.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">,</text>
-<text x="181.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<text x="191.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="201.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="210.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="220.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
-<text x="230.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
-<text x="240.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">z</text>
-<text x="250.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">,</text>
-<text x="269.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="279.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
-<text x="289.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="299.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
-<text x="308.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">f</text>
-<text x="318.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="328.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">c</text>
-<text x="338.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="348.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">-</text>
-<text x="357.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<text x="367.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="377.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
-<text x="387.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
-<text x="397.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">g</text>
-<text x="406.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,227,161)" transform="translate(421.60 77.00) scale(0.00821 -0.00821)"/>
-<rect x="10.00" y="86" width="411.60" height="22" fill="rgb(243,139,168)"/>
-<text x="29.60" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🤖</text>
-<text x="54.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">S</text>
-<text x="63.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">o</text>
+<rect x="10.00" y="36" width="401.80" height="22" fill="rgb(69,71,90)"/>
+<path d="M0 994Q0 1048 38.0 1086.0Q76 1124 132 1126H376Q406 1126 434 1112Q462 1098 480 1072L548 982Q554 976 562 976H1068Q1124 976 1162.0 938.0Q1200 900 1200 844V206Q1200 152 1162.0 114.0Q1124 76 1068 74H132Q78 74 38 114Q0 152 0 206ZM132 1012Q124 1012 118 1008Q114 1002 114 994V206Q114 198 118 194Q124 188 132 188H1068Q1076 188 1082 194Q1088 200 1088 206V844Q1088 852 1083.0 857.0Q1078 862 1068 862H562Q532 862 504.0 876.0Q476 890 458 914L390 1006Q384 1012 376 1012Z" fill="rgb(205,214,244)" transform="translate(19.80 52.00) scale(0.00821 -0.00821)"/>
+<text x="44.30" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">s</text>
+<text x="54.10" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">t</text>
+<text x="63.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">a</text>
+<text x="73.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">t</text>
+<text x="83.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">u</text>
+<text x="93.30" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">s</text>
+<text x="103.10" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">l</text>
+<text x="112.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">i</text>
+<text x="122.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">n</text>
+<text x="132.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">e</text>
+<rect x="411.80" y="36" width="9.80" height="22" fill="rgb(180,190,254)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(69,71,90)" transform="translate(411.80 52.00) scale(0.00821 -0.00821)"/>
+<rect x="421.60" y="36" width="78.40" height="22" fill="rgb(180,190,254)"/>
+<path d="M750 1076Q750 1168 816.0 1234.0Q882 1300 975.0 1300.0Q1068 1300 1134.0 1234.0Q1200 1168 1200 1076Q1200 1004 1158 944Q1116 886 1049 864V800Q1049 698 976 624Q903 550 800 550H400Q359 550 329 522Q299 492 300 450V338Q366 314 408.0 256.0Q450 198 450 126Q450 32 384.0 -34.0Q318 -100 225 -100Q132 -100 66 -34Q0 32 0 126Q0 198 42.0 256.0Q84 314 150 338V864Q84 888 42.0 946.0Q0 1004 0 1076Q0 1168 66.0 1234.0Q132 1300 225.0 1300.0Q318 1300 384.0 1234.0Q450 1168 450 1076Q450 1004 408.0 946.0Q366 888 300 864V680Q348 700 400 700H800Q841 700 871.0 730.0Q901 760 900 800V864Q834 888 792.0 946.0Q750 1004 750 1076ZM225 1000Q255 1000 277.0 1022.0Q299 1044 300 1076Q300 1106 278.0 1128.0Q256 1150 225.0 1150.0Q194 1150 172.0 1128.0Q150 1106 150.0 1075.0Q150 1044 172.0 1022.0Q194 1000 225 1000ZM975 1000Q1005 1000 1027.0 1022.0Q1049 1044 1049.0 1075.0Q1049 1106 1028 1128Q1006 1150 975.0 1150.0Q944 1150 922.0 1128.0Q900 1106 900.0 1075.0Q900 1044 922.0 1022.0Q944 1000 975 1000ZM225 50Q255 50 277 72Q299 94 300 126Q300 156 278.0 178.0Q256 200 225.0 200.0Q194 200 172.0 178.0Q150 156 150.0 125.0Q150 94 172.0 72.0Q194 50 225 50Z" fill="rgb(17,17,27)" transform="translate(431.40 52.00) scale(0.00821 -0.00821)"/>
+<text x="455.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">m</text>
+<text x="465.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="475.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
+<text x="485.30" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(180,190,254)" transform="translate(500.00 52.00) scale(0.00821 -0.00821)"/>
+<rect x="10.00" y="61" width="401.80" height="22" fill="rgb(166,227,161)"/>
+<path d="M1055 626H969V857Q969 903 935.5 936.5Q902 970 857 970H627V1056Q627 1115 585.5 1157.5Q544 1200 485.0 1200.0Q426 1200 384.5 1157.0Q343 1114 343 1056V970H113Q67 970 33.5 936.5Q0 903 0 857V640H86Q150 640 194.5 594.5Q239 549 239.0 484.5Q239 420 194.5 374.5Q150 329 86 329H0V112Q0 66 33.5 33.0Q67 0 113 0H329V86Q329 150 375.0 194.0Q421 238 485.0 238.0Q549 238 594.5 194.0Q640 150 640 86V0H857Q903 0 936.0 33.5Q969 67 969 112V343H1055Q1114 343 1157.0 384.5Q1200 426 1200.0 484.5Q1200 543 1157.0 584.5Q1114 626 1055 626Z" fill="rgb(17,17,27)" transform="translate(19.80 77.00) scale(0.00821 -0.00821)"/>
+<text x="44.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">c</text>
+<text x="54.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">o</text>
+<text x="63.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<text x="73.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="83.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">-</text>
+<text x="93.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
+<text x="103.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="112.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
+<text x="122.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
+<text x="132.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="142.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">w</text>
+<text x="152.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">,</text>
+<text x="171.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<text x="181.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="191.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="201.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="210.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
+<text x="220.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
+<text x="230.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">z</text>
+<text x="240.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">,</text>
+<text x="259.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="269.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
+<text x="279.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="289.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
+<text x="299.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">f</text>
+<text x="308.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="318.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">c</text>
+<text x="328.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="338.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">-</text>
+<text x="348.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<text x="357.90" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="367.70" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
+<text x="377.50" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
+<text x="387.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">g</text>
+<text x="397.10" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(166,227,161)" transform="translate(411.80 77.00) scale(0.00821 -0.00821)"/>
+<rect x="10.00" y="86" width="401.80" height="22" fill="rgb(243,139,168)"/>
+<path d="M600 1144Q646 1144 678.0 1112.0Q710 1080 710 1037Q710 1006 694.0 980.5Q678 955 654 943V874H710Q812 874 900.0 821.5Q988 769 1039.0 682.0Q1090 595 1090 490H1144Q1166 490 1183.0 475.0Q1200 460 1200 437V274Q1200 251 1183.0 235.5Q1166 220 1144 220H1090V164Q1090 120 1058.0 88.0Q1026 56 980 56H220Q174 56 142.0 88.0Q110 120 110 164V220H56Q34 220 17.0 235.0Q0 250 0 274V437Q0 460 16.0 475.0Q32 490 56 490H110Q110 595 161.0 682.0Q212 769 300.0 821.5Q388 874 490 874H546V943Q522 956 506.0 981.0Q490 1006 490 1037Q490 1081 522.0 1112.5Q554 1144 600 1144ZM354 546Q298 546 259.0 505.5Q220 465 220.0 409.0Q220 353 259.0 313.5Q298 274 354.0 274.0Q410 274 450.0 313.5Q490 353 490.0 409.0Q490 465 450.0 505.5Q410 546 354 546ZM846 546Q790 546 750.0 505.5Q710 465 710.0 409.0Q710 353 749.0 313.5Q788 274 844.0 274.0Q900 274 940.0 313.5Q980 353 980.0 409.0Q980 465 941.0 505.5Q902 546 846 546Z" fill="rgb(17,17,27)" transform="translate(19.80 102.00) scale(0.00821 -0.00821)"/>
+<text x="44.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">S</text>
+<text x="54.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">o</text>
+<text x="63.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
 <text x="73.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
-<text x="83.50" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
-<text x="93.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="103.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="122.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">5</text>
-<rect x="421.60" y="86" width="9.80" height="22" fill="rgb(250,179,135)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(243,139,168)" transform="translate(421.60 102.00) scale(0.00821 -0.00821)"/>
-<rect x="431.40" y="86" width="88.20" height="22" fill="rgb(250,179,135)"/>
-<text x="451.00" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">⚡</text>
-<text x="475.50" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
-<text x="485.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
-<text x="495.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">g</text>
-<text x="504.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(250,179,135)" transform="translate(519.60 102.00) scale(0.00821 -0.00821)"/>
-<rect x="10.00" y="111" width="411.60" height="22" fill="rgb(243,139,168)"/>
-<text x="29.60" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🧠</text>
-<text x="54.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">C</text>
-<text x="63.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">o</text>
-<text x="73.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
-<text x="83.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="93.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="103.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">x</text>
-<text x="112.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="132.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">9</text>
-<text x="142.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
-<text x="152.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<rect x="421.60" y="111" width="9.80" height="22" fill="rgb(243,139,168)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(243,139,168)" transform="translate(421.60 127.00) scale(0.00821 -0.00821)"/>
-<rect x="431.40" y="111" width="117.60" height="22" fill="rgb(243,139,168)"/>
-<text x="446.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">⏱</text>
-<text x="455.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">️</text>
-<text x="475.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">5</text>
-<text x="485.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
-<text x="504.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
-<text x="514.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
-<text x="524.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<text x="534.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">▲</text>
-<rect x="549.00" y="111" width="9.80" height="22" fill="rgb(243,139,168)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(243,139,168)" transform="translate(549.00 127.00) scale(0.00821 -0.00821)"/>
-<rect x="558.80" y="111" width="107.80" height="22" fill="rgb(243,139,168)"/>
-<path d="M387 1222V1115H815V1222Q815 1249 835 1267Q853 1286 879.0 1286.0Q905 1286 924.0 1267.0Q943 1248 943 1222V1115H1051Q1113 1115 1157.0 1071.0Q1201 1027 1201 965V64Q1201 1 1157 -42Q1113 -86 1051 -85H151Q89 -85 45 -42Q1 2 1 64V965Q1 1028 45 1071Q89 1115 151 1115H259V1222Q259 1249 277 1267Q297 1286 323.0 1286.0Q349 1286 368.0 1267.0Q387 1248 387 1222ZM129 643V64Q129 55 135.0 49.0Q141 43 151 43H1051Q1059 43 1067 49Q1071 55 1071 64V643ZM1051 986H151Q143 986 135 980Q129 974 129 965V771H1071V965Q1071 974 1067 980Q1059 986 1051 986Z" fill="rgb(17,17,27)" transform="translate(568.60 127.00) scale(0.00821 -0.00821)"/>
-<text x="593.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
-<text x="602.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<text x="622.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">9</text>
-<text x="632.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">6</text>
-<text x="642.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<text x="651.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">▲</text>
-<rect x="666.60" y="111" width="9.80" height="22" fill="rgb(88,91,112)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(243,139,168)" transform="translate(666.60 127.00) scale(0.00821 -0.00821)"/>
-<rect x="676.40" y="111" width="176.40" height="22" fill="rgb(88,91,112)"/>
-<text x="696.00" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">🕛</text>
-<text x="720.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
-<text x="730.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">h</text>
-<text x="740.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
-<text x="749.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
-<text x="759.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">m</text>
-<text x="779.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">/</text>
-<text x="798.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
-<text x="808.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">h</text>
-<text x="818.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">3</text>
-<text x="828.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">5</text>
-<text x="838.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">m</text>
-<rect x="852.80" y="111" width="9.80" height="22" fill="rgb(203,166,247)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(88,91,112)" transform="translate(852.80 127.00) scale(0.00821 -0.00821)"/>
-<rect x="862.60" y="111" width="176.40" height="22" fill="rgb(203,166,247)"/>
-<text x="882.20" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🦀</text>
-<text x="906.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
-<text x="916.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="926.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">k</text>
-<text x="945.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
-<text x="955.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
-<text x="965.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<text x="985.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
-<text x="994.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="1004.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
-<text x="1014.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="1024.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(203,166,247)" transform="translate(1039.00 127.00) scale(0.00821 -0.00821)"/>
+<text x="83.50" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="93.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="112.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">5</text>
+<rect x="411.80" y="86" width="9.80" height="22" fill="rgb(250,179,135)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(243,139,168)" transform="translate(411.80 102.00) scale(0.00821 -0.00821)"/>
+<rect x="421.60" y="86" width="78.40" height="22" fill="rgb(250,179,135)"/>
+<path d="M993 1260 753 700H1101Q1131 700 1156.0 682.0Q1181 664 1193.0 635.0Q1205 606 1197 575Q1189 545 1167 525L367 -175Q339 -198 307 -200Q273 -202 243 -181Q215 -161 205 -126Q195 -92 209 -60L449 501H101Q71 501 45 518Q19 536 9 566Q-3 595 5.0 625.0Q13 655 35 676L835 1375Q861 1398 895.0 1400.0Q929 1402 959 1381Q987 1361 997 1327Q1007 1292 993 1260Z" fill="rgb(17,17,27)" transform="translate(431.40 102.00) scale(0.00821 -0.00821)"/>
+<text x="455.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
+<text x="465.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
+<text x="475.50" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">g</text>
+<text x="485.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(250,179,135)" transform="translate(500.00 102.00) scale(0.00821 -0.00821)"/>
+<rect x="10.00" y="111" width="401.80" height="22" fill="rgb(243,139,168)"/>
+<path d="M935 266H265V935H935ZM1200 666V800H1065V935Q1065 988 1026.0 1027.0Q987 1066 935 1066H800Q800 1065 800 1200H665V1066H534Q534 1065 534 1200H400V1066H265Q212 1066 173.5 1027.0Q135 988 135 935V800H0V666H135V534H0Q0 535 0 401H135V266Q135 213 174.0 174.0Q213 135 265 135H400V0H534V135H665V0H800V135H935Q988 135 1026.5 174.0Q1065 213 1065 266V401H1200V534H1065V666ZM665 534H534V666H665ZM800 800H400Q400 801 400 401H800Z" fill="rgb(17,17,27)" transform="translate(19.80 127.00) scale(0.00821 -0.00821)"/>
+<text x="44.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">C</text>
+<text x="54.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">o</text>
+<text x="63.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
+<text x="73.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="83.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="93.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">x</text>
+<text x="103.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="122.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">9</text>
+<text x="132.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
+<text x="142.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
+<rect x="411.80" y="111" width="9.80" height="22" fill="rgb(243,139,168)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(243,139,168)" transform="translate(411.80 127.00) scale(0.00821 -0.00821)"/>
+<rect x="421.60" y="111" width="107.80" height="22" fill="rgb(243,139,168)"/>
+<path d="M600 32Q472 32 365.5 96.0Q259 160 197.0 266.0Q135 372 135.0 499.0Q135 626 197.0 733.0Q259 840 365.5 903.0Q472 966 600.0 966.0Q728 966 834.0 903.0Q940 840 1002.5 733.0Q1065 626 1065.0 499.0Q1065 372 1002.5 266.0Q940 160 834.0 96.0Q728 32 600 32ZM1068 872 1163 970Q1116 1022 1068 1062L975 966Q897 1028 800.0 1064.0Q703 1100 600 1100Q438 1100 300.5 1019.0Q163 938 81.5 800.0Q0 662 0.0 500.0Q0 338 81.5 199.0Q163 60 300.0 -20.0Q437 -100 599.5 -100.0Q762 -100 901.0 -20.0Q1040 60 1120.0 197.0Q1200 334 1200 500Q1200 602 1165.0 698.0Q1130 794 1068 872ZM534 430H665V832H534ZM800 1300H400V1166H800Z" fill="rgb(17,17,27)" transform="translate(431.40 127.00) scale(0.00821 -0.00821)"/>
+<text x="455.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">5</text>
+<text x="465.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
+<text x="485.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
+<text x="495.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
+<text x="504.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
+<text x="514.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">▲</text>
+<rect x="529.40" y="111" width="9.80" height="22" fill="rgb(243,139,168)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(243,139,168)" transform="translate(529.40 127.00) scale(0.00821 -0.00821)"/>
+<rect x="539.20" y="111" width="107.80" height="22" fill="rgb(243,139,168)"/>
+<path d="M387 1222V1115H815V1222Q815 1249 835 1267Q853 1286 879.0 1286.0Q905 1286 924.0 1267.0Q943 1248 943 1222V1115H1051Q1113 1115 1157.0 1071.0Q1201 1027 1201 965V64Q1201 1 1157 -42Q1113 -86 1051 -85H151Q89 -85 45 -42Q1 2 1 64V965Q1 1028 45 1071Q89 1115 151 1115H259V1222Q259 1249 277 1267Q297 1286 323.0 1286.0Q349 1286 368.0 1267.0Q387 1248 387 1222ZM129 643V64Q129 55 135.0 49.0Q141 43 151 43H1051Q1059 43 1067 49Q1071 55 1071 64V643ZM1051 986H151Q143 986 135 980Q129 974 129 965V771H1071V965Q1071 974 1067 980Q1059 986 1051 986Z" fill="rgb(17,17,27)" transform="translate(549.00 127.00) scale(0.00821 -0.00821)"/>
+<text x="573.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
+<text x="583.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<text x="602.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">9</text>
+<text x="612.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">6</text>
+<text x="622.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
+<text x="632.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">▲</text>
+<rect x="647.00" y="111" width="9.80" height="22" fill="rgb(88,91,112)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(243,139,168)" transform="translate(647.00 127.00) scale(0.00821 -0.00821)"/>
+<rect x="656.80" y="111" width="176.40" height="22" fill="rgb(88,91,112)"/>
+<text x="676.40" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">🕛</text>
+<text x="700.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
+<text x="710.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">h</text>
+<text x="720.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
+<text x="730.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
+<text x="740.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">m</text>
+<text x="759.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">/</text>
+<text x="779.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
+<text x="789.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">h</text>
+<text x="798.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">3</text>
+<text x="808.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">5</text>
+<text x="818.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">m</text>
+<rect x="833.20" y="111" width="9.80" height="22" fill="rgb(203,166,247)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(88,91,112)" transform="translate(833.20 127.00) scale(0.00821 -0.00821)"/>
+<rect x="843.00" y="111" width="166.60" height="22" fill="rgb(203,166,247)"/>
+<path d="M600 1200Q604 1200 609 1198Q613 1196 630 1170Q647 1142 653 1140Q660 1140 683 1164Q707 1188 714 1188Q722 1188 726.0 1184.0Q730 1180 735 1166Q743 1148 747 1136Q752 1124 758 1120Q763 1118 768.0 1121.0Q773 1124 791 1138Q817 1156 824 1156Q833 1156 837 1150Q841 1142 845 1116Q850 1084 857 1080Q861 1078 866 1078Q872 1080 892 1090Q921 1104 926.0 1104.0Q931 1104 937 1096L943 1090L941 1056L939 1024L946 1020Q951 1016 980 1024Q1005 1028 1012.0 1028.0Q1019 1028 1024.0 1023.0Q1029 1018 1029.0 1012.0Q1029 1006 1023 980Q1018 958 1017 954Q1017 950 1020 946Q1025 940 1059 940Q1092 942 1097.0 937.0Q1102 932 1100.0 922.0Q1098 912 1089 890Q1077 864 1077 862Q1077 856 1084 852Q1091 848 1114 846Q1142 840 1148 838Q1155 834 1155 824Q1155 816 1137 790Q1123 770 1121 764Q1119 758 1124.0 753.0Q1129 748 1153 740Q1188 726 1190.0 717.0Q1192 708 1165 684Q1147 666 1143 660Q1140 654 1144.0 649.0Q1148 644 1169 630Q1201 610 1201 600Q1201 590 1168 570Q1148 558 1144 552Q1140 548 1143.0 542.0Q1146 536 1165 518Q1192 492 1190.0 482.0Q1188 472 1152 460Q1122 448 1120.0 442.0Q1118 436 1137 410Q1163 374 1151 364Q1148 362 1115 356Q1092 352 1084.0 349.0Q1076 346 1077 338Q1077 336 1089 310Q1100 288 1101 280Q1103 272 1097 264Q1092 260 1058 260Q1023 260 1019.0 256.0Q1015 252 1023 220Q1029 194 1029.0 188.0Q1029 182 1025 176Q1020 172 1012 172Q1004 172 978 178Q955 182 952.0 182.0Q949 182 944 180Q939 176 941 144L943 110L937 104Q932 98 925 98Q922 98 891 110Q862 124 857 120Q851 118 846 88Q842 62 838 52Q834 44 824 44Q817 44 792 62Q763 84 754 78Q752 76 740 48Q729 20 726 16Q722 12 714.0 12.0Q706 12 683 36Q660 60 653.0 59.0Q646 58 630 32Q611 0 601.0 0.0Q591 0 572 30Q555 58 548 60Q541 62 519 38Q502 18 495 14Q488 10 480 14Q474 16 462 46Q451 76 447 78Q442 82 434 78Q427 76 409 62Q384 44 377 44Q368 44 364 52Q360 60 356 86Q351 118 345 122Q339 124 310 110Q279 98 276 98Q271 98 265 104Q260 110 260 114Q260 118 260 144L262 178L256 182Q251 184 223 178Q185 168 177 176Q172 180 172 188Q172 196 178 220Q186 250 182 254Q178 260 143 260Q106 260 101.0 268.0Q96 276 112 310Q124 336 124 338Q124 344 117 348Q110 352 87 356Q60 360 53.0 363.0Q46 366 46 376Q46 384 64.0 411.0Q82 438 81 444Q79 450 48 460Q13 474 11.0 483.0Q9 492 36 516Q54 534 58.0 541.0Q62 548 58 552Q54 556 35 568Q10 584 5 588Q1 592 2 602Q3 610 6.0 613.0Q9 616 32 628Q60 646 60.0 653.0Q60 660 36 684Q9 708 11.0 717.0Q13 726 48 740Q79 752 81 758Q83 764 64 790Q49 812 47 820Q44 830 50 836Q55 840 57 840L62 842Q66 842 74.0 843.0Q82 844 89 846Q111 848 117 852Q124 854 124 862Q124 866 112 892Q97 926 102 934Q107 942 145 940Q177 940 182 946Q186 950 184 954Q184 956 183.0 961.0Q182 966 180 972Q178 980 177 988L170 1016L175 1022Q180 1028 189 1028Q197 1028 221 1024Q249 1016 256 1020L262 1024L260 1056Q259 1082 260 1088Q260 1092 265 1096Q271 1102 276 1104Q278 1104 310 1090Q340 1076 345.0 1079.0Q350 1082 356 1116Q360 1142 364.0 1150.0Q368 1158 377 1156Q383 1156 410.0 1137.0Q437 1118 442 1120Q447 1122 450 1126Q453 1130 462 1156Q472 1184 476 1186Q481 1188 487 1188Q494 1188 518 1164Q540 1140 547.0 1141.0Q554 1142 571 1170Q588 1196 592 1198Q595 1200 600 1200ZM600 1094Q585 1094 574 1084Q557 1068 567 1046Q576 1024 600.0 1024.0Q624 1024 632.0 1048.0Q640 1072 620 1088Q611 1094 600 1094ZM517 1036 495 1030Q399 1006 323 944Q276 902 276 900Q276 898 516 896Q692 896 727 896Q762 896 775 892Q834 878 870.0 836.0Q906 794 902 742Q898 688 836 642Q816 628 816.0 626.0Q816 624 831 610Q866 582 880 526Q885 502 890 498Q902 484 925.0 482.0Q948 480 965 492Q985 504 986 538Q988 564 990 568Q992 572 1013 572H1037L1039 578Q1041 586 1040 606Q1040 626 1038 636L1037 648L994 666Q952 686 948 688Q937 698 937 714Q937 722 960 772L982 822L977 830Q959 862 923.0 901.0Q887 940 857 962Q823 986 773.0 1008.0Q723 1030 693 1034H680L650 1006Q620 978 610 972Q599 966 586 970Q578 976 549 1004ZM173 772Q155 770 144.0 752.0Q133 734 144 716Q154 700 174.0 700.0Q194 700 204 718Q210 730 206 744Q203 760 192 766Q184 772 173 772ZM1026 770Q1015 770 1008 766Q988 756 989.0 734.0Q990 712 1010 702Q1029 694 1045 706Q1061 718 1060.0 735.0Q1059 752 1042 764V766Q1036 770 1026 770ZM242 764 248 750Q258 728 259.0 717.0Q260 706 253 696Q249 690 207 670L164 652L162 626Q158 568 174 504L178 482H303V624V764ZM501 762V678L583 680Q644 680 656.0 681.0Q668 682 677 686Q702 696 702 718Q702 748 661 758Q647 762 574 762ZM501 558V480H555Q608 480 611.0 477.0Q614 474 614 408L613 344H431Q249 344 249 342Q249 340 267.0 320.0Q285 300 286 300Q289 300 322 306Q359 314 372.0 313.0Q385 312 393 300Q397 296 405 256Q407 246 409.0 235.0Q411 224 413 220Q415 214 414 212Q416 200 468.0 185.0Q520 170 568 166Q629 162 689 174Q734 182 773 202L782 204L791 248Q802 300 813.0 308.0Q824 316 872 306Q881 304 892.0 302.0Q903 300 909 298L914 296Q915 296 934 318Q952 340 952 342Q952 344 857 344Q766 344 752 348Q744 352 730 366Q717 382 710.0 397.0Q703 412 696 446Q681 514 670 530Q658 550 634 556Q627 558 564 558ZM335 268Q323 268 317 262Q295 248 301 224Q308 198 334 198Q359 198 367 224Q375 250 354 262Q345 268 335 268ZM864 266Q841 266 832 246Q823 228 834 212Q846 196 863.0 196.0Q880 196 894 214Q900 226 897.0 239.0Q894 252 884 260Q875 266 864 266Z" fill="rgb(17,17,27)" transform="translate(852.80 127.00) scale(0.00821 -0.00821)"/>
+<text x="877.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
+<text x="887.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="896.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">k</text>
+<text x="916.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
+<text x="926.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
+<text x="936.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
+<text x="955.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
+<text x="965.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="975.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
+<text x="985.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="994.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(203,166,247)" transform="translate(1009.60 127.00) scale(0.00821 -0.00821)"/>
 </svg>

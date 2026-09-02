@@ -3,6 +3,7 @@ import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
 import { parsePorcelainV2 } from "../../src/git.js";
+import { G, re } from "./glyphs.js";
 
 const T0 = Date.parse("2026-08-26T12:00:00.000Z");
 const WIDE = { maxWidth: 600, maxHeight: 40 };
@@ -40,14 +41,14 @@ await test("no burn rate in the first minute of a session", () => {
     { at: 12000, context: 12, fiveHour: 12 },
   ]);
   assert.doesNotMatch(early, /%\/h/, "not enough history to claim a rate");
-  assert.doesNotMatch(early, /empty ~/, "and none to project from");
+  assert.doesNotMatch(early, /5h limit ~/, "and none to project from");
 });
 
 await test("a burn rate appears once the ring has enough", () => {
   const steps = [];
   for (let i = 0; i < 8; i++) steps.push({ at: i * 20_000, context: 10 + i, fiveHour: 10 + i });
   const later = overTime(`rate-later-${process.pid}`, steps);
-  assert.match(later, /↑ \d+(\.\d)?%\/h/, "seven samples over two minutes is enough");
+  assert.match(later, re`${G.burn} \d+(\.\d)?%/h`, "seven samples over two minutes is enough");
 });
 
 await test("a falling window has no rate and no projection", () => {
@@ -55,7 +56,7 @@ await test("a falling window has no rate and no projection", () => {
   for (let i = 0; i < 8; i++) steps.push({ at: i * 20_000, context: 50 - i, fiveHour: 50 - i });
   const falling = overTime(`rate-falling-${process.pid}`, steps);
   assert.doesNotMatch(falling, /%\/h/, "a window that is emptying is not burning");
-  assert.doesNotMatch(falling, /empty ~/);
+  assert.doesNotMatch(falling, /5h limit ~/);
 });
 
 await test("the projection only renders when it lands before the reset", () => {
@@ -63,11 +64,11 @@ await test("the projection only renders when it lands before the reset", () => {
   // resets first, which is the good outcome.
   const gentle = [];
   for (let i = 0; i < 8; i++) gentle.push({ at: i * 20_000, context: 10, fiveHour: 10 + i * 0.1 });
-  assert.doesNotMatch(overTime(`proj-gentle-${process.pid}`, gentle), /empty ~/);
+  assert.doesNotMatch(overTime(`proj-gentle-${process.pid}`, gentle), /5h limit ~/);
 
   const steep = [];
   for (let i = 0; i < 8; i++) steep.push({ at: i * 20_000, context: 10, fiveHour: 50 + i * 3 });
-  assert.match(overTime(`proj-steep-${process.pid}`, steep), /empty ~\d\d:\d\d/);
+  assert.match(overTime(`proj-steep-${process.pid}`, steep), /5h limit ~\d\d:\d\d/);
 });
 
 await test("no sparkline: the trend segment was removed", () => {
@@ -118,12 +119,12 @@ await test("a conflict renders on line 1, and nothing renders without one", () =
       ...WIDE,
     })
   );
-  assert.match(conflicted, /✖ 2/);
+  assert.match(conflicted, re`${G.conflict} 2`);
 
   const clean = stripAnsi(
     renderPayload(fullPayload(), { sources: gitSources(), trackChanges: false, now: T0, ...WIDE })
   );
-  assert.doesNotMatch(clean, /✖/);
+  assert.doesNotMatch(clean, re`${G.conflict}`);
 });
 
 await test("CI status is read from cache and never from the redraw path", async () => {
@@ -157,8 +158,8 @@ await test("a CI result renders as a mark and a workflow name", () => {
       })
     );
 
-  assert.match(render({ conclusion: "success", status: "completed", workflow: "CI" }), /✓ CI/);
-  assert.match(render({ conclusion: "failure", status: "completed", workflow: "CI" }), /✗ CI/);
-  assert.match(render({ conclusion: null, status: "in_progress", workflow: "CI" }), /◐ CI/);
-  assert.doesNotMatch(render(null), /[✓✗◐]/);
+  assert.match(render({ conclusion: "success", status: "completed", workflow: "CI" }), re`${G.ciPass} CI`);
+  assert.match(render({ conclusion: "failure", status: "completed", workflow: "CI" }), re`${G.ciFail} CI`);
+  assert.match(render({ conclusion: null, status: "in_progress", workflow: "CI" }), re`${G.ciRunning} CI`);
+  assert.doesNotMatch(render(null), re`[${G.ciPass}${G.ciFail}${G.ciRunning}]`);
 });

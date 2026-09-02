@@ -2,14 +2,15 @@ import assert from "node:assert/strict";
 import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { emptySources } from "./fixtures/sources.js";
+import { G, re } from "./glyphs.js";
 
 const line3 = (payload) =>
   stripAnsi(renderPayload(payload, { sources: emptySources, trackChanges: false }))
     .split("\n")
-    .find((l) => l.includes("🤖"));
+    .find((l) => l.includes(G.model));
 
 await test("effort renders behind the lightning icon when the payload carries a level", () => {
-  assert.match(line3({ model: { display_name: "M" }, effort: { level: "high" } }), /⚡ high/);
+  assert.match(line3({ model: { display_name: "M" }, effort: { level: "high" } }), re`${G.effort} high`);
 });
 
 await test("an output style is never shown behind the effort icon", () => {
@@ -17,8 +18,8 @@ await test("an output style is never shown behind the effort icon", () => {
   // `effort.level` was missing, so "explanatory" was rendered as though it
   // were an effort level (FR-021).
   const rendered = line3({ model: { display_name: "M" }, output_style: { name: "explanatory" } });
-  assert.doesNotMatch(rendered, /⚡ explanatory/);
-  assert.doesNotMatch(rendered, /⚡/, "with no effort level there is no effort segment");
+  assert.doesNotMatch(rendered, re`${G.effort} explanatory`);
+  assert.doesNotMatch(rendered, re`${G.effort}`, "with no effort level there is no effort segment");
 });
 
 await test("line 3 is the model and the effort, and nothing after them", () => {
@@ -32,11 +33,11 @@ await test("line 3 is the model and the effort, and nothing after them", () => {
     agent: { name: "reviewer" },
     session_name: "some-session",
   });
-  assert.match(rendered, /🤖 M/);
-  assert.match(rendered, /⚡ xhigh/);
+  assert.match(rendered, re`${G.model} M`);
+  assert.match(rendered, re`${G.effort} xhigh`);
   assert.doesNotMatch(rendered, /learning|reviewer|some-session/);
 });
 
 await test("line 3 is never empty: the model always has a name", () => {
-  assert.match(line3({}), /🤖 Claude/);
+  assert.match(line3({}), re`${G.model} Claude`);
 });

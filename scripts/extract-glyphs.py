@@ -12,11 +12,15 @@ platform's system emoji font covers them, in color.
 """
 
 import json
+import os
 import sys
 from fontTools.ttLib import TTFont
 from fontTools.pens.svgPathPen import SVGPathPen
 
-FONT = "/Users/jony/Library/Fonts/FiraCodeNerdFontMono-Regular.ttf"
+FONT = os.environ.get(
+    "STATUSLINE_NERD_FONT",
+    "/Users/jony/Library/Fonts/FiraCodeNerdFontMono-Regular.ttf",
+)
 
 # Only the Nerd Font private-use glyphs the statusline actually emits.
 WANTED = {
@@ -38,6 +42,29 @@ WANTED = {
     "F40A": 0xF40A,  # nf-oct-cloud_upload: commits waiting to be pushed
     "F409": 0xF409,  # nf-oct-cloud_download: commits waiting to be pulled
     "F417": 0xF417,  # nf-oct-git_commit: a detached HEAD, which is not a branch
+    "F413": 0xF413,  # nf-oct-file_directory: the working directory
+    "F421": 0xF421,  # nf-oct-alert: unmerged paths
+    "F42E": 0xF42E,  # nf-oct-check: the CI run passed
+    "F467": 0xF467,  # nf-oct-x: the CI run failed
+    "F4A0": 0xF4A0,  # nf-oct-tasklist: the todo list. F0BE is listed as
+                     # "checklist" and draws the App Store logo
+    # Material Design and Devicon, for the segments GitHub has no vocabulary
+    # for. These replaced emoji on 2026-09-01: an emoji costs two columns
+    # where a private-use glyph costs one, on a bar already short of width.
+    "F004D": 0xF004D,  # nf-md-arrow_left: what a directory or worktree came from
+    "F0997": 0xF0997,  # nf-md-progress_clock: the CI run is still going
+    "F0765": 0xF0765,  # nf-md-circle: working
+    "F0766": 0xF0766,  # nf-md-circle_outline: idle
+    "F0431": 0xF0431,  # nf-md-puzzle: the active skills
+    "F06A9": 0xF06A9,  # nf-md-robot: the model
+    "F0E7": 0xF0E7,    # nf-fa-bolt: the effort level
+    "F035B": 0xF035B,  # nf-md-memory: the context window. F09DA is listed as
+                       # "brain" and draws a boxed chevron
+    "F051B": 0xF051B,  # nf-md-timer: the 5-hour window. F44E is listed as
+                       # "stopwatch" and draws three flat bars
+    "F252": 0xF252,    # nf-fa-hourglass_half: session duration
+    "F0238": 0xF0238,  # nf-md-fire: how fast the window is being spent
+    "E7A8": 0xE7A8,    # nf-dev-rust: rtk is a Rust binary
 }
 
 

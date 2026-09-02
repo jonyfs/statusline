@@ -3,6 +3,7 @@ import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { abbreviate, formatDuration, getContextTokens, getSessionCost } from "../../src/tokens.js";
 import { emptySources, gitSources, fullPayload } from "./fixtures/sources.js";
+import { G, re } from "./glyphs.js";
 
 const NOW = Date.parse("2026-08-26T12:00:00.000Z");
 const WIDE = { maxWidth: 600, maxHeight: 40 };
@@ -32,8 +33,8 @@ const rich = (over = {}) =>
 // A4 -----------------------------------------------------------------------
 
 await test("session duration renders in hours and minutes, and is absent without it", () => {
-  assert.match(render(rich()), /⏳ 1h04m/);
-  assert.doesNotMatch(render(fullPayload()), /⏳/);
+  assert.match(render(rich()), re`${G.duration} 1h04m`);
+  assert.doesNotMatch(render(fullPayload()), re`${G.duration}`);
 });
 
 await test("duration degrades rather than showing nonsense", () => {
@@ -126,7 +127,7 @@ await test("the session name came off line 3 on 2026-08-26", () => {
 // A17 ----------------------------------------------------------------------
 
 await test("the project directory renders only when it differs from the working one", () => {
-  assert.doesNotMatch(render(rich()), /←/, "same directory, nothing to say");
+  assert.doesNotMatch(render(rich()), re`${G.from}`, "same directory, nothing to say");
 
   const moved = render(
     rich({
@@ -137,8 +138,8 @@ await test("the project directory renders only when it differs from the working 
       },
     })
   );
-  assert.match(moved, /📁 src/);
-  assert.match(moved, /← statusline/);
+  assert.match(moved, re`${G.dir} src`);
+  assert.match(moved, re`${G.from} statusline`);
 });
 
 // A19 ----------------------------------------------------------------------
@@ -147,7 +148,7 @@ await test("a worktree renders its name and where it came from", () => {
   const wt = render(
     rich({ worktree: { name: "my-feature", branch: "worktree-my-feature", original_branch: "main" } })
   );
-  assert.match(wt, /my-feature ← main/);
+  assert.match(wt, re`my-feature ${G.from} main`);
 });
 
 await test("a linked worktree outside a worktree session still names itself", () => {
@@ -155,18 +156,18 @@ await test("a linked worktree outside a worktree session still names itself", ()
   // only inside a worktree session. The bar should say so either way.
   const wt = render(rich({ workspace: { current_dir: "/x", git_worktree: "feature-xyz" } }));
   assert.match(wt, /feature-xyz/);
-  assert.doesNotMatch(wt, /feature-xyz ←/, "with no original branch there is no arrow");
+  assert.doesNotMatch(wt, re`feature-xyz ${G.from}`, "with no original branch there is no arrow");
 });
 
 await test("no worktree, no segment", () => {
-  assert.doesNotMatch(render(rich()), /←/);
+  assert.doesNotMatch(render(rich()), re`${G.from}`);
 });
 
 // Cross-cutting ------------------------------------------------------------
 
 await test("every new segment is absent outside a session that carries it", () => {
   const bare = render({}, emptySources);
-  for (const marker of [/⏳/, /api /, /\+\d+ −/, /window/, /⚠ 200k/]) {
+  for (const marker of [re`${G.duration}`, /api /, /\+\d+ −/, /window/, /⚠ 200k/]) {
     assert.doesNotMatch(bare, marker, `${marker} rendered with nothing to render from`);
   }
 });
