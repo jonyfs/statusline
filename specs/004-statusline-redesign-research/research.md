@@ -186,10 +186,26 @@ which is slower than the new code and therefore measures the load rather than
 either version. The 18.6 ms baseline above was taken on an idle machine and
 is the number the comparison has to be made against.
 
-**Disposition**: adopted, with one thing still owed. The direct cost of the
-resolver is measured and negligible. The end-to-end p95 must be re-measured on
-an idle machine before the pull request, against the 18.6 ms baseline, and
-that check belongs in the polish phase rather than here.
+**Re-measured on an idle machine, 2026-09-02, after the feature merged.**
+Three runs of `node scripts/bench.js --runs 100`: p95 of 20.1, 24.2 and 18.0
+ms, p50 of 16.5, 17.2 and 16.1. Against the 18.6 ms baseline that is no
+regression, and every run sat inside a twentieth of the budget.
+
+The spread has a cause worth writing down, because it makes the benchmark
+easy to misread. The bar caches under `~/.claude/statusline/cache` and stops
+asking a repository that has already proved too slow to answer in time. On a
+loaded machine `git status` blows its 150 ms budget, that guard latches, and
+every later redraw skips git and measures about half a millisecond. A run
+reporting 0.4 to 0.6 ms is the guard doing its job rather than a fast redraw,
+and a run reporting 60 to 80 ms is the machine rather than the code. A
+benchmark taken while something else is building says nothing about either
+version. The clean figures above were taken with the cache cleared and
+nothing else running.
+
+**Disposition**: adopted and closed. The resolver costs 0.087 ms per call,
+the end-to-end p95 is unchanged against the baseline, and the condition the
+benchmark needs in order to mean anything is now written down rather than
+assumed.
 
 ## 6. Reliability, catalogued
 
