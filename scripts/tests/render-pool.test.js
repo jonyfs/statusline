@@ -91,7 +91,10 @@ await test("the fixture's bar is the golden one", () => {
   const golden = readFileSync(
     new URL("./fixtures/composer-bar.txt", import.meta.url),
     "utf8"
-  ).replace(/\n$/, "");
+  )
+    // CRLF on a Windows checkout, whatever the file was committed as.
+    .replace(/\r\n/g, "\n")
+    .replace(/\n$/, "");
   assert(strip(renderReadings(readings(), PAYLOAD, opts)) === golden, "the fixture's bar changed");
 });
 

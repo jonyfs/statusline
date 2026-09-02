@@ -47,10 +47,18 @@ const WIDTHS = [80, 120, 160];
  * runs the same statements the terminal runs.
  */
 function inlineModule(relPath, { drop = [] } = {}) {
-  let source = readFileSync(path.join(ROOT, relPath), "utf8");
+  // Normalised on the way in, because a Windows checkout hands back CRLF and
+  // the chunks below are written with LF. Matching one against the other
+  // fails for a reason that has nothing to do with the module, and it fails
+  // only on the platform nobody develops on (Principle IX). Normalising also
+  // keeps the generated page byte-identical across platforms, which the
+  // staleness check in CI depends on.
+  const lf = (text) => text.replace(/\r\n/g, "\n");
+  let source = lf(readFileSync(path.join(ROOT, relPath), "utf8"));
   for (const chunk of drop) {
-    if (!source.includes(chunk)) throw new Error(`${relPath}: nothing to drop matching ${chunk.slice(0, 40)}`);
-    source = source.replace(chunk, "");
+    const wanted = lf(chunk);
+    if (!source.includes(wanted)) throw new Error(`${relPath}: nothing to drop matching ${wanted.slice(0, 40)}`);
+    source = source.replace(wanted, "");
   }
   const lines = source.split("\n").filter((line) => !/^import\s/.test(line));
   const body = lines.join("\n").replace(/^export (function|const|class) /gm, "$1 ");

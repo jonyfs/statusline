@@ -1,0 +1,17 @@
+# Line endings are LF everywhere, including on Windows checkouts.
+#
+# Two things in this repository compare file contents byte for byte: the
+# generated composer page, which CI regenerates and diffs, and the golden
+# statusline the render tests assert against. With git's default behaviour a
+# Windows checkout rewrites those files to CRLF and both comparisons fail for
+# a reason that has nothing to do with the code (Principle IX).
+* text=auto eol=lf
+
+# Binary, never touched.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
