@@ -63,7 +63,7 @@ generated preview page, one new setting.
 | II. Four-Line Display Structure | No segment added, no placement changed, no width changed | Pass. Constant frame width is a requirement (FR-012) and a test (research decision 6) |
 | III. Token Tracking Grounded in Real Data | No usage figure is read or displayed differently | Pass. Untouched |
 | IV. Installable by Clone | The new setting installs with no extra step | Pass. It is a key in the existing resolver |
-| V. Integration Documentation | The setting and its default are documented | Pass, via task T023 |
+| V. Integration Documentation | The setting and its default are documented | Pass, via task T034 |
 | VI. English-Only Codebase | All code, comments and docs in English | Pass |
 | VII. MVP-First | The preview ships and can be judged before any renderer change | Pass. That is the story split |
 | VIII. Documentation Shows Generated Output | Regenerating previews produces no diff | Pass. Preview generation already disables change tracking, which disables animation (research decision 5) |
