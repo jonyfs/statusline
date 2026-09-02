@@ -76,6 +76,13 @@ await test("asking for the pool does not change the ordinary render", () => {
   assert(before.split("\n").length === 4, "the fixture no longer draws four lines");
 });
 
+await test("the fixture pins its timezone", () => {
+  // The failure this guards against passed on a laptop in UTC-3 and failed on
+  // every CI runner: clock faces and reset labels come from local time, so
+  // the committed golden bar is only a fact if the timezone is one too.
+  assert(process.env.TZ === "UTC", `the fixture is rendering in ${process.env.TZ}`);
+});
+
 await test("the fixture's bar is the golden one", () => {
   // The expected bar lives beside this file rather than inside it: it is
   // full of private-use glyphs, and a string nobody can read in a diff is a

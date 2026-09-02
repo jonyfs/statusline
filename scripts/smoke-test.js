@@ -19,6 +19,12 @@
 process.env.COLUMNS = process.env.CLAUDE_STATUSLINE_TEST_COLUMNS || "200";
 process.env.LINES = process.env.CLAUDE_STATUSLINE_TEST_LINES || "40";
 
+// Clock faces and reset labels derive from LOCAL time, so a case that
+// asserts against a rendered bar passes in one timezone and fails in
+// another. `scripts/generate-previews.js` pins this for the same reason;
+// the suite needs it too, and it has to happen before any Date exists.
+process.env.TZ = "UTC";
+
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";

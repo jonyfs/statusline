@@ -12,6 +12,14 @@
  * produce no diff. Nothing here reads the machine.
  */
 
+// Pinned, not defaulted. Clock faces and reset labels derive from LOCAL
+// time, so this fixture renders a different bar in UTC-3 than it does on a
+// CI runner in UTC, and the committed golden output would be a fact about
+// whoever generated it. `scripts/generate-previews.js` pins it the same way
+// and for the same reason. Nothing renders a real session from this file, so
+// there is no caller whose timezone deserves to win.
+process.env.TZ = "UTC";
+
 /** 2026-08-24T12:00:00Z, the instant the previews already freeze at. */
 export const FIXED_NOW = 1787572800;
 
