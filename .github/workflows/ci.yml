@@ -62,6 +62,30 @@ jobs:
             exit 1
           fi
 
+  composer-current:
+    # The same argument as the previews above, for the page the bar is
+    # arranged on: it is generated from the renderer, so a committed copy
+    # that disagrees with the code is a page somebody could make a decision
+    # from and get a different bar.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Regenerate the composer page
+        run: node scripts/generate-composer.js
+
+      - name: Fail if the page is stale
+        run: |
+          if ! git diff --quiet -- specs/004-statusline-redesign-research/composer.html; then
+            echo "::error::composer.html is out of date. Run 'npm run composer' and commit the result."
+            git diff --stat -- specs/004-statusline-redesign-research/composer.html
+            exit 1
+          fi
+
   clone-install:
     # The documented install is a bare clone with no package manager, which
     # only works while the project has zero runtime dependencies. This proves

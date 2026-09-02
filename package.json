@@ -25,6 +25,7 @@
     "statusline-plugin": "bin/cli.js"
   },
   "scripts": {
+    "composer": "node scripts/generate-composer.js",
     "previews": "node scripts/generate-previews.js",
     "test": "node scripts/smoke-test.js"
   },

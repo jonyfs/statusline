@@ -134,3 +134,40 @@ await test("alignment yields when padding would break the width limit", () => {
     "given the width, the shorter first segment is padded to match"
   );
 });
+
+// Priority is not arrangeable, and this is why: what a narrow terminal drops
+// has to stay a decision taken once in the registry, even on a bar somebody
+// rearranged. Moving a low-priority segment onto a crowded line makes it the
+// first thing to go there, not the last.
+await test("an arranged bar still drops by priority", async () => {
+  const { renderPayload } = await import("../../src/render.js");
+  const { PAYLOAD, SOURCES, FIXED_NOW, SAMPLES } = await import("../composer-fixture.js");
+  const { stripAnsi } = await import("../test-harness.js");
+
+  const draw = (arrangement, width) =>
+    stripAnsi(
+      renderPayload(PAYLOAD, {
+        sources: { ...SOURCES },
+        trackChanges: false,
+        now: FIXED_NOW * 1000,
+        samples: SAMPLES,
+        maxWidth: width,
+        maxHeight: 40,
+        layout: { arrangement, origin: "test", path: null, error: null },
+      })
+    );
+
+  // rtk carries the lowest priority on the bar and context the highest.
+  // Put both on line 3 and squeeze it: the savings figure goes first.
+  const moved = { version: 1, segments: { rtk: { line: 3, order: 5 }, context: { line: 3, order: 6 } } };
+  const roomy = draw(moved, 200);
+  assert.ok(/rtk 81% saved/.test(roomy), "the savings figure is missing before the squeeze");
+  assert.ok(/Context 46%/.test(roomy), "the context figure is missing before the squeeze");
+
+  // Narrow enough that the four segments on that line cannot all fit: at 60
+  // columns they still do, which is the whole point of measuring rather than
+  // assuming.
+  const tight = draw(moved, 36);
+  assert.ok(/Context 46%/.test(tight), "the highest-priority segment was dropped");
+  assert.ok(!/rtk 81% saved/.test(tight), "the lowest-priority segment survived a 60-column window");
+});

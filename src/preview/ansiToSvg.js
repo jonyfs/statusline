@@ -1,16 +1,16 @@
 import { readFileSync } from "node:fs";
 
-const GLYPHS = JSON.parse(
-  readFileSync(new URL("./glyphs.json", import.meta.url), "utf8")
-);
-
-// Nerd Font private-use codepoints are drawn as extracted outlines rather
-// than text, because no viewer (GitHub included) has a Nerd Font installed.
-// Emoji are left as <text>: they're normal Unicode and every platform's
-// system emoji font renders them, in color.
-const NF_CODEPOINTS = new Set(
-  Object.keys(GLYPHS.glyphs).map((hex) => parseInt(hex, 16))
-);
+/**
+ * The extracted outlines this module draws with, read from disk.
+ *
+ * Kept behind a function rather than run at import time, because the drawing
+ * itself has no need of a filesystem and a page that inlines this module has
+ * no filesystem to offer it. The default converter below still loads the
+ * file, so every existing caller is unaffected.
+ */
+export function loadGlyphs() {
+  return JSON.parse(readFileSync(new URL("./glyphs.json", import.meta.url), "utf8"));
+}
 
 /**
  * Private use: where every Nerd Font glyph lives. Three ranges, not one.
@@ -127,11 +127,11 @@ function missingGlyphMessage(hex) {
  * Renders one Nerd Font glyph as a scaled path. Font outlines are
  * y-up from the baseline, SVG is y-down, hence the negative y scale.
  */
-function glyphPath(cp, x, baselineY, fill) {
+function glyphPath(glyphs, cp, x, baselineY, fill) {
   const hex = cp.toString(16).toUpperCase().padStart(4, "0");
-  const g = GLYPHS.glyphs[hex];
+  const g = glyphs.glyphs[hex];
   if (!g) throw new Error(missingGlyphMessage(hex));
-  const scale = FONT_SIZE / GLYPHS.unitsPerEm;
+  const scale = FONT_SIZE / glyphs.unitsPerEm;
   return (
     `<path d="${g.path}" fill="${fill}" ` +
     `transform="translate(${x.toFixed(2)} ${baselineY.toFixed(2)}) scale(${scale.toFixed(5)} ${(-scale).toFixed(5)})"/>`
@@ -139,10 +139,23 @@ function glyphPath(cp, x, baselineY, fill) {
 }
 
 /**
- * Converts the statusline's real ANSI output into a standalone SVG that
- * renders identically for viewers with no Nerd Font and no terminal.
+ * Builds the converter around one glyph table.
+ *
+ * Nerd Font private-use codepoints are drawn as extracted outlines rather
+ * than text, because no viewer (GitHub included) has a Nerd Font installed.
+ * Emoji are left as <text>: they're normal Unicode and every platform's
+ * system emoji font renders them, in color.
  */
-export function ansiToSvg(ansi, { title = "", background = "#1e1e2e" } = {}) {
+export function createAnsiToSvg(glyphs) {
+  const NF_CODEPOINTS = new Set(
+    Object.keys(glyphs.glyphs).map((hex) => parseInt(hex, 16))
+  );
+
+  /**
+   * Converts the statusline's real ANSI output into a standalone SVG that
+   * renders identically for viewers with no Nerd Font and no terminal.
+   */
+  return function ansiToSvg(ansi, { title = "", background = "#1e1e2e" } = {}) {
   const lines = ansi.split("\n").filter((l) => l.length > 0);
 
   let maxCells = 0;
@@ -205,7 +218,7 @@ export function ansiToSvg(ansi, { title = "", background = "#1e1e2e" } = {}) {
         const fill = run.fg || "#cdd6f4";
 
         if (NF_CODEPOINTS.has(cp)) {
-          body.push(glyphPath(cp, PAD_X + localX * CELL_W, baseline, fill));
+          body.push(glyphPath(glyphs, cp, PAD_X + localX * CELL_W, baseline, fill));
         } else if (isPrivateUse(cp)) {
           throw new Error(missingGlyphMessage(cp.toString(16).toUpperCase().padStart(4, "0")));
         } else if (ch.trim()) {
@@ -228,4 +241,8 @@ export function ansiToSvg(ansi, { title = "", background = "#1e1e2e" } = {}) {
     body.join("\n") +
     `\n</svg>\n`
   );
+  };
 }
+
+/** The converter every existing caller uses, over the committed outlines. */
+export const ansiToSvg = createAnsiToSvg(loadGlyphs());
