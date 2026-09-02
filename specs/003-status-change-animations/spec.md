@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-01
 
-**Status**: Draft — the animation set is chosen from the browser preview before any of it reaches the bar
+**Status**: Closed 2026-09-01. The board shipped, the owner looked at all six candidates and adopted none. Stories 2 and 3 are closed by that decision. See [decisions.md](./decisions.md)
 
 **Input**: User description: "considere adicinar animaçoes quando algum dos status muda, apenas para chamar a atençao do usuário que está olhando o console, simule alguma animaçao nerd e engraçada, considere mostrar o design no browser antes"
 

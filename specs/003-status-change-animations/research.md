@@ -79,8 +79,16 @@ requires a Nerd Font glyph where one exists and `F0BAF` is one.
 
 ## Decision 3: the no-Nerd-Font animation is the Braille spinner
 
-**Decision**: The substitute set animates with Braille dot patterns
-(`U+2801`-`U+28FF`), the eight-frame pattern every CLI spinner uses.
+**Decision**: The Braille dot patterns (`U+2801`-`U+28FF`), the pattern every
+CLI spinner uses, are the substitute wherever nothing closer exists, and a
+candidate of their own.
+
+Amended during implementation: where a plain character mirrors the Nerd Font
+glyph directly, it is used instead. An outline star substitutes for an outline
+star (`☆ ★`), quarter and half discs for the pie fill (`◔ ◑ ◕ ●`), a hollow and
+filled square and a tick for the puzzle snap (`▫ ▪ ✓`). A substitute that says
+the same thing is better than one that merely moves, and all of them are one
+column wide in any monospace font.
 
 **Rationale**: Principle I requires every glyph to have a substitute, and
 FR-016 requires the substitute to animate rather than falling back to a still

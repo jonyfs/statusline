@@ -65,6 +65,21 @@ WANTED = {
     "F252": 0xF252,    # nf-fa-hourglass_half: session duration
     "F0238": 0xF0238,  # nf-md-fire: how fast the window is being spent
     "E7A8": 0xE7A8,    # nf-dev-rust: rtk is a Rust binary
+    # Animation frames (feature 003). Each was rendered and looked at: the
+    # md dice_1..dice_6 range draws a boxed division sign, a list, a building
+    # and a download arrow, "space_invaders" draws a crossed-out television,
+    # F0BA9 "puzzle_outline" draws a comb, and robot_excited and its siblings
+    # draw bookmarks. None of those are here for that reason.
+    "F0A9E": 0xF0A9E,  # nf-md-circle_slice_1: a quarter disc
+    "F0AA0": 0xF0AA0,  # nf-md-circle_slice_3: a half disc
+    "F0AA2": 0xF0AA2,  # nf-md-circle_slice_5: a three-quarter disc
+    "F0AA5": 0xF0AA5,  # nf-md-circle_slice_8: a full disc
+    "F0BAF": 0xF0BAF,  # nf-md-pac_man: a disc with a wedge cut out
+    "F1427": 0xF1427,  # nf-md-puzzle_outline: an outlined puzzle piece
+    "F1426": 0xF1426,  # nf-md-puzzle_check: a puzzle piece with a tick
+    "F167A": 0xF167A,  # a second robot head, for the model's blink
+    "F04D2": 0xF04D2,  # nf-md-star_outline
+    "F04CE": 0xF04CE,  # nf-md-star
 }
 
 

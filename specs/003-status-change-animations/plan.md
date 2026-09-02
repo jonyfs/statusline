@@ -105,11 +105,13 @@ specs/003-status-change-animations/
 
 ### Source Code (repository root)
 
+As planned, with the candidate table in `src/` because the renderer was going
+to read it:
+
 ```text
 src/
-├── animations.js           # NEW. Candidate frame tables, nerd and plain,
-│                           # and the frame lookup. One place, read by both
-│                           # the renderer and the preview generator
+├── animations.js           # Candidate frame tables, nerd and plain, and the
+│                           # frame lookup, read by the renderer and the page
 ├── changeTracker.js        # frames-per-segment counter; iconFor returns
 │                           # the frame instead of the static icon
 ├── config.js               # the `animate` setting
@@ -119,11 +121,31 @@ src/
 
 scripts/
 ├── extract-glyphs.py       # candidate codepoints added
-├── generate-animation-board.js  # NEW. Builds the preview page
+├── generate-animation-board.js  # Builds the preview page
 └── tests/
-    ├── animations.test.js  # NEW. Frame tables, widths, sequence order
-    └── ...                 # existing cases extended
+    └── animations.test.js  # Frame tables, widths, sequence order
 ```
+
+As built, after the decision of 2026-09-01 adopted no candidate. Nothing in
+`src/` loads the table any more, and `src/` is what ships, so it moved to sit
+beside its only remaining consumer:
+
+```text
+src/
+└── preview/
+    └── glyphs.json         # candidate outlines, so the board needs no font.
+                            # Not shipped: package.json excludes src/preview
+
+scripts/
+├── animation-candidates.js      # the six candidates, and CHOSEN, which is empty
+├── extract-glyphs.py            # candidate codepoints added
+├── generate-animation-board.js  # builds the board from that table
+└── tests/
+    ├── animations.test.js       # frame tables, widths, sequence order
+    └── animation-board.test.js  # the board regenerates and reaches for nothing
+```
+
+`render.js`, `changeTracker.js` and `config.js` were never touched.
 
 **Structure Decision**: The project is a single flat `src/` of small modules,
 one concern each, and this follows it. The frame tables get their own module

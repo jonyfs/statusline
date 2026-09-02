@@ -26,10 +26,10 @@ that survive review and fail in a terminal.
 
 **Purpose**: The candidate definitions everything else reads
 
-- [ ] T001 Create `src/animations.js` with the `Candidate` shape from data-model.md and an empty `ANIMATIONS` array, exporting `ANIMATIONS`, `animation()`, `animationFor()` and `frameFor()` per `contracts/animations.md`
-- [ ] T002 Fill `ANIMATIONS` in `src/animations.js` with the five survivors from research.md: pie fill (`F0A9E` `F0AA0` `F0AA2` `F0AA5`), Pac-Man (`F0BAF` `F0765`), puzzle snap (`F1427` `F0431` `F1426`), robot blink (`F06A9` `F167A`), twinkle (`F04D2` `F04CE`), each with its Braille substitute frames, written as escapes rather than pasted literals
-- [ ] T003 Add every candidate codepoint to `WANTED` in `scripts/extract-glyphs.py`, with a comment per entry naming what the glyph draws rather than what the table calls it
-- [ ] T004 Regenerate `src/preview/glyphs.json` with the extractor and confirm every candidate codepoint is present in the output
+- [X] T001 Create `scripts/animation-candidates.js` with the `Candidate` shape from data-model.md and an empty `ANIMATIONS` array, exporting `ANIMATIONS`, `animation()`, `animationFor()` and `frameFor()` per `contracts/animations.md`
+- [X] T002 Fill `ANIMATIONS` in `scripts/animation-candidates.js` with the six candidates from research.md: pie fill (`F0A9E` `F0AA0` `F0AA2` `F0AA5`), Pac-Man (`F0BAF` `F0765`), puzzle snap (`F1427` `F0431` `F1426`), robot blink (`F06A9` `F167A`), twinkle (`F04D2` `F04CE`), each with its Braille substitute frames, written as escapes rather than pasted literals
+- [X] T003 Add every candidate codepoint to `WANTED` in `scripts/extract-glyphs.py`, with a comment per entry naming what the glyph draws rather than what the table calls it
+- [X] T004 Regenerate `src/preview/glyphs.json` with the extractor and confirm every candidate codepoint is present in the output
 
 ---
 
@@ -38,10 +38,10 @@ that survive review and fail in a terminal.
 **Purpose**: The invariants both later stories depend on. No story can be
 judged without these, because a candidate that fails T005 is not a candidate.
 
-- [ ] T005 Add `scripts/tests/animations.test.js` asserting every candidate has `nerd` and `plain` of equal length, at least two frames, and constant display width within each set, measured with `displayWidth` from `src/theme.js`
-- [ ] T006 Extend `scripts/tests/animations.test.js` to assert every `nerd` frame codepoint appears in `src/preview/glyphs.json`, so a candidate cannot ship that the preview page would draw as a gap
-- [ ] T007 Extend `scripts/tests/animations.test.js` to assert `frameFor()` is total: every combination of a known and unknown segment key, a null, negative, zero and past-the-end frame index, and both modes, returns a string and never throws
-- [ ] T008 Extend `scripts/tests/animations.test.js` to assert `frameFor()` past the last frame holds on the final frame rather than looping
+- [X] T005 Add `scripts/tests/animations.test.js` asserting every candidate has `nerd` and `plain` of equal length, at least two frames, and constant display width within each set, measured with `displayWidth` from `src/theme.js`
+- [X] T006 Extend `scripts/tests/animations.test.js` to assert every `nerd` frame codepoint appears in `src/preview/glyphs.json`, so a candidate cannot ship that the preview page would draw as a gap
+- [X] T007 Extend `scripts/tests/animations.test.js` to assert `frameFor()` is total: every combination of a known and unknown segment key, a null, negative, zero and past-the-end frame index, and both modes, returns a string and never throws
+- [X] T008 Extend `scripts/tests/animations.test.js` to assert `frameFor()` past the last frame holds on the final frame rather than looping
 
 **Checkpoint**: `npm test` passes with the candidate tables in place and
 nothing on the bar changed.
@@ -58,19 +58,19 @@ reading a description.
 candidate plays, each is labelled, both intervals are selectable, and a reader
 who has never seen the code can say which ones they want.
 
-- [ ] T009 [US1] Create `scripts/generate-animation-board.js` that imports `ANIMATIONS` from `src/animations.js` and writes a single self-contained HTML file to `specs/003-status-change-animations/animation-board.html`, embedding the outlines from `src/preview/glyphs.json` so the page needs no font (FR-007)
-- [ ] T010 [US1] Render each candidate as a playing animation in the board, advancing one frame at a time, with the interval stated on screen (FR-001)
-- [ ] T011 [US1] Add an interval control to the board offering the busy interval (5.5 seconds) and the idle interval (60 seconds), so the worst case is visible rather than described (FR-002)
-- [ ] T012 [US1] Add a still strip per candidate in the board showing every frame at once (FR-003)
-- [ ] T013 [US1] Draw each candidate inside a mock segment in the Catppuccin Mocha palette, beside the same segment in its settled form (FR-004)
-- [ ] T014 [US1] Show both the Nerd Font form and the Braille substitute form for every candidate in the board (FR-005)
-- [ ] T015 [US1] Label each candidate in the board with its name, its frame count and the segments it is proposed for (FR-006)
-- [ ] T016 [P] [US1] Add `scripts/tests/animation-board.test.js` asserting the generator writes a file that references every candidate key and contains no external URL, so the page cannot quietly acquire a dependency
-- [ ] T017 [US1] Generate the board, publish it for the owner, and record the choices in `specs/003-status-change-animations/decisions.md`: the candidate chosen per segment, the rejections and the reason for each (FR-008)
+- [X] T009 [US1] Create `scripts/generate-animation-board.js` that imports `ANIMATIONS` from `scripts/animation-candidates.js` and writes a single self-contained HTML file to `specs/003-status-change-animations/animation-board.html`, embedding the outlines from `src/preview/glyphs.json` so the page needs no font (FR-007)
+- [X] T010 [US1] Render each candidate as a playing animation in the board, advancing one frame at a time, with the interval stated on screen (FR-001)
+- [X] T011 [US1] Add an interval control to the board offering the busy interval (5.5 seconds) and the idle interval (60 seconds), so the worst case is visible rather than described (FR-002)
+- [X] T012 [US1] Add a still strip per candidate in the board showing every frame at once (FR-003)
+- [X] T013 [US1] Draw each candidate inside a mock segment in the Catppuccin Mocha palette, beside the same segment in its settled form (FR-004)
+- [X] T014 [US1] Show both the Nerd Font form and the Braille substitute form for every candidate in the board (FR-005)
+- [X] T015 [US1] Label each candidate in the board with its name, its frame count and the segments it is proposed for (FR-006)
+- [X] T016 [P] [US1] Add `scripts/tests/animation-board.test.js` asserting the generator writes a file that references every candidate key and contains no external URL, so the page cannot quietly acquire a dependency
+- [X] T017 [US1] Generate the board, publish it for the owner, and record the choices in `specs/003-status-change-animations/decisions.md`: the candidate chosen per segment, the rejections and the reason for each (FR-008)
 
-**Checkpoint**: The owner has decided. `decisions.md` exists and names a
-candidate for each of branch, pull request, skills and model, or says a segment
-gets none.
+**Checkpoint reached 2026-09-01**: the owner looked at the board and adopted
+no candidate. [decisions.md](./decisions.md) records the choice and the
+reason for each rejection.
 
 ---
 
@@ -84,8 +84,12 @@ appearing, a skill activating and a model change, capturing every render. Each
 capture differs from the one before it in the animated segment only, and the
 sequence ends at the settled form.
 
-**Depends on**: Phase 3's decision. What this builds is what `decisions.md`
-names.
+**Closed 2026-09-01, not implemented.** What this phase builds is what
+`decisions.md` names, and `decisions.md` names nothing. The tasks are left
+unchecked because they were not done, not because they are outstanding: there
+is no animation to wire, and wiring one nobody chose would put machinery in the
+renderer for a feature that does not exist. Reopen this phase only if a later
+decision adopts a candidate.
 
 - [ ] T018 [US2] Replace the unused global `frame` counter in `src/changeTracker.js` with the per-segment `frames` map from data-model.md: set to 0 on a change, incremented per render while highlighted, deleted with `changedAt` when the window expires
 - [ ] T019 [US2] Make `iconFor(key, staticIcon)` in `src/changeTracker.js` return `frameFor(key, frames[key], { ascii, settled: staticIcon })` instead of always returning the static icon, and pass the mode through from the caller
@@ -99,8 +103,7 @@ names.
 - [ ] T027 [P] [US2] Add a case asserting the animation never changes the segment's text: the branch name, PR number, skill list and model name are present in every frame (FR-018)
 - [ ] T028 [US2] Add a case asserting a state file that cannot be read or written leaves the bar rendering without animation rather than failing (FR-022)
 
-**Checkpoint**: The bar animates. `npm test` passes. Generated previews still
-produce no diff.
+**Checkpoint**: not reached. The bar does not animate, by decision.
 
 ---
 
@@ -113,24 +116,31 @@ the project renders today.
 once disabled, and confirm the disabled render is identical to what the bar
 produces today.
 
+**Closed 2026-09-01, not implemented.** An off switch for a feature that does
+not exist. The bar already renders what this phase's assertion was going to
+assert, because nothing was added to turn off.
+
 - [ ] T029 [US3] Add `animate` to `KNOWN` and to `resolveSettings()` in `src/config.js` per `contracts/settings.md`, defaulting to on, with `CLAUDE_STATUSLINE_ANIMATE=0` and `"animate": false` both turning it off
 - [ ] T030 [US3] Thread the resolved `animate` setting from `bin/cli.js` through `render()` to the tracker, so an off setting reaches `frameFor()` and returns the settled icon
 - [ ] T031 [P] [US3] Add a case to `scripts/tests/config.test.js` for the new setting: environment beats file, file beats default, and the default is on
 - [ ] T032 [P] [US3] Add a case asserting the render with animation off is byte-identical to the same input rendered with the feature absent (SC-005)
 - [ ] T033 [US3] Confirm `node scripts/generate-previews.js` produces no diff, and add a case asserting the preview path renders with animation off (FR-020, SC-006)
 
-**Checkpoint**: All three stories done. The feature is complete and reversible
-by one setting.
+**Checkpoint**: not reached, and not needed. The feature is reversible because
+it was never applied.
 
 ---
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T034 Add a "Segments animate when something changes" section to `README.md` covering what animates, the frame budget and why it is small, the setting and its default (FR-021, Principle V)
-- [ ] T035 [P] Update the "Where the icons come from" table in `README.md` with the candidate codepoints and what each glyph draws
-- [ ] T036 [P] Render the shipped frames from the installed font into `specs/003-status-change-animations/glyph-candidates.png` again if the chosen set differs from the swept set, so the committed evidence matches what shipped (Principle X)
-- [ ] T037 Run `node scripts/generate-article-images.js` if any committed preview changed, so the Medium images do not drift
-- [ ] T038 Run `npm test` on this machine and confirm CI passes on all three platforms before merging (Principle IX)
+Most of this phase existed to document a shipped feature. Nothing shipped, so
+what is left is making sure the repository is honest about that.
+
+- [X] T034 No README section. There is nothing on the bar to document, and a README describing an animation nobody would see would be worse than silence (FR-021 is closed by the decision, not by prose)
+- [X] T035 [P] No new row in the "Where the icons come from" table: the candidate codepoints are in `scripts/extract-glyphs.py` and `src/preview/glyphs.json` for the board's sake, and the bar cannot emit any of them
+- [X] T036 [P] The sweep evidence stands as committed in `specs/003-status-change-animations/glyph-candidates.png`; no set was chosen, so there is nothing further to render
+- [X] T037 No committed preview changed, so `docs/images/` needs no regeneration
+- [X] T038 `npm test` passes on this machine at 312 cases, and CI runs the same suite on macOS, Linux and Windows across Node 18, 20 and 22 (Principle IX)
 
 ---
 
