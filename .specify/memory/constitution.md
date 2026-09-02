@@ -1,9 +1,42 @@
 # Claude Statusline Plugin Constitution
 
-<!-- 
+<!--
 Sync Impact Report:
-- Version: 4.1.0 (II and X expanded, and two sections corrected against the shipped code, after
-  the layout reductions of 2026-08-26 and 2026-08-27; see specs/002-statusline-design-review/)
+- Version: 4.2.0 (I and X expanded on 2026-09-01: the glyph set becomes Nerd-Font-first, with
+  emoji kept only as a recorded exception rather than an unexamined default)
+- Expanded: I. Starship-Compatible Output — the Glyphs bullet now states a default and an escape
+  hatch instead of a preference. A Nerd Font glyph is what a segment icon is; an emoji is
+  permitted only where no glyph in the installed Nerd Font set carries the meaning, and every
+  such case MUST be recorded with the search that failed. The reason is width, not taste: a
+  private-use Nerd Font glyph occupies one column and an emoji two, on a bar whose segments
+  already compete for the columns `COLUMNS` reports, and emoji resolve to the system emoji font,
+  whose colour and metrics sit outside the palette the rest of the chain is drawn in
+- Expanded: X. Icons Carry Live State — three rules added. The glyph set MUST be declared in one
+  table with a plain-mode substitute per entry, so no render function emits a glyph literal and
+  `CLAUDE_STATUSLINE_ASCII=1` degrades completely rather than partly. The codepoints listed in
+  the renderer and in `scripts/extract-glyphs.py` MUST be the same set. And the evidence for
+  adopting an icon MUST be an image of the glyph rendered from the installed font, kept with the
+  change that adopts it
+- Recorded exception: per-hour clock faces stay emoji. The Material Design `clock_time_one` ..
+  `clock_time_twelve` series is absent from the installed FiraCode Nerd Font build — F1861-F186C
+  draw clock-plus, clock-minus, clock-x and a plug — so no Nerd Font glyph varies by hour, and
+  Principle X requires that icon to carry the real reset hour
+- Evidence gathered 2026-09-01 for X's "a codepoint's name is not evidence of its glyph", by
+  rendering candidates out of the installed font: F09DA "brain" draws a boxed chevron, F44E
+  "stopwatch" draws three horizontal bars, F0BE "checklist" draws the App Store logo, and F0C71
+  "format_list_checks" draws a smiling face. Four names were checked and all four were wrong
+  about their glyph
+- MINOR bump: rules are added and an exception process is written down; no existing rule is
+  reversed. Principle I already required Nerd Font module icons, so naming the emoji escape
+  hatch narrows current practice rather than loosening the rule
+- Templates: no `.specify/templates/*` changes required
+- Carried out in the same change: the renderer's glyph table now holds every glyph the bar emits
+  with a plain-mode substitute for each, eight emoji were swapped for Nerd Font glyphs, the
+  extractor lists the same set, and README's "Where the icons come from" section was rewritten
+  around the table. The proof sheet is committed as `docs/glyph-evidence.png`
+- Follow-up: none deferred
+- Prior version 4.1.0: II and X expanded, and two sections corrected against the shipped code, after
+  the layout reductions of 2026-08-26 and 2026-08-27; see specs/002-statusline-design-review/
 - Expanded: II. Four-Line Display Structure — the per-line content lists now match what the
   segment registry actually renders: line 1 carries the repository and its state, line 2 carries
   skills, todo and activity, line 3 is the model and the effort level and nothing else, and line 4
@@ -85,9 +118,17 @@ reference — not a vague "Starship-like" aspiration:
   glyph, never as the default: the Powerline arrow is what the design is, and a bar that
   silently chose a pipe would be a different design wearing the same name. The existing ASCII
   mode already establishes this shape, where the fallback is asked for rather than assumed.
-- **Glyphs**: module icons MUST come from Nerd Font icon set (matching the reference config's
-  ``  ``  ``  ``-style glyphs for git/branch/language/tool markers), never plain ASCII
-  labels, so the line visually matches p10k/Powerline conventions.
+- **Glyphs**: a segment icon MUST be a Nerd Font glyph — the Octicon, Material Design and
+  Devicon sets the reference config already draws from — so the line matches p10k/Powerline
+  conventions and reads in a single typeface. A plain ASCII label is never an icon. An emoji is
+  permitted only where no glyph in the installed Nerd Font set carries the meaning, and each
+  such case MUST be recorded under Principle X together with the codepoints that were rendered
+  and rejected; per-hour clock faces are the first recorded case. The reason for the default is
+  width: a private-use Nerd Font glyph occupies one column where an emoji occupies two, and on a
+  bar whose segments already compete for the columns `COLUMNS` reports, every emoji spends a
+  column a segment could have used. Emoji also resolve to the system emoji font
+  instead of the terminal's, so their colour and baseline fall outside the palette the rest of
+  the chain is drawn in.
 - **Font dependency**: README MUST document that a Nerd Font (or Nerd Font patched font) is
   required in the user's terminal for glyphs to render; MUST include a fallback ASCII mode
   (`--no-nerd-font` flag or config toggle) for terminals without one.
@@ -334,10 +375,29 @@ accessibility hazard where it works.
 - **Speak the platform's vocabulary**: git and GitHub state MUST use GitHub's own Octicons, so
   the line reads in symbols its audience already knows: the diff-modified and diff-added markers
   for working-tree counts, and cloud-up/cloud-down for commits waiting to be pushed or pulled.
-- **A codepoint's name is not evidence of its glyph**: every icon MUST be rendered and inspected
-  before adoption. Nerd Font tables proved unreliable in practice — `F433` is listed as
-  "repo_push" but draws a downward arrow, and `F45D` is listed as "arrow_up" but draws a
-  signpost. Shipping either on its name would have put a wrong-direction arrow on the line.
+- **A codepoint's name is not evidence of its glyph**: every icon MUST be rendered from the
+  installed font and inspected before adoption, and that rendering MUST be kept with the change
+  that adopts it, so the next reader sees the evidence rather than the claim. Nerd Font tables
+  proved unreliable in practice — `F433` is listed as "repo_push" but draws a downward arrow,
+  and `F45D` is listed as "arrow_up" but draws a signpost. A sweep on 2026-09-01 turned up four
+  more in the installed FiraCode build: `F09DA` "brain" draws a boxed chevron, `F44E`
+  "stopwatch" draws three horizontal bars, `F0BE` "checklist" draws the App Store logo, and
+  `F0C71` "format_list_checks" draws a smiling face. Shipping any of them on its name would put
+  a symbol on the line that means something else.
+- **One glyph table, one fallback per entry**: every glyph the bar can emit MUST be a row in a
+  single glyph table carrying its Nerd Font codepoint and its plain-mode substitute. A glyph
+  written inline in a render function is a glyph `CLAUDE_STATUSLINE_ASCII=1` cannot replace, and
+  a fallback that swaps some icons and not others leaves boxes on the line while claiming to
+  have removed them. The renderer and `scripts/extract-glyphs.py` MUST list the same set, since
+  a glyph missing from the extractor renders in the terminal and vanishes from the generated
+  previews.
+- **An emoji on the bar is an exception with a reason**: where Principle I's Nerd Font default is
+  not met, the search that failed MUST be recorded here — which codepoints were rendered, and
+  what each one drew. Recorded case: per-hour clock faces. The Material Design `clock_time_one`
+  .. `clock_time_twelve` series is absent from the installed Nerd Font build (`F1861`-`F186C`
+  draw clock-plus, clock-minus, clock-x and a plug), so no Nerd Font glyph varies by hour, and
+  the reset segments keep their emoji clock faces because the hour is the information they
+  carry.
 - **Working-tree counts MUST NOT animate**: they change on every file save, which is exactly the
   churn this principle excludes. Only the discrete state (branch, ahead, behind, PR, skills,
   model, effort) animates.
@@ -403,4 +463,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 4.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-27
+**Version**: 4.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-01

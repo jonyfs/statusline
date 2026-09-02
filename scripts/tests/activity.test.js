@@ -7,6 +7,7 @@ import { renderPayload } from "../../src/render.js";
 import { getSessionActivity } from "../../src/skills.js";
 import { scanTail } from "../../src/transcriptTail.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
+import { G, re } from "./glyphs.js";
 
 const NOW = Date.parse("2026-08-26T12:00:00.000Z");
 const WIDE = { maxWidth: 600, maxHeight: 40 };
@@ -112,7 +113,7 @@ await test("the bar shows the todo count and the current item", () => {
       ...WIDE,
     })
   );
-  assert.match(out, /▸ Fix authentication \(1\/3\)/);
+  assert.match(out, re`${G.todo} Fix authentication \(1/3\)`);
 });
 
 await test("the bar says working or idle, and neither without a transcript", () => {
@@ -129,8 +130,8 @@ await test("the bar says working or idle, and neither without a transcript", () 
       })
     );
 
-  assert.match(render(busy), /● working/);
-  assert.match(render(quiet), /○ idle/);
+  assert.match(render(busy), re`${G.working} working`);
+  assert.match(render(quiet), re`${G.idle} idle`);
 
   const none = stripAnsi(
     renderPayload(fullPayload(), { sources: gitSources(), trackChanges: false, now: NOW, ...WIDE })

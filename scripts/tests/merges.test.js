@@ -3,6 +3,7 @@ import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { shortCountdown } from "../../src/tokens.js";
 import { gitSources, fullPayload, emptySources } from "./fixtures/sources.js";
+import { G, re } from "./glyphs.js";
 
 const NOW = Date.parse("2026-08-26T12:00:00.000Z");
 const secs = (offset) => Math.floor(NOW / 1000) + offset;
@@ -21,9 +22,9 @@ await test("line 3 carries the model and the effort, and stops there", () => {
     fullPayload({ effort: { level: "high" }, output_style: { name: "explanatory" } })
   )
     .split("\n")
-    .find((l) => l.includes("🤖"));
+    .find((l) => l.includes(G.model));
 
-  assert.match(line3, /⚡ high/);
+  assert.match(line3, re`${G.effort} high`);
   assert.doesNotMatch(line3, /explanatory/);
   assert.ok(line3.indexOf("Sonnet 5") < line3.indexOf("high"), "the model still comes first");
 });
@@ -145,6 +146,6 @@ await test("the directory stays even when it repeats the repository name", () =>
       },
     })
   );
-  assert.match(out, /📁 statusline/);
+  assert.match(out, re`${G.dir} statusline`);
   assert.match(out, /jonyfs\/statusline/);
 });

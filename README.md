@@ -179,8 +179,8 @@ around them. Neither is the default:
 | `nord` | ![nord](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-nord.svg) |
 | `gruvbox` | ![gruvbox](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-gruvbox.svg) |
 
-No Nerd Font in your terminal? `CLAUDE_STATUSLINE_ASCII=1` swaps the
-Powerline separator for a plain arrow:
+No Nerd Font in your terminal? `CLAUDE_STATUSLINE_ASCII=1` swaps the whole
+glyph set at once, icons and Powerline separators together:
 
 ![ASCII fallback](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/ascii-fallback.svg)
 
@@ -284,7 +284,7 @@ roughly the first minute of a session.
 | Segment | Says |
 |---|---|
 | `↑ 9%/h` | how fast the 5-hour window is filling |
-| `empty ~16:40` | when it would run out, and only when that lands before the window resets |
+| `5h limit ~16:40` | when the 5-hour window would hit its limit, and only when that lands before the window resets |
 
 A rate drawn from twelve seconds of history swings wildly, and a number that
 swings beside measured ones gets read as measured. So they render nothing
@@ -337,7 +337,7 @@ or inline in the `statusLine.command` string in `settings.json`.
 | Variable | What it does |
 |---|---|
 | `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato` or `latte` |
-| `CLAUDE_STATUSLINE_ASCII=1` | Drops the Powerline separator for terminals without a Nerd Font |
+| `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json`, for when a field changes shape in some future version |
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
@@ -553,32 +553,73 @@ network that often would be rude to both your connection and the remote. Run
 
 ## Where the icons come from
 
-The branch and clock glyphs were copied out of this machine's own
-`~/.config/starship.toml`: `U+F418` (`nf-oct-git_branch`, which is GitHub's
-branch icon) and `U+F43A` (`nf-oct-clock`). They're known to render in the
-Nerd Font that config already uses, rather than being a plausible-looking
-codepoint someone guessed. The pull request icon, `U+F407`, comes from the
-same Octicons set and was checked against the installed font's `cmap` table.
+Every icon on the bar is a Nerd Font glyph. Octicons wherever the segment
+shows git or GitHub state, so the line reads in the vocabulary anyone who
+uses GitHub already knows; Material Design and Devicon for the rest.
 
-The 7-day calendar is `U+F455`, a blank grid, and deliberately not the 📆
-emoji. Every emoji font draws a fixed date into that glyph; Apple's shows
-"17". Sitting next to a real expiry date, it reads as a date that never
-changes and quietly contradicts the text beside it. Unicode has no per-date
-emoji, so the actual day is written out as text instead.
+| Glyph | Codepoint | Segment |
+|---|---|---|
+| `nf-oct-git_branch` | `U+F418` | branch |
+| `nf-oct-git_commit` | `U+F417` | a detached HEAD, which is a commit and not a branch |
+| `nf-oct-git_pull_request` | `U+F407` | pull request |
+| `nf-oct-file_directory` | `U+F413` | working directory |
+| `nf-oct-diff_modified` / `nf-oct-diff_added` | `U+F459` / `U+F457` | tracked changes, untracked files |
+| `nf-oct-cloud_upload` / `nf-oct-cloud_download` | `U+F40A` / `U+F409` | commits to push, commits to pull |
+| `nf-oct-alert` | `U+F421` | merge conflicts |
+| `nf-oct-check` / `nf-oct-x` / `nf-md-progress_clock` | `U+F42E` / `U+F467` / `U+F0997` | CI passed, failed, still running |
+| `nf-oct-calendar` | `U+F455` | the 7-day window |
+| `nf-oct-clock` | `U+F43A` | a reset time with no known hour |
+| `nf-md-arrow_left` | `U+F004D` | where a directory or a worktree came from |
+| `nf-oct-tasklist` | `U+F4A0` | the todo list |
+| `nf-md-circle` / `nf-md-circle_outline` | `U+F0765` / `U+F0766` | working, idle |
+| `nf-md-puzzle` | `U+F0431` | active skills |
+| `nf-md-robot` | `U+F06A9` | model |
+| `nf-fa-bolt` | `U+F0E7` | effort level |
+| `nf-md-memory` | `U+F035B` | context window |
+| `nf-md-timer` | `U+F051B` | the 5-hour window |
+| `nf-fa-hourglass_half` | `U+F252` | session duration |
+| `nf-md-fire` | `U+F0238` | burn rate |
+| `nf-dev-rust` | `U+E7A8` | rtk, which is a Rust binary |
 
-The commit icon on a detached HEAD is `U+F417` (`nf-oct-git_commit`), from
-the same set. It replaces the branch icon rather than sitting beside it,
-because the thing being named is a commit.
+The 7-day calendar is a blank grid, and deliberately not the 📆 emoji. Every
+emoji font draws a fixed date into that glyph; Apple's shows "17". Sitting
+next to a real expiry date, it reads as a date that never changes and quietly
+contradicts the text beside it. Unicode has no per-date emoji, so the actual
+day is written out as text instead.
 
-The clock faces on the reset segments are picked to match the real reset
-hour, from the 24 variants covering each hour and half-hour. Everything
-else is a plain color emoji, which needs no special font.
+The clock faces on the reset segments are the one place emoji stay, and the
+reason is that no Nerd Font glyph varies by hour. The Material Design
+`clock_time_one` .. `clock_time_twelve` series is absent from the font this
+was built against, where `U+F1861`-`U+F186C` draw clock-plus, clock-minus,
+clock-x and a plug. The face is picked to match the real reset hour, from the
+24 emoji variants covering each hour and half-hour, so the hour is what the
+icon carries.
 
-Every one of these was rendered and looked at before being adopted. A
-codepoint's name in a Nerd Font table is not evidence of its glyph: `F433`
-is listed as "repo_push" and draws a downward arrow, and `F45D` is listed
-as "arrow_up" and draws a signpost. Either would have put a
-wrong-direction arrow on line 1.
+Eight segments carried emoji until September 2026: the directory, the skills,
+the model, the effort, the context, the 5-hour window, the session duration
+and the rtk figure. They read fine and cost two columns each, where a
+private-use glyph costs one. Eight columns on a bar whose segments are
+already dropped by priority when the terminal is narrow is eight columns that
+buy nothing, so they were swapped.
+
+Every one of these was rendered from the installed font and looked at before
+being adopted, and the proof sheet is committed as
+[`docs/glyph-evidence.png`](docs/glyph-evidence.png). A codepoint's name in a
+Nerd Font table is not evidence of its glyph. `F433` is listed as "repo_push"
+and draws a downward arrow; `F45D` is listed as "arrow_up" and draws a
+signpost; `F09DA` is listed as "brain" and draws a boxed chevron; `F44E` is
+listed as "stopwatch" and draws three flat bars; `F0BE` is listed as
+"checklist" and draws the App Store logo; `F0C71` is listed as
+"format_list_checks" and draws a smiling face. Six names were checked and all
+six were wrong.
+
+![The adopted glyphs, and the ones whose names lied](docs/glyph-evidence.png)
+
+Without a Nerd Font, `CLAUDE_STATUSLINE_ASCII=1` replaces the whole set at
+once, glyphs and Powerline separators together. Every glyph the bar can emit
+has a substitute in the same table, so the fallback is total rather than
+partial: a mode that swapped the separators and left the icons would leave a
+line of empty boxes while claiming to have fixed it.
 
 ## Segments brighten when something changes
 

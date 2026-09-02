@@ -154,7 +154,13 @@ await test("no preview ships a private-use character as text", () => {
     const svg = readFileSync(path.join(dir, name), "utf8");
     const pua = [...svg].filter((ch) => {
       const cp = ch.codePointAt(0);
-      return cp >= 0xe000 && cp <= 0xf8ff;
+      // All three private-use ranges: the Material Design glyphs are mapped
+      // into supplementary plane 15, well above U+F8FF.
+      return (
+        (cp >= 0xe000 && cp <= 0xf8ff) ||
+        (cp >= 0xf0000 && cp <= 0xffffd) ||
+        (cp >= 0x100000 && cp <= 0x10fffd)
+      );
     });
     assert.equal(pua.length, 0, `${name} carries ${pua.length} private-use character(s) as text`);
   }

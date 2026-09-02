@@ -3,6 +3,7 @@ import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { MAX_AGE_MS } from "../../src/freshness.js";
 import { emptySources, gitSources, fullPayload } from "./fixtures/sources.js";
+import { G, re } from "./glyphs.js";
 
 const NOW = Date.parse("2026-08-25T12:00:00.000Z");
 const render = (payload, sources, extra = {}) =>
@@ -33,7 +34,7 @@ const payload = fullPayload({
 
 await test("dir: present, and never blank at a filesystem root", () => {
   assert.match(render(payload, everything), /project/);
-  assert.match(render({ cwd: "/" }, emptySources), /📁 \S/, "the root must have a visible label");
+  assert.match(render({ cwd: "/" }, emptySources), re`${G.dir} \S`, "the root must have a visible label");
 });
 
 await test("branch: present with a repository, absent without one", () => {
@@ -96,16 +97,16 @@ await test("pr degraded: a draft says draft rather than open", () => {
 await test("skills: one chip carrying the list, absent when there are none", () => {
   // D7's chosen form. A chip per skill spent a separator and two spaces on
   // each name; as one list they read as one fact.
-  assert.match(render(payload, everything), /🧩 alpha, beta/);
+  assert.match(render(payload, everything), re`${G.skills} alpha, beta`);
 
   const none = render(payload, { ...everything, getActiveSkills: () => [] });
-  assert.doesNotMatch(none, /🧩/);
+  assert.doesNotMatch(none, re`${G.skills}`);
 
   const many = render(payload, {
     ...everything,
     getActiveSkills: () => ["a", "b", "c", "d", "e", "f", "g"],
   });
-  assert.match(many, /🧩 a, b, c, d, e \+2/, "the ones left out are counted, not hidden");
+  assert.match(many, re`${G.skills} a, b, c, d, e \+2`, "the ones left out are counted, not hidden");
 });
 
 await test("model: present from the payload, falls back to a name rather than nothing", () => {
@@ -115,8 +116,8 @@ await test("model: present from the payload, falls back to a name rather than no
 });
 
 await test("effort: present with a level, absent without one", () => {
-  assert.match(render(payload, everything), /⚡ high/);
-  assert.doesNotMatch(render({ model: { display_name: "M" } }, emptySources), /⚡/);
+  assert.match(render(payload, everything), re`${G.effort} high`);
+  assert.doesNotMatch(render({ model: { display_name: "M" } }, emptySources), re`${G.effort}`);
 });
 
 await test("outputStyle: taken off the bar on 2026-08-26", () => {

@@ -30,45 +30,85 @@ import { bar, rampColour, bandMark } from "./ramp.js";
 import { ratePerHour, projectFull } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight } from "./layout.js";
 
-// Nerd Font Octicons, written as escapes rather than literal private-use
+// Nerd Font glyphs, written as escapes rather than literal private-use
 // characters: pasted literals silently vanished from this file once
 // already, leaving empty strings that rendered as a bare gap. Every
-// codepoint below was verified to exist in the installed FiraCode Nerd
-// Font by reading the font's cmap table, and F418/F43A are the exact
-// glyphs this machine's own ~/.config/starship.toml already uses.
-const NF_BRANCH = "\u{F418}"; // nf-oct-git_branch (GitHub's branch icon)
-const NF_CLOCK = "\u{F43A}";  // nf-oct-clock
-const NF_PR = "\u{F407}";     // nf-oct-git_pull_request
+// codepoint here was checked against the installed FiraCode Nerd Font's
+// cmap table and then rendered from that font and looked at, because a
+// codepoint's name is not evidence of its glyph (Principle X). The proof
+// sheet is docs/glyph-evidence.png.
+//
+// Octicons wherever the segment shows git or GitHub state, so the line
+// reads in the vocabulary its audience already knows; Material Design and
+// Devicon elsewhere.
+const NF_BRANCH = "\u{F418}";    // nf-oct-git_branch (GitHub's branch icon)
+const NF_CLOCK = "\u{F43A}";     // nf-oct-clock
+const NF_PR = "\u{F407}";        // nf-oct-git_pull_request
 
 // A blank calendar grid, deliberately NOT the 📆 emoji: every emoji font
 // draws a fixed date on that glyph (Apple renders "17"), so beside a real
 // expiry day it reads as a date that never changes and contradicts the
 // text next to it. Unicode has no per-date emoji, so the day is text.
-const NF_CALENDAR = "\u{F455}"; // nf-oct-calendar
+const NF_CALENDAR = "\u{F455}";  // nf-oct-calendar
 
 // GitHub's own diff and sync markers, so the working-tree state reads in
 // the vocabulary anyone who uses GitHub already knows. Each glyph was
 // rendered and inspected before being adopted: codepoint names in Nerd
 // Font tables proved unreliable (F433 "repo_push" draws a down arrow,
 // F45D "arrow_up" draws a signpost), so the name is not evidence.
-const NF_MODIFIED = "\u{F459}"; // boxed dot, GitHub's "modified" marker
-const NF_ADDED = "\u{F457}";    // boxed plus, GitHub's "added" marker
-const NF_PUSH = "\u{F40A}";     // cloud up: commits waiting to be pushed
-const NF_PULL = "\u{F409}";     // cloud down: commits waiting to be pulled
+const NF_MODIFIED = "\u{F459}";  // boxed dot, GitHub's "modified" marker
+const NF_ADDED = "\u{F457}";     // boxed plus, GitHub's "added" marker
+const NF_PUSH = "\u{F40A}";      // cloud up: commits waiting to be pushed
+const NF_PULL = "\u{F409}";      // cloud down: commits waiting to be pulled
 
 // A commit, for a detached HEAD. The branch icon would claim the line is
 // showing a branch when it is showing a commit id.
-const NF_COMMIT = "\u{F417}"; // nf-oct-git_commit
+const NF_COMMIT = "\u{F417}";    // nf-oct-git_commit
+
+// The rest of line 1's git and GitHub state, in the same Octicon set.
+const NF_DIR = "\u{F413}";       // nf-oct-file_directory
+const NF_FROM = "\u{F004D}";     // nf-md-arrow_left: what this came from
+const NF_ALERT = "\u{F421}";     // nf-oct-alert: unmerged paths
+const NF_CHECK = "\u{F42E}";     // nf-oct-check: the run passed
+const NF_X = "\u{F467}";         // nf-oct-x: the run failed
+const NF_RUNNING = "\u{F0997}";  // nf-md-progress_clock: still going
+
+// Lines 2, 3 and 4. These carried emoji until 2026-09-01, and emoji cost
+// two columns each where a private-use glyph costs one: eight of them were
+// spending eight columns of a bar whose segments already compete for the
+// width COLUMNS reports (Principle I, Glyphs).
+const NF_TASKLIST = "\u{F4A0}";  // nf-oct-tasklist. F0BE, listed as
+                                 // "checklist", draws the App Store logo
+const NF_WORKING = "\u{F0765}";  // nf-md-circle
+const NF_IDLE = "\u{F0766}";     // nf-md-circle_outline
+const NF_SKILLS = "\u{F0431}";   // nf-md-puzzle
+const NF_MODEL = "\u{F06A9}";    // nf-md-robot
+const NF_EFFORT = "\u{F0E7}";    // nf-fa-bolt
+const NF_CONTEXT = "\u{F035B}";  // nf-md-memory: a context window is memory.
+                                 // F09DA, listed as "brain", draws a boxed
+                                 // chevron in this build
+const NF_TIMER = "\u{F051B}";    // nf-md-timer. F44E, listed as "stopwatch",
+                                 // draws three flat bars in this build
+const NF_HOURGLASS = "\u{F252}"; // nf-fa-hourglass_half: session duration
+const NF_BURN = "\u{F0238}";     // nf-md-fire: how fast the window is going
+const NF_RUST = "\u{E7A8}";      // nf-dev-rust: rtk is a Rust binary
 
 /**
- * The whole glyph set, and the substitutes used when the terminal has no
- * Nerd Font. Swapping only the Powerline separator would be a false
- * promise: every Octicon above sits in the private use area and renders
- * as an empty box without the font, so ASCII mode has to replace all of
- * them. The substitutes are plain Unicode and emoji, which need no
- * special font.
+ * The whole glyph set, and the substitute used when the terminal has no
+ * Nerd Font. Every glyph the bar can emit is a row here, per Principle X:
+ * one written inline in a render function is one `CLAUDE_STATUSLINE_ASCII=1`
+ * cannot replace, and a fallback that swaps some icons and not others
+ * leaves boxes on the line while claiming to have removed them.
+ *
+ * The substitutes are plain Unicode and emoji, which need no special font.
+ * They are wider than what they stand in for, and that is the trade: a
+ * terminal without the font gets a readable bar rather than a narrow one.
+ *
+ * Every codepoint in the `nerd` column must also be listed in
+ * `scripts/extract-glyphs.py`, or it renders in the terminal and vanishes
+ * from the generated previews.
  */
-const GLYPHS = {
+export const GLYPHS = {
   nerd: {
     branch: NF_BRANCH,
     commit: NF_COMMIT,
@@ -79,6 +119,23 @@ const GLYPHS = {
     added: NF_ADDED,
     push: NF_PUSH,
     pull: NF_PULL,
+    dir: NF_DIR,
+    from: NF_FROM,
+    conflict: NF_ALERT,
+    ciPass: NF_CHECK,
+    ciFail: NF_X,
+    ciRunning: NF_RUNNING,
+    todo: NF_TASKLIST,
+    working: NF_WORKING,
+    idle: NF_IDLE,
+    skills: NF_SKILLS,
+    model: NF_MODEL,
+    effort: NF_EFFORT,
+    context: NF_CONTEXT,
+    timer: NF_TIMER,
+    duration: NF_HOURGLASS,
+    burn: NF_BURN,
+    rtk: NF_RUST,
   },
   plain: {
     branch: "\u{1F33F}",   // 🌿
@@ -90,6 +147,23 @@ const GLYPHS = {
     added: "+",
     push: "\u{2191}",      // ↑
     pull: "\u{2193}",      // ↓
+    dir: "\u{1F4C1}",      // 📁
+    from: "\u{2190}",      // ←
+    conflict: "\u{2716}",  // ✖
+    ciPass: "\u{2713}",    // ✓
+    ciFail: "\u{2717}",    // ✗
+    ciRunning: "\u{25D0}", // ◐
+    todo: "\u{25B8}",      // ▸
+    working: "\u{25CF}",   // ●
+    idle: "\u{25CB}",      // ○
+    skills: "\u{1F9E9}",   // 🧩
+    model: "\u{1F916}",    // 🤖
+    effort: "\u{26A1}",    // ⚡
+    context: "\u{1F9E0}",  // 🧠
+    timer: "\u{23F1}\u{FE0F}", // ⏱️
+    duration: "\u{23F3}",  // ⏳
+    burn: "\u{1F525}",     // 🔥
+    rtk: "\u{1F980}",      // 🦀
   },
 };
 
@@ -437,7 +511,7 @@ export function renderReadings(
   // Line 1: working directory, then branch, ahead/behind, PR — each name
   // is an OSC 8 hyperlink when a target is known (dir -> file://, branch ->
   // GitHub tree view, PR -> PR page), with no visible URL text.
-  const dirSegment = (label) => ({ key: "dir", color: "surface1", text: ` 📁 ${label} `, url: dirUrl });
+  const dirSegment = (label) => ({ key: "dir", color: "surface1", text: ` ${g.dir} ${label} `, url: dirUrl });
   const l1 = [dirSegment(dirLabel)];
 
   // A17: Claude can move during a session, and then the directory on the bar
@@ -445,7 +519,7 @@ export function renderReadings(
   // differ, because in most sessions they do not.
   const projectDir = shows("projectDir") ? readings.projectDir.value : null;
   if (projectDir && projectDir !== readings.cwd) {
-    l1.push({ key: "projectDir", color: "surface2", text: ` ← ${getDirLabel(projectDir)} ` });
+    l1.push({ key: "projectDir", color: "surface2", text: ` ${g.from} ${getDirLabel(projectDir)} ` });
   }
   if (git) {
     const detached = git.detached === true || git.branch === "(detached)";
@@ -486,8 +560,10 @@ export function renderReadings(
     // stale, because a green tick ten minutes old is worse than none.
     const ci = shows("ci") ? readings.ci.value : null;
     if (ci) {
-      const mark = ci.status && ci.status !== "completed" ? "◐" : ci.conclusion === "success" ? "✓" : "✗";
-      const colour = mark === "✓" ? "green" : mark === "✗" ? "red" : "yellow";
+      const running = ci.status && ci.status !== "completed";
+      const passed = ci.conclusion === "success";
+      const mark = running ? g.ciRunning : passed ? g.ciPass : g.ciFail;
+      const colour = running ? "yellow" : passed ? "green" : "red";
       l1.push({ key: "ci", color: colour, text: ` ${mark} ${ci.workflow ?? "CI"} ` });
     }
     // What this session changed, which is a different question from what the
@@ -505,13 +581,13 @@ export function renderReadings(
     // B8: an unmerged path stops everything until it is resolved, which is
     // not what an ordinary changed file means.
     if (git.conflicts) {
-      l1.push({ key: "conflicts", color: "red", text: ` ✖ ${git.conflicts} ` });
+      l1.push({ key: "conflicts", color: "red", text: ` ${g.conflict} ${git.conflicts} ` });
     }
     // A19: which worktree, and what it came from. The branch name alone does
     // not always say, and a worktree is exactly when you need to be sure.
     const worktree = shows("worktree") ? readings.worktree.value : null;
     if (worktree) {
-      const from = worktree.from ? ` ← ${worktree.from}` : "";
+      const from = worktree.from ? ` ${g.from} ${worktree.from}` : "";
       l1.push({ key: "worktree", color: "teal", text: ` ${worktree.name}${from} ` });
     }
     if (pr) {
@@ -553,13 +629,13 @@ export function renderReadings(
     if (activity?.todos) {
       const { done, total, current } = activity.todos;
       const label = current ? `${current} (${done}/${total})` : `${done}/${total}`;
-      row.push({ key: "todo", color: "sapphire", text: ` ▸ ${label} ` });
+      row.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
     }
     if (activity) {
       row.push({
         key: "activity",
         color: activity.working ? "green" : "surface2",
-        text: activity.working ? ` ● working ` : ` ○ idle `,
+        text: activity.working ? ` ${g.working} working ` : ` ${g.idle} idle `,
       });
     }
   }
@@ -579,7 +655,7 @@ export function renderReadings(
       {
         key: "skills",
         color: changes.colourFor("skills", "green", palette),
-        text: ` 🧩 ${skills.join(", ")}${hidden > 0 ? ` +${hidden}` : ""} `,
+        text: ` ${g.skills} ${skills.join(", ")}${hidden > 0 ? ` +${hidden}` : ""} `,
       },
     ];
     pushLine2Extras(l2);
@@ -604,9 +680,9 @@ export function renderReadings(
   const line3Content = {
     model: () => ({
       color: changes.colourFor("model", "red", palette),
-      text: ` 🤖 ${modelName} `,
+      text: ` ${g.model} ${modelName} `,
     }),
-    effort: () => (effort ? { color: "peach", text: ` ⚡ ${effort} ` } : null),
+    effort: () => (effort ? { color: "peach", text: ` ${g.effort} ${effort} ` } : null),
   };
   const l3 = byLine(3)
     .map((s) => {
@@ -655,11 +731,11 @@ export function renderReadings(
     // are the ones with a consequence you cannot undo.
     context: () => ({
       color: rampColour(ctxPct, "yellow"),
-      text: ` 🧠 Context ${ctxPct ?? "?"}% `,
+      text: ` ${g.context} Context ${ctxPct ?? "?"}% `,
     }),
     fiveHour: () => ({
       color: rampColour(fiveHourPct, "green"),
-      text: ` ⏱️ 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)} `,
+      text: ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)} `,
     }),
     sevenDay: (o) => ({
       color: rampColour(sevenDayPct, "sapphire"),
@@ -698,7 +774,7 @@ export function renderReadings(
     // cross.
     rtk: (o) => {
       if (!o.rtk || rtkPct === null) return null;
-      return { color: "mauve", text: ` 🦀 rtk ${rtkPct}% saved ` };
+      return { color: "mauve", text: ` ${g.rtk} rtk ${rtkPct}% saved ` };
     },
 
     // B1: a percentage says where you are; a rate says whether you get there
@@ -708,12 +784,19 @@ export function renderReadings(
       if (rate === null || rate <= 0) return null;
       return {
         color: rampColour(fiveHourPct, "peach"),
-        text: ` ↑ ${rate.toFixed(rate < 10 ? 1 : 0)}%/h `,
+        text: ` ${g.burn} ${rate.toFixed(rate < 10 ? 1 : 0)}%/h `,
       };
     },
     // B2: the sentence you were going to say out loud anyway. It renders
     // only when the window would run out before it resets, because that is
     // the only case where it changes what you do.
+    //
+    // It says "5h limit" rather than "empty", which is what it said until
+    // 2026-09-01. Empty of what was never on the line: beside three
+    // percentages, a bare "empty" reads as a segment that lost its value
+    // rather than as a time. The window it projects is named for the same
+    // reason, since the 7-day figure sits two segments away and is also a
+    // limit.
     projection: () => {
       const at = projectFull(changes.samples, "fiveHourPct", now);
       if (at === null) return null;
@@ -721,13 +804,13 @@ export function renderReadings(
       const d = new Date(at);
       const hh = String(d.getHours()).padStart(2, "0");
       const mm = String(d.getMinutes()).padStart(2, "0");
-      return { color: "red", text: ` empty ~${hh}:${mm} ` };
+      return { color: "red", text: ` 5h limit ~${hh}:${mm} ` };
     },
     // A4, A5, A6: what the session has spent, in time and in lines.
     duration: () => {
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       const label = formatDuration(c?.durationMs);
-      return label ? { color: "surface2", text: ` ⏳ ${label} ` } : null;
+      return label ? { color: "surface2", text: ` ${g.duration} ${label} ` } : null;
     },
   };
 
