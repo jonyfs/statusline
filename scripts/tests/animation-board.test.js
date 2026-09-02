@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { test } from "../test-harness.js";
 import { ANIMATIONS } from "../animation-candidates.js";
 
-const BOARD = new URL("../../specs/003-status-change-animations/animation-board.html", import.meta.url);
+// fileURLToPath, not `.pathname`: on Windows a file URL's pathname is
+// "/D:/a/..." with a leading slash, and handing that to a child process
+// produces "D:\D:\a\..." and a module Node cannot find (Principle IX).
+const BOARD = fileURLToPath(new URL("../../specs/003-status-change-animations/animation-board.html", import.meta.url));
+const GENERATOR = fileURLToPath(new URL("../generate-animation-board.js", import.meta.url));
 
 await test("the board regenerates, and covers every candidate", () => {
-  execFileSync(process.execPath, [new URL("../generate-animation-board.js", import.meta.url).pathname]);
+  execFileSync(process.execPath, [GENERATOR]);
   const html = readFileSync(BOARD, "utf8");
   for (const a of ANIMATIONS) {
     assert.ok(html.includes(`id="c-${a.key}"`), `${a.key} has no section on the board`);
