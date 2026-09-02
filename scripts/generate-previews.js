@@ -27,6 +27,12 @@ process.env.TZ = "UTC";
 const PREVIEW_WIDTH = 120;
 const PREVIEW_HEIGHT = 40;
 
+// A preview must not read the machine that generated it, and an arrangement
+// is now one of the things the machine can have. Passing the default
+// explicitly means a maintainer with their own bar still regenerates the
+// images everybody else does.
+const NO_ARRANGEMENT = { arrangement: null, origin: "default", path: null, error: null };
+
 import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -65,6 +71,7 @@ function main() {
       renderPayload(scenario.payload, {
         sources: scenario.sources,
         trackChanges: false,
+        layout: NO_ARRANGEMENT,
         // A scenario may pin its own size when the size is the point.
         maxWidth: scenario.width ?? PREVIEW_WIDTH,
         maxHeight: scenario.height ?? PREVIEW_HEIGHT,
@@ -85,6 +92,7 @@ function main() {
         flavor,
         sources: FLAVOR_SCENARIO.sources,
         trackChanges: false,
+        layout: NO_ARRANGEMENT,
         maxWidth: PREVIEW_WIDTH,
         maxHeight: PREVIEW_HEIGHT,
       })
@@ -103,6 +111,7 @@ function main() {
       asciiArrows: true,
       sources: FLAVOR_SCENARIO.sources,
       trackChanges: false,
+      layout: NO_ARRANGEMENT,
       maxWidth: PREVIEW_WIDTH,
       maxHeight: PREVIEW_HEIGHT,
     })

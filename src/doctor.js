@@ -30,6 +30,8 @@ import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
 import { displayWidth } from "./theme.js";
 import { terminalWidth, terminalHeight } from "./layout.js";
+import { resolveLayout } from "./config.js";
+import { resolveArrangement } from "./arrangement.js";
 
 /**
  * How to describe each segment's value, and which reading feeds it.
@@ -160,7 +162,18 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
 
   const started = Date.now();
   const readings = gather(payload, probes, { now });
-  const rendered = renderReadings(readings, payload, { tracking: false, now, asRows: true });
+  // The arrangement in force, so every line and order below describes the
+  // bar this machine draws rather than the one the registry would draw.
+  const layout = resolveLayout(readings.cwd);
+  const resolved = resolveArrangement(REGISTRY, layout.arrangement, layout.origin);
+  const placements = new Map(resolved.placements.map((p) => [p.key, p]));
+  const rendered = renderReadings(readings, payload, {
+    tracking: false,
+    now,
+    asRows: true,
+    arrangement: layout.arrangement,
+    arrangementOrigin: layout.origin,
+  });
   const elapsedMs = Date.now() - started;
 
   const rows = SEGMENTS.map((segment) => {
@@ -169,21 +182,26 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     const describe = segment.describe || ((v) => (v === null || v === undefined ? null : String(v)));
     const value = shown ? describe(reading.value, now) : null;
 
+    const placed = placements.get(segment.key) ?? segment;
     const row = {
       key: segment.key,
-      line: segment.line,
-      order: segment.order,
-      align: segment.align,
+      line: placed.line,
+      order: placed.order,
+      align: placed.align,
       priority: segment.priority,
       colour: segment.colour,
-      rendered: Boolean(shown && value !== null),
+      arranged: placed.line !== segment.line || placed.order !== segment.order || placed.align !== segment.align,
+      on: placed.on !== false,
+      rendered: Boolean(shown && value !== null && placed.on !== false),
       value: value ?? "—",
       source: reading?.source ?? "none",
       ageMs: Math.max(0, Math.round(ageMs(reading, now))),
       fresh: reading?.fresh ?? false,
       tookMs: reading?.tookMs ?? 0,
     };
-    if (!row.rendered) row.reason = absenceReason(segment, reading, readings, now);
+    if (!row.rendered) {
+      row.reason = row.on ? absenceReason(segment, reading, readings, now) : "switched off by the arrangement";
+    }
 
     if (live && LIVE_PROBES[segment.key]) {
       const at = Date.now();
@@ -204,6 +222,17 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     cwd: readings.cwd,
     elapsedMs,
     terminal: { columns: terminalWidth(), rows: terminalHeight() },
+    // Which arrangement is in force, where it came from, and every part of
+    // it that was refused. A segment missing because somebody switched it
+    // off is a different answer from one missing because its source failed,
+    // and the diagnostic exists to tell those two apart.
+    arrangement: {
+      origin: resolved.origin,
+      path: layout.path,
+      name: resolved.name,
+      error: layout.error ?? null,
+      ignored: resolved.ignored,
+    },
     // Why "no burn rate yet" is the answer during the first minute of a
     // session, without having to guess at it.
     samples: (readings.samples?.value ?? []).length,
@@ -228,7 +257,7 @@ function pad(text, width) {
 export function formatReport(report) {
   const header = [
     pad("segment", 14),
-    pad("line", 5),
+    pad("line", 6),
     pad("pri", 5),
     pad("shown", 6),
     pad("value", 36),
@@ -242,7 +271,7 @@ export function formatReport(report) {
     const live = row.live === undefined ? "" : `${row.live} (${row.liveTookMs} ms)`;
     return [
       pad(row.key, 14),
-      pad(`${row.line}${row.align === "right" ? "→" : ""}`, 5),
+      pad(`${row.line}${row.align === "right" ? "→" : ""}${row.arranged ? "*" : ""}`, 6),
       pad(row.priority, 5),
       pad(row.rendered ? "yes" : "no", 6),
       pad(row.rendered ? row.value : row.reason, 36),
@@ -254,8 +283,18 @@ export function formatReport(report) {
   });
 
   const widths = report.rows.map((l) => `line ${l.line}: ${l.width} columns`).join(", ");
+  const a = report.arrangement;
+  const arrangementLine =
+    a.origin === "default"
+      ? `arrangement: default${a.path ? ` (nothing usable at ${a.path})` : ""}${a.error ? `: ${a.error}` : ""}`
+      : `arrangement: ${a.name ? `"${a.name}" ` : ""}from ${a.origin}${a.path ? ` (${a.path})` : ""}`;
+  const ignoredLines = a.ignored.map(
+    (entry) => `  ignored ${entry.what}${entry.key ? ` on ${entry.key}` : ""}: ${entry.reason}`
+  );
   return [
     `working directory: ${report.cwd}`,
+    arrangementLine,
+    ...ignoredLines,
     `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,
     `terminal: ${report.terminal.columns} columns, ${report.terminal.rows} rows`,
     `history: ${report.samples} samples (a rate needs 5 spanning a minute)`,

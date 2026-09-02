@@ -349,6 +349,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json`, for when a field changes shape in some future version |
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
 | `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
+| `CLAUDE_STATUSLINE_LAYOUT` | Path to an arrangement file, which beats every other place one can live. See the next-but-one section |
 
 ### Per-repository settings
 
@@ -360,10 +361,84 @@ repository root:
 { "flavor": "gruvbox", "separator": "thin", "skillWindowMin": 60 }
 ```
 
-Four keys are read: `flavor`, `ascii`, `separator` and `skillWindowMin`.
-Anything else in the file is ignored. An environment variable always wins,
-and a file in your home directory is ignored entirely, because settings that
-live in a repository travel to everyone who clones it.
+Five keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin` and
+`layout`. Anything else in the file is ignored. An environment variable always
+wins, and a file in your home directory is ignored entirely, because settings
+that live in a repository travel to everyone who clones it.
+
+## Arranging the bar yourself
+
+The default puts twenty-four segments on four lines, and it is a default
+rather than a verdict. If you want the burn rate first, the pull request last
+and the savings figure gone, say so in an arrangement:
+
+```json
+{
+  "version": 1,
+  "name": "mine",
+  "segments": {
+    "rtk": { "on": false },
+    "burnRate": { "line": 4, "order": 15 },
+    "skills": { "line": 1, "order": 70 },
+    "resetMerged": { "align": "right" }
+  }
+}
+```
+
+Four things per segment, and all four are position:
+
+| Field | What it does |
+|---|---|
+| `on` | `false` takes the segment off the bar, whatever its priority |
+| `line` | 1 to 4. The line it belongs to |
+| `order` | Where it sits on that line. Lower is earlier |
+| `align` | `left` or `right`. Which edge it sits against |
+
+Priority and colour are not in that list on purpose. Priority decides what
+survives an 80-column terminal and colour means one thing wherever it
+appears; both are decisions taken once, in the code, so that a bar you
+rearranged still drops the right thing when the window shrinks and still
+tells the truth with its colours.
+
+### Where the file goes
+
+Four places, highest first. The first one found wins whole, and they do not
+merge.
+
+| Rank | Where | Use it for |
+|---|---|---|
+| 1 | `CLAUDE_STATUSLINE_LAYOUT=/path/to/layout.json` | One session, or overriding a repository you disagree with |
+| 2 | The `layout` key in a repository's `.statusline.json` | A bar that this project needs, for everyone who clones it |
+| 3 | `~/.claude/statusline/layout.json` | Your bar, everywhere |
+| 4 | Nothing | The default |
+
+A missing, unreadable or invalid file is not an error: the bar draws the
+default and the diagnostic says which file it could not use and why. The same
+goes for one bad entry in an otherwise good file. Everything else in it still
+applies, and the entry it refused is named:
+
+```bash
+node bin/cli.js doctor | head -5
+```
+
+```text
+working directory: /Users/dev/projects/statusline
+arrangement: "mine" from user (/Users/dev/.claude/statusline/layout.json)
+  ignored segment on notASegment: no such segment
+  ignored line on branch: not a line the bar has
+```
+
+In the table below that, a `*` beside a segment's line means the arrangement
+moved it, and a segment you switched off says so rather than blaming its
+source for being absent.
+
+### Building one by hand is optional
+
+`npm run composer` writes a page you can open in a browser, with the bar drawn
+by the renderer itself over a fixed session. Switch segments off, move them
+between lines, check the result at 80 columns and in the plain-text form, then
+copy the arrangement out. It draws through the same layout and palette code
+the terminal uses, so a bar it shows is a bar you will get.
 
 ## Platform support
 

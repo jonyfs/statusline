@@ -25,7 +25,9 @@ import { getOpenTabUrl } from "./openTerminalTab.js";
 import { clockFaceFor, resetMomentLabel } from "./timeIcons.js";
 import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
-import { byLine, segment, inChannel } from "./segments.js";
+import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
+import { resolveArrangement } from "./arrangement.js";
+import { resolveLayout } from "./config.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
 import { ratePerHour, projectFull } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight } from "./layout.js";
@@ -381,6 +383,12 @@ export function renderPayload(
     // is a test or a preview, where the point is a fixed size.
     maxWidth = terminalWidth(),
     maxHeight = terminalHeight(),
+    // A test or a preview passes its own; a real redraw finds the person's
+    // file for itself.
+    layout = null,
+    // A fixed sample history, for a caller that has no session state to read
+    // one from. A real redraw leaves this alone and uses its own.
+    samples = null,
   } = {}
 ) {
   const probe = {
@@ -395,8 +403,21 @@ export function renderPayload(
     ...sources,
   };
 
+  const cwd = payload?.workspace?.current_dir || payload?.cwd || process.cwd();
+  const found = layout ?? resolveLayout(cwd);
+
   const readings = gather(payload, probe, { now });
-  return renderReadings(readings, payload, { asciiArrows, flavor, tracking, now, maxWidth, maxHeight });
+  return renderReadings(readings, payload, {
+    asciiArrows,
+    flavor,
+    tracking,
+    now,
+    maxWidth,
+    maxHeight,
+    arrangement: found.arrangement,
+    arrangementOrigin: found.origin,
+    samples,
+  });
 }
 
 /** Turns readings into the lines. Split out so the diagnostic can reuse `gather`. */
@@ -417,6 +438,20 @@ export function renderReadings(
     // absent those are different lines, and the diagnostic exists to explain
     // the layout rather than to renumber it.
     asRows = false,
+    // Every segment this session would draw, before any of them are arranged
+    // into rows or dropped for width. The composer page is built from this:
+    // it rearranges real segments rather than approximating them, so a bar it
+    // shows cannot differ from the bar the terminal draws.
+    asPool = false,
+    // A sample history to compute the burn rate and the projection from,
+    // instead of the one on disk. Only a generator passes this; a real
+    // redraw has its own history and must not be told a different one.
+    samples: sampleOverride = null,
+    // The person's own bar: which segments are on, in what order, on which
+    // line, against which edge. Nothing means the registry, unchanged.
+    arrangement = null,
+    // Where that arrangement came from, carried through for the diagnostic.
+    arrangementOrigin = "default",
   } = {}
 ) {
   // The segment key decides the maximum age; the reading name says where
@@ -477,6 +512,11 @@ export function renderReadings(
     }
   );
 
+  // Sampling normally rides the session's own state file. A generated page
+  // has no session, so it brings its own history rather than showing a bar
+  // with two segments permanently missing.
+  const sampleHistory = sampleOverride ?? changes.samples;
+
   const palette = PALETTES[flavor] || PALETTES.mocha;
   const g = asciiArrows ? GLYPHS.plain : GLYPHS.nerd;
   const opts = { asciiArrows };
@@ -488,24 +528,53 @@ export function renderReadings(
   // Which of the four each rendered row is. Shedding needs to know, and a
   // line that renders only sometimes made an index-based guess wrong.
   const rendered = [];
+  // Every segment built this render, in build order, each recorded once.
+  // Filled from `fit` because that is the single point every line's content
+  // passes through before anything is dropped.
+  const pool = [];
+  const pooled = new Set();
+
+  // Where every segment goes: the registry, with the person's own choices
+  // over the top of it. With no arrangement this resolves to the registry
+  // unchanged, which is what keeps the default bar byte-identical.
+  const resolved = resolveArrangement(SEGMENTS, arrangement, arrangementOrigin);
+  const placements = new Map(resolved.placements.map((p) => [p.key, p]));
 
   /**
-   * Attaches each descriptor's registry row and drops the least important
-   * until the row fits the terminal. A skill chip has no registry row of its
-   * own, so the whole line inherits the skills priority.
+   * The placement for a built segment. A skill chip has no registry row of
+   * its own, so it inherits the one its key is prefixed with.
    */
-  const fit = (row) => {
-    const withPriority = row.map((seg) => {
-      const meta = segment(seg.key) || segment(String(seg.key).split(":")[0]);
-      return { align: "left", priority: meta?.priority ?? 50, order: meta?.order ?? 999, ...meta, ...seg };
-    });
-    // Position comes from the registry, not from the order the code happened
-    // to push things in. Lines 3 and 4 have composed themselves from the
-    // table since phase 1; this makes lines 1 and 2 do the same, so moving a
-    // segment is a change to the table rather than to a render function.
-    // The sort is stable, so the skill chips keep their own sequence.
-    withPriority.sort((a, b) => a.order - b.order);
-    return fitToWidth(withPriority, maxWidth);
+  const placementFor = (key) => placements.get(key) ?? placements.get(String(key).split(":")[0]);
+
+  /**
+   * Attaches each descriptor's placement, so position, alignment and
+   * priority all come from one resolved answer rather than from the order
+   * the code happened to push things in.
+   */
+  const attach = (seg) => {
+    const meta = placementFor(seg.key);
+    const registryRow = segment(seg.key) || segment(String(seg.key).split(":")[0]);
+    return {
+      align: "left",
+      priority: meta?.priority ?? registryRow?.priority ?? 50,
+      order: meta?.order ?? registryRow?.order ?? 999,
+      line: meta?.line ?? registryRow?.line ?? 1,
+      ...registryRow,
+      ...(meta ?? {}),
+      ...seg,
+    };
+  };
+
+  /** Drops the least important segments until the row fits the terminal. */
+  const fitRow = (row) => fitToWidth(row, maxWidth);
+
+  /** Records a segment in the pool once, whatever the arrangement does to it. */
+  const collect = (segs) => {
+    for (const seg of segs) {
+      if (pooled.has(seg.key)) continue;
+      pooled.add(seg.key);
+      pool.push({ key: seg.key, text: seg.text, color: seg.color, ...(seg.url ? { url: seg.url } : {}) });
+    }
   };
 
   // Line 1: working directory, then branch, ahead/behind, PR — each name
@@ -603,24 +672,11 @@ export function renderReadings(
       });
     }
   }
-  // Line 1's own trim step: the directory label, shortened from the left,
-  // because the end of a path identifies it and the start rarely does.
-  // Nothing else on this line is dropped — a branch, a count of uncommitted
-  // work and a pull request are all things the reader asked for.
-  //
-  // Columns, not characters: an emoji or a CJK name occupies two columns per
-  // character, and counting them as one cut too little to fit.
-  let row1 = fit(l1);
-  if (rowWidth(row1) > maxWidth) {
-    const over = rowWidth(row1) - maxWidth;
-    const shortened = trimFromLeft(dirLabel, displayWidth(dirLabel) - over - 1);
-    if (shortened !== null) {
-      l1[0] = dirSegment(shortened);
-      row1 = fit(l1);
-    }
-  }
-  rows.push(row1);
-  rendered.push(1);
+  // What every line is built from, before the arrangement decides where any
+  // of it goes. Content and placement are two questions, and keeping them
+  // apart is what lets a segment move to another line without its builder
+  // knowing anything about it.
+  const content = [...l1];
 
   // F7 and F6, on the line that already describes what the session is doing.
   // Both come from the transcript pass that already runs for the skills.
@@ -659,15 +715,11 @@ export function renderReadings(
       },
     ];
     pushLine2Extras(l2);
-    rows.push(fit(l2));
-    rendered.push(2);
+    content.push(...l2);
   } else {
     const l2 = [];
     pushLine2Extras(l2);
-    if (l2.length) {
-      rows.push(fit(l2));
-      rendered.push(2);
-    }
+    content.push(...l2);
   }
 
   // Line 3: model, then effort and output style as separate segments. They
@@ -690,8 +742,7 @@ export function renderReadings(
       return built ? { key: s.key, ...built } : null;
     })
     .filter(Boolean);
-  rows.push(fit(l3));
-  rendered.push(3);
+  content.push(...l3);
 
   // Line 4: context / 5h window + its reset / 7d window + its reset / rtk.
   // Each reset segment's clock face is the actual hour the window resets,
@@ -780,7 +831,7 @@ export function renderReadings(
     // B1: a percentage says where you are; a rate says whether you get there
     // before the window resets, which is the decision you actually make.
     burnRate: () => {
-      const rate = ratePerHour(changes.samples, "fiveHourPct");
+      const rate = ratePerHour(sampleHistory, "fiveHourPct");
       if (rate === null || rate <= 0) return null;
       return {
         color: rampColour(fiveHourPct, "peach"),
@@ -798,7 +849,7 @@ export function renderReadings(
     // reason, since the 7-day figure sits two segments away and is also a
     // limit.
     projection: () => {
-      const at = projectFull(changes.samples, "fiveHourPct", now);
+      const at = projectFull(sampleHistory, "fiveHourPct", now);
       if (at === null) return null;
       if (typeof fiveHourResetsAt === "number" && at >= fiveHourResetsAt * 1000) return null;
       const d = new Date(at);
@@ -836,13 +887,75 @@ export function renderReadings(
     { moment: false, fiveHourText: false, sevenDayText: false },
     { moment: false, fiveHourText: false, sevenDayText: false, rtk: false },
   ];
-  let l4 = fit(buildLine4(TRIM_STEPS[0]));
-  for (const step of TRIM_STEPS.slice(1)) {
-    if (rowWidth(l4) <= maxWidth) break;
-    l4 = fit(buildLine4(step));
+  /**
+   * Puts every built segment on the line the arrangement gives it, in the
+   * order it gives it, and drops what will not fit.
+   *
+   * Content is built once per trim step; placement is applied here. A
+   * segment that has been switched off never reaches a row, whatever its
+   * priority, and a segment moved to another line arrives there with its
+   * own priority, so what a narrow terminal sheds is still a decision taken
+   * in the registry.
+   */
+  const assemble = (trimStep) => {
+    const built = [...content, ...buildLine4(trimStep)];
+    collect(built);
+    const byLineNumber = new Map([1, 2, 3, 4].map((n) => [n, []]));
+    for (const seg of built) {
+      const placed = attach(seg);
+      if (placementFor(seg.key)?.on === false) continue;
+      byLineNumber.get(placed.line)?.push(placed);
+    }
+    const out = [];
+    const lines = [];
+    for (const line of [1, 2, 3, 4]) {
+      // The sort is stable, so segments sharing an order keep the sequence
+      // they were built in, and the skill chips keep theirs.
+      const row = byLineNumber.get(line).sort((a, b) => a.order - b.order);
+      if (!row.length) continue;
+      out.push(fitRow(row));
+      lines.push(line);
+    }
+    return { rows: out, lines };
+  };
+
+  let assembled = assemble(TRIM_STEPS[0]);
+
+  // Line 1's own trim step: the directory label, shortened from the left,
+  // because the end of a path identifies it and the start rarely does.
+  // Nothing else on that line is dropped — a branch, a count of uncommitted
+  // work and a pull request are all things the reader asked for.
+  //
+  // Columns, not characters: an emoji or a CJK name occupies two columns per
+  // character, and counting them as one cut too little to fit.
+  const dirIndex = content.findIndex((seg) => seg.key === "dir");
+  if (dirIndex !== -1) {
+    const dirLine = assembled.rows.find((row) => row.some((seg) => seg.key === "dir"));
+    if (dirLine && rowWidth(dirLine) > maxWidth) {
+      const over = rowWidth(dirLine) - maxWidth;
+      const shortened = trimFromLeft(dirLabel, displayWidth(dirLabel) - over - 1);
+      if (shortened !== null) {
+        content[dirIndex] = dirSegment(shortened);
+        assembled = assemble(TRIM_STEPS[0]);
+      }
+    }
   }
-  rows.push(l4);
-  rendered.push(4);
+
+  // The line carrying the limits comes off in a fixed order, least
+  // informative first, and the first step that brings every line inside the
+  // width is the last one taken.
+  for (const step of TRIM_STEPS.slice(1)) {
+    if (assembled.rows.every((row) => rowWidth(row) <= maxWidth)) break;
+    assembled = assemble(step);
+  }
+
+  rows.push(...assembled.rows);
+  rendered.push(...assembled.lines);
+
+  // The pool is complete once every line has been built, and it is the
+  // whole answer for a caller that asked for it: what follows is layout,
+  // which is exactly what such a caller intends to decide for itself.
+  if (asPool) return pool;
 
   // Which lines the window has room for. Everything comes back the moment
   // the rows do: shedding answers the terminal, it is not a mode the bar

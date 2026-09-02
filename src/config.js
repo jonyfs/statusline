@@ -17,7 +17,10 @@ import os from "node:os";
 const FILENAME = ".statusline.json";
 
 /** Only these keys are read. Anything else in the file is ignored. */
-const KNOWN = ["flavor", "ascii", "separator", "skillWindowMin"];
+const KNOWN = ["flavor", "ascii", "separator", "skillWindowMin", "layout"];
+
+/** Where a person's own arrangement lives, when they have one. */
+const USER_LAYOUT = ["\u002eclaude", "statusline", "layout.json"];
 
 /**
  * Walks up from `cwd` looking for the file, stopping at the filesystem root
@@ -58,6 +61,70 @@ export function repoConfig(cwd = process.cwd()) {
   } catch {
     return {};
   }
+}
+
+/**
+ * Reads and parses a JSON file, or answers with nothing.
+ *
+ * A file that cannot be read or parsed is not an error here, for the same
+ * reason it is not one in `repoConfig`: a statusline that refuses to draw
+ * because somebody mistyped a brace is worse than one that draws the default
+ * and says so when asked.
+ */
+function readJson(file) {
+  try {
+    return { value: JSON.parse(readFileSync(file, "utf8")), path: file, error: null };
+  } catch (err) {
+    return { value: null, path: file, error: err?.code === "ENOENT" ? null : err?.message || String(err) };
+  }
+}
+
+/**
+ * Which arrangement is in force, and where it came from.
+ *
+ * Four ranks, highest first, and the first one found wins whole. They do not
+ * merge: half of one arrangement on top of half of another is a bar nobody
+ * designed, and neither of the two people who wrote them would recognise it.
+ *
+ * The order mirrors `resolveSettings` below, so the project has one rule
+ * rather than two. The repository beating the person is deliberate: a
+ * repository that ships an arrangement is making a statement about that
+ * project, which is what the file was created for, and anyone who disagrees
+ * has the environment variable above it.
+ */
+export function resolveLayout(cwd = process.cwd(), env = process.env) {
+  if (env.CLAUDE_STATUSLINE_LAYOUT) {
+    const read = readJson(env.CLAUDE_STATUSLINE_LAYOUT);
+    // The path is kept even when nothing was read, so the diagnostic can say
+    // "you pointed me at this and it is not there" rather than falling
+    // silently back to a default the person did not ask for.
+    return {
+      arrangement: read.value,
+      origin: read.value === null ? "default" : "env",
+      path: read.path,
+      error: read.error,
+    };
+  }
+
+  const repo = findConfigFile(cwd);
+  if (repo) {
+    try {
+      const parsed = JSON.parse(repo.text);
+      if (parsed.layout !== undefined) {
+        return { arrangement: parsed.layout, origin: "repo", path: repo.path, error: null };
+      }
+    } catch (err) {
+      return { arrangement: null, origin: "default", path: repo.path, error: err?.message || String(err) };
+    }
+  }
+
+  const userFile = path.join(os.homedir(), ...USER_LAYOUT);
+  const read = readJson(userFile);
+  if (read.value !== null || read.error) {
+    return { arrangement: read.value, origin: read.value === null ? "default" : "user", path: userFile, error: read.error };
+  }
+
+  return { arrangement: null, origin: "default", path: null, error: null };
 }
 
 /**
