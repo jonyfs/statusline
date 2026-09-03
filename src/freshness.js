@@ -26,7 +26,6 @@ export const REDRAW_INTERVAL_MS = 6_000;
 export const MAX_AGE_MS = {
   dir: REDRAW_INTERVAL_MS,
   branch: 5_000,
-  upstream: 5_000,
   remote: 24 * 60 * 60 * 1000,
   // Identity parsed by Claude Code from the origin remote. It arrives with
   // the payload, so it is as current as the redraw.

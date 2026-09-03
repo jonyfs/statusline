@@ -7,15 +7,17 @@
  * colour on the bar means. Both are decisions Principle II requires to be
  * taken once, in a diff.
  *
- * An arrangement is allowed the other four, and all four are position:
- * whether a segment is on, which line it sits on, where in that line it
- * goes, and whether it sits against the left edge or the right one. Those
- * are what somebody reading the bar every day has an opinion about, and none
- * of them can produce a bar that lies. Alignment joined the list on
- * 2026-09-02, when the first set of presets ran into it: a quiet left side
- * with the rest pushed to the right margin is one of the two directions the
- * research found, and it is a matter of where a segment sits rather than of
- * what it claims.
+ * An arrangement is allowed the other three, and all three are position:
+ * whether a segment is on, which line it sits on, and where in that line it
+ * goes. Those are what somebody reading the bar every day has an opinion
+ * about, and none of them can produce a bar that lies.
+ *
+ * Alignment was briefly a fourth, added on 2026-09-02 so a right-margin
+ * design could be expressed, and taken out again the same day. The registry
+ * had declared an alignment on one segment for months and no render path
+ * ever honoured it, so the field would have been a setting the file accepted
+ * and the bar ignored. A right margin is a renderer change, and it can come
+ * back as one.
  *
  * Nothing here touches the filesystem. The file is found and read in
  * `src/config.js`; this takes the parsed object and answers what the
@@ -28,9 +30,6 @@ export const ARRANGEMENT_VERSION = 1;
 
 /** The lines a segment may be placed on, per Principle II. */
 const LINES = [1, 2, 3, 4];
-
-/** The two edges a segment can sit against. */
-const ALIGNMENTS = ["left", "right"];
 
 const isPlainObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -113,11 +112,6 @@ export function resolveArrangement(registry, arrangement, origin = "default") {
     if (entry.order !== undefined) {
       if (typeof entry.order === "number" && Number.isFinite(entry.order)) placement.order = entry.order;
       else ignored.push({ what: "order", key, value: entry.order, reason: "not a number" });
-    }
-
-    if (entry.align !== undefined) {
-      if (ALIGNMENTS.includes(entry.align)) placement.align = entry.align;
-      else ignored.push({ what: "align", key, value: entry.align, reason: "not left or right" });
     }
   }
 

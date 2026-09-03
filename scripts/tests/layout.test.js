@@ -4,7 +4,6 @@ import {
   terminalWidth,
   terminalHeight,
   fitToWidth,
-  splitByAlignment,
   alignColumns,
   DEFAULT_WIDTH,
 } from "../../src/layout.js";
@@ -26,7 +25,7 @@ function withEnv(vars, fn) {
   }
 }
 
-const seg = (key, priority, text, align = "left") => ({ key, priority, text, align, color: "yellow" });
+const seg = (key, priority, text) => ({ key, priority, text, color: "yellow" });
 
 await test("width comes from COLUMNS, and falls back when it is absent", () => {
   // Claude Code sets COLUMNS before running the command, as of v2.1.153.
@@ -86,17 +85,6 @@ await test("nothing fits: the highest priority still renders", () => {
   // overflows by a column.
   const row = [seg("a", 10, " a very long segment indeed "), seg("b", 99, " the important one ")];
   assert.deepEqual(fitToWidth(row, 4).map((s) => s.key), ["b"]);
-});
-
-await test("right-aligned segments are separated from the left group", () => {
-  const row = [
-    seg("dir", 96, " 📁 x "),
-    seg("reset", 80, " 1h29m ", "right"),
-    seg("branch", 98, " main "),
-  ];
-  const { left, right } = splitByAlignment(row);
-  assert.deepEqual(left.map((s) => s.key), ["dir", "branch"]);
-  assert.deepEqual(right.map((s) => s.key), ["reset"]);
 });
 
 await test("column alignment pads the first segment to the widest across lines", () => {

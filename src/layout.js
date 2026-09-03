@@ -79,31 +79,6 @@ export function fitToWidth(row, width = terminalWidth()) {
 }
 
 /**
- * Splits a row into its left group and its right group.
- *
- * Right-aligned segments are drawn from the far edge inward, so volatile
- * numbers land in the same place on every redraw instead of sliding as the
- * segments before them change width.
- */
-export function splitByAlignment(row) {
-  return {
-    left: row.filter((s) => s.align !== "right"),
-    right: row.filter((s) => s.align === "right"),
-  };
-}
-
-/**
- * How much padding sits between the left and right groups.
- *
- * Zero when they would touch or overlap, in which case the two groups simply
- * run together and the width limit does the rest.
- */
-export function gapBetween(left, right, width = terminalWidth()) {
-  const used = rowWidth(left) + rowWidth(right);
-  return Math.max(0, width - used);
-}
-
-/**
  * Pads the first segment of every line to a common width, so the boundaries
  * line up down the bar and four lines read as one small table.
  *

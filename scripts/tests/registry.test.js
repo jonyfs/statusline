@@ -10,7 +10,6 @@ await test("every segment declares the fields the layout needs", () => {
     assert.equal(typeof s.order, "number", `${s.key} has no position`);
     assert.equal(typeof s.priority, "number", `${s.key} has no priority`);
     assert.ok(["identity", "ramp", "change"].includes(s.colour), `${s.key} has colour ${s.colour}`);
-    assert.ok(["left", "right"].includes(s.align), `${s.key} aligns ${s.align}`);
   }
 });
 
@@ -66,14 +65,6 @@ await test("a segment can be looked up by key", () => {
   assert.equal(segment("context").line, 4);
   assert.equal(segment("branch").line, 1);
   assert.equal(segment("nothing-called-this"), undefined);
-});
-
-await test("the reset countdown is the right-aligned group", () => {
-  // D3's chosen form, after C6 merged the two countdowns into one segment.
-  // Everything else is left-aligned, so the volatile numbers land in the
-  // same place on every redraw.
-  const right = SEGMENTS.filter((s) => s.align === "right").map((s) => s.key);
-  assert.deepEqual(right, ["resetMerged"]);
 });
 
 await test("the rendered lines follow the registry's order", async () => {

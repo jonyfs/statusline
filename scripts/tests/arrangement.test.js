@@ -57,33 +57,16 @@ await test("line and order override the registry", () => {
   assert(placementsForLine(resolved, 2).every((p) => p.key !== "skills"), "skills is still on line 2");
 });
 
-await test("priority and colour never come from the arrangement", () => {
+await test("priority, colour and anything else never come from the arrangement", () => {
   const resolved = resolveArrangement(SEGMENTS, {
     version: 1,
-    segments: { rtk: { priority: 100, colour: "ramp", on: true } },
+    segments: { rtk: { priority: 100, colour: "ramp", align: "right", on: true } },
   });
   const registryRow = SEGMENTS.find((s) => s.key === "rtk");
   const rtk = find(resolved, "rtk");
   assert(rtk.priority === registryRow.priority, "priority was overridden");
   assert(rtk.colour === registryRow.colour, "colour was overridden");
-});
-
-await test("alignment does come from the arrangement, and only as left or right", () => {
-  const good = resolveArrangement(SEGMENTS, {
-    version: 1,
-    segments: { rtk: { align: "right" } },
-  });
-  assert(find(good, "rtk").align === "right", "the segment did not move to the right edge");
-  assert(good.ignored.length === 0, "a valid alignment was reported as ignored");
-
-  const bad = resolveArrangement(SEGMENTS, {
-    version: 1,
-    segments: { rtk: { align: "centre", on: false } },
-  });
-  const registryRow = SEGMENTS.find((s) => s.key === "rtk");
-  assert(find(bad, "rtk").align === registryRow.align, "an unknown alignment was applied");
-  assert(find(bad, "rtk").on === false, "the good switch beside it was dropped");
-  assert(bad.ignored.some((i) => i.what === "align"), "the bad alignment was not reported");
+  assert(rtk.align === undefined, "the arrangement invented an alignment");
 });
 
 await test("an unknown segment key is ignored and named", () => {

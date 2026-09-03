@@ -31,18 +31,11 @@ await test("the pool holds one entry per segment the fixture draws", () => {
   const keys = pool.map((p) => p.key);
   assert(new Set(keys).size === keys.length, "a segment was pooled twice");
 
-  // The fixture is built to light up everything the renderer can build.
-  // `upstream` is a registry row with no content function: the ahead and
-  // behind counts are drawn by `worktreeState`, and nothing has drawn an
-  // `upstream` segment since. That is drift in the registry rather than a
-  // gap in the pool, and this test is where it stays visible.
-  const withoutContent = new Set(["upstream"]);
+  // Every row in the registry has to be here. There is no exception list:
+  // a row the renderer never builds is a row nobody can arrange, and one
+  // used to exist until it was removed on 2026-09-02.
   for (const row of SEGMENTS) {
-    if (withoutContent.has(row.key)) continue;
     assert(keys.includes(row.key), `${row.key} is missing from the pool`);
-  }
-  for (const key of withoutContent) {
-    assert(!keys.includes(key), `${key} now has content — take it off the exception list`);
   }
 });
 

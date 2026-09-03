@@ -379,20 +379,18 @@ and the savings figure gone, say so in an arrangement:
   "segments": {
     "rtk": { "on": false },
     "burnRate": { "line": 4, "order": 15 },
-    "skills": { "line": 1, "order": 70 },
-    "resetMerged": { "align": "right" }
+    "skills": { "line": 1, "order": 70 }
   }
 }
 ```
 
-Four things per segment, and all four are position:
+Three things per segment, and all three are position:
 
 | Field | What it does |
 |---|---|
 | `on` | `false` takes the segment off the bar, whatever its priority |
 | `line` | 1 to 4. The line it belongs to |
 | `order` | Where it sits on that line. Lower is earlier |
-| `align` | `left` or `right`. Which edge it sits against |
 
 Priority and colour are not in that list on purpose. Priority decides what
 survives an 80-column terminal and colour means one thing wherever it

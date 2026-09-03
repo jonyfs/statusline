@@ -43,7 +43,6 @@ import { resolveArrangement } from "./arrangement.js";
 const DESCRIBE = {
   branch: ["git", (v) => (v?.detached ? `${v.branch} (detached)` : v?.branch)],
   worktreeState: ["git", (v) => (v ? `${v.changed} changed, ${v.untracked} untracked` : null)],
-  upstream: ["git", (v) => (v?.upstream ? `${v.upstream} +${v.ahead} -${v.behind}` : null)],
   conflicts: ["git", (v) => (v?.conflicts ? `${v.conflicts} unmerged` : null)],
   pr: ["pr", (v) => (v ? `#${v.number} ${v.review ?? "open"}${v.source ? ` (${v.source})` : ""}` : null)],
   repo: ["repo", (v) => (v?.owner ? `${v.owner}/${v.name}` : null)],
@@ -90,7 +89,6 @@ const LIVE_PROBES = {
   // probe for it: running one compared a worktree name against a git
   // snapshot and printed whichever field happened to line up.
   worktreeState: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
-  upstream: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
   pr: (cwd) => normalizePr(probePrInfo(cwd, REFRESH_BUDGET_MS.gh), "gh"),
   rtk: (cwd) => probeRtkSavings(cwd, REFRESH_BUDGET_MS.rtk),
 };
@@ -109,7 +107,7 @@ function absenceReason(segment, reading, readings, now) {
     return segment.key === "skills" ? "no skill used inside the activity window" : "nothing to show";
   }
   if (reading.value === null || reading.value === undefined) {
-    if (["branch", "worktree", "upstream", "remote"].includes(segment.key) && !inRepo) {
+    if (["branch", "worktree", "remote"].includes(segment.key) && !inRepo) {
       return "not a git repository";
     }
     if (segment.key === "pr") {
@@ -130,7 +128,6 @@ function absenceReason(segment, reading, readings, now) {
   if (segment.key === "worktreeState" && reading.value.changed === 0 && reading.value.untracked === 0) {
     return "a clean tree adds no counters";
   }
-  if (segment.key === "upstream" && reading.value.upstream === null) return "the branch has no upstream";
   return "not rendered";
 }
 
@@ -187,10 +184,9 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
       key: segment.key,
       line: placed.line,
       order: placed.order,
-      align: placed.align,
       priority: segment.priority,
       colour: segment.colour,
-      arranged: placed.line !== segment.line || placed.order !== segment.order || placed.align !== segment.align,
+      arranged: placed.line !== segment.line || placed.order !== segment.order,
       on: placed.on !== false,
       rendered: Boolean(shown && value !== null && placed.on !== false),
       value: value ?? "—",
@@ -271,7 +267,7 @@ export function formatReport(report) {
     const live = row.live === undefined ? "" : `${row.live} (${row.liveTookMs} ms)`;
     return [
       pad(row.key, 14),
-      pad(`${row.line}${row.align === "right" ? "→" : ""}${row.arranged ? "*" : ""}`, 6),
+      pad(`${row.line}${row.arranged ? "*" : ""}`, 6),
       pad(row.priority, 5),
       pad(row.rendered ? "yes" : "no", 6),
       pad(row.rendered ? row.value : row.reason, 36),

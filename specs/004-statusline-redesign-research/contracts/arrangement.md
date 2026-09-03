@@ -27,7 +27,7 @@ from.
   "version": 1,
   "name": "optional label",
   "segments": {
-    "<segment key>": { "on": true, "line": 2, "order": 30, "align": "left" }
+    "<segment key>": { "on": true, "line": 2, "order": 30 }
   }
 }
 ```
@@ -42,13 +42,14 @@ arrangement that changes nothing.
 2. With no arrangement in force, output is byte-identical to the default.
 3. `on: false` removes a segment from the bar entirely, whatever its
    priority.
-4. `line`, `order` and `align` decide placement. A segment does not move
-   because a neighbour disappeared.
+4. `line` and `order` decide placement. A segment does not move because a
+   neighbour disappeared.
 5. Width fitting still applies. Content wider than the terminal is dropped by
    priority, and no line wraps.
 6. Line shedding still applies, in the order Principle II declares.
-7. Priority and colour cannot be set. An arrangement that tries is accepted
-   for its valid parts, and the diagnostic names what was ignored.
+7. Nothing else can be set. Priority, colour and a segment's content stay in
+   source; an arrangement that names one of them is accepted for its valid
+   parts and the diagnostic names what was ignored.
 8. An unknown segment key is ignored and named by the diagnostic.
 9. An unknown `version` means the file is ignored whole, and the diagnostic
    says which version it found.
@@ -65,7 +66,6 @@ arrangement that changes nothing.
 | Unknown segment key | Every other entry applies | Names the key |
 | `line` outside 1..4 | That entry's line ignored, rest applies | Names the key and the value |
 | Non-numeric `order` | That entry's order ignored, rest applies | Names the key and the value |
-| `align` other than `left` or `right` | That entry's alignment ignored, rest applies | Names the key and the value |
 
 ## Stability
 

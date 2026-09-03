@@ -98,11 +98,6 @@ await test("a non-numeric order is named", () => {
   assert.match(text, /ignored order on rtk: not a number/);
 });
 
-await test("an alignment that is not an edge is named", () => {
-  const { text } = reportWith({ version: 1, segments: { rtk: { align: "centre" } } });
-  assert.match(text, /ignored align on rtk: not left or right/);
-});
-
 await test("a switched-off segment says so rather than blaming its source", () => {
   const { report } = reportWith({ version: 1, segments: { model: { on: false } } });
   const model = report.segments.find((s) => s.key === "model");

@@ -127,7 +127,7 @@ await test("an arrangement that turns everything off draws nothing", () => {
   const everything = {};
   for (const key of [
     "dir", "projectDir", "repo", "branch", "worktree", "conflicts", "worktreeState",
-    "linesChanged", "upstream", "pr", "ci", "skills", "todo", "activity", "model",
+    "linesChanged", "pr", "ci", "skills", "todo", "activity", "model",
     "effort", "context", "fiveHour", "burnRate", "projection", "sevenDay",
     "resetMerged", "duration", "rtk",
   ]) {
@@ -146,12 +146,4 @@ await test("an arrangement the resolver refuses leaves the bar at its default", 
   ]) {
     assert(draw(bad) === baseline, `a bad arrangement changed the bar: ${JSON.stringify(bad)}`);
   }
-});
-
-await test("alignment moves a segment to the right edge", () => {
-  const arranged = lines(draw({
-    version: 1,
-    segments: { rtk: { align: "right" } },
-  }));
-  assert(arranged.some((l) => /rtk 81% saved/.test(l)), "the segment disappeared instead of moving");
 });

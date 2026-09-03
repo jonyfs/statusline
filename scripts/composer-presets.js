@@ -32,7 +32,7 @@ const off = (...keys) => Object.fromEntries(keys.map((k) => [k, { on: false }]))
 /** Everything the bar can draw, so a preset can subtract from it. */
 const EVERY_KEY = [
   "dir", "projectDir", "repo", "branch", "worktree", "conflicts", "worktreeState",
-  "linesChanged", "upstream", "pr", "ci",
+  "linesChanged", "pr", "ci",
   "skills", "todo", "activity",
   "model", "effort",
   "context", "fiveHour", "burnRate", "projection", "sevenDay", "resetMerged",

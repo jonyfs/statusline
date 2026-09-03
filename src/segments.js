@@ -43,48 +43,47 @@ export const PRIORITY_BANDS = {
  */
 export const SEGMENTS = [
   // Line 1: where you are, and what state it is in.
-  { key: "dir", line: 1, order: 10, align: "left", priority: 96, colour: "identity", source: "payload" },
-  { key: "repo", line: 1, order: 15, align: "left", priority: 45, colour: "identity", source: "payload" },
-  { key: "projectDir", line: 1, order: 12, align: "left", priority: 44, colour: "identity", source: "payload" },
-  { key: "branch", line: 1, order: 20, align: "left", priority: 98, colour: "change", source: "git" },
-  { key: "worktree", line: 1, order: 25, align: "left", priority: 88, colour: "identity", source: "payload" },
-  { key: "conflicts", line: 1, order: 28, align: "left", priority: 87, colour: "identity", source: "git" },
-  { key: "worktreeState", line: 1, order: 30, align: "left", priority: 86, colour: "identity", source: "git" },
+  { key: "dir", line: 1, order: 10, priority: 96, colour: "identity", source: "payload" },
+  { key: "repo", line: 1, order: 15, priority: 45, colour: "identity", source: "payload" },
+  { key: "projectDir", line: 1, order: 12, priority: 44, colour: "identity", source: "payload" },
+  { key: "branch", line: 1, order: 20, priority: 98, colour: "change", source: "git" },
+  { key: "worktree", line: 1, order: 25, priority: 88, colour: "identity", source: "payload" },
+  { key: "conflicts", line: 1, order: 28, priority: 87, colour: "identity", source: "git" },
+  { key: "worktreeState", line: 1, order: 30, priority: 86, colour: "identity", source: "git" },
   // Not repository state: it is what this session changed, from the
   // payload's own counters rather than from git. It sits here because it
   // reads as a diff stat and belongs beside the other change counts, and it
   // keeps its low priority, so it is the first thing line 1 drops.
-  { key: "linesChanged", line: 1, order: 35, align: "left", priority: 48, colour: "identity", source: "payload" },
-  { key: "upstream", line: 1, order: 40, align: "left", priority: 84, colour: "identity", source: "git" },
-  { key: "pr", line: 1, order: 50, align: "left", priority: 82, colour: "change", source: "gh" },
-  { key: "ci", line: 1, order: 60, align: "left", priority: 56, colour: "identity", source: "gh" },
+  { key: "linesChanged", line: 1, order: 35, priority: 48, colour: "identity", source: "payload" },
+  { key: "pr", line: 1, order: 50, priority: 82, colour: "change", source: "gh" },
+  { key: "ci", line: 1, order: 60, priority: 56, colour: "identity", source: "gh" },
 
   // Line 2: what is shaping the work.
-  { key: "skills", line: 2, order: 10, align: "left", priority: 76, colour: "change", source: "transcript" },
-  { key: "todo", line: 2, order: 20, align: "left", priority: 70, colour: "identity", source: "transcript" },
-  { key: "activity", line: 2, order: 30, align: "left", priority: 68, colour: "identity", source: "transcript" },
+  { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
+  { key: "todo", line: 2, order: 20, priority: 70, colour: "identity", source: "transcript" },
+  { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
 
   // Line 3: how the model is configured.
-  { key: "model", line: 3, order: 10, align: "left", priority: 92, colour: "change", source: "payload" },
+  { key: "model", line: 3, order: 10, priority: 92, colour: "change", source: "payload" },
   // Line 3 is the model and how hard it is thinking, and nothing else. The
   // output style, the agent name and the session name were all here and were
   // taken off on 2026-08-26: none of them changes often enough to earn a
   // permanent slot beside two things that do.
-  { key: "effort", line: 3, order: 20, align: "left", priority: 74, colour: "identity", source: "payload" },
+  { key: "effort", line: 3, order: 20, priority: 74, colour: "identity", source: "payload" },
 
   // Line 4: what is running out.
-  { key: "context", line: 4, order: 10, align: "left", priority: 100, colour: "ramp", source: "payload" },
-  { key: "fiveHour", line: 4, order: 20, align: "left", priority: 94, colour: "ramp", source: "payload" },
-  { key: "sevenDay", line: 4, order: 40, align: "left", priority: 90, colour: "ramp", source: "payload" },
+  { key: "context", line: 4, order: 10, priority: 100, colour: "ramp", source: "payload" },
+  { key: "fiveHour", line: 4, order: 20, priority: 94, colour: "ramp", source: "payload" },
+  { key: "sevenDay", line: 4, order: 40, priority: 90, colour: "ramp", source: "payload" },
   // C6: one segment carrying both countdowns. Two clock faces and two
   // countdowns spent a third of the line saying two things that are read
   // together. The face shown is the sooner of the two, since that is the
   // one about to matter.
-  { key: "resetMerged", line: 4, order: 50, align: "right", priority: 80, colour: "identity", source: "payload" },
-  { key: "burnRate", line: 4, order: 22, align: "left", priority: 66, colour: "ramp", source: "samples" },
-  { key: "projection", line: 4, order: 24, align: "left", priority: 64, colour: "identity", source: "samples" },
-  { key: "duration", line: 4, order: 55, align: "left", priority: 50, colour: "identity", source: "payload" },
-  { key: "rtk", line: 4, order: 60, align: "left", priority: 40, colour: "identity", source: "rtk" },
+  { key: "resetMerged", line: 4, order: 50, priority: 80, colour: "identity", source: "payload" },
+  { key: "burnRate", line: 4, order: 22, priority: 66, colour: "ramp", source: "samples" },
+  { key: "projection", line: 4, order: 24, priority: 64, colour: "identity", source: "samples" },
+  { key: "duration", line: 4, order: 55, priority: 50, colour: "identity", source: "payload" },
+  { key: "rtk", line: 4, order: 60, priority: 40, colour: "identity", source: "rtk" },
 ];
 
 const BY_KEY = new Map(SEGMENTS.map((s) => [s.key, s]));

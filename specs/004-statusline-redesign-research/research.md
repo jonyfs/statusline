@@ -71,8 +71,12 @@ of them can make a segment say something untrue.
 - *Order only, no cross-line moves*. Simpler, and it fails the request as
   written: "organised how I want" is mostly about which line a thing sits on.
 
-**Disposition**: adopted, with alignment added to the list during
-implementation for the reason stated above.
+**Disposition**: adopted with three fields, not four. Alignment was added
+during implementation and removed again on 2026-09-02, once it was clear the
+registry had been declaring an alignment that no render path honoured. A
+field the file accepts and the bar ignores is worse than no field, so it went
+out with the declaration that inspired it. A right margin is a renderer
+change and can come back as one.
 
 ## 3. Where the arrangement lives, and which one wins
 
@@ -138,9 +142,10 @@ switching already exists and answers that question, and a preset that differs
 only in palette spends a slot without asking anything.
 
 **Disposition**: adopted with one substitution. A right-margin preset was
-planned and could not be built: `align: "right"` is declared in the registry
-and honoured by nothing, as recorded in section 6. `twoLine` took its place,
-and the missing direction is a finding rather than a silent omission.
+planned and could not be built, because `align: "right"` was declared in the
+registry and honoured by nothing. `twoLine` took its place. The declaration
+itself was removed on 2026-09-02, so the missing direction is now an
+acknowledged gap rather than a field pretending to fill it.
 
 ## 5. Efficiency, measured
 

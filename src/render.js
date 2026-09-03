@@ -547,15 +547,14 @@ export function renderReadings(
   const placementFor = (key) => placements.get(key) ?? placements.get(String(key).split(":")[0]);
 
   /**
-   * Attaches each descriptor's placement, so position, alignment and
-   * priority all come from one resolved answer rather than from the order
-   * the code happened to push things in.
+   * Attaches each descriptor's placement, so position and priority both come
+   * from one resolved answer rather than from the order the code happened to
+   * push things in.
    */
   const attach = (seg) => {
     const meta = placementFor(seg.key);
     const registryRow = segment(seg.key) || segment(String(seg.key).split(":")[0]);
     return {
-      align: "left",
       priority: meta?.priority ?? registryRow?.priority ?? 50,
       order: meta?.order ?? registryRow?.order ?? 999,
       line: meta?.line ?? registryRow?.line ?? 1,

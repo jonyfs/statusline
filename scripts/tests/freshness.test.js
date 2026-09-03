@@ -31,7 +31,7 @@ await test("a reading stamped in the future is treated as a miss", () => {
 
 await test("every segment key has a maximum age and every source a budget", () => {
   const keys = [
-    "dir", "branch", "worktree", "upstream", "pr", "skills", "model", "effort",
+    "dir", "branch", "worktree", "pr", "skills", "model", "effort",
     "outputStyle", "context", "fiveHour", "fiveHourReset", "sevenDay",
     "sevenDayReset", "rtk", "remote",
   ];

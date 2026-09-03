@@ -89,8 +89,8 @@ const glyphs = JSON.parse(readFileSync(path.join(ROOT, "src", "preview", "glyphs
 
 // Registry rows the page needs. Priority and colour travel so the page can
 // explain what a narrow terminal will do, not so it can change them.
-const registry = SEGMENTS.map(({ key, line, order, align, priority, colour, source }) => ({
-  key, line, order, align, priority, colour, source,
+const registry = SEGMENTS.map(({ key, line, order, priority, colour, source }) => ({
+  key, line, order, priority, colour, source,
 }));
 
 const pooledKeys = new Set(pools.nerd.map((s) => s.key));
@@ -357,7 +357,6 @@ function tidy() {
       if (value.on === true) delete value.on;
       if (value.line === registryRow.line) delete value.line;
       if (value.order === registryRow.order) delete value.order;
-      if (value.align === registryRow.align) delete value.align;
     }
     if (!Object.keys(value).length) delete state.arrangement.segments[key];
   }
@@ -370,13 +369,6 @@ function placementOf(key) {
 
 function setLine(key, line) {
   entry(key).line = line;
-  changed();
-}
-
-function setAlign(key, align) {
-  const registryRow = REGISTRY.find((r) => r.key === key);
-  if (align === registryRow.align) delete entry(key).align;
-  else entry(key).align = align;
   changed();
 }
 
@@ -509,18 +501,7 @@ function renderSegments() {
       }
       lineSelect.addEventListener("change", () => setLine(placement.key, Number(lineSelect.value)));
 
-      const alignSelect = document.createElement("select");
-      alignSelect.title = "Which edge";
-      for (const candidate of ["left", "right"]) {
-        const option = document.createElement("option");
-        option.value = candidate;
-        option.textContent = candidate === "left" ? "\\u21e4" : "\\u21e5";
-        option.selected = candidate === placement.align;
-        alignSelect.append(option);
-      }
-      alignSelect.addEventListener("change", () => setAlign(placement.key, alignSelect.value));
-
-      li.append(up, down, lineSelect, alignSelect);
+      li.append(up, down, lineSelect);
       list.append(li);
     }
     if (!members.length) {

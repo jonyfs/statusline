@@ -36,7 +36,6 @@ await test("each row carries what the layout decided", () => {
   for (const row of report.segments) {
     assert.equal(typeof row.priority, "number", `${row.key} has no priority`);
     assert.ok(row.line >= 1 && row.line <= 4);
-    assert.ok(["left", "right"].includes(row.align));
     assert.ok(["identity", "ramp", "change"].includes(row.colour));
   }
 });
@@ -58,13 +57,6 @@ await test("the printed table has a priority column", () => {
   const text = formatReport(report);
   assert.match(text, /segment\s+line\s+pri/);
   assert.match(text, /context.*100/, "the highest priority is visible in the table");
-});
-
-await test("a right-aligned segment says so in its line column", () => {
-  const report = buildReport(fullPayload(), { now: NOW, live: false, probe });
-  const text = formatReport(report);
-  const line = text.split("\n").find((l) => l.startsWith("resetMerged"));
-  assert.match(line, /4→/, "the arrow marks the right-aligned group");
 });
 
 await test("every absent segment still says why", () => {

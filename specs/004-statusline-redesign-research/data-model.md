@@ -14,7 +14,6 @@ Unchanged, in `src/segments.js`. One row per thing the bar can draw.
 | `key` | string | Unique. What an arrangement names |
 | `line` | 1..4 | Default line |
 | `order` | number | Default position within the line |
-| `align` | `left` \| `right` | Default edge. Arrangeable |
 | `priority` | number | Not arrangeable. Decides what survives a narrow terminal |
 | `colour` | `identity` \| `ramp` \| `change` | Not arrangeable. One meaning per channel |
 | `source` | string | Where the value comes from |
@@ -31,8 +30,7 @@ the same thing.
   "segments": {
     "rtk": { "on": false },
     "burnRate": { "line": 4, "order": 15 },
-    "skills": { "line": 1, "order": 70 },
-    "resetMerged": { "align": "right" }
+    "skills": { "line": 1, "order": 70 }
   }
 }
 ```
@@ -50,7 +48,6 @@ the same thing.
 | `on` | boolean | Default `true`. `false` removes the segment from every line |
 | `line` | 1..4 | Default: the registry's line. Out of range means the entry's line is ignored |
 | `order` | number | Default: the registry's order. Ties break on the registry order, then on the key, so resolution is deterministic |
-| `align` | `left` \| `right` | Default: the registry's alignment. Anything else is ignored and reported |
 
 Anything else in an entry is ignored rather than rejected, matching how
 `repoConfig` already treats unknown keys.
@@ -63,7 +60,7 @@ arrangement)`, a pure function.
 | Field | Source |
 |---|---|
 | `key`, `priority`, `colour`, `source` | Registry, always |
-| `line`, `order`, `align` | Arrangement entry when valid, registry otherwise |
+| `line`, `order` | Arrangement entry when valid, registry otherwise |
 | `on` | Arrangement entry when present, `true` otherwise |
 | `origin` | `default`, `repo`, `user` or `env`. For the diagnostic |
 
