@@ -105,6 +105,7 @@ await test("skills: one chip carrying the list, absent when there are none", () 
   const many = render(payload, {
     ...everything,
     getActiveSkills: () => ["a", "b", "c", "d", "e", "f", "g"],
+    getActiveSkillsTrueCount: () => 7,
   });
   assert.match(many, re`${G.skills} a, b, c, d, e \+2`, "the ones left out are counted, not hidden");
 });

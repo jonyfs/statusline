@@ -266,6 +266,10 @@ export function normalizePr(raw, source) {
     url: raw.url ?? null,
     review,
     kind: raw.kind === "mr" ? "mr" : "pr",
+    // `gh` sends label objects (`{name, color, ...}`); the payload and any
+    // MR source already send plain names. Only the name is kept — colour
+    // and id are not the statusline's to carry (specs/006, data-model.md).
+    labels: Array.isArray(raw.labels) ? raw.labels.map((l) => (typeof l === "string" ? l : l?.name)).filter(Boolean) : [],
     source,
   };
 }
@@ -328,7 +332,7 @@ export function currentBranch(cwd, timeout = SOURCE_BUDGET_MS.git) {
 export function probePrResult(cwd, timeout = 5000) {
   const branch = currentBranch(cwd);
   try {
-    const out = execFileSync("gh", ["pr", "view", "--json", "number,state,isDraft,url"], {
+    const out = execFileSync("gh", ["pr", "view", "--json", "number,state,isDraft,url,labels"], {
       cwd,
       timeout,
       encoding: "utf8",
@@ -336,7 +340,10 @@ export function probePrResult(cwd, timeout = 5000) {
       windowsHide: true,
     });
     const pr = JSON.parse(out);
-    return { state: "found", value: { number: pr.number, state: pr.state, isDraft: pr.isDraft, url: pr.url, branch } };
+    return {
+      state: "found",
+      value: { number: pr.number, state: pr.state, isDraft: pr.isDraft, url: pr.url, labels: pr.labels, branch },
+    };
   } catch (err) {
     const stderr = String(err?.stderr ?? "");
     // `gh` says so in words, and its exit code does not distinguish this from

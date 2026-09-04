@@ -80,6 +80,8 @@ export const SOURCES = {
   }),
   getCiStatus: () => ({ status: "completed", conclusion: "success", workflow: "CI" }),
   getActiveSkills: () => ["speckit-implement", "humanizer"],
+  getActiveSkillsTrueCount: () => 2,
+  subagentActivity: () => [],
   getSessionActivity: () => ({
     skills: ["speckit-implement", "humanizer"],
     todos: { done: 9, total: 24, current: "the composer page" },

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, readdirSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { test } from "../test-harness.js";
-import { getActiveSkills } from "../../src/skills.js";
+import { getActiveSkills, sddStepFor } from "../../src/skills.js";
 
 const tmpFile = (name = "t.jsonl") =>
   path.join(mkdtempSync(path.join(os.tmpdir(), "skills-")), name);
@@ -78,4 +78,32 @@ await test("the activity scan's skills are reused instead of a second walk", () 
   assert.deepEqual(getActiveSkills(missing, 3, { scanned: ["alpha", "beta"] }), ["alpha", "beta"]);
   assert.deepEqual(getActiveSkills(missing, 1, { scanned: ["alpha", "beta"] }), ["alpha"]);
   assert.deepEqual(getActiveSkills(missing, 3, {}), [], "with nothing scanned it still asks the file");
+});
+
+// specs/007-speckit-step-indicator FR-003/FR-006/SC-003
+await test("every installed speckit-* skill maps to a readable, non-raw label", () => {
+  const installed = readdirSync(path.join(process.cwd(), ".claude", "skills")).filter((n) =>
+    n.startsWith("speckit-")
+  );
+  assert.ok(installed.length > 0, "expected at least one installed speckit-* skill to check against");
+  for (const name of installed) {
+    const label = sddStepFor(name);
+    assert.ok(label, `expected a label for ${name}`);
+    assert.notEqual(label, name, `label for ${name} must not be the raw skill id`);
+  }
+});
+
+await test("known speckit-* skills map to their intended step label", () => {
+  assert.equal(sddStepFor("speckit-specify"), "Specifying");
+  assert.equal(sddStepFor("speckit-plan"), "Planning");
+  assert.equal(sddStepFor("speckit-implement"), "Implementing");
+});
+
+await test("an unmapped speckit-* skill falls back to a formatted name, not null or raw", () => {
+  assert.equal(sddStepFor("speckit-made-up-future-skill"), "Made up future skill");
+});
+
+await test("a non-speckit skill has no SDD step", () => {
+  assert.equal(sddStepFor("superpowers:brainstorming"), null);
+  assert.equal(sddStepFor(undefined), null);
 });

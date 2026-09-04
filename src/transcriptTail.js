@@ -107,6 +107,42 @@ export function readTailLines(
  * it has enough skills, or when it has walked past `windowMs` of material,
  * or when it hits one of the limits above.
  */
+// A backstop against a pathological transcript with hundreds of distinct
+// skill names in one window, so a session that never stops using new skills
+// can't turn the "count every one, don't just cap the scan" fix (FR-002,
+// specs/008-skills-line-completeness) into an unbounded walk. Any real
+// session's skill count is a handful to a few dozen; 500 is headroom, not a
+// realistic ceiling, so it is not itself a place this can silently lie.
+const SKILL_SCAN_HARD_CAP = 500;
+
+/**
+ * Every `tool_use` block in an entry, including ones nested inside another
+ * block's own `content` array — not just the top-level message content.
+ *
+ * A skill invoked by a subagent or delegated task does not always sit at
+ * `message.content`: some invocation shapes carry the sub-conversation's
+ * blocks nested inside a parent block's `content` (e.g. a tool result that
+ * embeds what the delegated work did). Recursing one or two levels deep
+ * costs nothing extra on the vast majority of entries, which have no
+ * nesting at all, and is what makes a delegated skill count the same as a
+ * directly invoked one (FR-003, specs/008-skills-line-completeness).
+ */
+function toolUseBlocksIn(entry) {
+  const blocks = entry?.message?.content;
+  if (!Array.isArray(blocks)) return [];
+  const found = [];
+  const MAX_DEPTH = 4;
+  const walk = (list, level) => {
+    if (!Array.isArray(list) || level > MAX_DEPTH) return;
+    for (const block of list) {
+      if (block?.type === "tool_use") found.push(block);
+      if (Array.isArray(block?.content)) walk(block.content, level + 1);
+    }
+  };
+  walk(blocks, 0);
+  return found;
+}
+
 export function scanTailForSkills(
   file,
   { limit = 3, windowMs = 30 * 60 * 1000, now = Date.now(), byteCap, budgetMs } = {}
@@ -145,10 +181,9 @@ export function scanTailForSkills(
         }
         consecutiveOld = 0;
 
-        const blocks = entry?.message?.content;
-        if (!Array.isArray(blocks)) return false;
+        const blocks = toolUseBlocksIn(entry);
+        if (!blocks.length) return false;
         for (const block of blocks) {
-          if (block?.type !== "tool_use") continue;
           if (String(block.name || "").toLowerCase() !== "skill") continue;
           const skillName = block.input?.skill || block.input?.name;
           if (skillName && !seen.has(skillName)) {
@@ -156,14 +191,18 @@ export function scanTailForSkills(
             found.push(skillName);
           }
         }
-        return found.length >= limit;
+        // Scanning past `limit` distinct skills (up to the hard cap) is
+        // what makes `trueCount` below an honest count rather than a
+        // display cap wearing a different name (FR-002). The window,
+        // byteCap and budgetMs still bound the walk the same as before.
+        return found.length >= SKILL_SCAN_HARD_CAP;
       },
     });
     return { truncated, bytesRead, scanned: lines.length };
   };
 
   const { truncated, bytesRead } = collect();
-  return { skills: found.slice(0, limit), truncated, bytesRead };
+  return { skills: found.slice(0, limit), trueCount: found.length, truncated, bytesRead };
 }
 
 /**
@@ -224,32 +263,41 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
       const blocks = entry?.message?.content;
       if (!Array.isArray(blocks)) return false;
 
-      for (const block of blocks) {
-        if (block?.type !== "tool_use") continue;
-        const name = String(block.name || "").toLowerCase();
-
-        // A skill outside the activity window has expired. A todo list has
-        // not: a list written an hour ago is still the list, because it
-        // says its own state rather than relying on how recently it was
-        // touched.
-        if (name === "skill" && inWindow) {
+      // Skills are looked for recursively (a delegated/subagent invocation
+      // may nest its blocks inside a parent block's own `content`, FR-003,
+      // specs/008-skills-line-completeness); todos are not, since a todo
+      // list is only ever written by the top-level session.
+      if (inWindow) {
+        for (const block of toolUseBlocksIn(entry)) {
+          if (String(block.name || "").toLowerCase() !== "skill") continue;
           const skillName = block.input?.skill || block.input?.name;
           if (skillName && !seen.has(skillName)) {
             seen.add(skillName);
             skills.push(skillName);
           }
-        } else if (todos === null && (name === "todowrite" || name === "todo_write")) {
+        }
+      }
+
+      for (const block of blocks) {
+        if (block?.type !== "tool_use") continue;
+        const name = String(block.name || "").toLowerCase();
+        if (todos === null && (name === "todowrite" || name === "todo_write")) {
           const list = block.input?.todos;
           if (Array.isArray(list)) todos = summariseTodos(list);
         }
       }
 
-      // Stop once both questions are answered.
-      return skills.length >= limit && todos !== null;
+      // Stopping at `limit` skills undercounted true activity once more
+      // than `limit` distinct skills were active (FR-002,
+      // specs/008-skills-line-completeness): the overflow indicator then
+      // computed "hidden" from a list that was itself already capped. The
+      // hard cap here is a backstop, not a display limit — `skills` is
+      // still sliced to `limit` below for callers that only want the list.
+      return skills.length >= SKILL_SCAN_HARD_CAP && todos !== null;
     },
   });
 
-  return { skills: skills.slice(0, limit), todos, lastAt, truncated, bytesRead };
+  return { skills: skills.slice(0, limit), skillsTrueCount: skills.length, todos, lastAt, truncated, bytesRead };
 }
 
 /**

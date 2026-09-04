@@ -10,6 +10,8 @@ export const emptySources = {
   getPrInfo: () => null,
   getRemoteUrl: () => null,
   getActiveSkills: () => [],
+  getActiveSkillsTrueCount: () => 0,
+  subagentActivity: () => [],
   getRtkSavings: () => null,
   getDirUrl: () => null,
 };

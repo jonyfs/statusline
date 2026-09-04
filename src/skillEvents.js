@@ -51,7 +51,14 @@ export function appendSkillEvent(sessionId, skill, { now = Date.now() } = {}) {
  * rather than ending the read: a truncated write in the middle of the file
  * must not hide the good records after it.
  */
-export function readSkillEvents(sessionId, { limit = 3, windowMs = 30 * 60 * 1000, now = Date.now() } = {}) {
+/**
+ * Every distinct skill in the window, newest first — unbounded by any
+ * display limit, since the file it reads is already capped at
+ * `MAX_TAIL_BYTES`. `readSkillEvents` and the count both come from this so
+ * the overflow indicator (specs/008-skills-line-completeness, FR-002) can
+ * report a true total rather than a count computed over a capped list.
+ */
+function scanAllSkillEvents(sessionId, { windowMs = 30 * 60 * 1000, now = Date.now() } = {}) {
   let text;
   try {
     text = readFileSync(sessionFileFor(sessionId), "utf8");
@@ -65,7 +72,7 @@ export function readSkillEvents(sessionId, { limit = 3, windowMs = 30 * 60 * 100
   const found = [];
   const seen = new Set();
 
-  for (let i = lines.length - 1; i >= 0 && found.length < limit; i--) {
+  for (let i = lines.length - 1; i >= 0; i--) {
     let record;
     try {
       record = JSON.parse(lines[i]);
@@ -79,6 +86,43 @@ export function readSkillEvents(sessionId, { limit = 3, windowMs = 30 * 60 * 100
   }
 
   return found;
+}
+
+export function readSkillEvents(sessionId, { limit = 3, windowMs = 30 * 60 * 1000, now = Date.now() } = {}) {
+  return scanAllSkillEvents(sessionId, { windowMs, now }).slice(0, limit);
+}
+
+/** The true count behind `readSkillEvents`, not capped at its `limit`. */
+export function readSkillEventsTrueCount(sessionId, { windowMs = 30 * 60 * 1000, now = Date.now() } = {}) {
+  return scanAllSkillEvents(sessionId, { windowMs, now }).length;
+}
+
+/**
+ * The most recent entry in the log, whether or not it is still inside the
+ * activity window — what doctor needs to say "X expired at <time>" instead
+ * of just "no skill used inside the activity window" (FR-004,
+ * specs/008-skills-line-completeness). Bounded the same way every other
+ * read here is, by `MAX_TAIL_BYTES`.
+ */
+export function mostRecentSkillEvent(sessionId) {
+  let text;
+  try {
+    text = readFileSync(sessionFileFor(sessionId), "utf8");
+  } catch {
+    return null;
+  }
+  if (text.length > MAX_TAIL_BYTES) text = text.slice(-MAX_TAIL_BYTES);
+  const lines = text.split("\n").filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    let record;
+    try {
+      record = JSON.parse(lines[i]);
+    } catch {
+      continue;
+    }
+    if (record?.skill && typeof record?.at === "number") return { skill: record.skill, at: record.at };
+  }
+  return null;
 }
 
 /**

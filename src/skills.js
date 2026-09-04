@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import os from "node:os";
 import { scanTailForSkills, scanTail } from "./transcriptTail.js";
-import { readSkillEvents } from "./skillEvents.js";
+import { readSkillEvents, readSkillEventsTrueCount } from "./skillEvents.js";
 
 /**
  * How long a skill counts as active after it was last invoked.
@@ -26,6 +29,49 @@ export function windowMs() {
   // A non-numeric or negative override falls back rather than disabling
   // expiry by accident, which would silently restore the stale-skill bug.
   return Number.isFinite(minutes) && minutes > 0 ? minutes * 60000 : DEFAULT_WINDOW_MS;
+}
+
+// How fresh the task-rows snapshot (specs/011-multiagent-skills-line) must
+// be to trust. Distinct from the 30-minute skill-activity window: this
+// answers "is this snapshot still describing a running subagent", which is
+// a live-tick question, not an invocation-recency one. A snapshot older
+// than this is treated as "ticks stopped, nothing is running" rather than
+// as thirty more minutes of assumed activity.
+const TASK_SNAPSHOT_FRESHNESS_MS = 30 * 1000;
+
+function taskSnapshotPath() {
+  return path.join(os.homedir(), ".claude", "statusline", "tasks", "latest.json");
+}
+
+/**
+ * Identifying labels for currently running subagents, read from the
+ * snapshot `task-rows` writes on its own tick (specs/011-multiagent-skills-line).
+ * Every failure mode (missing file, invalid JSON, stale snapshot) returns
+ * an empty list rather than throwing: with no subagent activity to report,
+ * the skills line falls back to exactly today's directly-invoked-only
+ * behaviour (FR-004).
+ *
+ * The snapshot is a single global file, not per-session (see the write
+ * side in `taskRows.js` for why): with two concurrent Claude Code sessions
+ * on the same machine, this can surface one session's subagent activity on
+ * the other's line. Documented, accepted limitation, not a defect.
+ */
+export function subagentActivity(now = Date.now()) {
+  let raw;
+  try {
+    raw = readFileSync(taskSnapshotPath(), "utf8");
+  } catch {
+    return [];
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (typeof parsed?.writtenAt !== "number" || now - parsed.writtenAt > TASK_SNAPSHOT_FRESHNESS_MS) return [];
+  if (!Array.isArray(parsed.tasks)) return [];
+  return parsed.tasks.map((t) => t?.label).filter((label) => typeof label === "string" && label.length > 0);
 }
 
 /**
@@ -64,6 +110,30 @@ export function getActiveSkills(transcriptPath, limit = 3, { now = Date.now(), s
 }
 
 /**
+ * The true number of distinct active skills, not capped at a display
+ * limit — what the overflow indicator's "+N" needs to be honest (FR-002,
+ * specs/008-skills-line-completeness). A separate function rather than a
+ * richer `getActiveSkills` return shape, so every existing caller (and
+ * every test stub returning a plain array) keeps working unchanged.
+ * Reuses whatever the caller already scanned (`scannedTrueCount`, from
+ * `getSessionActivity`) rather than walking the transcript a second time.
+ */
+export function getActiveSkillsTrueCount(transcriptPath, { now = Date.now(), sessionId, scanned, scannedTrueCount } = {}) {
+  const window = windowMs();
+
+  if (sessionId) {
+    const hookCount = readSkillEventsTrueCount(sessionId, { windowMs: window, now });
+    if (hookCount > 0) return hookCount;
+  }
+
+  if (typeof scannedTrueCount === "number") return scannedTrueCount;
+  if (Array.isArray(scanned)) return scanned.length;
+
+  if (!transcriptPath) return 0;
+  return scanTailForSkills(transcriptPath, { limit: 0, windowMs: window, now }).trueCount;
+}
+
+/**
  * The same scan, with the bookkeeping the diagnostic needs: how much was
  * read, and whether the walk gave up before it ran out of material.
  */
@@ -73,11 +143,17 @@ export function getActiveSkillsDetailed(transcriptPath, limit = 3, { now = Date.
   if (sessionId) {
     const fromHook = readSkillEvents(sessionId, { limit, windowMs: window, now });
     if (fromHook.length) {
-      return { skills: fromHook, truncated: false, bytesRead: 0, source: "hook" };
+      return {
+        skills: fromHook,
+        trueCount: readSkillEventsTrueCount(sessionId, { windowMs: window, now }),
+        truncated: false,
+        bytesRead: 0,
+        source: "hook",
+      };
     }
   }
 
-  if (!transcriptPath) return { skills: [], truncated: false, bytesRead: 0, source: "transcript" };
+  if (!transcriptPath) return { skills: [], trueCount: 0, truncated: false, bytesRead: 0, source: "transcript" };
   return { ...scanTailForSkills(transcriptPath, { limit, windowMs: window, now }), source: "transcript" };
 }
 
@@ -101,7 +177,74 @@ export function getSessionActivity(transcriptPath, { now = Date.now(), limit = 3
   const scan = scanTail(transcriptPath, { limit, windowMs: windowMs(), now });
   return {
     skills: scan.skills,
+    skillsTrueCount: scan.skillsTrueCount,
     todos: scan.todos,
     working: scan.lastAt !== null && now - scan.lastAt <= ACTIVE_WITHIN_MS,
   };
+}
+
+/**
+ * The feature Spec Kit's own commands are currently pointed at, read from
+ * `.specify/feature.json` at the project root — the exact file
+ * `/speckit-specify`, `/speckit-plan` and `/speckit-tasks` already write
+ * before doing their own work (specs/009-speckit-feature-indicator).
+ *
+ * Every failure mode (no `.specify` directory, no file, invalid JSON, a
+ * `feature_directory` that is missing or not a string) degrades to `null`
+ * rather than throwing: a project not using Spec Kit's per-feature
+ * tracking is a normal case, not an error (FR-004).
+ */
+export function inProgressFeatureId(projectRoot = process.cwd()) {
+  let raw;
+  try {
+    raw = readFileSync(path.join(projectRoot, ".specify", "feature.json"), "utf8");
+  } catch {
+    return null;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const dir = parsed?.feature_directory;
+  if (typeof dir !== "string" || !dir) return null;
+  return path.basename(dir);
+}
+
+/**
+ * Which step of Spec Kit's spec-driven-development flow each `speckit-*`
+ * skill belongs to, in plain language. Read by `sddStepFor` below; kept as
+ * its own table so a new speckit skill gets one line added here rather than
+ * a change to the lookup logic (specs/007-speckit-step-indicator).
+ */
+export const SDD_STEP_LABELS = {
+  "speckit-specify": "Specifying",
+  "speckit-clarify": "Clarifying",
+  "speckit-plan": "Planning",
+  "speckit-tasks": "Writing tasks",
+  "speckit-analyze": "Analyzing",
+  "speckit-implement": "Implementing",
+  "speckit-checklist": "Checklisting",
+  "speckit-constitution": "Setting constitution",
+  "speckit-converge": "Converging",
+  "speckit-taskstoissues": "Filing issues",
+  "speckit-agent-context-update": "Updating agent context",
+};
+
+/**
+ * The SDD step a skill name maps to, for display next to the skills chip.
+ *
+ * A `speckit-*` skill missing from the table above still gets a readable
+ * label (FR-006): the prefix is dropped, hyphens become spaces, and the
+ * first letter is capitalized, so a raw identifier never reaches the line
+ * (FR-002, SC-003). Anything not `speckit-*` returns null: it has no SDD
+ * step to show, per this feature's scope (specs/007).
+ */
+export function sddStepFor(skillName) {
+  if (typeof skillName !== "string") return null;
+  if (SDD_STEP_LABELS[skillName]) return SDD_STEP_LABELS[skillName];
+  if (!skillName.startsWith("speckit-")) return null;
+  const rest = skillName.slice("speckit-".length).replace(/-/g, " ");
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
 }

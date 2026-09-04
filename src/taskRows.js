@@ -16,6 +16,9 @@
  * silent about, which leaves Claude Code's own rendering in place.
  */
 
+import { mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import os from "node:os";
 import { PALETTES } from "./theme.js";
 import { bar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
@@ -129,6 +132,50 @@ export function renderTaskRow(task, { columns = 80, palette = PALETTES.mocha, no
   return { id: task.id, content: body };
 }
 
+/**
+ * The one piece of text that identifies a task well enough to name it on
+ * the skills line (specs/011-multiagent-skills-line, FR-005). `name` is
+ * the same value `renderTaskRow` leads with and colours by tier, so this
+ * is the same identity, not a second guess at one. A task with neither
+ * `name` nor `type` returns `null`: no fabricated placeholder (FR-006).
+ */
+function taskLabel(task) {
+  return task?.name || task?.type || null;
+}
+
+function snapshotPath() {
+  return path.join(os.homedir(), ".claude", "statusline", "tasks", "latest.json");
+}
+
+/**
+ * Best-effort persistence of the current tick's tasks, so the separate
+ * `render`/statusLine command (a different process, per its own tick) can
+ * fold running subagent activity into the skills line. `task-rows` and
+ * `render` share no other state (specs/011-multiagent-skills-line,
+ * research.md): the tick payload carries no session id or cwd to key a
+ * per-session file by, so this is a single global snapshot, overwritten on
+ * every tick, read with a short freshness window rather than trusted
+ * indefinitely. A write failure never affects this command's own output.
+ *
+ * Known limitation, documented rather than worked around (same posture as
+ * `behind` in the git segment): two concurrent Claude Code sessions on the
+ * same machine, each running their own subagents, will each see the
+ * other's subagent activity folded into their own skills line, since there
+ * is currently no correlation key in the tick payload to tell them apart.
+ * Fixing this would require Claude Code to send one, which is outside this
+ * project's control.
+ */
+function writeTaskSnapshot(tasks, now) {
+  try {
+    const labeled = tasks.map((t) => ({ id: t?.id, label: taskLabel(t) })).filter((t) => t.id && t.label);
+    mkdirSync(path.dirname(snapshotPath()), { recursive: true });
+    writeFileSync(snapshotPath(), JSON.stringify({ writtenAt: now, tasks: labeled }));
+  } catch {
+    // Best effort: losing a snapshot costs one redraw's subagent visibility,
+    // never this command's own tick output.
+  }
+}
+
 async function readStdin() {
   if (process.stdin.isTTY) return "";
   return new Promise((resolve) => {
@@ -154,6 +201,7 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   }
 
   const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
+  writeTaskSnapshot(tasks, now);
   if (!tasks.length) return "";
 
   const flavor = process.env.CLAUDE_STATUSLINE_FLAVOR || "mocha";

@@ -23,7 +23,14 @@ import {
   probePrInfo,
   normalizePr,
 } from "./git.js";
-import { getActiveSkills, getSessionActivity } from "./skills.js";
+import {
+  getActiveSkills,
+  getActiveSkillsTrueCount,
+  getActiveSkillsDetailed,
+  getSessionActivity,
+  subagentActivity,
+} from "./skills.js";
+import { mostRecentSkillEvent } from "./skillEvents.js";
 import { getRtkSavings, probeRtkSavings } from "./rtk.js";
 import { formatResetCountdown } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
@@ -152,6 +159,8 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     getRemoteUrl,
     getCiStatus,
     getActiveSkills,
+    getActiveSkillsTrueCount,
+    subagentActivity,
     getSessionActivity,
     getRtkSavings,
     getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
@@ -197,6 +206,34 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     };
     if (!row.rendered) {
       row.reason = row.on ? absenceReason(segment, reading, readings, now) : "switched off by the arrangement";
+    }
+
+    // FR-004/FR-005, specs/008-skills-line-completeness: which path
+    // answered (hook vs the slower transcript fallback), and — for a
+    // skill a caller might expect to see but doesn't — whether it merely
+    // expired from the activity window or was never detected at all.
+    if (segment.key === "skills") {
+      const detailed = getActiveSkillsDetailed(payload?.transcript_path, 50, {
+        now,
+        sessionId: payload?.session_id,
+      });
+      row.tracking = {
+        source: detailed.source === "hook" ? "hook" : "transcript fallback",
+        truncated: detailed.truncated ?? false,
+      };
+      // With nothing currently active, say whether that's because the last
+      // skill used simply expired (and when), or because none was ever
+      // detected at all — the distinction User Story 3 asks for.
+      if (!detailed.skills.length && payload?.session_id) {
+        const last = mostRecentSkillEvent(payload.session_id);
+        row.tracking.lastSeen = last ? { skill: last.skill, at: last.at, expired: true } : null;
+      }
+      if (row.reason) {
+        const src = `source: ${row.tracking.source}`;
+        row.reason = row.tracking.lastSeen
+          ? `${row.reason} (${src}; ${row.tracking.lastSeen.skill} expired, last seen ${new Date(row.tracking.lastSeen.at).toISOString()})`
+          : `${row.reason} (${src})`;
+      }
     }
 
     if (live && LIVE_PROBES[segment.key]) {

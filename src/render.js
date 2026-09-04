@@ -9,7 +9,14 @@ import {
   normalizePr,
   repoUrlFromPayload,
 } from "./git.js";
-import { getActiveSkills, getSessionActivity } from "./skills.js";
+import {
+  getActiveSkills,
+  getActiveSkillsTrueCount,
+  getSessionActivity,
+  sddStepFor,
+  inProgressFeatureId,
+  subagentActivity,
+} from "./skills.js";
 import {
   getContextPercent,
   getRateLimits,
@@ -237,7 +244,7 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
 const SKILLS_SHOWN = 5;
 const SKILLS_PROBED = 12;
 
-function skillsReading(timed, probe, payload, scanned) {
+function skillsReading(timed, probe, payload, scanned, scannedTrueCount, subagentLabels) {
   // The session id lets the hook's event file be found. Without one, or
   // without the hook, the transcript answers instead and the line is the
   // same, only slower to react. `scanned` is what the activity pass already
@@ -248,11 +255,29 @@ function skillsReading(timed, probe, payload, scanned) {
       scanned,
     })
   );
-  const list = Array.isArray(all.value) ? all.value : [];
+  const directlyInvoked = Array.isArray(all.value) ? all.value : [];
+  // Running subagent activity (specs/011-multiagent-skills-line, FR-001),
+  // merged in and deduplicated the same way directly-invoked skills already
+  // are, so the two sources read as one fact rather than two competing
+  // lists. An empty/stale snapshot contributes nothing, so this changes
+  // nothing when no subagent is running (FR-004).
+  const subagent = subagentLabels.filter((label) => !directlyInvoked.includes(label));
+  const list = [...directlyInvoked, ...subagent];
+  // Not `list.length` alone: the directly-invoked half is itself already
+  // capped at SKILLS_PROBED, so computing "hidden" from its length only
+  // ever reported what the scan happened to examine, not what was
+  // actually active (FR-002, specs/008-skills-line-completeness). The
+  // subagent half rides on top of that true count (FR-002, specs/011).
+  const trueCount =
+    probe.getActiveSkillsTrueCount(payload?.transcript_path, {
+      sessionId: payload?.session_id,
+      scanned,
+      scannedTrueCount,
+    }) + subagent.length;
   return {
     ...all,
     value: list.slice(0, SKILLS_SHOWN),
-    hiddenCount: Math.max(0, list.length - SKILLS_SHOWN),
+    hiddenCount: Math.max(0, trueCount - SKILLS_SHOWN),
   };
 }
 
@@ -283,6 +308,18 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
   const activity = timed("transcript", () =>
     probe.getSessionActivity(payload?.transcript_path, { now, limit: SKILLS_PROBED })
   );
+  // Read once, used in two places (the working/idle patch below, and the
+  // skills chip): `subagentActivity` is a file read, and the redraw budget
+  // does not have room for the same read twice (specs/012, specs/011).
+  const subagent = probe.subagentActivity(now);
+  // The top-level transcript going quiet doesn't mean nothing is
+  // happening: a subagent can be doing the actual work right now (specs/012-
+  // subagent-activity-status, FR-001). A running subagent alone is enough
+  // to say "working"; with none, this is a no-op and `working` is exactly
+  // what the transcript already said (FR-005).
+  if (activity.value) {
+    activity.value.working = activity.value.working || subagent.length > 0;
+  }
   const payloadPr = normalizePr(payload?.pr, "payload");
   const payloadRepoUrl = repoUrlFromPayload(payload?.workspace?.repo);
 
@@ -313,7 +350,7 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
         ? reading({ value: payloadPr, at: now, source: "payload" })
         : timed("gh", () => normalizePr(probe.getPrInfo(cwd, { branch: namedBranch }), "gh"))
       : missing("gh", "not a repository"),
-    skills: skillsReading(timed, probe, payload, activity.value?.skills),
+    skills: skillsReading(timed, probe, payload, activity.value?.skills, activity.value?.skillsTrueCount, subagent),
     activity,
     ci: hasRepo
       ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
@@ -396,6 +433,8 @@ export function renderPayload(
     getPrInfo,
     getRemoteUrl,
     getActiveSkills,
+    getActiveSkillsTrueCount,
+    subagentActivity,
     getSessionActivity,
     getCiStatus,
     getRtkSavings,
@@ -663,10 +702,20 @@ export function renderReadings(
       // a line this tight, and "changes" says it.
       const review = pr.review === "changes_requested" ? "changes" : pr.review;
       const label = pr.kind === "mr" ? "MR" : "PR";
+      // Same "show a few, count the rest" shape as the skills chip: a PR
+      // with zero labels must render exactly as before this field existed
+      // (specs/006, FR-003), so the suffix is only ever added, never a
+      // placeholder for the empty case.
+      const prLabels = pr.labels ?? [];
+      const shownLabels = prLabels.slice(0, 3);
+      const hiddenLabels = Math.max(0, prLabels.length - shownLabels.length);
+      const labelText = shownLabels.length
+        ? ` ${shownLabels.join(", ")}${hiddenLabels > 0 ? ` +${hiddenLabels}` : ""}`
+        : "";
       l1.push({
         key: "pr",
         color: changes.colourFor("pr", "blue", palette),
-        text: ` ${g.pr} ${label} #${pr.number}${review ? ` ${review}` : ""} `,
+        text: ` ${g.pr} ${label} #${pr.number}${review ? ` ${review}` : ""}${labelText} `,
         url: pr.url,
       });
     }
@@ -706,11 +755,19 @@ export function renderReadings(
     // read as one fact, which is what they are: what is shaping the work
     // right now.
     const hidden = readings.skills.hiddenCount ?? 0;
+    // The most recent skill is index 0 (getActiveSkills's own contract:
+    // newest first). The in-progress feature id takes the parenthetical
+    // when a speckit-* skill is active and one is recorded; the SDD step
+    // label is the fallback when no feature id is available (specs/009,
+    // research.md); neither is shown for a non-speckit skill.
+    const sddStep = sddStepFor(skills[0]);
+    const featureId = sddStep ? inProgressFeatureId(readings.cwd) : null;
+    const skillsSuffix = featureId ?? sddStep;
     const l2 = [
       {
         key: "skills",
         color: changes.colourFor("skills", "green", palette),
-        text: ` ${g.skills} ${skills.join(", ")}${hidden > 0 ? ` +${hidden}` : ""} `,
+        text: ` ${g.skills} ${skills.join(", ")}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
       },
     ];
     pushLine2Extras(l2);

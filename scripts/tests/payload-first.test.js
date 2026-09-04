@@ -80,6 +80,7 @@ await test("normalizePr reads both shapes into one", () => {
     url: "u",
     review: "approved",
     kind: "pr",
+    labels: [],
     source: "payload",
   });
   assert.deepEqual(normalizePr({ number: 2, url: "u", state: "OPEN", isDraft: true }, "gh"), {
@@ -87,6 +88,7 @@ await test("normalizePr reads both shapes into one", () => {
     url: "u",
     review: "draft",
     kind: "pr",
+    labels: [],
     source: "gh",
   });
   assert.equal(normalizePr(null, "payload"), null);

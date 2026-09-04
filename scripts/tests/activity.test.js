@@ -139,6 +139,67 @@ await test("the bar says working or idle, and neither without a transcript", () 
   assert.doesNotMatch(none, /working|idle/);
 });
 
+// specs/012-subagent-activity-status
+const renderActivity = (file, subagentActivity, now = NOW) =>
+  stripAnsi(
+    renderPayload(fullPayload({ transcript_path: file }), {
+      sources: { ...gitSources(), subagentActivity },
+      trackChanges: false,
+      now,
+      ...WIDE,
+    })
+  );
+
+// FR-001/Acceptance Scenario 1: a quiet top-level session with an active
+// subagent still shows "working".
+await test("a running subagent shows working even with a quiet top-level session", () => {
+  const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
+  const out = renderActivity(quiet, () => ["explore"]);
+  assert.match(out, re`${G.working} working`);
+});
+
+// FR-002/Acceptance Scenario 2: both active, unchanged "working".
+await test("working stays working when both the session and a subagent are active", () => {
+  const busy = transcript([assistant(NOW - 1000, [{ type: "text", text: "x" }])]);
+  const out = renderActivity(busy, () => ["explore"]);
+  assert.match(out, re`${G.working} working`);
+});
+
+// FR-003/Acceptance Scenario 3: neither active, "idle" exactly as before.
+await test("idle stays idle when neither the session nor any subagent is active", () => {
+  const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
+  const out = renderActivity(quiet, () => []);
+  assert.match(out, re`${G.idle} idle`);
+});
+
+// FR-005: no subagent snapshot ever existing leaves behavior unchanged.
+await test("with no subagent snapshot, working/idle behaves exactly as before this feature", () => {
+  const busy = transcript([assistant(NOW - 1000, [{ type: "text", text: "x" }])]);
+  const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
+  assert.match(renderActivity(busy, () => []), re`${G.working} working`);
+  assert.match(renderActivity(quiet, () => []), re`${G.idle} idle`);
+});
+
+// User Story 2/Acceptance Scenario 1: once the real subagent snapshot ages
+// out (specs/011's own freshness window, reused here per research.md), and
+// the top-level session is also quiet, the status returns to idle. Uses
+// the real `subagentActivity` and `runTaskRows`, not a stub, since this is
+// specifically about the freshness window doing its job.
+await test("idle returns once the real subagent snapshot goes stale and the session is quiet", async () => {
+  const { runTaskRows } = await import("../../src/taskRows.js");
+  const { subagentActivity } = await import("../../src/skills.js");
+  const { makeHome, withHome } = await import("./fixtures/home.js");
+
+  const home = makeHome();
+  await withHome(home, async () => {
+    await runTaskRows({ now: NOW, input: JSON.stringify({ columns: 100, tasks: [{ id: "t1", name: "explore" }] }) });
+    const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
+    // 60s later: well past specs/011's 30s freshness window.
+    const out = renderActivity(quiet, subagentActivity, NOW + 60_000);
+    assert.match(out, re`${G.idle} idle`);
+  });
+});
+
 await test("a malformed todo entry is skipped, not fatal", () => {
   const file = transcript([
     assistant(NOW - 30_000, [{ type: "tool_use", name: "TodoWrite", input: { todos: "not an array" } }]),

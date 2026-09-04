@@ -802,6 +802,21 @@ They live one file per concern under `scripts/tests/`, and the runner picks
 up anything matching `*.test.js`. Install and uninstall are exercised
 against a throwaway `HOME`, never yours.
 
+Every string the statusline itself writes (segment labels, CLI help, error
+messages) must be English; pass-through data like branch names or task
+titles is exempt, since it isn't yours to translate. Check it directly:
+
+```bash
+node scripts/check-english-strings.js
+```
+
+It scans `src/*.js` and `bin/cli.js` for string literals containing a
+non-English letter and prints `file:line` for each. `scripts/tests/english-output.test.js`
+runs it as part of the suite, so a new non-English literal fails `npm test`
+without a separate step. A legitimate new English word never trips it; only
+add to its scan scope if a genuinely new output-facing file is added outside
+`src/` and `bin/cli.js`.
+
 Measure a redraw, or inspect one:
 
 ```bash

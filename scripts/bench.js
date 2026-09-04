@@ -18,7 +18,7 @@ process.env.CLAUDE_STATUSLINE_NO_REFRESH = "1";
 
 import { renderPayload, gather } from "../src/render.js";
 import { getDirUrl, getGitInfo, getPrInfo, getRemoteUrl } from "../src/git.js";
-import { getActiveSkills } from "../src/skills.js";
+import { getActiveSkills, getActiveSkillsTrueCount, subagentActivity } from "../src/skills.js";
 import { getRtkSavings } from "../src/rtk.js";
 import { SOURCE_BUDGET_MS } from "../src/freshness.js";
 
@@ -74,6 +74,8 @@ const probe = {
   getPrInfo,
   getRemoteUrl,
   getActiveSkills,
+  getActiveSkillsTrueCount,
+  subagentActivity,
   getRtkSavings,
   getDirUrl,
 };
