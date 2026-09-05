@@ -16,6 +16,7 @@ import {
   sddStepFor,
   inProgressFeatureId,
   subagentActivity,
+  getAggregatedSkills,
 } from "./skills.js";
 import {
   getContextPercent,
@@ -256,11 +257,22 @@ function skillsReading(timed, probe, payload, scanned, scannedTrueCount, subagen
     })
   );
   const directlyInvoked = Array.isArray(all.value) ? all.value : [];
-  // Running subagent activity (specs/011-multiagent-skills-line, FR-001),
+
+  // If activeAgents are provided in the payload (spec 013 multi-agent skills),
+  // use agent-grouped aggregation. Otherwise fall back to current behavior.
+  if (Array.isArray(payload?.activeAgents) && payload.activeAgents.length > 0) {
+    const aggregated = getAggregatedSkills(directlyInvoked, payload.activeAgents, SKILLS_SHOWN);
+    return {
+      ...all,
+      value: [aggregated.displayText],
+      trueCount: aggregated.totalCount,
+      hiddenCount: aggregated.hiddenCount,
+    };
+  }
+
+  // Fallback to current behavior (specs/011): Running subagent activity,
   // merged in and deduplicated the same way directly-invoked skills already
-  // are, so the two sources read as one fact rather than two competing
-  // lists. An empty/stale snapshot contributes nothing, so this changes
-  // nothing when no subagent is running (FR-004).
+  // are, so the two sources read as one fact rather than two competing lists.
   const subagent = subagentLabels.filter((label) => !directlyInvoked.includes(label));
   const list = [...directlyInvoked, ...subagent];
   // Not `list.length` alone: the directly-invoked half is itself already

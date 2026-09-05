@@ -3,6 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import { scanTailForSkills, scanTail } from "./transcriptTail.js";
 import { readSkillEvents, readSkillEventsTrueCount } from "./skillEvents.js";
+import { aggregateSkills, formatForDisplay, getHiddenSkillCount } from "./skillAggregation.js";
 
 /**
  * How long a skill counts as active after it was last invoked.
@@ -247,4 +248,23 @@ export function sddStepFor(skillName) {
   if (!skillName.startsWith("speckit-")) return null;
   const rest = skillName.slice("speckit-".length).replace(/-/g, " ");
   return rest.charAt(0).toUpperCase() + rest.slice(1);
+}
+
+/**
+ * Aggregates skills from direct invocations and running agents into a single
+ * display list. Groups agent skills by agent ID, deduplicates across all sources.
+ * Returns both the formatted display string and the total distinct skill count.
+ *
+ * @param {string[]} directSkills - Skills invoked by top-level session
+ * @param {Array} activeAgents - Active agents from stdin payload
+ * @param {number} displayLimit - How many skills to show (for overflow calculation)
+ * @returns {Object} { displayText: string, totalCount: number, hiddenCount: number }
+ */
+export function getAggregatedSkills(directSkills = [], activeAgents = [], displayLimit = 3) {
+  const { skillsByAgent, allSkills } = aggregateSkills(directSkills, activeAgents);
+  const displayText = formatForDisplay(skillsByAgent);
+  const totalCount = allSkills.size;
+  const hiddenCount = getHiddenSkillCount(allSkills, displayLimit);
+
+  return { displayText, totalCount, hiddenCount };
 }
