@@ -57,9 +57,8 @@ await test("usage segments keep their slot and show ?% instead of disappearing",
   // from "the segment moved".
   const plain = stripAnsi(renderPayload({}, { sources: emptySources }));
   assert.match(plain, /Context [░█▓▒]* ?\?%/);
-  assert.match(plain, /5h \?%/);
-  assert.match(plain, /7d \?%/);
-  assert.match(plain, /reset unknown/);
+  assert.match(plain, /5h \?% · \?/);
+  assert.match(plain, /7d \?% · \?/);
   assert.doesNotMatch(plain, /NaN|undefined|null/);
 });
 

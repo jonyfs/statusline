@@ -3,7 +3,6 @@ import path from "node:path";
 import os from "node:os";
 import { scanTailForSkills, scanTail } from "./transcriptTail.js";
 import { readSkillEvents, readSkillEventsTrueCount } from "./skillEvents.js";
-import { aggregateSkills, formatForDisplay, getHiddenSkillCount } from "./skillAggregation.js";
 
 /**
  * How long a skill counts as active after it was last invoked.
@@ -45,19 +44,18 @@ function taskSnapshotPath() {
 }
 
 /**
- * Identifying labels for currently running subagents, read from the
- * snapshot `task-rows` writes on its own tick (specs/011-multiagent-skills-line).
- * Every failure mode (missing file, invalid JSON, stale snapshot) returns
- * an empty list rather than throwing: with no subagent activity to report,
- * the skills line falls back to exactly today's directly-invoked-only
- * behaviour (FR-004).
+ * The running subagents `task-rows` recorded on its own tick
+ * (specs/011-multiagent-skills-line). Every failure mode (missing file,
+ * invalid JSON, stale snapshot) returns an empty list rather than throwing:
+ * with no subagent activity to report, line 2 falls back to exactly today's
+ * directly-invoked-only behaviour (FR-004).
  *
  * The snapshot is a single global file, not per-session (see the write
  * side in `taskRows.js` for why): with two concurrent Claude Code sessions
  * on the same machine, this can surface one session's subagent activity on
  * the other's line. Documented, accepted limitation, not a defect.
  */
-export function subagentActivity(now = Date.now()) {
+function readTaskSnapshot(now) {
   let raw;
   try {
     raw = readFileSync(taskSnapshotPath(), "utf8");
@@ -71,42 +69,37 @@ export function subagentActivity(now = Date.now()) {
     return [];
   }
   if (typeof parsed?.writtenAt !== "number" || now - parsed.writtenAt > TASK_SNAPSHOT_FRESHNESS_MS) return [];
-  if (!Array.isArray(parsed.tasks)) return [];
-  return parsed.tasks.map((t) => t?.label).filter((label) => typeof label === "string" && label.length > 0);
+  return Array.isArray(parsed.tasks) ? parsed.tasks : [];
+}
+
+/** Just the identifying labels, which is all the merged skills list needs. */
+export function subagentActivity(now = Date.now()) {
+  return readTaskSnapshot(now)
+    .map((t) => t?.label)
+    .filter((label) => typeof label === "string" && label.length > 0);
 }
 
 /**
- * Running agents with structure compatible with aggregateSkills (activeAgents format).
- * Reads from task snapshot and transforms task objects to {id, name, skills, status}.
- * When payload.activeAgents not provided by Claude Code, this fallback provides
- * agent grouping for the skills line (spec 015).
+ * The same running subagents, with what the tick knew about each one:
+ * the tier it is running at, when it started, and how much of its own
+ * context window it has spent (specs/017-line-legibility).
  *
- * Since task snapshot doesn't include skills data, skills array is empty.
- * The caller (skillsReading) will still display agent IDs alongside directly-invoked skills.
+ * Deliberately not "the agent and its skills". Claude Code attributes a
+ * skill invocation to a session, not to a subagent, so there is no
+ * attribution to read: a per-agent skill list would have to be invented.
+ * What this returns is what the harness actually reported, and every field
+ * is absent rather than guessed when the tick did not carry it.
  */
-export function subagentActivityStructured(now = Date.now()) {
-  let raw;
-  try {
-    raw = readFileSync(taskSnapshotPath(), "utf8");
-  } catch {
-    return [];
-  }
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return [];
-  }
-  if (typeof parsed?.writtenAt !== "number" || now - parsed.writtenAt > TASK_SNAPSHOT_FRESHNESS_MS) return [];
-  if (!Array.isArray(parsed.tasks)) return [];
-
-  return parsed.tasks
+export function subagentRoster(now = Date.now()) {
+  return readTaskSnapshot(now)
     .filter((t) => typeof t?.label === "string" && t.label.length > 0)
     .map((t) => ({
-      id: t.label,
-      name: t.label,
-      skills: [], // Task snapshot doesn't include skills; caller will use direct skills
-      status: "running", // All tasks in snapshot are running
+      id: typeof t.id === "string" ? t.id : null,
+      label: t.label,
+      tier: t.tier && typeof t.tier === "object" ? t.tier : null,
+      startTime: t.startTime ?? null,
+      tokenCount: typeof t.tokenCount === "number" ? t.tokenCount : null,
+      contextWindowSize: typeof t.contextWindowSize === "number" ? t.contextWindowSize : null,
     }));
 }
 
@@ -285,33 +278,3 @@ export function sddStepFor(skillName) {
   return rest.charAt(0).toUpperCase() + rest.slice(1);
 }
 
-/**
- * Aggregates skills from direct invocations and running agents into a single
- * display list. Groups agent skills by agent ID, deduplicates across all sources.
- * Returns both the formatted display string and the total distinct skill count.
- *
- * @param {string[]} directSkills - Skills invoked by top-level session
- * @param {Array} activeAgents - Active agents from stdin payload
- * @param {number} displayLimit - How many skills to show (for overflow calculation)
- * @returns {Object} { displayText: string, totalCount: number, hiddenCount: number }
- */
-export function getAggregatedSkills(directSkills = [], activeAgents = [], displayLimit = 3) {
-  const { skillsByAgent, allSkills, agentLabels } = aggregateSkills(directSkills, activeAgents);
-  const fullDisplay = formatForDisplay(skillsByAgent, agentLabels);
-  const totalCount = allSkills.size;
-
-  // Truncate display to displayLimit skills: split by "; " (agent groups) and
-  // ", " (individual skills), count, and truncate if needed
-  let displayText = fullDisplay;
-  if (totalCount > displayLimit && fullDisplay.length > 0) {
-    // Count distinct skill tokens and truncate to displayLimit
-    // This is approximate: just take first N space-separated skill tokens
-    const skillTokens = fullDisplay.split(/;\s*|\,\s+/).map(t => t.trim()).filter(t => t);
-    const truncated = skillTokens.slice(0, displayLimit).join(", ");
-    displayText = truncated;
-  }
-
-  const hiddenCount = getHiddenSkillCount(allSkills, displayLimit);
-
-  return { displayText, totalCount, hiddenCount };
-}

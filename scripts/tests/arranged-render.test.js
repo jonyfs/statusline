@@ -8,6 +8,7 @@
  * moved.
  */
 
+import { SEGMENTS } from "../../src/segments.js";
 import { test, stripAnsi } from "../test-harness.js";
 import { displayWidth } from "../../src/theme.js";
 import { renderPayload } from "../../src/render.js";
@@ -77,7 +78,7 @@ await test("the line a segment left still renders", () => {
 await test("a line emptied by an arrangement is dropped rather than drawn blank", () => {
   const after = lines(draw({
     version: 1,
-    segments: { skills: { on: false }, todo: { on: false }, activity: { on: false } },
+    segments: { skills: { on: false }, agents: { on: false }, todo: { on: false }, activity: { on: false } },
   }));
   assert(after.length === 3, `the bar drew ${after.length} lines instead of three`);
   assert(after.every((l) => l.trim().length), "a blank line was drawn");
@@ -124,15 +125,11 @@ await test("every preset draws something at every offered width", () => {
 });
 
 await test("an arrangement that turns everything off draws nothing", () => {
+  // Read from the registry rather than listed here: a hand-written list is a
+  // list that silently stops covering every segment the day one is added, and
+  // this case is the one that would have caught it.
   const everything = {};
-  for (const key of [
-    "dir", "projectDir", "repo", "branch", "worktree", "conflicts", "worktreeState",
-    "linesChanged", "pr", "ci", "skills", "todo", "activity", "model",
-    "effort", "context", "fiveHour", "burnRate", "projection", "sevenDay",
-    "resetMerged", "duration", "rtk",
-  ]) {
-    everything[key] = { on: false };
-  }
+  for (const { key } of SEGMENTS) everything[key] = { on: false };
   const drawn = draw({ version: 1, segments: everything });
   assert(drawn.trim() === "", "something was drawn on a bar with every segment off");
 });

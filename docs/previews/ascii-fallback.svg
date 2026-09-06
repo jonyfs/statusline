@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1147" height="143" viewBox="0 0 1147 143" role="img" aria-label="CLAUDE_STATUSLINE_ASCII=1 — no Nerd Font required">
-<rect width="1147" height="143" rx="8" fill="#1e1e2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1069" height="143" viewBox="0 0 1069 143" role="img" aria-label="CLAUDE_STATUSLINE_ASCII=1 — no Nerd Font required">
+<rect width="1069" height="143" rx="8" fill="#1e1e2e"/>
 <text x="10" y="18" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12" fill="#9399b2">CLAUDE_STATUSLINE_ASCII=1 — no Nerd Font required</text>
 <rect x="10.00" y="36" width="147.00" height="22" fill="rgb(69,71,90)"/>
 <text x="29.60" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">📁</text>
@@ -157,7 +157,7 @@
 <text x="152.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
 <rect x="421.60" y="111" width="9.80" height="22" fill="rgb(166,227,161)"/>
 <text x="426.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(166,227,161)">▸</text>
-<rect x="431.40" y="111" width="107.80" height="22" fill="rgb(166,227,161)"/>
+<rect x="431.40" y="111" width="186.20" height="22" fill="rgb(166,227,161)"/>
 <text x="446.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">⏱</text>
 <text x="455.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">️</text>
 <text x="475.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">5</text>
@@ -165,51 +165,45 @@
 <text x="504.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">2</text>
 <text x="514.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">0</text>
 <text x="524.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<rect x="539.20" y="111" width="9.80" height="22" fill="rgb(249,226,175)"/>
-<text x="544.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(166,227,161)">▸</text>
-<rect x="549.00" y="111" width="235.20" height="22" fill="rgb(249,226,175)"/>
-<text x="568.60" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">📅</text>
-<text x="593.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
-<text x="602.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<text x="622.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
-<text x="632.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
-<text x="642.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<text x="651.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">▴</text>
-<text x="671.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">·</text>
-<text x="691.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">T</text>
-<text x="700.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
-<text x="710.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">u</text>
-<text x="730.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
-<text x="740.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
-<text x="749.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">:</text>
-<text x="759.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">0</text>
-<text x="769.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">0</text>
-<rect x="784.20" y="111" width="9.80" height="22" fill="rgb(88,91,112)"/>
-<text x="789.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(249,226,175)">▸</text>
-<rect x="794.00" y="111" width="147.00" height="22" fill="rgb(88,91,112)"/>
-<text x="813.60" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">🕑</text>
-<text x="838.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">2</text>
-<text x="847.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">h</text>
-<text x="857.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">0</text>
-<text x="867.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">9</text>
-<text x="877.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">m</text>
-<text x="896.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">/</text>
-<text x="916.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">3</text>
-<text x="926.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(205,214,244)">d</text>
-<rect x="941.00" y="111" width="9.80" height="22" fill="rgb(203,166,247)"/>
-<text x="945.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(88,91,112)">▸</text>
-<rect x="950.80" y="111" width="176.40" height="22" fill="rgb(203,166,247)"/>
-<text x="970.40" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🦀</text>
-<text x="994.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
-<text x="1004.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="1014.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">k</text>
-<text x="1034.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
-<text x="1043.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
-<text x="1053.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<text x="1073.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
-<text x="1083.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="1092.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
-<text x="1102.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="1112.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<text x="1132.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(203,166,247)">▸</text>
+<text x="544.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">·</text>
+<text x="563.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">2</text>
+<text x="573.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
+<text x="583.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">0</text>
+<text x="593.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">9</text>
+<text x="602.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">m</text>
+<rect x="617.60" y="111" width="9.80" height="22" fill="rgb(249,226,175)"/>
+<text x="622.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(166,227,161)">▸</text>
+<rect x="627.40" y="111" width="235.20" height="22" fill="rgb(249,226,175)"/>
+<text x="647.00" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">📅</text>
+<text x="671.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
+<text x="681.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<text x="700.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
+<text x="710.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
+<text x="720.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
+<text x="730.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">▴</text>
+<text x="749.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">·</text>
+<text x="769.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">T</text>
+<text x="779.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">h</text>
+<text x="789.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">u</text>
+<text x="808.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
+<text x="818.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
+<text x="828.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">:</text>
+<text x="838.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">0</text>
+<text x="847.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">0</text>
+<rect x="862.60" y="111" width="9.80" height="22" fill="rgb(203,166,247)"/>
+<text x="867.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(249,226,175)">▸</text>
+<rect x="872.40" y="111" width="176.40" height="22" fill="rgb(203,166,247)"/>
+<text x="892.00" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">🦀</text>
+<text x="916.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
+<text x="926.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
+<text x="936.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">k</text>
+<text x="955.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">8</text>
+<text x="965.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
+<text x="975.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
+<text x="994.90" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
+<text x="1004.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
+<text x="1014.50" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
+<text x="1024.30" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
+<text x="1034.10" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
+<text x="1053.70" y="127" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(203,166,247)">▸</text>
 </svg>

@@ -12,6 +12,7 @@ export const emptySources = {
   getActiveSkills: () => [],
   getActiveSkillsTrueCount: () => 0,
   subagentActivity: () => [],
+  subagentRoster: () => [],
   getRtkSavings: () => null,
   getDirUrl: () => null,
 };

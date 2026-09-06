@@ -60,6 +60,14 @@ export const SEGMENTS = [
 
   // Line 2: what is shaping the work.
   { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
+  // The running subagents, one chip each, between the skills that shape the
+  // work and the todo that tracks it. Placed at 78 rather than beside the
+  // skills chip's 76 on purpose: with several agents in flight, which agents
+  // are running is the more actionable of the two, and a narrow terminal
+  // should drop the skill names before it drops the fact that four agents
+  // are working. Identity colour, not change: the chips already carry the
+  // tier ramp, and Principle X forbids one segment using colour for both.
+  { key: "agents", line: 2, order: 15, priority: 78, colour: "identity", source: "tasks" },
   { key: "todo", line: 2, order: 20, priority: 70, colour: "identity", source: "transcript" },
   { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
 
@@ -75,11 +83,6 @@ export const SEGMENTS = [
   { key: "context", line: 4, order: 10, priority: 100, colour: "ramp", source: "payload" },
   { key: "fiveHour", line: 4, order: 20, priority: 94, colour: "ramp", source: "payload" },
   { key: "sevenDay", line: 4, order: 40, priority: 90, colour: "ramp", source: "payload" },
-  // C6: one segment carrying both countdowns. Two clock faces and two
-  // countdowns spent a third of the line saying two things that are read
-  // together. The face shown is the sooner of the two, since that is the
-  // one about to matter.
-  { key: "resetMerged", line: 4, order: 50, priority: 80, colour: "identity", source: "payload" },
   { key: "burnRate", line: 4, order: 22, priority: 66, colour: "ramp", source: "samples" },
   { key: "projection", line: 4, order: 24, priority: 64, colour: "identity", source: "samples" },
   { key: "duration", line: 4, order: 55, priority: 50, colour: "identity", source: "payload" },

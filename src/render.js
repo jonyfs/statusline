@@ -16,8 +16,7 @@ import {
   sddStepFor,
   inProgressFeatureId,
   subagentActivity,
-  subagentActivityStructured,
-  getAggregatedSkills,
+  subagentRoster,
 } from "./skills.js";
 import {
   getContextPercent,
@@ -30,8 +29,9 @@ import {
   abbreviate,
 } from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
+import { elapsed } from "./taskRows.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
-import { clockFaceFor, resetMomentLabel } from "./timeIcons.js";
+import { resetMomentLabel } from "./timeIcons.js";
 import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
@@ -53,7 +53,6 @@ import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, termi
 // reads in the vocabulary its audience already knows; Material Design and
 // Devicon elsewhere.
 const NF_BRANCH = "\u{F418}";    // nf-oct-git_branch (GitHub's branch icon)
-const NF_CLOCK = "\u{F43A}";     // nf-oct-clock
 const NF_PR = "\u{F407}";        // nf-oct-git_pull_request
 
 // A blank calendar grid, deliberately NOT the 📆 emoji: every emoji font
@@ -103,6 +102,47 @@ const NF_TIMER = "\u{F051B}";    // nf-md-timer. F44E, listed as "stopwatch",
 const NF_HOURGLASS = "\u{F252}"; // nf-fa-hourglass_half: session duration
 const NF_BURN = "\u{F0238}";     // nf-md-fire: how fast the window is going
 const NF_RUST = "\u{E7A8}";      // nf-dev-rust: rtk is a Rust binary
+const NF_AGENTS = "\u{F4FD}";   // nf-oct-people: the running subagents. An
+                                 // Octicon, like the rest of line 1's repository
+                                 // vocabulary, because "several actors working"
+                                 // is the one thing GitHub's set already says
+                                 // in one column
+
+/**
+ * The working indicator's frames, one advanced per render.
+ *
+ * This is the Braille spinner that specs/003-status-change-animations
+ * rejected, adopted for the opposite reason it was rejected for. That
+ * decision was about marking a value as *changed*, and the note against
+ * this candidate was exact: "it means 'working', not 'changed'". Line 2's
+ * activity segment is the one place on the bar where "working" is precisely
+ * the claim being made, so the objection becomes the argument.
+ *
+ * Principle X's limit still holds and is not worked around: the bar is
+ * printed once and is then static text, so this is one frame per render —
+ * a slow pulse at Claude Code's own 5-to-6-second redraw, never smooth
+ * motion. It reads at a single frame too, which is the real test: a lone
+ * Braille cell beside the word "working" is the spinner every terminal
+ * reader already knows, mid-turn.
+ *
+ * Four frames, not the ten the usual CLI spinner uses. Ten is built for a
+ * repaint every 80 milliseconds; at one frame per redraw it would take a
+ * minute to go round once, and the reader would see an arbitrary Braille
+ * cell rather than a rotation. These four are a quarter turn each — mass
+ * top-left, top-right, bottom-right, bottom-left — so consecutive redraws
+ * read as one thing turning.
+ *
+ * Nerd Font and substitute forms are identical on purpose. U+2800..U+28FF
+ * is ordinary Unicode present in every monospace font that ships Braille,
+ * so this is the one indicator that costs a person with no Nerd Font
+ * nothing at all.
+ */
+const BRAILLE_SPINNER = [
+  "\u{280B}", // dots 1,2,4  — the mass sits top-left
+  "\u{2839}", // dots 1,4,5,6 — top-right
+  "\u{2834}", // dots 3,5,6   — bottom-right
+  "\u{2827}", // dots 1,2,3,6 — bottom-left
+];
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -123,7 +163,6 @@ export const GLYPHS = {
   nerd: {
     branch: NF_BRANCH,
     commit: NF_COMMIT,
-    clock: NF_CLOCK,
     pr: NF_PR,
     calendar: NF_CALENDAR,
     modified: NF_MODIFIED,
@@ -147,11 +186,15 @@ export const GLYPHS = {
     duration: NF_HOURGLASS,
     burn: NF_BURN,
     rtk: NF_RUST,
+    agents: NF_AGENTS,
+    // An array rather than a string: this row is a frame sequence, and the
+    // renderer picks one frame per redraw. Listed here rather than inline so
+    // CLAUDE_STATUSLINE_ASCII=1 can still replace it (Principle X).
+    spinner: BRAILLE_SPINNER,
   },
   plain: {
     branch: "\u{1F33F}",   // 🌿
     commit: "\u{25C6}",    // ◆
-    clock: "\u{23F0}",     // ⏰
     pr: "\u{1F500}",       // 🔀
     calendar: "\u{1F4C5}", // 📅
     modified: "\u{25CF}",  // ●
@@ -175,8 +218,56 @@ export const GLYPHS = {
     duration: "\u{23F3}",  // ⏳
     burn: "\u{1F525}",     // 🔥
     rtk: "\u{1F980}",      // 🦀
+    agents: "\u{1F465}",   // 👥
+    // Identical to the Nerd Font form: Braille is ordinary Unicode, so there
+    // is nothing to substitute.
+    spinner: BRAILLE_SPINNER,
   },
 };
+
+/**
+ * The frame the working indicator shows on this redraw.
+ *
+ * `frame` is the change tracker's persisted counter, which advances once per
+ * redraw. It is deliberately not derived from the clock: a clock-derived
+ * index aliases against whatever the redraw cadence happens to be, and at
+ * the installed 60-second refresh a `% 4` of a per-second clock lands on the
+ * same frame forever — an indicator that has stopped while still claiming to
+ * move. A counter is right at 5 seconds and at 60.
+ */
+export function spinnerFrame(frames, frame) {
+  if (!Array.isArray(frames) || frames.length === 0) return "";
+  if (!Number.isFinite(frame) || frame < 0) return frames[0];
+  return frames[Math.floor(frame) % frames.length];
+}
+
+/**
+ * Whether the working indicator advances at all.
+ *
+ * Off by environment variable rather than by settings file, for the same
+ * reason the change tracker has a switch: a reader who finds a glyph that
+ * differs between redraws distracting should be able to settle it without
+ * editing a config, and a generated image should be able to pin it. Settled,
+ * the indicator is the filled circle it was before the frames existed, which
+ * still says working and says it in one column.
+ */
+function spinnerEnabled() {
+  return process.env.CLAUDE_STATUSLINE_NO_SPINNER !== "1";
+}
+
+/**
+ * How many running subagents line 2 names before it starts counting.
+ *
+ * Two, measured rather than chosen. Line 2 at the 120 columns Principle II
+ * caps it at holds the skills chip (~46 columns), the agent chip and the
+ * working indicator. Three named agents come to ~77 columns and push both
+ * of its neighbours off the line — the chip wins its own priority fight and
+ * takes the line with it. Two come to ~50 and everything fits.
+ *
+ * The rest are counted, never dropped silently, and the whole roster is on
+ * the subagent rows below, which have a line each.
+ */
+const AGENTS_SHOWN = 2;
 
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
@@ -246,7 +337,7 @@ export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
 const SKILLS_SHOWN = 5;
 const SKILLS_PROBED = 12;
 
-function skillsReading(timed, probe, payload, scanned, scannedTrueCount, subagentLabels) {
+function skillsReading(timed, probe, payload, scanned, scannedTrueCount) {
   // The session id lets the hook's event file be found. Without one, or
   // without the hook, the transcript answers instead and the line is the
   // same, only slower to react. `scanned` is what the activity pass already
@@ -259,42 +350,20 @@ function skillsReading(timed, probe, payload, scanned, scannedTrueCount, subagen
   );
   const directlyInvoked = Array.isArray(all.value) ? all.value : [];
 
-  // If activeAgents are provided in the payload (spec 013 multi-agent skills),
-  // use agent-grouped aggregation. Otherwise try fallback with subagent structure.
-  let activeAgents = payload?.activeAgents;
-  if (!Array.isArray(activeAgents) || activeAgents.length === 0) {
-    // Fallback: get subagent activity as structured agents (spec 015)
-    activeAgents = subagentActivityStructured();
-  }
-
-  // Use aggregation only if activeAgents has actual skill data
-  if (Array.isArray(activeAgents) && activeAgents.length > 0 &&
-      activeAgents.some(agent => Array.isArray(agent.skills) && agent.skills.length > 0)) {
-    const aggregated = getAggregatedSkills(directlyInvoked, activeAgents, SKILLS_SHOWN);
-    return {
-      ...all,
-      value: [aggregated.displayText],
-      trueCount: aggregated.totalCount,
-      hiddenCount: aggregated.hiddenCount,
-    };
-  }
-
-  // Fallback to current behavior (specs/011): Running subagent activity,
-  // merged in and deduplicated the same way directly-invoked skills already
-  // are, so the two sources read as one fact rather than two competing lists.
-  const subagent = subagentLabels.filter((label) => !directlyInvoked.includes(label));
-  const list = [...directlyInvoked, ...subagent];
-  // Not `list.length` alone: the directly-invoked half is itself already
-  // capped at SKILLS_PROBED, so computing "hidden" from its length only
-  // ever reported what the scan happened to examine, not what was
-  // actually active (FR-002, specs/008-skills-line-completeness). The
-  // subagent half rides on top of that true count (FR-002, specs/011).
-  const trueCount =
-    probe.getActiveSkillsTrueCount(payload?.transcript_path, {
-      sessionId: payload?.session_id,
-      scanned,
-      scannedTrueCount,
-    }) + subagent.length;
+  // Running subagents used to be folded into this list (specs/011), because
+  // line 2 had nowhere else to say one was running. They have their own chip
+  // now, and naming them twice on the same line reads as two facts when it is
+  // one. This chip is the skills again, and only the skills.
+  const list = directlyInvoked;
+  // Not `list.length`: the directly-invoked half is itself already capped at
+  // SKILLS_PROBED, so computing "hidden" from its length only ever reported
+  // what the scan happened to examine, not what was actually active (FR-002,
+  // specs/008-skills-line-completeness).
+  const trueCount = probe.getActiveSkillsTrueCount(payload?.transcript_path, {
+    sessionId: payload?.session_id,
+    scanned,
+    scannedTrueCount,
+  });
   return {
     ...all,
     value: list.slice(0, SKILLS_SHOWN),
@@ -329,20 +398,19 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
   const activity = timed("transcript", () =>
     probe.getSessionActivity(payload?.transcript_path, { now, limit: SKILLS_PROBED })
   );
-  // Read once, used in two places (the working/idle patch below, and the
-  // skills chip): `subagentActivity` is a file read, and the redraw budget
-  // does not have room for the same read twice (specs/012, specs/011).
-  const subagent = probe.subagentActivity(now);
+  // Read once, used in three places (the working/idle patch below, the
+  // skills chip and the agent roster): the snapshot is a file read, and the
+  // redraw budget does not have room for the same read three times
+  // (specs/012, specs/011).
+  const roster = probe.subagentRoster ? probe.subagentRoster(now) : [];
+  const subagent = roster.length ? roster.map((a) => a.label) : probe.subagentActivity(now);
   // The top-level transcript going quiet doesn't mean nothing is
   // happening: a subagent can be doing the actual work right now (specs/012-
   // subagent-activity-status, FR-001). A running subagent alone is enough
   // to say "working"; with none, this is a no-op and `working` is exactly
   // what the transcript already said (FR-005).
   if (activity.value) {
-    // Also consider activeAgents (spec 013/015): if agents running in parallel,
-    // should show working even if subagent list empty
-    const hasActiveAgents = Array.isArray(payload?.activeAgents) && payload.activeAgents.length > 0;
-    activity.value.working = activity.value.working || subagent.length > 0 || hasActiveAgents;
+    activity.value.working = activity.value.working || subagent.length > 0;
   }
   const payloadPr = normalizePr(payload?.pr, "payload");
   const payloadRepoUrl = repoUrlFromPayload(payload?.workspace?.repo);
@@ -374,7 +442,11 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
         ? reading({ value: payloadPr, at: now, source: "payload" })
         : timed("gh", () => normalizePr(probe.getPrInfo(cwd, { branch: namedBranch }), "gh"))
       : missing("gh", "not a repository"),
-    skills: skillsReading(timed, probe, payload, activity.value?.skills, activity.value?.skillsTrueCount, subagent),
+    skills: skillsReading(timed, probe, payload, activity.value?.skills, activity.value?.skillsTrueCount),
+    // The same running subagents the skills chip folds in by name, kept
+    // whole so line 2 can say what each one is running at rather than only
+    // that it exists (specs/017-agent-roster).
+    agents: reading({ value: roster.length ? roster : null, at: now, source: "tasks" }),
     activity,
     ci: hasRepo
       ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
@@ -411,17 +483,6 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     fiveHourReset: reading({ value: fiveHourResetsAt, at: now, source: "payload" }),
     sevenDay: reading({ value: sevenDayPct, at: now, source: "payload" }),
     sevenDayReset: reading({ value: sevenDayResetsAt, at: now, source: "payload" }),
-    // The merged countdown segment draws both moments, so it gets a reading
-    // that holds both. With only the 5-hour one behind it, the diagnostic
-    // described half of what the line shows.
-    resetMerged: reading({
-      value:
-        fiveHourResetsAt === null && sevenDayResetsAt === null
-          ? null
-          : { fiveHour: fiveHourResetsAt, sevenDay: sevenDayResetsAt },
-      at: now,
-      source: "payload",
-    }),
   };
 }
 
@@ -459,6 +520,7 @@ export function renderPayload(
     getActiveSkills,
     getActiveSkillsTrueCount,
     subagentActivity,
+    subagentRoster,
     getSessionActivity,
     getCiStatus,
     getRtkSavings,
@@ -753,17 +815,47 @@ export function renderReadings(
   // F7 and F6, on the line that already describes what the session is doing.
   // Both come from the transcript pass that already runs for the skills.
   const activity = shows("activity") ? readings.activity.value : null;
+  const agents = shows("agents") ? readings.agents.value : null;
   function pushLine2Extras(row) {
+    // The running subagents, named rather than counted. Claude Code's own
+    // roster already says how many there are; what it cannot say on one line
+    // is which of them is on the expensive model, and that is the question a
+    // person asks when four are running at once.
+    //
+    // Same "show a few, count the rest" shape as the skills chip, and the
+    // same reason: a chip per agent would spend a separator and two spaces
+    // on every name. What each agent shows is only what the tick reported —
+    // an unresolved model leaves the tier out rather than guessing one, and
+    // a task with no start time shows no age (Principle III).
+    if (agents?.length) {
+      const shown = agents.slice(0, AGENTS_SHOWN).map((a) => {
+        const tier = a.tier ? (a.tier.effort ? `${a.tier.model}\u00b7${a.tier.effort}` : a.tier.model) : null;
+        const age = elapsed(a.startTime, now);
+        return [a.label, tier, age].filter(Boolean).join(" ");
+      });
+      const hidden = Math.max(0, agents.length - shown.length);
+      row.push({
+        key: "agents",
+        color: "lavender",
+        text: ` ${g.agents} ${shown.join(" \u00b7 ")}${hidden > 0 ? ` +${hidden}` : ""} `,
+      });
+    }
     if (activity?.todos) {
       const { done, total, current } = activity.todos;
       const label = current ? `${current} (${done}/${total})` : `${done}/${total}`;
       row.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
     }
     if (activity) {
+      // Working advances a Braille frame per redraw; idle keeps the static
+      // hollow circle, because "nothing is happening" is not a thing to
+      // animate (Principle X).
+      const mark = activity.working
+        ? (spinnerEnabled() ? spinnerFrame(g.spinner, changes.frame) : g.working)
+        : g.idle;
       row.push({
         key: "activity",
         color: activity.working ? "green" : "surface2",
-        text: activity.working ? ` ${g.working} working ` : ` ${g.idle} idle `,
+        text: activity.working ? ` ${mark} working ` : ` ${mark} idle `,
       });
     }
   }
@@ -828,22 +920,12 @@ export function renderReadings(
   // Each reset segment's clock face is the actual hour the window resets,
   // and the 7-day segment names the real day it expires, so the icon
   // carries the information rather than decorating it.
-  const fiveHourClock = clockFaceFor(fiveHourResetsAt) ?? g.clock;
-  const sevenDayClock = clockFaceFor(sevenDayResetsAt) ?? g.clock;
   const sevenDayMoment = resetMomentLabel(sevenDayResetsAt, new Date(now));
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
   const farOutMoment =
     typeof sevenDayResetsAt === "number" && sevenDayResetsAt * 1000 - now > ONE_DAY_MS
       ? sevenDayMoment
       : null;
-  // Whichever window resets first owns the clock face on the merged segment.
-  const soonerClock =
-    typeof fiveHourResetsAt === "number" && typeof sevenDayResetsAt === "number"
-      ? fiveHourResetsAt <= sevenDayResetsAt
-        ? fiveHourClock
-        : sevenDayClock
-      : (typeof fiveHourResetsAt === "number" ? fiveHourClock : null) ??
-        (typeof sevenDayResetsAt === "number" ? sevenDayClock : null);
 
   const line4Content = {
     // The three ramped segments. Colour says which band the level is in, and
@@ -864,32 +946,36 @@ export function renderReadings(
       color: rampColour(ctxPct, "yellow"),
       text: ` ${g.context} Context ${ctxPct ?? "?"}% `,
     }),
-    fiveHour: () => ({
-      color: rampColour(fiveHourPct, "green"),
-      text: ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)} `,
-    }),
-    sevenDay: (o) => ({
-      color: rampColour(sevenDayPct, "sapphire"),
-      // C4's chosen form: the weekday only when the reset is more than a day
-      // out. Inside a day the countdown beside it says everything, and the
-      // weekday would be today's or tomorrow's name for no gain.
-      text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${o.moment && farOutMoment ? ` · ${farOutMoment}` : ""} `,
-    }),
-    // C6: both countdowns, one segment. The clock face is the sooner of the
-    // two, since that is the one about to matter.
-    // E8: dimmed, being context for the figures beside it rather than a
-    // figure itself.
-    resetMerged: (o) => {
-      const both = [
-        o.fiveHourText ? shortCountdown(fiveHourResetsAt, now) : null,
-        o.sevenDayText ? shortCountdown(sevenDayResetsAt, now) : null,
-      ].filter(Boolean);
-      const face = soonerClock ?? g.clock;
-      // An unknown reset says so. A bare clock face would be the empty slot
-      // Principle III rules out: the reader could not tell "no reset time in
-      // the payload" from "the segment lost its text".
-      if (!both.length) return { color: "surface2", text: ` ${face} reset unknown ` };
-      return { color: "surface2", text: ` ${face} ${both.join(" / ")} ` };
+    // Each window says how much of it is gone and when it comes back, in one
+    // chip. Until 2026-09-06 the two resets shared a segment two places away
+    // reading `2h09m / 3d`, which asked the reader to know that the left half
+    // belonged to the figure three chips back and the right half to the one
+    // between them — and the slash read as a fraction beside `1h04m`, which
+    // really is one thing over another. One subject, one chip.
+    fiveHour: (o) => {
+      // `?` rather than nothing when the payload carried no reset: with the
+      // countdown simply absent, a reader cannot tell "the harness did not
+      // say" from "a narrow terminal shed it", and the first is a fact about
+      // the data (Principle III). It reads in the same vocabulary as the `?%`
+      // beside it, and it is shed under width like any other reset text.
+      const resets = o.fiveHourText ? (shortCountdown(fiveHourResetsAt, now) ?? "?") : null;
+      return {
+        color: rampColour(fiveHourPct, "green"),
+        text: ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)}${resets ? ` \u00b7 ${resets}` : ""} `,
+      };
+    },
+    sevenDay: (o) => {
+      // Near and far are told differently, and that is the rule rather than an
+      // inconsistency: a window resetting in hours is something you wait out,
+      // so it counts down; one resetting on Thursday is a date you plan
+      // around, so it names the day. C4 chose the weekday for the far case on
+      // the reasoning that a countdown three days long is noise; the near case
+      // used to be covered by the merged segment, and now lives here.
+      const moment = o.moment ? (farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?") : null;
+      return {
+        color: rampColour(sevenDayPct, "sapphire"),
+        text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${moment ? ` \u00b7 ${moment}` : ""} `,
+      };
     },
     // C5 asked for this figure to render only once it had moved five points,
     // on the reasoning that a number repeating itself every redraw is a
@@ -945,8 +1031,8 @@ export function renderReadings(
     },
   };
 
-  const buildLine4 = ({ moment = true, fiveHourText = true, sevenDayText = true, rtk = true } = {}) => {
-    const opt = { moment, fiveHourText, sevenDayText, rtk };
+  const buildLine4 = ({ moment = true, fiveHourText = true, rtk = true } = {}) => {
+    const opt = { moment, fiveHourText, rtk };
     return byLine(4)
       .map((s) => {
         const built = line4Content[s.key]?.(opt);
@@ -960,12 +1046,14 @@ export function renderReadings(
   // informative first, and the first step that brings the line inside the
   // limit is the last one taken. A wrapped statusline costs a whole extra
   // terminal row, which is worse than any one of these omissions.
+  // Line 4 comes off least-informative first: the 7-day reset (the furthest
+  // consequence), then the 5-hour countdown, then the savings figure. The
+  // percentages themselves are never shed here — they are what the line is.
   const TRIM_STEPS = [
     {},
     { moment: false },
     { moment: false, fiveHourText: false },
-    { moment: false, fiveHourText: false, sevenDayText: false },
-    { moment: false, fiveHourText: false, sevenDayText: false, rtk: false },
+    { moment: false, fiveHourText: false, rtk: false },
   ];
   /**
    * Puts every built segment on the line the arrangement gives it, in the

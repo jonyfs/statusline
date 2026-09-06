@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test, stripAnsi } from "../test-harness.js";
 import { formatResetCountdown, getRateLimits, getContextPercent } from "../../src/tokens.js";
-import { clockFaceFor, resetMomentLabel } from "../../src/timeIcons.js";
+import { resetMomentLabel } from "../../src/timeIcons.js";
 import { renderPayload } from "../../src/render.js";
 import { emptySources } from "./fixtures/sources.js";
 
@@ -41,7 +41,7 @@ await test("a countdown is never negative and never NaN", () => {
   assert.equal(formatResetCountdown(Number.NaN, now), null);
 });
 
-await test("the countdown, the clock face and the named day agree across a DST change", () => {
+await test("the countdown and the named day agree across a DST change", () => {
   // Europe/Lisbon moves its clocks on 2026-10-25. The clock face and the
   // named moment both come from local time, so they have to agree with a
   // countdown computed from absolute time.
@@ -53,11 +53,9 @@ await test("the countdown, the clock face and the named day agree across a DST c
     const local = new Date(resetsAt * 1000);
 
     const countdown = formatResetCountdown(resetsAt, now);
-    const face = clockFaceFor(resetsAt);
     const moment = resetMomentLabel(resetsAt, new Date(now));
 
     assert.match(countdown, /^resets in \d+d \d+h$/);
-    assert.ok(face, "a real timestamp must map to a real clock face");
     // The named moment quotes local wall-clock time, whatever the offset
     // was on that side of the change.
     const hh = String(local.getHours()).padStart(2, "0");
@@ -81,13 +79,14 @@ await test("usage figures come from the payload and nowhere else", () => {
 });
 
 await test("an unknown reset renders as text, not as a blank or a guess", () => {
-  // C6 merged the two countdowns into one segment, so there is one place to
-  // say it now rather than two. A bare clock face would be the empty slot
-  // Principle III rules out.
+  // Each window carries its own reset now, so each says `?` when the payload
+  // carried none. A chip that simply went quiet would be the empty slot
+  // Principle III rules out: unshown and unknown must not look the same.
   const plain = stripAnsi(
     renderPayload({}, { sources: emptySources, trackChanges: false, maxWidth: 200, maxHeight: 40 })
   );
-  assert.match(plain, /reset unknown/);
+  assert.match(plain, /5h \?% · \?/);
+  assert.match(plain, /7d \?% · \?/);
 });
 
 await test("a reset a week out reads as a date, not as today's weekday", () => {

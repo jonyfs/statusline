@@ -139,12 +139,14 @@ await test("context, fiveHour, sevenDay: present, and ?% rather than absent", ()
   assert.match(empty, /7d \?%/);
 });
 
-await test("resetMerged: both countdowns in one segment, absent when unknown", () => {
-  // C6 merged them. The face is the sooner of the two windows, and the two
-  // countdowns render side by side without repeating the word "resets".
+await test("each window carries its own reset, and says so when it has none", () => {
+  // One subject, one chip: the level and when it comes back are read
+  // together, so they are drawn together.
   const full = render(payload, everything);
-  assert.match(full, /1h00m \/ 3d/);
+  assert.match(full, /5h \d+%[\u25b4\u25b2]? · 1h00m/);
+  assert.match(full, /7d \d+%[\u25b4\u25b2]? · /);
   const empty = render({}, emptySources);
+  assert.match(empty, /5h \?% · \?/);
   assert.doesNotMatch(empty, /\d+h\d+m/, "no countdown without a reset time");
 });
 

@@ -1,43 +1,20 @@
 /**
- * Icons derived from the actual reset timestamp, so the glyph itself
- * carries information instead of being decoration.
+ * How a reset moment reads to a human.
  *
- * Unicode has 24 clock-face emoji covering every hour and half-hour, so
- * a reset time maps onto a real icon. There is deliberately no attempt
- * to encode the *day* in an emoji: Unicode has no per-weekday or
- * per-date glyph (📅 📆 🗓️ are generic), so the weekday is rendered as
- * text next to the calendar icon rather than faked with a symbol that
- * doesn't mean what it appears to.
+ * Until 2026-09-06 this file also mapped a reset time onto one of Unicode's
+ * 24 clock-face emoji, so the icon on the reset segment carried the hour
+ * rather than decorating it. That segment is gone: each window now draws its
+ * own reset beside its own level, and a face showing the absolute hour next
+ * to a relative countdown said the same thing twice in two units, which was
+ * a good part of why line 4 was hard to read. The faces went with it.
+ *
+ * There is still deliberately no attempt to encode the *day* in an emoji:
+ * Unicode has no per-weekday or per-date glyph (📅 📆 🗓️ are generic), so the
+ * weekday is rendered as text next to the calendar icon rather than faked
+ * with a symbol that does not mean what it appears to.
  */
-
-const CLOCK_FACES = [
-  "🕛", "🕧", // 12:00, 12:30
-  "🕐", "🕜", // 1:00, 1:30
-  "🕑", "🕝",
-  "🕒", "🕞",
-  "🕓", "🕟",
-  "🕔", "🕠",
-  "🕕", "🕡",
-  "🕖", "🕢",
-  "🕗", "🕣",
-  "🕘", "🕤",
-  "🕙", "🕥",
-  "🕚", "🕦",
-];
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-/**
- * Clock-face emoji nearest to the given time, rounded to the half hour.
- * `resetsAtSeconds` is a Unix timestamp in seconds, as the payload sends it.
- */
-export function clockFaceFor(resetsAtSeconds) {
-  if (typeof resetsAtSeconds !== "number") return null;
-  const d = new Date(resetsAtSeconds * 1000);
-  const hour12 = d.getHours() % 12;
-  const halfPast = d.getMinutes() >= 30 ? 1 : 0;
-  return CLOCK_FACES[hour12 * 2 + halfPast];
-}
 
 /**
  * How the reset moment reads to a human: the weekday when it lands on a

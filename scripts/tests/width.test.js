@@ -99,16 +99,22 @@ await test("dropping a segment is preferred to shortening one", () => {
   assert.match(wide, /rtk/);
   assert.match(wide, /7d 100%▲ ·/);
 
-  // 90 columns: the savings figure goes, priority 40.
-  const at90 = line4At(90);
-  assert.doesNotMatch(at90, /rtk/);
-  assert.match(at90, /7d 100%▲ ·/, "a surviving segment keeps everything it says");
+  // 85 columns: everything still fits. Line 4 is 84 columns at its widest
+  // since each window took its own reset back from the merged segment, which
+  // is 14 columns narrower than the arrangement that preceded it.
+  const at85 = line4At(85);
+  assert.match(at85, /rtk/);
+  assert.match(at85, /5h 100%▲ · /);
+  assert.match(at85, /7d 100%▲ · /);
 
-  // 70: the 7-day countdown goes too, priority 78, while the 5-hour one
-  // stays at 80. The table decides, not the position on the line.
-  const at70 = line4At(70);
-  assert.match(at70, /5h 100%/);
-  assert.equal((at70.match(/resets in/g) || []).length, 0, "the right-aligned countdowns go together");
+  // 80: the savings figure goes at priority 40, and the ladder takes the
+  // reset text with it. The levels themselves never go — they are what the
+  // line is for.
+  const at80 = line4At(80);
+  assert.doesNotMatch(at80, /rtk/);
+  assert.match(at80, /5h 100%▲/);
+  assert.match(at80, /7d 100%▲/);
+  assert.equal((at80.match(/resets in/g) || []).length, 0, "the words stay off the line");
 
   // 45: down to the top of the table.
   assert.match(line4At(45), /Context 100%/);

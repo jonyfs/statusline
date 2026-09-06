@@ -12,6 +12,8 @@
  * discovered afterwards.
  */
 
+import { SEGMENTS } from "../src/segments.js";
+
 /**
  * @typedef {object} Preset
  * @property {string} id
@@ -29,15 +31,15 @@
  */
 const off = (...keys) => Object.fromEntries(keys.map((k) => [k, { on: false }]));
 
-/** Everything the bar can draw, so a preset can subtract from it. */
-const EVERY_KEY = [
-  "dir", "projectDir", "repo", "branch", "worktree", "conflicts", "worktreeState",
-  "linesChanged", "pr", "ci",
-  "skills", "todo", "activity",
-  "model", "effort",
-  "context", "fiveHour", "burnRate", "projection", "sevenDay", "resetMerged",
-  "duration", "rtk",
-];
+/**
+ * Everything the bar can draw, so a preset can subtract from it.
+ *
+ * Read from the registry rather than listed here. A hand-written copy stops
+ * covering the bar the day a segment is added, and the failure is silent in
+ * exactly the wrong direction: a preset that promises "no skills" would keep
+ * drawing whatever it had never heard of.
+ */
+const EVERY_KEY = SEGMENTS.map((s) => s.key);
 
 /** Keeps the named keys and switches off everything else. */
 const only = (...keep) => off(...EVERY_KEY.filter((k) => !keep.includes(k)));
@@ -67,7 +69,7 @@ export const PRESETS = [
         "dir", "branch", "pr",
         "skills", "activity",
         "model",
-        "context", "fiveHour", "sevenDay", "resetMerged"
+        "context", "fiveHour", "sevenDay"
       ),
     },
   },
@@ -83,8 +85,9 @@ export const PRESETS = [
       name: "operational",
       segments: {
         skills: { line: 1, order: 5 },
-        todo: { line: 1, order: 6 },
-        activity: { line: 1, order: 7 },
+        agents: { line: 1, order: 6 },
+        todo: { line: 1, order: 7 },
+        activity: { line: 1, order: 8 },
         dir: { line: 2, order: 10 },
         branch: { line: 2, order: 20 },
         worktree: { line: 2, order: 25 },
@@ -123,6 +126,7 @@ export const PRESETS = [
       name: "twoLine",
       segments: {
         skills: { line: 1, order: 70 },
+        agents: { line: 1, order: 71 },
         activity: { line: 1, order: 72 },
         model: { line: 2, order: 5 },
         projectDir: { on: false },
@@ -149,6 +153,7 @@ export const PRESETS = [
       name: "oneLine",
       segments: {
         skills: { line: 1, order: 70 },
+        agents: { line: 1, order: 71 },
         todo: { line: 1, order: 72 },
         activity: { line: 1, order: 74 },
         model: { line: 1, order: 76 },
@@ -156,7 +161,6 @@ export const PRESETS = [
         context: { line: 1, order: 80 },
         fiveHour: { line: 1, order: 82 },
         sevenDay: { line: 1, order: 84 },
-        resetMerged: { line: 1, order: 86 },
         burnRate: { on: false },
         projection: { on: false },
         duration: { on: false },
