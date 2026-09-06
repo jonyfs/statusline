@@ -1,24 +1,25 @@
 /**
  * Aggregates, deduplicates, and formats skills from multiple sources:
  * directly-invoked skills and agent-based skills. Produces grouped display
- * format for the skills line (e.g., "A: skill1, skill2; B: skill3").
+ * format for the skills line (e.g., "Agente-A: skill1, skill2; Agente-B: skill3").
  *
  * Deduplication: Same skill invoked by multiple agents shows once.
- * Grouping: Skills are grouped by agent ID for clarity.
+ * Grouping: Skills are grouped by agent name for clarity.
  * Overflow: Handled by caller (arrangement.js); this module produces honest count.
  */
 
 /**
  * Aggregates direct skills and agent skills into a single deduplicated set,
- * organized by agent identifier (for agent skills) or as "direct" (for top-level).
+ * organized by agent label (name or id) or as "direct" (for top-level).
  *
  * @param {string[]} directSkills - Array of skill names from top-level session
  * @param {Array} activeAgents - Array of {id, name, skills, status} from stdin payload
- * @returns {Object} { skillsByAgent: Map<agentId, Set<string>>, allSkills: Set<string> }
+ * @returns {Object} { skillsByAgent: Map<agentLabel, Set<string>>, allSkills: Set<string>, agentLabels: Map }
  */
 export function aggregateSkills(directSkills = [], activeAgents = []) {
   const skillsByAgent = new Map();
   const allSkills = new Set();
+  const agentLabels = new Map(); // Maps ID to display label
 
   // Add direct skills under "direct" agent
   if (Array.isArray(directSkills) && directSkills.length > 0) {
@@ -31,7 +32,7 @@ export function aggregateSkills(directSkills = [], activeAgents = []) {
     }
   }
 
-  // Add agent skills grouped by agent ID
+  // Add agent skills grouped by agent, use display label
   if (Array.isArray(activeAgents)) {
     for (const agent of activeAgents) {
       if (!agent || typeof agent.id !== "string" || !Array.isArray(agent.skills)) continue;
@@ -43,23 +44,27 @@ export function aggregateSkills(directSkills = [], activeAgents = []) {
         agent.skills.filter((s) => typeof s === "string" && s.length > 0)
       );
       if (agentSkillSet.size > 0) {
+        // Use agent name if available, otherwise use ID. Format: "Agente-A" or "Agent-explorer"
+        const displayLabel = agent.name ? `Agente-${agent.name}` : `Agente-${agent.id}`;
         skillsByAgent.set(agent.id, agentSkillSet);
+        agentLabels.set(agent.id, displayLabel);
         agentSkillSet.forEach((s) => allSkills.add(s));
       }
     }
   }
 
-  return { skillsByAgent, allSkills };
+  return { skillsByAgent, allSkills, agentLabels };
 }
 
 /**
  * Formats aggregated skills for display: groups by agent, separated by semicolon.
- * Example: "A: skill1, skill2; B: skill3" or "A: skill1; B: skill2"
+ * Example: "Agente-A: skill1, skill2; Agente-B: skill3"
  *
  * @param {Map<string, Set>} skillsByAgent - Map from aggregateSkills() result
+ * @param {Map<string, string>} agentLabels - Maps agent ID to display label
  * @returns {string} Formatted string or empty string if no skills
  */
-export function formatForDisplay(skillsByAgent) {
+export function formatForDisplay(skillsByAgent, agentLabels = new Map()) {
   if (!skillsByAgent || skillsByAgent.size === 0) return "";
 
   const groups = [];
@@ -73,7 +78,8 @@ export function formatForDisplay(skillsByAgent) {
   for (const [agentId, skills] of skillsByAgent) {
     if (agentId === "direct") continue;
     const skillList = Array.from(skills).sort();
-    groups.push(`${agentId}: ${skillList.join(", ")}`);
+    const displayLabel = agentLabels.get(agentId) || agentId;
+    groups.push(`${displayLabel}: ${skillList.join(", ")}`);
   }
 
   return groups.join("; ");

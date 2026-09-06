@@ -296,8 +296,8 @@ export function sddStepFor(skillName) {
  * @returns {Object} { displayText: string, totalCount: number, hiddenCount: number }
  */
 export function getAggregatedSkills(directSkills = [], activeAgents = [], displayLimit = 3) {
-  const { skillsByAgent, allSkills } = aggregateSkills(directSkills, activeAgents);
-  const fullDisplay = formatForDisplay(skillsByAgent);
+  const { skillsByAgent, allSkills, agentLabels } = aggregateSkills(directSkills, activeAgents);
+  const fullDisplay = formatForDisplay(skillsByAgent, agentLabels);
   const totalCount = allSkills.size;
 
   // Truncate display to displayLimit skills: split by "; " (agent groups) and
