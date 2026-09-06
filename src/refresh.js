@@ -58,9 +58,14 @@ export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PR
 
   if (result.state === "found" || result.state === "none") {
     // Preserve branch info when writing PR/CI cache entries so they can be
-    // invalidated on branch switch. If result.value exists, merge branch into it;
-    // if null, create minimal object with branch only (spec 014 fix).
-    const value = result.value ? { ...result.value, branch: result.branch } : (result.branch ? { branch: result.branch } : null);
+    // invalidated on branch switch. RTK and git don't need branch (global cache
+    // for RTK, fast local check for git), so only wrap for pr/ci (spec 014 fix).
+    let value = result.value;
+    if ((name === "pr" || name === "ci") && result.value) {
+      value = { ...result.value, branch: result.branch };
+    } else if ((name === "pr" || name === "ci") && result.branch) {
+      value = { branch: result.branch };
+    }
     writeEntry(key, name, value, { now: Date.now() });
   }
   takeLock(key, name, { now, release: true });
