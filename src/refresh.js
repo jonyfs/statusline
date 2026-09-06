@@ -57,7 +57,11 @@ export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PR
   }
 
   if (result.state === "found" || result.state === "none") {
-    writeEntry(key, name, result.value ?? null, { now: Date.now() });
+    // Preserve branch info when writing PR/CI cache entries so they can be
+    // invalidated on branch switch. If result.value exists, merge branch into it;
+    // if null, create minimal object with branch only (spec 014 fix).
+    const value = result.value ? { ...result.value, branch: result.branch } : (result.branch ? { branch: result.branch } : null);
+    writeEntry(key, name, value, { now: Date.now() });
   }
   takeLock(key, name, { now, release: true });
   return result.state === "found";
