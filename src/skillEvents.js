@@ -33,11 +33,16 @@ export function sessionFileFor(sessionId) {
 }
 
 /** Appends one invocation. Best effort: losing a record costs one redraw's speed. */
-export function appendSkillEvent(sessionId, skill, { now = Date.now() } = {}) {
+export function appendSkillEvent(sessionId, skill, { now = Date.now(), agentId = null } = {}) {
   if (!skill) return false;
   try {
     mkdirSync(skillsDir(), { recursive: true });
-    appendFileSync(sessionFileFor(sessionId), JSON.stringify({ skill, at: now }) + "\n");
+    // `agent` is recorded only when the hook payload carried one, which it
+    // does for a tool call made inside a subagent. Nothing depends on it
+    // being there: a record without it is the record this file has always
+    // held, and the reader below treats an absent agent as "the session".
+    const record = agentId ? { skill, at: now, agent: agentId } : { skill, at: now };
+    appendFileSync(sessionFileFor(sessionId), JSON.stringify(record) + "\n");
     return true;
   } catch {
     return false;
@@ -145,9 +150,50 @@ export async function runNoteSkill({ now = Date.now() } = {}) {
     const input = payload?.tool_input || payload?.toolInput || {};
     const skill = input.skill || input.name || payload?.skill;
     const sessionId = payload?.session_id || payload?.sessionId;
-    if (skill) appendSkillEvent(sessionId, skill, { now });
+    // Present when the call came from inside a subagent, absent when it came
+    // from the session itself. `session_id` stays the parent's either way, so
+    // this is the only thing in the payload that separates the two.
+    const agentId = payload?.agent_id || payload?.agentId || null;
+    if (skill) appendSkillEvent(sessionId, skill, { now, agentId });
   } catch {
     // An unrecognised payload shape means do nothing, not fail.
   }
   return true;
+}
+
+/**
+ * The skills each subagent has used inside the window, keyed by the agent id
+ * the hook recorded.
+ *
+ * Whether this is ever non-empty depends on something Claude Code does not
+ * document: the hook reports an `agent_id` and the subagent rows report a
+ * task `id`, and nothing states that they are the same value. Where they are
+ * not, this returns nothing for that agent and the row says nothing extra,
+ * which is the same outcome as the hook not being installed at all.
+ */
+export function readSkillsByAgent(sessionId, { windowMs = 30 * 60 * 1000, now = Date.now() } = {}) {
+  const byAgent = new Map();
+  let text;
+  try {
+    text = readFileSync(sessionFileFor(sessionId), "utf8");
+  } catch {
+    return byAgent;
+  }
+  if (text.length > MAX_TAIL_BYTES) text = text.slice(-MAX_TAIL_BYTES);
+  const cutoff = now - windowMs;
+  for (const line of text.split("\n")) {
+    if (!line) continue;
+    let record;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (!record?.agent || !record.skill) continue;
+    if (typeof record.at === "number" && record.at < cutoff) continue;
+    const seen = byAgent.get(record.agent) ?? [];
+    if (!seen.includes(record.skill)) seen.push(record.skill);
+    byAgent.set(record.agent, seen);
+  }
+  return byAgent;
 }

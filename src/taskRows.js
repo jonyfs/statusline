@@ -22,6 +22,7 @@ import os from "node:os";
 import { PALETTES } from "./theme.js";
 import { bar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
+import { readSkillsByAgent } from "./skillEvents.js";
 
 const RESET = "\x1b[0m";
 
@@ -95,18 +96,27 @@ export function taskTier(task) {
  * resolving. A row missing either renders without the bar rather than with
  * an empty one.
  */
-export function renderTaskRow(task, { columns = 80, palette = PALETTES.mocha, now = Date.now() } = {}) {
+export function renderTaskRow(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [] } = {}) {
   if (!task?.id) return null;
 
   const name = task.name || task.type || "task";
+  const what = taskDescription(task);
   const tier = taskTier(task);
-  // The name carries the tier colour, so the roster reads at a glance even when the row is trimmed
-  // to `columns` and the spelled-out segment is the first thing to go.
-  const nameColour = tier ? palette[tier.colour] ?? palette.lavender : palette.lavender;
-  const parts = [`${fg(nameColour)}${name}${RESET}`];
+  // Whatever leads carries the tier colour, so the roster reads at a glance even when the row is
+  // trimmed to `columns` and the spelled-out segment is the first thing to go.
+  const leadColour = tier ? palette[tier.colour] ?? palette.lavender : palette.lavender;
 
-  if (task.description || task.label) {
-    parts.push(`${fg(palette.text)}${task.description || task.label}${RESET}`);
+  // A name two running tasks share is not identifying them, it is only saying
+  // how both were dispatched — which is what happens with the generic type
+  // Claude Code sends for an ad-hoc Task. The row then leads with what this
+  // one is doing, and drops the word that was the same on every line.
+  const dropName = nameIsShared && what;
+  const parts = dropName
+    ? [`${fg(leadColour)}${what}${RESET}`]
+    : [`${fg(leadColour)}${name}${RESET}`];
+
+  if (!dropName && what) {
+    parts.push(`${fg(palette.text)}${what}${RESET}`);
   }
 
   if (tier) {
@@ -133,14 +143,25 @@ export function renderTaskRow(task, { columns = 80, palette = PALETTES.mocha, no
 }
 
 /**
- * The one piece of text that identifies a task well enough to name it on
- * the skills line (specs/011-multiagent-skills-line, FR-005). `name` is
- * the same value `renderTaskRow` leads with and colours by tier, so this
- * is the same identity, not a second guess at one. A task with neither
- * `name` nor `type` returns `null`: no fabricated placeholder (FR-006).
+ * The agent type, which is the value `renderTaskRow` leads with and colours
+ * by tier. A task with neither `name` nor `type` returns `null`: no
+ * fabricated placeholder (FR-006, specs/011-multiagent-skills-line).
+ *
+ * This is how the task was dispatched, not what it is doing, and the two are
+ * not equally useful. A named type says something (`pr-shepherd`,
+ * `code-review`); the generic one Claude Code sends for an ad-hoc Task does
+ * not, and two agents dispatched the same way arrive with the same word. The
+ * snapshot therefore carries the description as well, and the chip on line 2
+ * prefers it.
  */
 function taskLabel(task) {
   return task?.name || task?.type || null;
+}
+
+/** What the task is doing, which is the part that differs between two of them. */
+function taskDescription(task) {
+  const raw = task?.description ?? task?.label;
+  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
 }
 
 function snapshotPath() {
@@ -177,6 +198,8 @@ function writeTaskSnapshot(tasks, now) {
         // tick did not carry it, so a snapshot never states a tier, an age or
         // a context figure the harness did not report (Principle III).
         const row = { id: t.id, label };
+        const description = taskDescription(t);
+        if (description) row.description = description;
         const tier = taskTier(t);
         if (tier) row.tier = tier;
         if (typeof t.startTime === "number" || typeof t.startTime === "string") row.startTime = t.startTime;
@@ -225,10 +248,30 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   const palette = PALETTES[flavor] || PALETTES.mocha;
   const columns = typeof payload.columns === "number" ? payload.columns : 80;
 
+  // Skills the hook attributed to a running subagent. Empty unless the hook is
+  // installed and Claude Code's `agent_id` turns out to be the same value as
+  // the task `id` here, which is not documented either way; an agent with
+  // nothing recorded simply shows no skills.
+  const skillsByAgent = readSkillsByAgent(payload?.session_id ?? payload?.sessionId, { now });
+
+  // Which names fail to tell one running task from another. Computed over the
+  // whole tick, because a name can only be judged against its siblings.
+  const seen = new Map();
+  for (const t of tasks) {
+    const n = taskLabel(t);
+    if (n) seen.set(n, (seen.get(n) ?? 0) + 1);
+  }
+
   return tasks
     .map((task) => {
       try {
-        return renderTaskRow(task, { columns, palette, now });
+        return renderTaskRow(task, {
+          columns,
+          palette,
+          now,
+          nameIsShared: (seen.get(taskLabel(task)) ?? 0) > 1,
+          skills: skillsByAgent.get(task?.id) ?? [],
+        });
       } catch {
         return null;
       }

@@ -206,6 +206,16 @@ export const GLYPHS = {
  */
 const AGENTS_SHOWN = 3;
 
+/**
+ * How wide one agent's description may be on line 2.
+ *
+ * Descriptions are sentences and the chip is a chip. Twenty columns holds
+ * the subject of most of them ("Revisão adversarial do PR 58" becomes
+ * "Revisão adversarial…"), and three of them plus their tiers and ages come
+ * to about the room a wide window has left after the skills chip.
+ */
+const AGENT_LABEL_COLUMNS = 20;
+
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
 async function readStdinAsync() {
@@ -756,9 +766,14 @@ export function renderReadings(
   const agentsChip = (count) => {
     if (!agents?.length || count < 1) return null;
     const shown = agents.slice(0, count).map((a) => {
+      // What it is doing, not how it was dispatched. The agent type is the
+      // fallback, because it is sometimes the only thing there is — and it
+      // is a poor identity when it is the generic one Claude Code sends for
+      // an ad-hoc Task, which arrives identical for every agent in flight.
+      const what = trimPhrase(a.description, AGENT_LABEL_COLUMNS) || a.label;
       const tier = a.tier ? (a.tier.effort ? `${a.tier.model}\u00b7${a.tier.effort}` : a.tier.model) : null;
       const age = elapsed(a.startTime, now);
-      return [a.label, tier, age].filter(Boolean).join(" ");
+      return [what, tier, age].filter(Boolean).join(" ");
     });
     const hidden = Math.max(0, agents.length - shown.length);
     return {
@@ -1096,6 +1111,34 @@ export function renderReadings(
  * Measured in columns rather than characters, so a name written in emoji or
  * CJK loses the right amount rather than half of it.
  */
+/**
+ * A phrase cut to a column budget, at a word boundary where one is close
+ * enough to the end to be worth using.
+ *
+ * The start of a task description identifies it and the end rarely does,
+ * which is the opposite of a directory path, so this cuts from the right.
+ * The ellipsis is not decoration: without it the reader cannot tell a short
+ * description from a long one that was cut.
+ */
+export function trimPhrase(text, columns) {
+  if (typeof text !== "string" || displayWidth(text) <= columns) return text ?? null;
+  const budget = Math.max(4, columns) - 1;
+  let kept = "";
+  let width = 0;
+  for (const ch of text) {
+    const next = width + displayWidth(ch);
+    if (next > budget) break;
+    kept += ch;
+    width = next;
+  }
+  // Back up to the last space, but only if that keeps most of the budget:
+  // cutting "Revisão adversarial do" back to "Revisão" would lose more than
+  // the ragged edge costs.
+  const space = kept.lastIndexOf(" ");
+  if (space >= budget * 0.6) kept = kept.slice(0, space);
+  return kept.trimEnd() + "\u2026";
+}
+
 function trimFromLeft(label, columns) {
   const target = Math.max(3, columns);
   if (displayWidth(label) <= target) return null;

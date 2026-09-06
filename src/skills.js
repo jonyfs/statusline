@@ -96,6 +96,7 @@ export function subagentRoster(now = Date.now()) {
     .map((t) => ({
       id: typeof t.id === "string" ? t.id : null,
       label: t.label,
+      description: typeof t.description === "string" ? t.description : null,
       tier: t.tier && typeof t.tier === "object" ? t.tier : null,
       startTime: t.startTime ?? null,
       tokenCount: typeof t.tokenCount === "number" ? t.tokenCount : null,
