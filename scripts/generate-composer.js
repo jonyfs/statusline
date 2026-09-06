@@ -72,6 +72,12 @@ function inlineModule(relPath, { drop = [] } = {}) {
 function buildPools() {
   const now = FIXED_NOW * 1000;
   const readings = gather(PAYLOAD, { ...SOURCES }, { now });
+  // One pool serves all three widths, which is exact for every segment whose
+  // text is the same whatever the room — that is, all of them but one. The
+  // agent chip names as many subagents as the line has space for, so the pool
+  // carries its widest form and the page shows the chip at that size or not
+  // at all. In a terminal it names fewer instead of vanishing. The page is a
+  // tool for choosing placement, and placement is what it gets exactly right.
   const common = { flavor: "mocha", tracking: false, now, samples: SAMPLES, maxWidth: 400, maxHeight: 40, asPool: true };
   return {
     nerd: renderReadings(readings, PAYLOAD, { ...common, asciiArrows: false }),

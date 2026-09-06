@@ -152,7 +152,7 @@ await test("an agent whose model has not resolved shows no tier", async () => {
 });
 
 // More agents than the chip names are counted, never dropped silently.
-await test("agents past the second are counted rather than dropped", async () => {
+await test("agents past the third are counted rather than dropped", async () => {
   const home = makeHome();
   await withHome(home, async () => {
     await runTaskRows({
@@ -169,11 +169,10 @@ await test("agents past the second are counted rather than dropped", async () =>
       subagentActivity,
       subagentRoster,
     });
-    // Three run, two are named, the third is counted.
+    // Three run and the window is wide, so all three are named.
     assert.match(out, /sub-a/);
     assert.match(out, /sub-b/);
-    assert.match(out, /\+1/, "the third agent is counted");
-    assert.doesNotMatch(out, /sub-c/);
+    assert.match(out, /sub-c/);
   });
 });
 
@@ -187,7 +186,7 @@ await test("no snapshot leaves the skills line exactly as it is today", async ()
   });
 });
 
-// Four running, two named: the other two are counted, in the same shape the
+// Four running, three named: the fourth is counted, in the same shape the
 // skills chip uses, rather than quietly disappearing.
 await test("the agents past the chip's limit are counted, not dropped", async () => {
   const home = makeHome();
@@ -201,7 +200,7 @@ await test("the agents past the chip's limit are counted, not dropped", async ()
     });
     const out = render(fullPayload(), { ...gitSources(), getActiveSkills: () => [], subagentActivity, subagentRoster });
     assert.match(out, /sub-a/);
-    assert.match(out, /\+2/, "the third and fourth agents are counted");
+    assert.match(out, /\+1/, "the fourth agent is counted");
     assert.doesNotMatch(out, /sub-d/);
   });
 });

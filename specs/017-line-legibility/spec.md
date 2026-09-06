@@ -49,6 +49,8 @@ zero, so the indicator holds one frame forever while claiming to be a spinner.
 
 - **FR-001**: Line 2 names the running subagents, each with the tier and age the tick reported,
   and counts any it cannot name.
+- **FR-001a**: It names as many as the line has room for, up to three, rather than a fixed
+  number. A window too narrow for both chips keeps the skills.
 - **FR-002**: A field the tick did not report is omitted rather than guessed. An unresolved model
   shows no tier.
 - **FR-003**: A subagent is named once on the line. Names are no longer folded into the skills chip.
@@ -61,8 +63,8 @@ zero, so the indicator holds one frame forever while claiming to be a spinner.
 
 ## Success Criteria
 
-- With four subagents running, line 2 names two and counts two, and fits inside 120 columns
-  alongside the skills chip and the working indicator.
+- With four subagents running, line 2 names three from 134 columns up, two at 120 and one from
+  90, always alongside the skills chip, and counts the rest at every width.
 - Line 4 at its widest is 84 columns, down from 98.
 - Every fact on line 4 appears once.
 - All four spinner frames appear across four redraws with the clock held fixed.
