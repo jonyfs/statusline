@@ -340,8 +340,12 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
   // skills chip and the agent roster): the snapshot is a file read, and the
   // redraw budget does not have room for the same read three times
   // (specs/012, specs/011).
-  const roster = probe.subagentRoster ? probe.subagentRoster(now) : [];
-  const subagent = roster.length ? roster.map((a) => a.label) : probe.subagentActivity(now);
+  // Scoped to this session: the roster file is keyed by the same session id
+  // the payload carries, so a second Claude Code window working on another
+  // project no longer puts its agents on this line.
+  const sessionId = payload?.session_id ?? null;
+  const roster = probe.subagentRoster ? probe.subagentRoster(now, sessionId) : [];
+  const subagent = roster.length ? roster.map((a) => a.label) : probe.subagentActivity(now, sessionId);
   // The top-level transcript going quiet doesn't mean nothing is
   // happening: a subagent can be doing the actual work right now (specs/012-
   // subagent-activity-status, FR-001). A running subagent alone is enough

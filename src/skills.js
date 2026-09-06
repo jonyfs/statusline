@@ -39,8 +39,17 @@ export function windowMs() {
 // as thirty more minutes of assumed activity.
 const TASK_SNAPSHOT_FRESHNESS_MS = 30 * 1000;
 
-function taskSnapshotPath() {
-  return path.join(os.homedir(), ".claude", "statusline", "tasks", "latest.json");
+/**
+ * The roster file for a session, matching what `task-rows` writes.
+ *
+ * Keyed by session id, so two Claude Code windows on two projects no longer
+ * read each other's running agents. `latest.json` is the name used when
+ * neither side has a session id to key by, which is exactly the case that
+ * behaved this way before the key existed.
+ */
+function taskSnapshotPath(sessionId) {
+  const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
+  return path.join(os.homedir(), ".claude", "statusline", "tasks", `${safe}.json`);
 }
 
 /**
@@ -55,10 +64,10 @@ function taskSnapshotPath() {
  * on the same machine, this can surface one session's subagent activity on
  * the other's line. Documented, accepted limitation, not a defect.
  */
-function readTaskSnapshot(now) {
+function readTaskSnapshot(now, sessionId) {
   let raw;
   try {
-    raw = readFileSync(taskSnapshotPath(), "utf8");
+    raw = readFileSync(taskSnapshotPath(sessionId), "utf8");
   } catch {
     return [];
   }
@@ -73,8 +82,8 @@ function readTaskSnapshot(now) {
 }
 
 /** Just the identifying labels, which is all the merged skills list needs. */
-export function subagentActivity(now = Date.now()) {
-  return readTaskSnapshot(now)
+export function subagentActivity(now = Date.now(), sessionId = null) {
+  return readTaskSnapshot(now, sessionId)
     .map((t) => t?.label)
     .filter((label) => typeof label === "string" && label.length > 0);
 }
@@ -90,8 +99,8 @@ export function subagentActivity(now = Date.now()) {
  * What this returns is what the harness actually reported, and every field
  * is absent rather than guessed when the tick did not carry it.
  */
-export function subagentRoster(now = Date.now()) {
-  return readTaskSnapshot(now)
+export function subagentRoster(now = Date.now(), sessionId = null) {
+  return readTaskSnapshot(now, sessionId)
     .filter((t) => typeof t?.label === "string" && t.label.length > 0)
     .map((t) => ({
       id: typeof t.id === "string" ? t.id : null,

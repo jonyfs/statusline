@@ -4,6 +4,7 @@ import path from "node:path";
 import { test, stripAnsi } from "../test-harness.js";
 import { runTaskRows, renderTaskRow } from "../../src/taskRows.js";
 import { subagentActivity, subagentRoster } from "../../src/skills.js";
+import { appendSkillEvent } from "../../src/skillEvents.js";
 import { renderPayload } from "../../src/render.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
 import { makeHome, withHome } from "./fixtures/home.js";
@@ -238,5 +239,96 @@ await test("line 2 renders with skills, with agents, with both, and with neither
     const agentsOnly = draw([]);
     assert.match(agentsOnly, /explore/);
     assert.doesNotMatch(agentsOnly, /humanizer/);
+  });
+});
+
+// The hook reports an `agent_id` for a tool call made inside a subagent, and
+// the rows report a task `id`. Nothing in Claude Code's contract says they
+// are the same value; measured on 2026-09-06 they are, which is what lets a
+// row say what its agent is running. These cases pin the behaviour on both
+// sides of that: attributed where the ids match, silent where they do not.
+await test("a subagent row names the skills recorded against its own id", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    appendSkillEvent("s1", "humanizer", { now: NOW, agentId: "agent-a" });
+    appendSkillEvent("s1", "code-review", { now: NOW, agentId: "agent-a" });
+    appendSkillEvent("s1", "dataviz", { now: NOW, agentId: "agent-b" });
+    // No agent id: a skill the session itself invoked, which belongs to no row.
+    appendSkillEvent("s1", "artifact-design", { now: NOW });
+
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        session_id: "s1",
+        columns: 200,
+        tasks: [
+          { id: "agent-a", name: "explore", type: "agent" },
+          { id: "agent-c", name: "review", type: "agent" },
+        ],
+      }),
+    });
+    const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+
+    assert.match(rows[0], /humanizer, code-review/, "its own skills, in the order they were used");
+    assert.doesNotMatch(rows[0], /dataviz/, "not another agent's");
+    assert.doesNotMatch(rows[0], /artifact-design/, "and not the session's own");
+    assert.doesNotMatch(rows[1], /humanizer|dataviz|artifact-design/, "an agent with nothing recorded says nothing");
+  });
+});
+
+// The correlation is undocumented, so its absence must be survivable.
+await test("a row whose id matches no recorded agent renders exactly as before", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    appendSkillEvent("s1", "humanizer", { now: NOW, agentId: "some-other-id" });
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({ session_id: "s1", columns: 200, tasks: [task({ name: "explore" })] }),
+    });
+    const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
+    assert.match(row, /explore/);
+    assert.doesNotMatch(row, /humanizer/);
+  });
+});
+
+// Two Claude Code windows, two projects, two rosters. Until 2026-09-06 both
+// wrote the same `latest.json` and each read the other's agents onto its own
+// line 2 — the leak this file used to call unavoidable.
+await test("one session's agents never reach another session's line", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({ session_id: "window-a", columns: 100, tasks: [task({ id: "a", name: "reviewing-the-gate" })] }),
+    });
+    await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({ session_id: "window-b", columns: 100, tasks: [task({ id: "b", name: "packing-the-release" })] }),
+    });
+
+    assert.deepEqual(subagentActivity(NOW + 1000, "window-a"), ["reviewing-the-gate"]);
+    assert.deepEqual(subagentActivity(NOW + 1000, "window-b"), ["packing-the-release"]);
+
+    const drawnFor = (id) =>
+      render(fullPayload({ session_id: id }), { ...gitSources(), getActiveSkills: () => [], subagentActivity, subagentRoster });
+
+    const a = drawnFor("window-a");
+    assert.match(a, /reviewing-the-gate/);
+    assert.doesNotMatch(a, /packing-the-release/, "the other window's agent is not on this line");
+
+    const b = drawnFor("window-b");
+    assert.match(b, /packing-the-release/);
+    assert.doesNotMatch(b, /reviewing-the-gate/);
+  });
+});
+
+// A tick with no session id keeps the shared name, so a harness that does not
+// send one behaves exactly as it did before the key existed.
+await test("a tick with no session id still writes and reads the shared roster", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    await runTaskRows({ now: NOW, input: JSON.stringify({ columns: 100, tasks: [task({ name: "explore" })] }) });
+    assert.deepEqual(subagentActivity(NOW + 1000), ["explore"]);
+    assert.deepEqual(subagentActivity(NOW + 1000, "some-session"), [], "and does not leak into a keyed one");
   });
 });

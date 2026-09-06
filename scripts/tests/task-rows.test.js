@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "../test-harness.js";
+import { test, stripAnsi } from "../test-harness.js";
 import { renderTaskRow, runTaskRows, taskTier } from "../../src/taskRows.js";
 import { displayWidth } from "../../src/theme.js";
 
@@ -130,4 +130,48 @@ await test("an unknown model family is not invented into a tier", () => {
 await test("a tier segment never pushes the row past its columns", () => {
   const row = renderTaskRow(task({ model: "claude-opus-5", effort: "xhigh" }), { columns: 80, now: NOW });
   assert.ok(displayWidth(strip(row.content)) <= 80, strip(row.content));
+});
+
+// The rows are a table, and a table that does not line up is a list of
+// strings. Columns are sized across the whole tick, not per row.
+await test("the columns line up across a tick's rows", async () => {
+  const out = await runTaskRows({
+    now: NOW,
+    input: JSON.stringify({
+      columns: 200,
+      tasks: [
+        { id: "a", name: "pr-shepherd", description: "Setting up base-commit hook sandbox", model: "claude-opus-5", effort: "high", startTime: NOW - 60_000, tokenCount: 198_000, contextWindowSize: 1_000_000 },
+        { id: "b", name: "explore", description: "Locating money.ts", model: "claude-haiku-4-5", startTime: NOW - 95_000, tokenCount: 9_000, contextWindowSize: 200_000 },
+      ],
+    }),
+  });
+  const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+  const columnStarts = (row) => {
+    const at = [];
+    let i = -1;
+    while ((i = row.indexOf(" \u00b7 ", i + 1)) !== -1) at.push(i);
+    return at;
+  };
+  assert.deepEqual(columnStarts(rows[0]), columnStarts(rows[1]), "every separator falls in the same column");
+});
+
+// A column no row filled costs nothing: it is dropped rather than padded to
+// a gap that reads as a missing value.
+await test("a column no row uses is not drawn", async () => {
+  const out = await runTaskRows({
+    now: NOW,
+    input: JSON.stringify({
+      columns: 200,
+      tasks: [
+        { id: "a", name: "same", description: "first piece of work", startTime: NOW - 60_000 },
+        { id: "b", name: "same", description: "second piece of work", startTime: NOW - 95_000 },
+      ],
+    }),
+  });
+  const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+  // Both share a name, so both lead with the description and the name column
+  // is empty on every row. One separator remains, before the age.
+  for (const row of rows) {
+    assert.equal((row.match(/ \u00b7 /g) || []).length, 1, `one separator, got: ${row}`);
+  }
 });

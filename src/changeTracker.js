@@ -38,7 +38,14 @@ function stateDir() {
  * so one sweep with one rule covers them.
  */
 function sweptDirs() {
-  return [stateDir(), path.join(statuslineDir(), "cache"), path.join(statuslineDir(), "skills")];
+  return [
+    stateDir(),
+    path.join(statuslineDir(), "cache"),
+    path.join(statuslineDir(), "skills"),
+    // One roster file per session since 2026-09-06, so this directory grows
+    // with sessions the way the others do and is swept on the same terms.
+    path.join(statuslineDir(), "tasks"),
+  ];
 }
 const HIGHLIGHT_MS = 30_000;
 const STALE_STATE_MS = 7 * 24 * 60 * 60 * 1000;

@@ -19,7 +19,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { PALETTES } from "./theme.js";
+import { PALETTES, displayWidth } from "./theme.js";
 import { bar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { readSkillsByAgent } from "./skillEvents.js";
@@ -96,9 +96,26 @@ export function taskTier(task) {
  * resolving. A row missing either renders without the bar rather than with
  * an empty one.
  */
-export function renderTaskRow(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [] } = {}) {
-  if (!task?.id) return null;
+const SEP = " \u00b7 ";
 
+/**
+ * How wide one column may be padded to.
+ *
+ * A single very long description would otherwise push every column after it
+ * across the terminal. Past the cap that row simply overflows its own column
+ * and loses alignment, which costs one row rather than all of them.
+ */
+const MAX_COLUMN = 48;
+
+/**
+ * One task as fixed positions, so two rows can be lined up against each other.
+ *
+ * Positional and always the same length: a task with no gauge still occupies
+ * the gauge column, as blank. Without that, column three means the tier on one
+ * row and the token count on the next, and padding them to a common width
+ * lines up things that are not the same thing.
+ */
+function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [] } = {}) {
   const name = task.name || task.type || "task";
   const what = taskDescription(task);
   const tier = taskTier(task);
@@ -111,35 +128,69 @@ export function renderTaskRow(task, { columns = 80, palette = PALETTES.mocha, no
   // Claude Code sends for an ad-hoc Task. The row then leads with what this
   // one is doing, and drops the word that was the same on every line.
   const dropName = nameIsShared && what;
-  const parts = dropName
-    ? [`${fg(leadColour)}${what}${RESET}`]
-    : [`${fg(leadColour)}${name}${RESET}`];
 
-  if (!dropName && what) {
-    parts.push(`${fg(palette.text)}${what}${RESET}`);
-  }
-
-  if (tier) {
-    const label = tier.effort ? `${tier.model}·${tier.effort}` : tier.model;
-    parts.push(`${fg(palette[tier.colour] ?? palette.surface2)}${label}${RESET}`);
-  }
+  const cell = (plain, colour) => (plain ? { plain, text: `${fg(colour)}${plain}${RESET}` } : { plain: "", text: "" });
 
   const pct =
     typeof task.tokenCount === "number" && typeof task.contextWindowSize === "number" && task.contextWindowSize > 0
       ? (task.tokenCount / task.contextWindowSize) * 100
       : null;
 
-  if (pct !== null) {
-    const colour = palette[rampColour(pct, "green")] ?? palette.green;
-    parts.push(`${fg(colour)}${bar(pct, columns)} ${Math.round(pct)}%${RESET}`);
-    parts.push(`${fg(palette.surface2)}${abbreviate(task.tokenCount)}${RESET}`);
+  const tierLabel = tier ? (tier.effort ? `${tier.model}\u00b7${tier.effort}` : tier.model) : null;
+  const gauge = pct === null ? null : `${bar(pct, columns)} ${Math.round(pct)}%`;
+
+  return [
+    cell(dropName ? what : name, leadColour),
+    cell(dropName ? null : what, palette.text),
+    cell(tierLabel, palette[tier?.colour] ?? palette.surface2),
+    cell(skills.length ? skills.join(", ") : null, palette.green),
+    cell(gauge, pct === null ? palette.green : palette[rampColour(pct, "green")] ?? palette.green),
+    cell(pct === null ? null : abbreviate(task.tokenCount), palette.surface2),
+    cell(elapsed(task.startTime, now), palette.surface2),
+  ];
+}
+
+/**
+ * The cells joined, each padded to its column's width across the whole tick.
+ *
+ * A blank cell keeps its column's room and gets spaces where a separator
+ * would be, so nothing after it slides left and no stray dot appears for a
+ * value that is not there.
+ */
+function joinCells(cells, widths, palette) {
+  // A column no row in the tick filled is dropped rather than padded to
+  // nothing: it would still cost its separator's width, and a gap that wide
+  // reads as a missing value rather than as an absent column.
+  const used = (i) => !widths || widths[i] > 0;
+  const lastFilled = cells.reduce((last, c, i) => (c.plain && used(i) ? i : last), -1);
+  let out = "";
+  for (let i = 0; i <= lastFilled; i++) {
+    if (!used(i)) continue;
+    out += cells[i].text;
+    if (i === lastFilled) break;
+    const target = Math.min(widths?.[i] ?? displayWidth(cells[i].plain), MAX_COLUMN);
+    out += " ".repeat(Math.max(0, target - displayWidth(cells[i].plain)));
+    out += cells[i].plain ? `${fg(palette.surface1)}${SEP}${RESET}` : " ".repeat(SEP.length);
   }
+  return out;
+}
 
-  const age = elapsed(task.startTime, now);
-  if (age) parts.push(`${fg(palette.surface2)}${age}${RESET}`);
+/** The widths each column must reach for a tick's rows to line up. */
+function columnWidths(rows) {
+  const widths = [];
+  for (const cells of rows) {
+    cells.forEach((c, i) => {
+      widths[i] = Math.max(widths[i] ?? 0, displayWidth(c.plain));
+    });
+  }
+  return widths;
+}
 
-  const body = parts.join(`${fg(palette.surface1)} · ${RESET}`);
-  return { id: task.id, content: body };
+export function renderTaskRow(task, options = {}) {
+  if (!task?.id) return null;
+  const palette = options.palette ?? PALETTES.mocha;
+  const cells = taskCells(task, options);
+  return { id: task.id, content: joinCells(cells, options.widths, palette) };
 }
 
 /**
@@ -164,8 +215,23 @@ function taskDescription(task) {
   return typeof raw === "string" && raw.trim() ? raw.trim() : null;
 }
 
-function snapshotPath() {
-  return path.join(os.homedir(), ".claude", "statusline", "tasks", "latest.json");
+/**
+ * Where a tick's roster is written.
+ *
+ * Keyed by the session that produced it. It was a single `latest.json` until
+ * 2026-09-06, which meant two Claude Code windows open on two projects each
+ * read the other's running agents onto their own line 2 — the limitation this
+ * file used to document as unavoidable, on the belief that the tick carried
+ * no correlation key. It carries `session_id`, the same value the statusline
+ * payload carries, so the two sides can find each other without sharing a
+ * file with everybody else.
+ *
+ * `latest.json` remains the name used when a tick arrives without a session
+ * id, so a harness that does not send one behaves exactly as it did.
+ */
+function snapshotPath(sessionId) {
+  const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
+  return path.join(os.homedir(), ".claude", "statusline", "tasks", `${safe}.json`);
 }
 
 /**
@@ -177,16 +243,8 @@ function snapshotPath() {
  * per-session file by, so this is a single global snapshot, overwritten on
  * every tick, read with a short freshness window rather than trusted
  * indefinitely. A write failure never affects this command's own output.
- *
- * Known limitation, documented rather than worked around (same posture as
- * `behind` in the git segment): two concurrent Claude Code sessions on the
- * same machine, each running their own subagents, will each see the
- * other's subagent activity folded into their own skills line, since there
- * is currently no correlation key in the tick payload to tell them apart.
- * Fixing this would require Claude Code to send one, which is outside this
- * project's control.
  */
-function writeTaskSnapshot(tasks, now) {
+function writeTaskSnapshot(tasks, now, sessionId) {
   try {
     const labeled = tasks
       .map((t) => {
@@ -208,8 +266,8 @@ function writeTaskSnapshot(tasks, now) {
         return row;
       })
       .filter(Boolean);
-    mkdirSync(path.dirname(snapshotPath()), { recursive: true });
-    writeFileSync(snapshotPath(), JSON.stringify({ writtenAt: now, tasks: labeled }));
+    mkdirSync(path.dirname(snapshotPath(sessionId)), { recursive: true });
+    writeFileSync(snapshotPath(sessionId), JSON.stringify({ writtenAt: now, tasks: labeled }));
   } catch {
     // Best effort: losing a snapshot costs one redraw's subagent visibility,
     // never this command's own tick output.
@@ -241,7 +299,8 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   }
 
   const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
-  writeTaskSnapshot(tasks, now);
+  const sessionId = payload?.session_id ?? payload?.sessionId ?? null;
+  writeTaskSnapshot(tasks, now, sessionId);
   if (!tasks.length) return "";
 
   const flavor = process.env.CLAUDE_STATUSLINE_FLAVOR || "mocha";
@@ -252,7 +311,7 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   // installed and Claude Code's `agent_id` turns out to be the same value as
   // the task `id` here, which is not documented either way; an agent with
   // nothing recorded simply shows no skills.
-  const skillsByAgent = readSkillsByAgent(payload?.session_id ?? payload?.sessionId, { now });
+  const skillsByAgent = readSkillsByAgent(sessionId, { now });
 
   // Which names fail to tell one running task from another. Computed over the
   // whole tick, because a name can only be judged against its siblings.
@@ -262,16 +321,31 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
     if (n) seen.set(n, (seen.get(n) ?? 0) + 1);
   }
 
-  return tasks
+  const optionsFor = (task) => ({
+    columns,
+    palette,
+    now,
+    nameIsShared: (seen.get(taskLabel(task)) ?? 0) > 1,
+    skills: skillsByAgent.get(task?.id) ?? [],
+  });
+
+  // Two passes: the columns can only be sized once every row in the tick has
+  // been measured, which is the whole point of aligning them.
+  const measured = tasks
     .map((task) => {
       try {
-        return renderTaskRow(task, {
-          columns,
-          palette,
-          now,
-          nameIsShared: (seen.get(taskLabel(task)) ?? 0) > 1,
-          skills: skillsByAgent.get(task?.id) ?? [],
-        });
+        return task?.id ? { task, cells: taskCells(task, optionsFor(task)) } : null;
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+  const widths = columnWidths(measured.map((m) => m.cells));
+
+  return measured
+    .map(({ task }) => {
+      try {
+        return renderTaskRow(task, { ...optionsFor(task), widths });
       } catch {
         return null;
       }
