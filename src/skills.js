@@ -76,6 +76,41 @@ export function subagentActivity(now = Date.now()) {
 }
 
 /**
+ * Running agents with structure compatible with aggregateSkills (activeAgents format).
+ * Reads from task snapshot and transforms task objects to {id, name, skills, status}.
+ * When payload.activeAgents not provided by Claude Code, this fallback provides
+ * agent grouping for the skills line (spec 015).
+ *
+ * Since task snapshot doesn't include skills data, skills array is empty.
+ * The caller (skillsReading) will still display agent IDs alongside directly-invoked skills.
+ */
+export function subagentActivityStructured(now = Date.now()) {
+  let raw;
+  try {
+    raw = readFileSync(taskSnapshotPath(), "utf8");
+  } catch {
+    return [];
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (typeof parsed?.writtenAt !== "number" || now - parsed.writtenAt > TASK_SNAPSHOT_FRESHNESS_MS) return [];
+  if (!Array.isArray(parsed.tasks)) return [];
+
+  return parsed.tasks
+    .filter((t) => typeof t?.label === "string" && t.label.length > 0)
+    .map((t) => ({
+      id: t.label,
+      name: t.label,
+      skills: [], // Task snapshot doesn't include skills; caller will use direct skills
+      status: "running", // All tasks in snapshot are running
+    }));
+}
+
+/**
  * Skills invoked recently in the current session, most recent first,
  * deduplicated by name and dropped once they fall outside the window.
  *

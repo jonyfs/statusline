@@ -16,6 +16,7 @@ import {
   sddStepFor,
   inProgressFeatureId,
   subagentActivity,
+  subagentActivityStructured,
   getAggregatedSkills,
 } from "./skills.js";
 import {
@@ -259,9 +260,15 @@ function skillsReading(timed, probe, payload, scanned, scannedTrueCount, subagen
   const directlyInvoked = Array.isArray(all.value) ? all.value : [];
 
   // If activeAgents are provided in the payload (spec 013 multi-agent skills),
-  // use agent-grouped aggregation. Otherwise fall back to current behavior.
-  if (Array.isArray(payload?.activeAgents) && payload.activeAgents.length > 0) {
-    const aggregated = getAggregatedSkills(directlyInvoked, payload.activeAgents, SKILLS_SHOWN);
+  // use agent-grouped aggregation. Otherwise try fallback with subagent structure.
+  let activeAgents = payload?.activeAgents;
+  if (!Array.isArray(activeAgents) || activeAgents.length === 0) {
+    // Fallback: get subagent activity as structured agents (spec 015)
+    activeAgents = subagentActivityStructured();
+  }
+
+  if (Array.isArray(activeAgents) && activeAgents.length > 0) {
+    const aggregated = getAggregatedSkills(directlyInvoked, activeAgents, SKILLS_SHOWN);
     return {
       ...all,
       value: [aggregated.displayText],
@@ -270,9 +277,10 @@ function skillsReading(timed, probe, payload, scanned, scannedTrueCount, subagen
     };
   }
 
-  // Fallback to current behavior (specs/011): Running subagent activity,
-  // merged in and deduplicated the same way directly-invoked skills already
-  // are, so the two sources read as one fact rather than two competing lists.
+  // Final fallback to current behavior (specs/011) when no agents running:
+  // Running subagent activity, merged in and deduplicated the same way
+  // directly-invoked skills already are, so the two sources read as one fact
+  // rather than two competing lists.
   const subagent = subagentLabels.filter((label) => !directlyInvoked.includes(label));
   const list = [...directlyInvoked, ...subagent];
   // Not `list.length` alone: the directly-invoked half is itself already
