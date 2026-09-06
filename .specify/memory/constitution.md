@@ -2,7 +2,24 @@
 
 <!--
 Sync Impact Report:
-- Version: 4.2.0 (I and X expanded on 2026-09-01: the glyph set becomes Nerd-Font-first, with
+- Version: 5.0.0 (II and X redefined on 2026-09-06: line 2 gains the running subagents as a
+  named subject, and line 4's merged reset countdown is removed in favour of each window
+  carrying its own reset. MAJOR because both are redefinitions of what a line MUST show, not
+  clarifications.)
+- Redefined: II. Four-Line Display Structure — line 2 now names the running subagents with the
+  tier and age the harness reported, once each, counting any it cannot name; it is forbidden
+  from giving them per-agent skill lists, because Claude Code attributes a skill invocation to a
+  session and not to a subagent, so any such list would be invented. Line 4 loses the merged
+  right-aligned countdown: `2h09m / 3d` asked a reader to know which half belonged to which of
+  two figures several chips away, and read as a fraction beside the session duration. A window
+  now carries its own reset, counts down inside a day, names the day beyond one, and says `?`
+  when the payload carried no reset at all.
+- Redefined: X. Icons Carry Live State — the per-hour clock-face emoji exception is retired
+  with the segment that justified it, leaving no emoji on the bar. A new clause requires an
+  animated indicator to advance on a persisted counter rather than the clock, because a
+  clock-derived index aliases against the redraw cadence and freezes outright at the 60-second
+  refresh.
+- Previously, version 4.2.0 (I and X expanded on 2026-09-01: the glyph set becomes Nerd-Font-first, with
   emoji kept only as a recorded exception rather than an unexamined default)
 - Expanded: I. Starship-Compatible Output — the Glyphs bullet now states a default and an escape
   hatch instead of a preference. A Nerd Font glyph is what a segment icon is; an emoji is
@@ -153,15 +170,27 @@ order:
   differs, owner and repository, branch, worktree and its state, merge conflicts, lines changed
   this session, divergence from upstream (ahead, behind), pull request (number, state, review
   state) and the CI conclusion
-- **Line 2 — what is shaping the work**: active skills for the current session, one chip per
-  skill, each in a distinct palette color and with no bullet or prefix glyph, plus the current
-  todo and the current activity
+- **Line 2 — what is shaping the work**: the active skills for the current session, the
+  subagents running right now, the current todo and the current activity. Each running subagent
+  MUST be named with what the harness actually reported about it — the tier it is running at and
+  how long it has been going — and MUST NOT be given a per-agent skill list, because Claude Code
+  attributes a skill invocation to a session and not to a subagent, so such a list could only be
+  invented. A subagent MUST be named once on the line: folding the same names into the skills
+  chip beside its own chip states one fact twice. Where more are running than the line names,
+  the rest MUST be counted rather than silently dropped
 - **Line 3 — how the model is configured**: model name and effort level, and nothing else. A
   setting that does not change often enough to be worth a permanent slot beside those two does
   not belong on this line
 - **Line 4 — what is running out**: context percentage, 5-hour and 7-day window usage, burn rate
-  and projection, session duration, the merged reset countdown drawn right-aligned, and the token
-  saving figure. There is no monthly window to show, per Principle III
+  and projection, session duration, and the token saving figure. There is no monthly window to
+  show, per Principle III. **A usage window MUST carry its own reset**, beside its own level and
+  in one chip: a level and the moment it comes back are read together, and separating them cost
+  this line its legibility. A reset the payload did not carry MUST say so rather than going
+  quiet, in the same vocabulary as the unknown percentage beside it, since a reader cannot
+  otherwise tell an absent figure from one a narrow terminal shed. **Near and far are told
+  differently, and that is the rule**: a window resetting within a day counts down, because it
+  is something to wait out; one resetting beyond a day names the day, because it is something to
+  plan around
 
 Each line independently loadable; failures in one line MUST NOT break others (e.g. no git repo omits
 line 1's branch/PR segments but the line still renders; no active skills omits line 2 entirely).
@@ -393,11 +422,20 @@ accessibility hazard where it works.
   previews.
 - **An emoji on the bar is an exception with a reason**: where Principle I's Nerd Font default is
   not met, the search that failed MUST be recorded here — which codepoints were rendered, and
-  what each one drew. Recorded case: per-hour clock faces. The Material Design `clock_time_one`
-  .. `clock_time_twelve` series is absent from the installed Nerd Font build (`F1861`-`F186C`
-  draw clock-plus, clock-minus, clock-x and a plug), so no Nerd Font glyph varies by hour, and
-  the reset segments keep their emoji clock faces because the hour is the information they
-  carry.
+  what each one drew. Retired case: per-hour clock faces. They were the one recorded exception,
+  kept because the hour was the information they carried, and they went out on 2026-09-06 with
+  the merged reset segment. Each window now draws its own reset beside its own level, and a face
+  showing the absolute hour next to a relative countdown stated the same thing twice in two
+  units — which is decoration by this principle's own test, whatever the glyph knows. There is
+  currently no emoji on the bar and no exception outstanding.
+- **An animated indicator MUST advance on a counter, never on the clock**: a clock-derived frame
+  index aliases against whatever the redraw cadence happens to be, and at the installed
+  60-second refresh a per-second clock modulo four frames lands on the same frame every time —
+  an indicator that has silently stopped while still claiming to move. The frame count MUST be
+  small enough to read at this cadence: four frames is one turn over roughly twenty seconds of
+  activity, where the ten-frame spinner a terminal library ships is built for a repaint every
+  eighty milliseconds and would show an arbitrary cell. The working indicator is the one place
+  motion is currently earned, because "working" is exactly what that segment claims.
 - **Working-tree counts MUST NOT animate**: they change on every file save, which is exactly the
   churn this principle excludes. Only the discrete state (branch, ahead, behind, PR, skills,
   model, effort) animates.
@@ -463,4 +501,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 4.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-01
+**Version**: 5.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-06

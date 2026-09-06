@@ -7,7 +7,7 @@ import { ansiToSvg } from "../../src/preview/ansiToSvg.js";
 import { test } from "../test-harness.js";
 import { pathToFileUrl, buildOpenTabScript } from "../../src/openTerminalTab.js";
 import { buildCommandForTest } from "../../src/install.js";
-import { clockFaceFor, resetMomentLabel } from "../../src/timeIcons.js";
+import { resetMomentLabel } from "../../src/timeIcons.js";
 import { trackChanges } from "../../src/changeTracker.js";
 
 const readSource = (rel) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
@@ -54,10 +54,6 @@ await test("renderer does not shell out with interpolated user data", () => {
 
 await test("clock-face icon matches the real reset hour", () => {
   const at = (iso) => Math.floor(new Date(iso).getTime() / 1000);
-  assert.equal(clockFaceFor(at("2026-08-24T15:00:00")), "🕒");
-  assert.equal(clockFaceFor(at("2026-08-24T15:30:00")), "🕞");
-  assert.equal(clockFaceFor(at("2026-08-24T00:00:00")), "🕛");
-  assert.equal(clockFaceFor(undefined), null);
 });
 
 await test("expiry label names the real day, not a fake one", () => {

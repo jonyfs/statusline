@@ -29,7 +29,6 @@ WANTED = {
     "E0B1": 0xE0B1,  # powerline thin right-pointing, the no-Nerd-Font fallback
     "E0B3": 0xE0B3,  # powerline thin left-pointing, its mirror
     "F418": 0xF418,  # nf-oct-git_branch
-    "F43A": 0xF43A,  # nf-oct-clock
     "F407": 0xF407,  # nf-oct-git_pull_request
     "F455": 0xF455,  # nf-oct-calendar (blank grid, no baked-in date)
     # GitHub's own diff and sync vocabulary. Each was rendered and checked
@@ -65,6 +64,7 @@ WANTED = {
     "F252": 0xF252,    # nf-fa-hourglass_half: session duration
     "F0238": 0xF0238,  # nf-md-fire: how fast the window is being spent
     "E7A8": 0xE7A8,    # nf-dev-rust: rtk is a Rust binary
+    "F4FD": 0xF4FD,    # nf-oct-people: the running subagents
     # Animation frames (feature 003). Each was rendered and looked at: the
     # md dice_1..dice_6 range draws a boxed division sign, a list, a building
     # and a download arrow, "space_invaders" draws a crossed-out television,

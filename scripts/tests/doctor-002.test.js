@@ -94,9 +94,11 @@ await test("the report names each rendered row by its line", () => {
   assert.deepEqual(report.rows.map((r) => r.line), [1, 3, 4]);
 });
 
-await test("the merged reset segment is reported, and reports both windows", () => {
+await test("each window's row reports its level and its reset, as its chip draws them", () => {
   const report = buildReport(fullPayload({ cwd: process.cwd() }), { now: NOW, live: false, probe });
-  const row = report.segments.find((r) => r.key === "resetMerged");
-  assert.equal(row.rendered, true, "it is on line 4, so the diagnostic must not call it absent");
-  assert.match(row.value, /resets in .+ \/ resets in /);
+  for (const key of ["fiveHour", "sevenDay"]) {
+    const row = report.segments.find((r) => r.key === key);
+    assert.equal(row.rendered, true, `${key} is on line 4, so the diagnostic must not call it absent`);
+    assert.match(row.value, /^\d+% · resets in /, `${key} reports the level and the reset together`);
+  }
 });

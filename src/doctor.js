@@ -29,6 +29,7 @@ import {
   getActiveSkillsDetailed,
   getSessionActivity,
   subagentActivity,
+  subagentRoster,
 } from "./skills.js";
 import { mostRecentSkillEvent } from "./skillEvents.js";
 import { getRtkSavings, probeRtkSavings } from "./rtk.js";
@@ -62,26 +63,27 @@ const DESCRIBE = {
   model: ["model", (v) => v ?? null],
   effort: ["effort", (v) => v ?? null],
   context: ["context", (v) => (v === null ? "?%" : `${v}%`)],
-  fiveHour: ["fiveHour", (v) => (v === null ? "?%" : `${v}%`)],
+  // Each window's row reports what its own chip draws: the level, and when
+  // it comes back. They carried only the level while a third row described
+  // both resets together; with the resets back on their own chips, the rows
+  // follow (specs/017-line-legibility).
+  fiveHour: ["fiveHour", (v, now, readings) => describeWindow(v, readings?.fiveHourReset?.value, now)],
   burnRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
-  sevenDay: ["sevenDay", (v) => (v === null ? "?%" : `${v}%`)],
+  sevenDay: ["sevenDay", (v, now, readings) => describeWindow(v, readings?.sevenDayReset?.value, now)],
   // One segment carrying both countdowns, so the diagnostic reports both. A
   // row that described only the 5-hour one named half of what is on the line.
-  resetMerged: ["resetMerged", (v, now) => describeResets(v, now)],
+  agents: ["agents", (v) => (v?.length ? `${v.length} running: ${v.map((a) => a.label).join(", ")}` : null)],
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
   dir: ["dir", (v) => v ?? null],
 };
 
-/** Both countdowns, in the order the segment draws them. */
-function describeResets(value, now) {
-  const both = [
-    formatResetCountdown(value?.fiveHour, now),
-    formatResetCountdown(value?.sevenDay, now),
-  ].filter(Boolean);
-  return both.length ? both.join(" / ") : "reset time unknown";
+/** A usage window as its chip draws it: the level, and when it resets. */
+function describeWindow(pct, resetsAt, now) {
+  const level = pct === null || pct === undefined ? "?%" : `${pct}%`;
+  return `${level} · ${formatResetCountdown(resetsAt, now) ?? "reset time unknown"}`;
 }
 
 const SEGMENTS = REGISTRY.map((row) => {
@@ -161,6 +163,7 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     getActiveSkills,
     getActiveSkillsTrueCount,
     subagentActivity,
+  subagentRoster,
     getSessionActivity,
     getRtkSavings,
     getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
@@ -186,7 +189,7 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     const reading = readings[segment.reading];
     const shown = isRenderable(segment.key, reading, now);
     const describe = segment.describe || ((v) => (v === null || v === undefined ? null : String(v)));
-    const value = shown ? describe(reading.value, now) : null;
+    const value = shown ? describe(reading.value, now, readings) : null;
 
     const placed = placements.get(segment.key) ?? segment;
     const row = {
@@ -245,7 +248,7 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
         probed = null;
         row.liveError = err?.message || String(err);
       }
-      row.live = probed === null ? "—" : describe(probed, now) ?? "—";
+      row.live = probed === null ? "—" : describe(probed, now, readings) ?? "—";
       row.liveTookMs = Date.now() - at;
     }
     return row;

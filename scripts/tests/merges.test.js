@@ -31,7 +31,7 @@ await test("line 3 carries the model and the effort, and stops there", () => {
 
 // C4 -----------------------------------------------------------------------
 
-await test("the weekday appears only when the reset is more than a day out", () => {
+await test("the 7-day window counts down inside a day and names the day beyond one", () => {
   const soon = render(
     fullPayload({
       rate_limits: {
@@ -40,8 +40,7 @@ await test("the weekday appears only when the reset is more than a day out", () 
       },
     })
   );
-  assert.match(soon, /7d 20%/);
-  assert.doesNotMatch(soon, /7d 20% ·/, "inside a day, the countdown says it all");
+  assert.match(soon, /7d 20% · 6h/, "inside a day it is something you wait out");
 
   const later = render(
     fullPayload({
@@ -51,12 +50,12 @@ await test("the weekday appears only when the reset is more than a day out", () 
       },
     })
   );
-  assert.match(later, /7d 20% · /, "days out, the weekday earns its place");
+  assert.match(later, /7d 20% · \w{3} \d{2}:\d{2}/, "days out it is a date you plan around");
 });
 
 // C6 -----------------------------------------------------------------------
 
-await test("both countdowns share one segment", () => {
+await test("each window carries its own reset, on its own chip", () => {
   const out = render(
     fullPayload({
       rate_limits: {
@@ -65,35 +64,24 @@ await test("both countdowns share one segment", () => {
       },
     })
   );
-  assert.match(out, /1h30m \/ 3d/);
-  assert.equal((out.match(/resets in/g) || []).length, 0, "the words are gone with the second segment");
+  // The 5-hour level and the 5-hour reset are one chip, and so are the
+  // 7-day pair. Until 2026-09-06 both resets shared a third segment reading
+  // `1h30m / 3d`, which asked the reader to know which half belonged to
+  // which figure, and read as a fraction beside the session duration.
+  assert.match(out, /5h 10% · 1h30m/);
+  assert.match(out, /7d 20% · /);
+  assert.doesNotMatch(out, /1h30m \/ /, "the merged countdown is gone");
+  assert.equal((out.match(/resets in/g) || []).length, 0, "the words stay off the line");
 });
 
-await test("the clock face is the sooner of the two windows", () => {
-  // Whichever resets first is the one about to matter, so it owns the face.
-  const fiveFirst = render(
-    fullPayload({
-      rate_limits: {
-        five_hour: { used_percentage: 10, resets_at: secs(3600) },
-        seven_day: { used_percentage: 20, resets_at: secs(5 * 86400) },
-      },
-    })
+await test("a window with no reset in the payload says so rather than going quiet", () => {
+  // Not the same claim as a reset shed for width: one is a fact about the
+  // data, the other about the terminal (Principle III).
+  const out = render(
+    fullPayload({ rate_limits: { five_hour: { used_percentage: 10 }, seven_day: { used_percentage: 20 } } })
   );
-  const sevenFirst = render(
-    fullPayload({
-      rate_limits: {
-        five_hour: { used_percentage: 10, resets_at: secs(4 * 86400) },
-        seven_day: { used_percentage: 20, resets_at: secs(3600) },
-      },
-    })
-  );
-  const faceOf = (line) => line.match(/[🕐-🕧]/u)?.[0];
-  assert.ok(faceOf(fiveFirst));
-  assert.ok(faceOf(sevenFirst));
-});
-
-await test("an unknown reset says so rather than showing a bare clock", () => {
-  assert.match(render({}, emptySources), /reset unknown/);
+  assert.match(out, /5h 10% · \?/);
+  assert.match(out, /7d 20% · \?/);
 });
 
 await test("shortCountdown drops the words and keeps the number", () => {

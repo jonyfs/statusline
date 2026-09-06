@@ -31,7 +31,7 @@ function fg(hex) {
 }
 
 /** How long a task has been running, in the same units the bar uses. */
-function elapsed(startTime, now) {
+export function elapsed(startTime, now) {
   const started = typeof startTime === "number" ? startTime : Date.parse(startTime ?? "");
   if (!Number.isFinite(started)) return null;
   const seconds = Math.max(0, Math.round((now - started) / 1000));
@@ -167,7 +167,24 @@ function snapshotPath() {
  */
 function writeTaskSnapshot(tasks, now) {
   try {
-    const labeled = tasks.map((t) => ({ id: t?.id, label: taskLabel(t) })).filter((t) => t.id && t.label);
+    const labeled = tasks
+      .map((t) => {
+        const label = taskLabel(t);
+        if (!t?.id || !label) return null;
+        // The row already computes all of this to draw itself; recording it
+        // costs nothing here and is the difference between the skills line
+        // naming an agent and describing one. Every field is omitted when the
+        // tick did not carry it, so a snapshot never states a tier, an age or
+        // a context figure the harness did not report (Principle III).
+        const row = { id: t.id, label };
+        const tier = taskTier(t);
+        if (tier) row.tier = tier;
+        if (typeof t.startTime === "number" || typeof t.startTime === "string") row.startTime = t.startTime;
+        if (typeof t.tokenCount === "number") row.tokenCount = t.tokenCount;
+        if (typeof t.contextWindowSize === "number") row.contextWindowSize = t.contextWindowSize;
+        return row;
+      })
+      .filter(Boolean);
     mkdirSync(path.dirname(snapshotPath()), { recursive: true });
     writeFileSync(snapshotPath(), JSON.stringify({ writtenAt: now, tasks: labeled }));
   } catch {
