@@ -35,7 +35,9 @@ export function aggregateSkills(directSkills = [], activeAgents = []) {
   if (Array.isArray(activeAgents)) {
     for (const agent of activeAgents) {
       if (!agent || typeof agent.id !== "string" || !Array.isArray(agent.skills)) continue;
-      if (agent.status !== "running") continue; // Only running agents
+      // Include agents with status "running" or missing status (payload may not include status).
+      // Only skip agents with explicit terminal statuses (finished, completed, failed, error).
+      if (agent.status && ["finished", "completed", "failed", "error"].includes(agent.status)) continue;
 
       const agentSkillSet = new Set(
         agent.skills.filter((s) => typeof s === "string" && s.length > 0)

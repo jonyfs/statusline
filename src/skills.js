@@ -262,8 +262,20 @@ export function sddStepFor(skillName) {
  */
 export function getAggregatedSkills(directSkills = [], activeAgents = [], displayLimit = 3) {
   const { skillsByAgent, allSkills } = aggregateSkills(directSkills, activeAgents);
-  const displayText = formatForDisplay(skillsByAgent);
+  const fullDisplay = formatForDisplay(skillsByAgent);
   const totalCount = allSkills.size;
+
+  // Truncate display to displayLimit skills: split by "; " (agent groups) and
+  // ", " (individual skills), count, and truncate if needed
+  let displayText = fullDisplay;
+  if (totalCount > displayLimit && fullDisplay.length > 0) {
+    // Count distinct skill tokens and truncate to displayLimit
+    // This is approximate: just take first N space-separated skill tokens
+    const skillTokens = fullDisplay.split(/;\s*|\,\s+/).map(t => t.trim()).filter(t => t);
+    const truncated = skillTokens.slice(0, displayLimit).join(", ");
+    displayText = truncated;
+  }
+
   const hiddenCount = getHiddenSkillCount(allSkills, displayLimit);
 
   return { displayText, totalCount, hiddenCount };
