@@ -17,10 +17,11 @@ Sync Impact Report:
   now carries its own reset, counts down inside a day, names the day beyond one, and says `?`
   when the payload carried no reset at all.
 - Redefined: X. Icons Carry Live State — the per-hour clock-face emoji exception is retired
-  with the segment that justified it, leaving no emoji on the bar. A new clause requires an
-  animated indicator to advance on a persisted counter rather than the clock, because a
+  with the segment that justified it, leaving no emoji on the bar. Two clauses added: an
+  animated indicator advances on a persisted counter rather than the clock, because a
   clock-derived index aliases against the redraw cadence and freezes outright at the 60-second
-  refresh.
+  refresh; and an icon must be legible before it is learned, which is what took the working
+  indicator from a filled disc against a hollow one to a hammer against a coffee cup.
 - Previously, version 4.2.0 (I and X expanded on 2026-09-01: the glyph set becomes Nerd-Font-first, with
   emoji kept only as a recorded exception rather than an unexamined default)
 - Expanded: I. Starship-Compatible Output — the Glyphs bullet now states a default and an escape
@@ -439,8 +440,13 @@ accessibility hazard where it works.
   an indicator that has silently stopped while still claiming to move. The frame count MUST be
   small enough to read at this cadence: four frames is one turn over roughly twenty seconds of
   activity, where the ten-frame spinner a terminal library ships is built for a repaint every
-  eighty milliseconds and would show an arbitrary cell. The working indicator is the one place
-  motion is currently earned, because "working" is exactly what that segment claims.
+  eighty milliseconds and would show an arbitrary cell. Nothing on the bar animates today; this
+  is written down because the rule cost a bug to learn, and whoever tries next should find it.
+- **An icon MUST be legible before it is learned**: a reader who has never seen the bar should
+  be able to say what a segment claims. A filled disc against a hollow one distinguishes two
+  states without naming either, which is a legend the reader has to be given; a hammer against a
+  coffee cup names them. Where a candidate set exists, the choice MUST be made from the glyphs
+  rendered at the one column they get, not from their names.
 - **Working-tree counts MUST NOT animate**: they change on every file save, which is exactly the
   churn this principle excludes. Only the discrete state (branch, ahead, behind, PR, skills,
   model, effort) animates.

@@ -52,8 +52,8 @@ WANTED = {
     # where a private-use glyph costs one, on a bar already short of width.
     "F004D": 0xF004D,  # nf-md-arrow_left: what a directory or worktree came from
     "F0997": 0xF0997,  # nf-md-progress_clock: the CI run is still going
-    "F0765": 0xF0765,  # nf-md-circle: working
-    "F0766": 0xF0766,  # nf-md-circle_outline: idle
+    "F08EA": 0xF08EA,  # nf-md-hammer: working
+    "F0176": 0xF0176,  # nf-md-coffee: idle
     "F0431": 0xF0431,  # nf-md-puzzle: the active skills
     "F06A9": 0xF06A9,  # nf-md-robot: the model
     "F0E7": 0xF0E7,    # nf-fa-bolt: the effort level
@@ -70,6 +70,7 @@ WANTED = {
     # and a download arrow, "space_invaders" draws a crossed-out television,
     # F0BA9 "puzzle_outline" draws a comb, and robot_excited and its siblings
     # draw bookmarks. None of those are here for that reason.
+    "F0765": 0xF0765,  # nf-md-circle: the full disc a Pac-Man frame closes to
     "F0A9E": 0xF0A9E,  # nf-md-circle_slice_1: a quarter disc
     "F0AA0": 0xF0AA0,  # nf-md-circle_slice_3: a half disc
     "F0AA2": 0xF0AA2,  # nf-md-circle_slice_5: a three-quarter disc

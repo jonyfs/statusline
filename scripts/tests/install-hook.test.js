@@ -113,19 +113,45 @@ await test("install backs the settings up before touching them", async () => {
   });
 });
 
-await test("install writes the refresh interval and the task-row command", async () => {
+await test("install writes the refresh interval and the subagent row command", async () => {
   // Item F1 at 60 seconds, and F2. Both live in settings.json beside the
-  // command, so only the installer can put them there.
+  // command, so only the installer can put them there. The subagent rows are
+  // their own top-level setting with their own tick, not a field on
+  // `statusLine`: written as `statusLine.taskCommand` until 2026-09-06, which
+  // Claude Code does not read, so the rows kept their default rendering and
+  // the snapshot line 2 reads from was never written.
   const home = makeHome({});
   await withHome(home, () => {
     const result = install();
     assert.equal(result.refreshInterval, 60);
     assert.equal(result.taskRows, true);
 
-    const { statusLine } = home.read();
-    assert.equal(statusLine.refreshInterval, 60);
-    assert.match(statusLine.taskCommand, /task-rows$/);
-    assert.ok(statusLine.taskCommand.startsWith(`"${process.execPath}"`), "spawned commands use the running interpreter");
+    const written = home.read();
+    assert.equal(written.statusLine.refreshInterval, 60);
+    assert.equal(written.statusLine.taskCommand, undefined, "not a field on statusLine");
+    assert.equal(written.subagentStatusLine.type, "command");
+    assert.match(written.subagentStatusLine.command, /task-rows$/);
+    assert.ok(
+      written.subagentStatusLine.command.startsWith(`"${process.execPath}"`),
+      "spawned commands use the running interpreter"
+    );
+  });
+});
+
+// A settings file written by an older install carries the key Claude Code
+// never read. Installing again must clear it rather than leave both.
+await test("installing over the old task-row key removes it", async () => {
+  const home = makeHome({});
+  await withHome(home, () => {
+    install();
+    const stale = home.read();
+    stale.statusLine.taskCommand = stale.subagentStatusLine.command;
+    home.write(stale);
+
+    install();
+    const written = home.read();
+    assert.equal(written.statusLine.taskCommand, undefined, "the key Claude Code ignores is gone");
+    assert.match(written.subagentStatusLine.command, /task-rows$/);
   });
 });
 
@@ -133,14 +159,14 @@ await test("each addition can be skipped on its own", async () => {
   const home = makeHome({});
   await withHome(home, () => {
     install({ refreshInterval: false, taskRows: false });
-    const { statusLine } = home.read();
-    assert.equal(statusLine.refreshInterval, undefined, "--no-refresh-interval leaves it out");
-    assert.equal(statusLine.taskCommand, undefined, "--no-task-rows leaves it out");
-    assert.match(statusLine.command, /render$/, "the statusline itself is still installed");
+    const written = home.read();
+    assert.equal(written.statusLine.refreshInterval, undefined, "--no-refresh-interval leaves it out");
+    assert.equal(written.subagentStatusLine, undefined, "--no-task-rows leaves it out");
+    assert.match(written.statusLine.command, /render$/, "the statusline itself is still installed");
   });
 });
 
-await test("uninstall takes the interval and the task command with it", async () => {
+await test("uninstall takes the interval and the subagent row command with it", async () => {
   const home = makeHome({ theme: "dark" });
   await withHome(home, () => {
     install();

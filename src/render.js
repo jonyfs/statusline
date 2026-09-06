@@ -89,8 +89,14 @@ const NF_RUNNING = "\u{F0997}";  // nf-md-progress_clock: still going
 // width COLUMNS reports (Principle I, Glyphs).
 const NF_TASKLIST = "\u{F4A0}";  // nf-oct-tasklist. F0BE, listed as
                                  // "checklist", draws the App Store logo
-const NF_WORKING = "\u{F0765}";  // nf-md-circle
-const NF_IDLE = "\u{F0766}";     // nf-md-circle_outline
+// A hammer and a coffee cup, chosen by the owner on 2026-09-06 from a sheet
+// of twelve candidate pairs rendered from the installed font. What they
+// replace is nf-md-circle against nf-md-circle_outline, which works only
+// after a reader has been told what it means: a filled disc and a hollow one
+// say nothing about work. These do, at a glance and without instruction, and
+// their silhouettes stay apart at the one column they get.
+const NF_WORKING = "\u{F08EA}";  // nf-md-hammer
+const NF_IDLE = "\u{F0176}";     // nf-md-coffee
 const NF_SKILLS = "\u{F0431}";   // nf-md-puzzle
 const NF_MODEL = "\u{F06A9}";    // nf-md-robot
 const NF_EFFORT = "\u{F0E7}";    // nf-fa-bolt
@@ -107,42 +113,6 @@ const NF_AGENTS = "\u{F4FD}";   // nf-oct-people: the running subagents. An
                                  // vocabulary, because "several actors working"
                                  // is the one thing GitHub's set already says
                                  // in one column
-
-/**
- * The working indicator's frames, one advanced per render.
- *
- * This is the Braille spinner that specs/003-status-change-animations
- * rejected, adopted for the opposite reason it was rejected for. That
- * decision was about marking a value as *changed*, and the note against
- * this candidate was exact: "it means 'working', not 'changed'". Line 2's
- * activity segment is the one place on the bar where "working" is precisely
- * the claim being made, so the objection becomes the argument.
- *
- * Principle X's limit still holds and is not worked around: the bar is
- * printed once and is then static text, so this is one frame per render —
- * a slow pulse at Claude Code's own 5-to-6-second redraw, never smooth
- * motion. It reads at a single frame too, which is the real test: a lone
- * Braille cell beside the word "working" is the spinner every terminal
- * reader already knows, mid-turn.
- *
- * Four frames, not the ten the usual CLI spinner uses. Ten is built for a
- * repaint every 80 milliseconds; at one frame per redraw it would take a
- * minute to go round once, and the reader would see an arbitrary Braille
- * cell rather than a rotation. These four are a quarter turn each — mass
- * top-left, top-right, bottom-right, bottom-left — so consecutive redraws
- * read as one thing turning.
- *
- * Nerd Font and substitute forms are identical on purpose. U+2800..U+28FF
- * is ordinary Unicode present in every monospace font that ships Braille,
- * so this is the one indicator that costs a person with no Nerd Font
- * nothing at all.
- */
-const BRAILLE_SPINNER = [
-  "\u{280B}", // dots 1,2,4  — the mass sits top-left
-  "\u{2839}", // dots 1,4,5,6 — top-right
-  "\u{2834}", // dots 3,5,6   — bottom-right
-  "\u{2827}", // dots 1,2,3,6 — bottom-left
-];
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -187,10 +157,6 @@ export const GLYPHS = {
     burn: NF_BURN,
     rtk: NF_RUST,
     agents: NF_AGENTS,
-    // An array rather than a string: this row is a frame sequence, and the
-    // renderer picks one frame per redraw. Listed here rather than inline so
-    // CLAUDE_STATUSLINE_ASCII=1 can still replace it (Principle X).
-    spinner: BRAILLE_SPINNER,
   },
   plain: {
     branch: "\u{1F33F}",   // 🌿
@@ -208,8 +174,8 @@ export const GLYPHS = {
     ciFail: "\u{2717}",    // ✗
     ciRunning: "\u{25D0}", // ◐
     todo: "\u{25B8}",      // ▸
-    working: "\u{25CF}",   // ●
-    idle: "\u{25CB}",      // ○
+    working: "\u{1F528}",  // 🔨
+    idle: "\u{2615}",      // ☕
     skills: "\u{1F9E9}",   // 🧩
     model: "\u{1F916}",    // 🤖
     effort: "\u{26A1}",    // ⚡
@@ -219,41 +185,8 @@ export const GLYPHS = {
     burn: "\u{1F525}",     // 🔥
     rtk: "\u{1F980}",      // 🦀
     agents: "\u{1F465}",   // 👥
-    // Identical to the Nerd Font form: Braille is ordinary Unicode, so there
-    // is nothing to substitute.
-    spinner: BRAILLE_SPINNER,
   },
 };
-
-/**
- * The frame the working indicator shows on this redraw.
- *
- * `frame` is the change tracker's persisted counter, which advances once per
- * redraw. It is deliberately not derived from the clock: a clock-derived
- * index aliases against whatever the redraw cadence happens to be, and at
- * the installed 60-second refresh a `% 4` of a per-second clock lands on the
- * same frame forever — an indicator that has stopped while still claiming to
- * move. A counter is right at 5 seconds and at 60.
- */
-export function spinnerFrame(frames, frame) {
-  if (!Array.isArray(frames) || frames.length === 0) return "";
-  if (!Number.isFinite(frame) || frame < 0) return frames[0];
-  return frames[Math.floor(frame) % frames.length];
-}
-
-/**
- * Whether the working indicator advances at all.
- *
- * Off by environment variable rather than by settings file, for the same
- * reason the change tracker has a switch: a reader who finds a glyph that
- * differs between redraws distracting should be able to settle it without
- * editing a config, and a generated image should be able to pin it. Settled,
- * the indicator is the filled circle it was before the frames existed, which
- * still says working and says it in one column.
- */
-function spinnerEnabled() {
-  return process.env.CLAUDE_STATUSLINE_NO_SPINNER !== "1";
-}
 
 /**
  * How many running subagents line 2 names before it starts counting.
@@ -843,12 +776,7 @@ export function renderReadings(
       rest.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
     }
     if (activity) {
-      // Working advances a Braille frame per redraw; idle keeps the static
-      // hollow circle, because "nothing is happening" is not a thing to
-      // animate (Principle X).
-      const mark = activity.working
-        ? (spinnerEnabled() ? spinnerFrame(g.spinner, changes.frame) : g.working)
-        : g.idle;
+      const mark = activity.working ? g.working : g.idle;
       rest.push({
         key: "activity",
         color: activity.working ? "green" : "surface2",

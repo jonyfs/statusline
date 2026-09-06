@@ -25,6 +25,8 @@ export function makeHome(settings = {}) {
     dir,
     settingsPath,
     read: () => JSON.parse(readFileSync(settingsPath, "utf8")),
+    /** Puts a settings object back, for a case that needs to age one. */
+    write: (next) => writeFileSync(settingsPath, JSON.stringify(next, null, 2) + "\n"),
     raw: () => (existsSync(settingsPath) ? readFileSync(settingsPath, "utf8") : null),
   };
 }

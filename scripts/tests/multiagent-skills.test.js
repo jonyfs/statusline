@@ -205,20 +205,38 @@ await test("the agents past the chip's limit are counted, not dropped", async ()
   });
 });
 
-// Principle X's off switch: settled, the indicator is the filled circle it
-// was before the frames existed, and it still says working.
-await test("the working indicator settles when the spinner is switched off", async () => {
+// Every combination line 2 can be in. The chips are independent: neither one
+// waits on the other, and the line renders whatever it has.
+await test("line 2 renders with skills, with agents, with both, and with neither", async () => {
   const home = makeHome();
-  await withHome(home, () => {
-    const busy = { ...gitSources(), getActiveSkills: () => [], getSessionActivity: () => ({ skills: [], todos: null, working: true }) };
-    const spinning = render(fullPayload(), busy);
-    process.env.CLAUDE_STATUSLINE_NO_SPINNER = "1";
-    try {
-      const settled = render(fullPayload(), busy);
-      assert.match(settled, /working/);
-      assert.notEqual(settled, spinning, "the settled bar is not the spinning one");
-    } finally {
-      delete process.env.CLAUDE_STATUSLINE_NO_SPINNER;
-    }
+  await withHome(home, async () => {
+    const draw = (skills) =>
+      render(fullPayload(), {
+        ...gitSources(),
+        getActiveSkills: () => skills,
+        getActiveSkillsTrueCount: () => skills.length,
+        subagentActivity,
+        subagentRoster,
+      });
+
+    // No snapshot at all: no agents anywhere on the line.
+    const skillsOnly = draw(["humanizer"]);
+    assert.match(skillsOnly, /humanizer/);
+    assert.doesNotMatch(skillsOnly, /explore/);
+
+    const neither = draw([]);
+    assert.doesNotMatch(neither, /humanizer|explore/);
+
+    await runTaskRows({ now: NOW, input: JSON.stringify({ columns: 100, tasks: [task({ name: "explore" })] }) });
+
+    const both = draw(["humanizer"]);
+    assert.match(both, /humanizer/, "the skills chip is still there");
+    assert.match(both, /explore/, "and so is the agent chip");
+
+    // Agents with no skills: the agent chip does not wait on a skills chip
+    // that has nothing to say.
+    const agentsOnly = draw([]);
+    assert.match(agentsOnly, /explore/);
+    assert.doesNotMatch(agentsOnly, /humanizer/);
   });
 });

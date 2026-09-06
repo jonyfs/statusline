@@ -120,9 +120,6 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
       colourFor: (_key, base) => base,
       iconFor: (_key, staticIcon) => staticIcon,
       samples: [],
-      // Settled: with tracking off there is no previous render to advance
-      // from, and a generated image must render the same frame every time.
-      frame: 0,
     };
   }
 
@@ -169,15 +166,5 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
     iconFor: (_key, staticIcon) => staticIcon,
     /** The sample ring, for whatever wants to read a direction out of it. */
     samples,
-    /**
-     * Which frame an animated indicator shows this render.
-     *
-     * A counter, deliberately not a function of the clock. Any clock-derived
-     * index aliases against the redraw cadence: at the installed 60-second
-     * refresh, `floor(now / 1000) % 4` lands on the same frame every time and
-     * the indicator freezes while claiming to move. One redraw advances one
-     * frame, so the pulse is the same at 5 seconds and at 60.
-     */
-    frame,
   };
 }

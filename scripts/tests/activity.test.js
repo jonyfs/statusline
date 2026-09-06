@@ -7,7 +7,6 @@ import { renderPayload } from "../../src/render.js";
 import { getSessionActivity } from "../../src/skills.js";
 import { scanTail } from "../../src/transcriptTail.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
-import { makeHome, withHome } from "./fixtures/home.js";
 import { G, re } from "./glyphs.js";
 
 const NOW = Date.parse("2026-08-26T12:00:00.000Z");
@@ -131,7 +130,7 @@ await test("the bar says working or idle, and neither without a transcript", () 
       })
     );
 
-  assert.match(render(busy), re`[${G.spinner.join("")}] working`);
+  assert.match(render(busy), re`${G.working} working`);
   assert.match(render(quiet), re`${G.idle} idle`);
 
   const none = stripAnsi(
@@ -156,14 +155,14 @@ const renderActivity = (file, subagentActivity, now = NOW) =>
 await test("a running subagent shows working even with a quiet top-level session", () => {
   const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
   const out = renderActivity(quiet, () => ["explore"]);
-  assert.match(out, re`[${G.spinner.join("")}] working`);
+  assert.match(out, re`${G.working} working`);
 });
 
 // FR-002/Acceptance Scenario 2: both active, unchanged "working".
 await test("working stays working when both the session and a subagent are active", () => {
   const busy = transcript([assistant(NOW - 1000, [{ type: "text", text: "x" }])]);
   const out = renderActivity(busy, () => ["explore"]);
-  assert.match(out, re`[${G.spinner.join("")}] working`);
+  assert.match(out, re`${G.working} working`);
 });
 
 // FR-003/Acceptance Scenario 3: neither active, "idle" exactly as before.
@@ -177,7 +176,7 @@ await test("idle stays idle when neither the session nor any subagent is active"
 await test("with no subagent snapshot, working/idle behaves exactly as before this feature", () => {
   const busy = transcript([assistant(NOW - 1000, [{ type: "text", text: "x" }])]);
   const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
-  assert.match(renderActivity(busy, () => []), re`[${G.spinner.join("")}] working`);
+  assert.match(renderActivity(busy, () => []), re`${G.working} working`);
   assert.match(renderActivity(quiet, () => []), re`${G.idle} idle`);
 });
 
@@ -209,34 +208,4 @@ await test("a malformed todo entry is skipped, not fatal", () => {
   const activity = getSessionActivity(file, { now: NOW });
   assert.equal(activity.todos, null);
   assert.equal(activity.working, true, "the rest of the scan still worked");
-});
-
-// The working indicator advances one frame per redraw, and the counter is
-// persisted rather than derived from the clock. This case is the regression
-// guard for the reason: a clock-derived index aliases against the redraw
-// cadence, and at the installed 60-second refresh a per-second clock modulo
-// four frames lands on the same frame every time — an indicator that has
-// silently stopped while still claiming to move.
-await test("the working indicator advances a frame per redraw, and does not alias on the clock", async () => {
-  const home = makeHome();
-  await withHome(home, () => {
-    const file = transcript([assistant(NOW - 1000, [{ type: "text", text: "x" }])]);
-    // Same clock on every render, deliberately: if the frame came from `now`
-    // these would all be identical.
-    const draw = () =>
-      stripAnsi(
-        renderPayload(fullPayload({ transcript_path: file, session_id: "spinner-case" }), {
-          sources: gitSources(),
-          trackChanges: true,
-          now: NOW,
-          ...WIDE,
-        })
-      );
-    const seen = new Set();
-    for (let i = 0; i < G.spinner.length; i++) {
-      const line = draw().split("\n").find((l) => l.includes("working"));
-      seen.add(G.spinner.find((f) => line.includes(f)));
-    }
-    assert.equal(seen.size, G.spinner.length, `saw ${seen.size} of ${G.spinner.length} frames on a fixed clock`);
-  });
 });

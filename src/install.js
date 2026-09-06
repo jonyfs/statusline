@@ -185,7 +185,18 @@ export function install({
 
   settings.statusLine = { type: "command", command };
   if (wantInterval) settings.statusLine.refreshInterval = REFRESH_INTERVAL_SECONDS;
-  if (wantTaskRows) settings.statusLine.taskCommand = buildTaskRowCommand();
+  // The subagent rows are their own top-level setting with their own tick,
+  // not a field on `statusLine`. This was installed as `statusLine.taskCommand`
+  // until 2026-09-06, which Claude Code does not read: the rows kept their
+  // default rendering and the snapshot the skills line reads from was never
+  // written, so line 2 could never name a running agent. Removed here as well
+  // as written, so an install fixes a settings file that already has it.
+  delete settings.statusLine.taskCommand;
+  if (wantTaskRows) {
+    settings.subagentStatusLine = { type: "command", command: buildTaskRowCommand() };
+  } else if (isOurCommand(settings.subagentStatusLine?.command)) {
+    delete settings.subagentStatusLine;
+  }
   // Registering by default keeps the skills line immediate for everyone,
   // and `--no-hook` is there for anyone who would rather not have a hook
   // in their settings. Asking interactively would break both idempotence
@@ -219,20 +230,23 @@ export function uninstall() {
     return { changed: false, reason: `${file} does not exist.` };
   }
   const settings = loadSettings();
-  // The whole statusLine object goes, so the refresh interval and the task
-  // command it carries go with it. Both were written by this install and
-  // neither outlives it.
+  // The whole statusLine object goes, so the refresh interval it carries
+  // goes with it. The subagent rows are a separate top-level setting and
+  // are removed separately, on the same test: it was written by this
+  // install and does not outlive it.
   const hasStatusLine = settings.statusLine && isOurCommand(settings.statusLine.command);
+  const hasSubagentLine = isOurCommand(settings.subagentStatusLine?.command);
   const hasHook = (settings?.hooks?.PostToolUse || []).some((group) =>
     (group?.hooks || []).some((h) => isOurCommand(h?.command))
   );
 
-  if (!hasStatusLine && !hasHook) {
+  if (!hasStatusLine && !hasSubagentLine && !hasHook) {
     return { changed: false, reason: "No statusline installed by this plugin was found." };
   }
 
   backupSettings(settings);
   if (hasStatusLine) delete settings.statusLine;
+  if (hasSubagentLine) delete settings.subagentStatusLine;
   const hookRemoved = removeHook(settings);
   writeSettings(settings);
 
