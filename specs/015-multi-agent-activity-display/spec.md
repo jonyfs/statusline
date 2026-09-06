@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-05
 
-**Status**: Completed (v1.2.4, v1.2.5)
+**Status**: Completed & Deployed (v1.2.3 → v1.2.8)
 
 **Input**: User report: With many agents in parallel, statusline shows "idle" instead of "working", and doesn't display all agent skills.
 

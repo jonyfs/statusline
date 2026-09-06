@@ -1,8 +1,8 @@
 # Plan: Multi-Agent Activity Display Fix
 
-**Status**: Completed
+**Status**: Completed & Deployed
 
-**Versions**: v1.2.4, v1.2.5
+**Versions**: v1.2.3 through v1.2.8
 
 ## Implementation Summary
 
