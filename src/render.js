@@ -267,7 +267,9 @@ function skillsReading(timed, probe, payload, scanned, scannedTrueCount, subagen
     activeAgents = subagentActivityStructured();
   }
 
-  if (Array.isArray(activeAgents) && activeAgents.length > 0) {
+  // Use aggregation only if activeAgents has actual skill data
+  if (Array.isArray(activeAgents) && activeAgents.length > 0 &&
+      activeAgents.some(agent => Array.isArray(agent.skills) && agent.skills.length > 0)) {
     const aggregated = getAggregatedSkills(directlyInvoked, activeAgents, SKILLS_SHOWN);
     return {
       ...all,
@@ -277,10 +279,9 @@ function skillsReading(timed, probe, payload, scanned, scannedTrueCount, subagen
     };
   }
 
-  // Final fallback to current behavior (specs/011) when no agents running:
-  // Running subagent activity, merged in and deduplicated the same way
-  // directly-invoked skills already are, so the two sources read as one fact
-  // rather than two competing lists.
+  // Fallback to current behavior (specs/011): Running subagent activity,
+  // merged in and deduplicated the same way directly-invoked skills already
+  // are, so the two sources read as one fact rather than two competing lists.
   const subagent = subagentLabels.filter((label) => !directlyInvoked.includes(label));
   const list = [...directlyInvoked, ...subagent];
   // Not `list.length` alone: the directly-invoked half is itself already
