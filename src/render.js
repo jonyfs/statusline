@@ -330,7 +330,10 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
   // to say "working"; with none, this is a no-op and `working` is exactly
   // what the transcript already said (FR-005).
   if (activity.value) {
-    activity.value.working = activity.value.working || subagent.length > 0;
+    // Also consider activeAgents (spec 013/015): if agents running in parallel,
+    // should show working even if subagent list empty
+    const hasActiveAgents = Array.isArray(payload?.activeAgents) && payload.activeAgents.length > 0;
+    activity.value.working = activity.value.working || subagent.length > 0 || hasActiveAgents;
   }
   const payloadPr = normalizePr(payload?.pr, "payload");
   const payloadRepoUrl = repoUrlFromPayload(payload?.workspace?.repo);
