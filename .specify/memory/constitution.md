@@ -7,7 +7,9 @@ Sync Impact Report:
   carrying its own reset. MAJOR because both are redefinitions of what a line MUST show, not
   clarifications.)
 - Redefined: II. Four-Line Display Structure — line 2 now names the running subagents with the
-  tier and age the harness reported, once each, counting any it cannot name; it is forbidden
+  tier and age the harness reported, once each, counting any it cannot name, and naming as many
+  as the line has room for rather than a fixed number; the skills chip outranks them when a
+  window is too narrow for both; it is forbidden
   from giving them per-agent skill lists, because Claude Code attributes a skill invocation to a
   session and not to a subagent, so any such list would be invented. Line 4 loses the merged
   right-aligned countdown: `2h09m / 3d` asked a reader to know which half belonged to which of
@@ -177,7 +179,10 @@ order:
   attributes a skill invocation to a session and not to a subagent, so such a list could only be
   invented. A subagent MUST be named once on the line: folding the same names into the skills
   chip beside its own chip states one fact twice. Where more are running than the line names,
-  the rest MUST be counted rather than silently dropped
+  the rest MUST be counted rather than silently dropped. **How many are named is decided against
+  the room the line has**, not against a constant: naming one fewer costs a name, where letting
+  the chip outgrow the line costs the reader every agent or every skill over one name too many.
+  When the window is too narrow to hold both chips, the skills MUST be what survives
 - **Line 3 — how the model is configured**: model name and effort level, and nothing else. A
   setting that does not change often enough to be worth a permanent slot beside those two does
   not belong on this line

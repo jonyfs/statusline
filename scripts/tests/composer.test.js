@@ -152,10 +152,16 @@ await test("the page composes the same bar the renderer draws", async () => {
   const now = FIXED_NOW * 1000;
   const readings = () => gather(PAYLOAD, { ...SOURCES }, { now });
   const base = { flavor: "mocha", tracking: false, now, samples: SAMPLES, maxHeight: 40 };
-  const pool = renderReadings(readings(), PAYLOAD, { ...base, maxWidth: 400, asPool: true });
-  const byKey = new Map(pool.map((s) => [s.key, s]));
-
+  // The pool is built at the width being composed, because one segment's
+  // content depends on it: the agent chip names as many subagents as the line
+  // has room for rather than being dropped whole. What this case is for is
+  // the composition logic — placement, order and the width guard — and that
+  // is what it compares. The page embeds a single pool for all three of its
+  // widths, so its agent chip is its widest form; a real terminal names fewer
+  // rather than none, and generate-composer.js records that.
   const compose = (arrangement, width) => {
+    const pool = renderReadings(readings(), PAYLOAD, { ...base, maxWidth: width, asPool: true });
+    const byKey = new Map(pool.map((s) => [s.key, s]));
     const resolved = resolveArrangement(SEGMENTS, arrangement, "page");
     const rows = [];
     for (const line of [1, 2, 3, 4]) {

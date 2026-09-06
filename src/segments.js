@@ -60,14 +60,13 @@ export const SEGMENTS = [
 
   // Line 2: what is shaping the work.
   { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
-  // The running subagents, one chip each, between the skills that shape the
-  // work and the todo that tracks it. Placed at 78 rather than beside the
-  // skills chip's 76 on purpose: with several agents in flight, which agents
-  // are running is the more actionable of the two, and a narrow terminal
-  // should drop the skill names before it drops the fact that four agents
-  // are working. Identity colour, not change: the chips already carry the
-  // tier ramp, and Principle X forbids one segment using colour for both.
-  { key: "agents", line: 2, order: 15, priority: 78, colour: "identity", source: "tasks" },
+  // The running subagents, between the skills that shape the work and the
+  // todo that tracks it. Below the skills chip's 76 at the owner's decision
+  // of 2026-09-06: when a window is genuinely too narrow to hold both, the
+  // skills are what survives. That is a different question from which one a
+  // long agent list crowds out at 120 columns, which is decided by the
+  // content and answered by giving the bar a wider window.
+  { key: "agents", line: 2, order: 15, priority: 72, colour: "identity", source: "tasks" },
   { key: "todo", line: 2, order: 20, priority: 70, colour: "identity", source: "transcript" },
   { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
 

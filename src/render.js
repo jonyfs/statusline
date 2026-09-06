@@ -258,27 +258,22 @@ function spinnerEnabled() {
 /**
  * How many running subagents line 2 names before it starts counting.
  *
- * Two, measured rather than chosen. Line 2 at the 120 columns Principle II
- * caps it at holds the skills chip (~46 columns), the agent chip and the
- * working indicator. Three named agents come to ~77 columns and push both
- * of its neighbours off the line — the chip wins its own priority fight and
- * takes the line with it. Two come to ~50 and everything fits.
+ * Three, at the owner's decision of 2026-09-06. Three named agents come to
+ * roughly 77 columns, which does not leave room for the skills chip inside a
+ * 120-column window — and that is the trade being made rather than a defect:
+ * a window with the room shows both, since the bar draws to whatever
+ * `COLUMNS` reports and 120 is only the fallback when it reports nothing.
+ *
+ * What a narrow window keeps is a separate question, answered in the
+ * registry rather than here: the skills chip outranks this one, so the names
+ * that go first when there is genuinely no room are the agents'.
  *
  * The rest are counted, never dropped silently, and the whole roster is on
  * the subagent rows below, which have a line each.
  */
-const AGENTS_SHOWN = 2;
+const AGENTS_SHOWN = 3;
 
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
-
-/**
- * Principle II caps a rendered line at 120 columns. Past that a terminal
- * wraps, and one status line silently becomes two.
- *
- * Overridable per render, which is how the trim order is exercised without
- * having to invent content wide enough to overflow a real line.
- */
-export const MAX_LINE_WIDTH = 120;
 
 async function readStdinAsync() {
   return new Promise((resolve) => {
@@ -816,34 +811,36 @@ export function renderReadings(
   // Both come from the transcript pass that already runs for the skills.
   const activity = shows("activity") ? readings.activity.value : null;
   const agents = shows("agents") ? readings.agents.value : null;
+  /**
+   * The agent chip at a given number of names, or null with none running.
+   *
+   * Same "show a few, count the rest" shape as the skills chip, and the same
+   * reason: a chip per agent would spend a separator and two spaces on every
+   * name. What each agent shows is only what the tick reported — an
+   * unresolved model leaves the tier out rather than guessing one, and a task
+   * with no start time shows no age (Principle III).
+   */
+  const agentsChip = (count) => {
+    if (!agents?.length || count < 1) return null;
+    const shown = agents.slice(0, count).map((a) => {
+      const tier = a.tier ? (a.tier.effort ? `${a.tier.model}\u00b7${a.tier.effort}` : a.tier.model) : null;
+      const age = elapsed(a.startTime, now);
+      return [a.label, tier, age].filter(Boolean).join(" ");
+    });
+    const hidden = Math.max(0, agents.length - shown.length);
+    return {
+      key: "agents",
+      color: "lavender",
+      text: ` ${g.agents} ${shown.join(" \u00b7 ")}${hidden > 0 ? ` +${hidden}` : ""} `,
+    };
+  };
+
   function pushLine2Extras(row) {
-    // The running subagents, named rather than counted. Claude Code's own
-    // roster already says how many there are; what it cannot say on one line
-    // is which of them is on the expensive model, and that is the question a
-    // person asks when four are running at once.
-    //
-    // Same "show a few, count the rest" shape as the skills chip, and the
-    // same reason: a chip per agent would spend a separator and two spaces
-    // on every name. What each agent shows is only what the tick reported —
-    // an unresolved model leaves the tier out rather than guessing one, and
-    // a task with no start time shows no age (Principle III).
-    if (agents?.length) {
-      const shown = agents.slice(0, AGENTS_SHOWN).map((a) => {
-        const tier = a.tier ? (a.tier.effort ? `${a.tier.model}\u00b7${a.tier.effort}` : a.tier.model) : null;
-        const age = elapsed(a.startTime, now);
-        return [a.label, tier, age].filter(Boolean).join(" ");
-      });
-      const hidden = Math.max(0, agents.length - shown.length);
-      row.push({
-        key: "agents",
-        color: "lavender",
-        text: ` ${g.agents} ${shown.join(" \u00b7 ")}${hidden > 0 ? ` +${hidden}` : ""} `,
-      });
-    }
+    const rest = [];
     if (activity?.todos) {
       const { done, total, current } = activity.todos;
       const label = current ? `${current} (${done}/${total})` : `${done}/${total}`;
-      row.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
+      rest.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
     }
     if (activity) {
       // Working advances a Braille frame per redraw; idle keeps the static
@@ -852,12 +849,33 @@ export function renderReadings(
       const mark = activity.working
         ? (spinnerEnabled() ? spinnerFrame(g.spinner, changes.frame) : g.working)
         : g.idle;
-      row.push({
+      rest.push({
         key: "activity",
         color: activity.working ? "green" : "surface2",
         text: activity.working ? ` ${mark} working ` : ` ${mark} idle `,
       });
     }
+
+    // How many agents get named is decided against the room this line
+    // actually has, not against a constant. The alternative is what happened
+    // before: at three names the chip outgrew a 120-column window, the width
+    // guard dropped whichever whole segment ranked lowest, and the reader
+    // lost either every agent or every skill over one name too many. Naming
+    // fewer costs a name and keeps the line; the rest are still counted.
+    //
+    // The floor is one rather than zero. A chip that cannot fit even one name
+    // is left for the width guard to drop by priority, which is where that
+    // decision belongs — and the skills chip outranks it, so a genuinely
+    // narrow window keeps the skills (registry, 2026-09-06).
+    let named = null;
+    for (let count = AGENTS_SHOWN; count >= 1; count--) {
+      const candidate = agentsChip(count);
+      if (!candidate) break;
+      named = candidate;
+      if (rowWidth([...row, candidate, ...rest]) <= maxWidth) break;
+    }
+    if (named) row.push(named);
+    row.push(...rest);
   }
 
   // Line 2: active skills, one chip per skill, distinct colors, no bullets.
