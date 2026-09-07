@@ -1,7 +1,5 @@
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-`specs/012-subagent-activity-status/plan.md`
+specs/019-explaining-a-segment/plan.md
 <!-- SPECKIT END -->
 
 ## Skill routing

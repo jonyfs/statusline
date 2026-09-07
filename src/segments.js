@@ -108,3 +108,59 @@ export function byPriority(rows = SEGMENTS) {
 export function inChannel(channel) {
   return SEGMENTS.filter((s) => s.colour === channel).map((s) => s.key);
 }
+
+/**
+ * Where a segment's own documentation lives.
+ *
+ * Every segment carries a link, because a bar that shows twenty-two things and
+ * cannot say what any of them means is a bar you have to be taught. A terminal
+ * cannot raise a tooltip — the statusline is printed once by a process that
+ * exits, and nothing is listening when a pointer moves — but OSC 8 costs no
+ * display columns and a terminal that previews link targets says something on
+ * hover, and opens the section on a click.
+ *
+ * Grouped rather than one heading per segment: seven sections already explain
+ * the twenty-two, and writing fifteen more headings into an 880-line README
+ * would buy a reader nothing they do not get from landing in the right place.
+ *
+ * `dir`, `branch` and `pr` are deliberately absent. Each already points
+ * somewhere better than documentation, and the renderer only supplies a help
+ * link where a segment has none.
+ */
+export const SEGMENT_HELP = {
+  repo: "#git-and-github-status",
+  projectDir: "#git-and-github-status",
+  worktree: "#git-and-github-status",
+  conflicts: "#git-and-github-status",
+  worktreeState: "#git-and-github-status",
+  ci: "#git-and-github-status",
+  linesChanged: "#what-it-knows-about-the-work",
+  skills: "#what-it-knows-about-the-work",
+  todo: "#what-it-knows-about-the-work",
+  activity: "#what-it-knows-about-the-work",
+  context: "#reading-a-level-at-a-glance",
+  fiveHour: "#reading-a-level-at-a-glance",
+  sevenDay: "#reading-a-level-at-a-glance",
+  burnRate: "#where-a-number-is-heading",
+  projection: "#where-a-number-is-heading",
+  model: "#model-and-effort",
+  effort: "#model-and-effort",
+  duration: "#what-line-3-can-tell-you",
+  rtk: "#where-the-numbers-come-from",
+};
+
+/**
+ * The repository the links point at.
+ *
+ * The public repository rather than the installed copy: this project is
+ * distributed by clone (Principle IV), so that is the page a reader can be
+ * sent to, and a `file://` link would open raw markdown from a checkout that
+ * may be older than the docs it is showing.
+ */
+export const README_URL = "https://github.com/jonyfs/statusline";
+
+/** The link a segment gets when it has nothing better to point at. */
+export function helpUrlFor(key) {
+  const anchor = SEGMENT_HELP[key];
+  return anchor ? `${README_URL}${anchor}` : null;
+}

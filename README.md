@@ -23,8 +23,7 @@ the code does, because they *are* what the code does.
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run |
 | 2 | Skills used recently, as one list, then todo progress and whether Claude is working or idle |
-| 3 | Model and effort level |
-| 4 | Context window, the 5-hour and 7-day windows with a burn rate and one merged countdown, session duration, rtk savings |
+| 3 | Model and effort level, the context window, the 5-hour and 7-day windows each with its own reset, burn rate and projection, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -409,6 +408,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
 | `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
 | `CLAUDE_STATUSLINE_LAYOUT` | Path to an arrangement file, which beats every other place one can live. See the next-but-one section |
+| `CLAUDE_STATUSLINE_NO_HELP_LINKS=1` | Drops the documentation links every segment carries, leaving the three that open the directory, the branch and the pull request. Set it if your terminal underlines linked text and you would rather it did not underline most of the bar |
 | `NO_COLOR` | Set to anything non-empty, turns the colour off. It is a cross-tool convention rather than this project's, so setting it once covers every program that honours it. Nothing is lost: no figure on the bar is carried by colour alone, which is why the ramped ones wear a band mark. The Powerline separator goes with the colour and the thin one takes its place, since a solid arrow is a shape cut out of two backgrounds and there are none |
 
 ### Per-repository settings
@@ -838,11 +838,22 @@ any other `PostToolUse` hook alone.
 
 **You want the stock status bar back.** Run the uninstall command above.
 
-## Clickable names
+## Clickable names, and asking what a segment means
 
-The directory, branch and PR on line 1 are OSC 8 hyperlinks. The text you
-see is exactly the text that's printed, no URL ever appears, but it's
-clickable in terminals that support OSC 8.
+Every segment on the bar is an OSC 8 hyperlink. The text you see is exactly
+the text that's printed, no URL ever appears, and the link costs no columns —
+it is stripped before the width is counted, so nothing moves.
+
+Three of them point somewhere better than documentation. The rest point at the
+section of this README that explains them, which is as close as a terminal
+gets to the tooltip you might reach for: a statusline is printed once by a
+process that then exits, so nothing is listening when a pointer moves, and no
+escape sequence carries arbitrary hover text. What a terminal that previews
+link targets does show is where the link goes, and a click opens the section.
+
+If the underlining that some terminals add is not worth that to you,
+`CLAUDE_STATUSLINE_NO_HELP_LINKS=1` drops the documentation links and keeps
+the three below.
 
 The directory opens a new tab in iTerm2 or Terminal.app on macOS, already
 `cd`'d into the right place, via a generated `.command` script and a bit of
