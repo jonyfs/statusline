@@ -59,3 +59,22 @@ await test("the installed command is the one that renders", () => {
   });
   assert.match(out, /Context/);
 });
+
+// Claude Code cancels the command it has in flight when a new update
+// triggers, which closes the pipe under whichever write is happening. Node's
+// default for that is an unhandled EPIPE: a stack trace where the bar should
+// be, and a non-zero exit, which is a reason for a harness to stop calling
+// the command at all.
+await test("a reader that goes away mid-write is silent, not a stack trace", () => {
+  const result = spawnSync(
+    "/bin/sh",
+    ["-c", `${JSON.stringify(process.execPath)} ${JSON.stringify(CLI)} render | head -c 1 >/dev/null`],
+    {
+      input: "{}",
+      encoding: "utf8",
+      env: { ...process.env, CLAUDE_STATUSLINE_NO_REFRESH: "1", COLUMNS: "200" },
+    }
+  );
+  assert.equal(result.status, 0, "the pipeline exits 0");
+  assert.doesNotMatch(result.stderr ?? "", /EPIPE|at .*cli\.js/, `stderr was: ${result.stderr}`);
+});

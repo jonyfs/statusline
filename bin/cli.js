@@ -17,7 +17,27 @@ function renderFallback() {
   return " statusline unavailable ";
 }
 
+/**
+ * A reader that goes away mid-write is not an error worth reporting.
+ *
+ * Claude Code cancels the command it has in flight when a new update
+ * triggers, which closes the pipe under whichever write is happening. Node's
+ * default for that is an unhandled `EPIPE`: a stack trace printed where the
+ * bar should be, and a non-zero exit, which is a reason for a harness to
+ * stop calling the command at all. Both are worse than printing nothing,
+ * and printing nothing is the correct answer when nobody is reading.
+ */
+function ignoreClosedOutput() {
+  for (const stream of [process.stdout, process.stderr]) {
+    stream.on("error", (err) => {
+      if (err?.code === "EPIPE") process.exit(0);
+      throw err;
+    });
+  }
+}
+
 async function main() {
+  ignoreClosedOutput();
   switch (subcommand) {
     case "install": {
       const result = install({
