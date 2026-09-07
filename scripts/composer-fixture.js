@@ -82,12 +82,6 @@ export const SOURCES = {
   getActiveSkills: () => ["speckit-implement", "humanizer"],
   getActiveSkillsTrueCount: () => 2,
   subagentActivity: () => ["explore", "code-review"],
-  // Two running subagents, so the composer's own page shows the agent chip
-  // rather than a bar that quietly omits a segment it can draw.
-  subagentRoster: () => [
-    { id: "t1", label: "explore", tier: { model: "opus", effort: "high", colour: "peach" }, startTime: NOW_MS - 132_000, tokenCount: null, contextWindowSize: null },
-    { id: "t2", label: "code-review", tier: { model: "sonnet", effort: null, colour: "green" }, startTime: NOW_MS - 41_000, tokenCount: null, contextWindowSize: null },
-  ],
   getSessionActivity: () => ({
     skills: ["speckit-implement", "humanizer"],
     todos: { done: 9, total: 24, current: "the composer page" },

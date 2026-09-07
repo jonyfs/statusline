@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { test, stripAnsi } from "../test-harness.js";
 import { runTaskRows, renderTaskRow } from "../../src/taskRows.js";
-import { subagentActivity, subagentRoster } from "../../src/skills.js";
+import { subagentActivity } from "../../src/skills.js";
 import { appendSkillEvent } from "../../src/skillEvents.js";
 import { renderPayload } from "../../src/render.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
@@ -93,91 +93,50 @@ await test("subagentActivity returns [] with no snapshot file at all", async () 
 const render = (payload, sources) =>
   stripAnsi(renderPayload(payload, { sources, trackChanges: false, now: NOW, ...WIDE }));
 
-await test("running subagent activity appears on line 2", async () => {
-  const home = makeHome();
-  await withHome(home, async () => {
-    await runTaskRows({ now: NOW, input: JSON.stringify({ columns: 100, tasks: [task({ name: "explore" })] }) });
-    // The fixtures stub both readers to []; this case is specifically about
-    // the real ones, so they are overridden back.
-    const out = render(fullPayload(), { ...gitSources(), getActiveSkills: () => [], subagentActivity, subagentRoster });
-    assert.match(out, /explore/);
-  });
-});
+// --- what line 2 says about subagents (User Story 1, as amended) ----------
+//
+// Nothing, by name. The agent chip lived here from 2026-09-06 until the
+// owner's decision the same day: line 2 is the skills shaping this session
+// and whether it is working, and four agents' names and tiers crowded both
+// off it. What a running subagent still does is answer the working question.
 
-// The agent chip is its own segment now, so a running subagent is named
-// once rather than also being folded into the skills chip beside it.
-await test("a running subagent is named once, not in both chips", async () => {
+await test("a running subagent shows working without appearing by name", async () => {
   const home = makeHome();
   await withHome(home, async () => {
     await runTaskRows({ now: NOW, input: JSON.stringify({ columns: 100, tasks: [task({ name: "explore" })] }) });
     const out = render(fullPayload(), {
       ...gitSources(),
-      getActiveSkills: () => ["humanizer"],
-      getActiveSkillsTrueCount: () => 1,
+      getActiveSkills: () => [],
+      // The top-level session is quiet; the subagent is what makes it working.
+      getSessionActivity: () => ({ skills: [], todos: null, working: false }),
       subagentActivity,
-      subagentRoster,
     });
-    assert.equal(out.match(/explore/g)?.length, 1, "the agent is named exactly once");
-    assert.match(out, /humanizer/, "the skills chip still carries the skill");
+    assert.match(out, /working/, "a running subagent means the session is working (specs/012)");
+    assert.doesNotMatch(out, /explore/, "and it is not named on line 2");
   });
 });
 
-// What the tick reported about each agent, not just that one exists.
-await test("an agent chip carries the tier and the age the tick reported", async () => {
+await test("line 2 carries the session's own skills and nothing about agents", async () => {
   const home = makeHome();
   await withHome(home, async () => {
     await runTaskRows({
       now: NOW,
       input: JSON.stringify({
         columns: 100,
-        tasks: [{ id: "a", name: "explore", type: "agent", model: "claude-opus-5", effort: "high", startTime: NOW - 120_000 }],
-      }),
-    });
-    const out = render(fullPayload(), { ...gitSources(), getActiveSkills: () => [], subagentActivity, subagentRoster });
-    assert.match(out, /explore opus\u00b7high 2m/);
-  });
-});
-
-// Principle III: an unresolved model is left out, never guessed.
-await test("an agent whose model has not resolved shows no tier", async () => {
-  const home = makeHome();
-  await withHome(home, async () => {
-    await runTaskRows({
-      now: NOW,
-      input: JSON.stringify({ columns: 100, tasks: [{ id: "a", name: "explore", type: "agent", startTime: NOW - 5_000 }] }),
-    });
-    const out = render(fullPayload(), { ...gitSources(), getActiveSkills: () => [], subagentActivity, subagentRoster });
-    assert.match(out, /explore 5s/);
-    assert.doesNotMatch(out, /opus|sonnet|haiku/);
-  });
-});
-
-// More agents than the chip names are counted, never dropped silently.
-await test("agents past the third are counted rather than dropped", async () => {
-  const home = makeHome();
-  await withHome(home, async () => {
-    await runTaskRows({
-      now: NOW,
-      input: JSON.stringify({
-        columns: 100,
-        tasks: [task({ id: "a", name: "sub-a" }), task({ id: "b", name: "sub-b" }), task({ id: "c", name: "sub-c" })],
+        tasks: [task({ id: "a", name: "sub-a" }), task({ id: "b", name: "sub-b" })],
       }),
     });
     const out = render(fullPayload(), {
       ...gitSources(),
-      getActiveSkills: () => ["one", "two", "three"],
-      getActiveSkillsTrueCount: () => 3,
+      getActiveSkills: () => ["humanizer", "code-review"],
+      getActiveSkillsTrueCount: () => 2,
       subagentActivity,
-      subagentRoster,
     });
-    // Three run and the window is wide, so all three are named.
-    assert.match(out, /sub-a/);
-    assert.match(out, /sub-b/);
-    assert.match(out, /sub-c/);
+    assert.match(out, /humanizer, code-review/);
+    assert.doesNotMatch(out, /sub-a|sub-b/, "no agent names, no tiers, no ages");
   });
 });
 
-// FR-004: no snapshot means no change from today's behaviour.
 await test("no snapshot leaves the skills line exactly as it is today", async () => {
   const home = makeHome();
   await withHome(home, () => {
@@ -187,66 +146,6 @@ await test("no snapshot leaves the skills line exactly as it is today", async ()
   });
 });
 
-// Four running, three named: the fourth is counted, in the same shape the
-// skills chip uses, rather than quietly disappearing.
-await test("the agents past the chip's limit are counted, not dropped", async () => {
-  const home = makeHome();
-  await withHome(home, async () => {
-    await runTaskRows({
-      now: NOW,
-      input: JSON.stringify({
-        columns: 100,
-        tasks: ["a", "b", "c", "d"].map((id) => ({ id, name: `sub-${id}`, type: "agent" })),
-      }),
-    });
-    const out = render(fullPayload(), { ...gitSources(), getActiveSkills: () => [], subagentActivity, subagentRoster });
-    assert.match(out, /sub-a/);
-    assert.match(out, /\+1/, "the fourth agent is counted");
-    assert.doesNotMatch(out, /sub-d/);
-  });
-});
-
-// Every combination line 2 can be in. The chips are independent: neither one
-// waits on the other, and the line renders whatever it has.
-await test("line 2 renders with skills, with agents, with both, and with neither", async () => {
-  const home = makeHome();
-  await withHome(home, async () => {
-    const draw = (skills) =>
-      render(fullPayload(), {
-        ...gitSources(),
-        getActiveSkills: () => skills,
-        getActiveSkillsTrueCount: () => skills.length,
-        subagentActivity,
-        subagentRoster,
-      });
-
-    // No snapshot at all: no agents anywhere on the line.
-    const skillsOnly = draw(["humanizer"]);
-    assert.match(skillsOnly, /humanizer/);
-    assert.doesNotMatch(skillsOnly, /explore/);
-
-    const neither = draw([]);
-    assert.doesNotMatch(neither, /humanizer|explore/);
-
-    await runTaskRows({ now: NOW, input: JSON.stringify({ columns: 100, tasks: [task({ name: "explore" })] }) });
-
-    const both = draw(["humanizer"]);
-    assert.match(both, /humanizer/, "the skills chip is still there");
-    assert.match(both, /explore/, "and so is the agent chip");
-
-    // Agents with no skills: the agent chip does not wait on a skills chip
-    // that has nothing to say.
-    const agentsOnly = draw([]);
-    assert.match(agentsOnly, /explore/);
-    assert.doesNotMatch(agentsOnly, /humanizer/);
-  });
-});
-
-// The hook reports an `agent_id` for a tool call made inside a subagent, and
-// the rows report a task `id`. Nothing in Claude Code's contract says they
-// are the same value; measured on 2026-09-06 they are, which is what lets a
-// row say what its agent is running. These cases pin the behaviour on both
-// sides of that: attributed where the ids match, silent where they do not.
 await test("a subagent row names the skills recorded against its own id", async () => {
   const home = makeHome();
   await withHome(home, async () => {
@@ -294,7 +193,7 @@ await test("a row whose id matches no recorded agent renders exactly as before",
 // Two Claude Code windows, two projects, two rosters. Until 2026-09-06 both
 // wrote the same `latest.json` and each read the other's agents onto its own
 // line 2 — the leak this file used to call unavoidable.
-await test("one session's agents never reach another session's line", async () => {
+await test("one session's agents never answer another session's working state", async () => {
   const home = makeHome();
   await withHome(home, async () => {
     await runTaskRows({
@@ -303,22 +202,15 @@ await test("one session's agents never reach another session's line", async () =
     });
     await runTaskRows({
       now: NOW,
-      input: JSON.stringify({ session_id: "window-b", columns: 100, tasks: [task({ id: "b", name: "packing-the-release" })] }),
+      input: JSON.stringify({ session_id: "window-b", columns: 100, tasks: [] }),
     });
 
     assert.deepEqual(subagentActivity(NOW + 1000, "window-a"), ["reviewing-the-gate"]);
-    assert.deepEqual(subagentActivity(NOW + 1000, "window-b"), ["packing-the-release"]);
+    assert.deepEqual(subagentActivity(NOW + 1000, "window-b"), [], "an idle window stays idle");
 
-    const drawnFor = (id) =>
-      render(fullPayload({ session_id: id }), { ...gitSources(), getActiveSkills: () => [], subagentActivity, subagentRoster });
-
-    const a = drawnFor("window-a");
-    assert.match(a, /reviewing-the-gate/);
-    assert.doesNotMatch(a, /packing-the-release/, "the other window's agent is not on this line");
-
-    const b = drawnFor("window-b");
-    assert.match(b, /packing-the-release/);
-    assert.doesNotMatch(b, /reviewing-the-gate/);
+    const quiet = { ...gitSources(), getActiveSkills: () => [], subagentActivity, getSessionActivity: () => ({ skills: [], todos: null, working: false }) };
+    assert.match(render(fullPayload({ session_id: "window-a" }), quiet), /working/, "its own agent is running");
+    assert.match(render(fullPayload({ session_id: "window-b" }), quiet), /idle/, "the other window's is not its business");
   });
 });
 

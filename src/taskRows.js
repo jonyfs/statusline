@@ -269,20 +269,11 @@ function writeTaskSnapshot(tasks, now, sessionId) {
       .map((t) => {
         const label = taskLabel(t);
         if (!t?.id || !label) return null;
-        // The row already computes all of this to draw itself; recording it
-        // costs nothing here and is the difference between the skills line
-        // naming an agent and describing one. Every field is omitted when the
-        // tick did not carry it, so a snapshot never states a tier, an age or
-        // a context figure the harness did not report (Principle III).
-        const row = { id: t.id, label };
-        const description = taskDescription(t);
-        if (description) row.description = description;
-        const tier = taskTier(t);
-        if (tier) row.tier = tier;
-        if (typeof t.startTime === "number" || typeof t.startTime === "string") row.startTime = t.startTime;
-        if (typeof t.tokenCount === "number") row.tokenCount = t.tokenCount;
-        if (typeof t.contextWindowSize === "number") row.contextWindowSize = t.contextWindowSize;
-        return row;
+        // Only what the reader needs. The tier, the age and the context figure
+        // were recorded here while line 2 described each agent; line 2 says
+        // nothing about agents now, and the rows read the live tick rather
+        // than this file, so writing them would be writing what nobody reads.
+        return { id: t.id, label };
       })
       .filter(Boolean);
     mkdirSync(path.dirname(snapshotPath(sessionId)), { recursive: true });

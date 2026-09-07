@@ -16,7 +16,6 @@ import {
   sddStepFor,
   inProgressFeatureId,
   subagentActivity,
-  subagentRoster,
 } from "./skills.js";
 import {
   getContextPercent,
@@ -108,11 +107,6 @@ const NF_TIMER = "\u{F051B}";    // nf-md-timer. F44E, listed as "stopwatch",
 const NF_HOURGLASS = "\u{F252}"; // nf-fa-hourglass_half: session duration
 const NF_BURN = "\u{F0238}";     // nf-md-fire: how fast the window is going
 const NF_RUST = "\u{E7A8}";      // nf-dev-rust: rtk is a Rust binary
-const NF_AGENTS = "\u{F4FD}";   // nf-oct-people: the running subagents. An
-                                 // Octicon, like the rest of line 1's repository
-                                 // vocabulary, because "several actors working"
-                                 // is the one thing GitHub's set already says
-                                 // in one column
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -156,7 +150,6 @@ export const GLYPHS = {
     duration: NF_HOURGLASS,
     burn: NF_BURN,
     rtk: NF_RUST,
-    agents: NF_AGENTS,
   },
   plain: {
     branch: "\u{1F33F}",   // 🌿
@@ -184,37 +177,8 @@ export const GLYPHS = {
     duration: "\u{23F3}",  // ⏳
     burn: "\u{1F525}",     // 🔥
     rtk: "\u{1F980}",      // 🦀
-    agents: "\u{1F465}",   // 👥
   },
 };
-
-/**
- * How many running subagents line 2 names before it starts counting.
- *
- * Three, at the owner's decision of 2026-09-06. Three named agents come to
- * roughly 77 columns, which does not leave room for the skills chip inside a
- * 120-column window — and that is the trade being made rather than a defect:
- * a window with the room shows both, since the bar draws to whatever
- * `COLUMNS` reports and 120 is only the fallback when it reports nothing.
- *
- * What a narrow window keeps is a separate question, answered in the
- * registry rather than here: the skills chip outranks this one, so the names
- * that go first when there is genuinely no room are the agents'.
- *
- * The rest are counted, never dropped silently, and the whole roster is on
- * the subagent rows below, which have a line each.
- */
-const AGENTS_SHOWN = 3;
-
-/**
- * How wide one agent's description may be on line 2.
- *
- * Descriptions are sentences and the chip is a chip. Twenty columns holds
- * the subject of most of them ("Revisão adversarial do PR 58" becomes
- * "Revisão adversarial…"), and three of them plus their tiers and ages come
- * to about the room a wide window has left after the skills chip.
- */
-const AGENT_LABEL_COLUMNS = 20;
 
 const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
@@ -336,16 +300,13 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
   const activity = timed("transcript", () =>
     probe.getSessionActivity(payload?.transcript_path, { now, limit: SKILLS_PROBED })
   );
-  // Read once, used in three places (the working/idle patch below, the
-  // skills chip and the agent roster): the snapshot is a file read, and the
-  // redraw budget does not have room for the same read three times
-  // (specs/012, specs/011).
-  // Scoped to this session: the roster file is keyed by the same session id
-  // the payload carries, so a second Claude Code window working on another
-  // project no longer puts its agents on this line.
+  // Whether anything is running under this session, which is the only thing
+  // line 2 asks about subagents now: a running one means "working" even when
+  // the top-level transcript has gone quiet (specs/012). Scoped by session id,
+  // so a second Claude Code window on another project cannot answer for this
+  // one.
   const sessionId = payload?.session_id ?? null;
-  const roster = probe.subagentRoster ? probe.subagentRoster(now, sessionId) : [];
-  const subagent = roster.length ? roster.map((a) => a.label) : probe.subagentActivity(now, sessionId);
+  const subagent = probe.subagentActivity(now, sessionId);
   // The top-level transcript going quiet doesn't mean nothing is
   // happening: a subagent can be doing the actual work right now (specs/012-
   // subagent-activity-status, FR-001). A running subagent alone is enough
@@ -385,10 +346,6 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
         : timed("gh", () => normalizePr(probe.getPrInfo(cwd, { branch: namedBranch }), "gh"))
       : missing("gh", "not a repository"),
     skills: skillsReading(timed, probe, payload, activity.value?.skills, activity.value?.skillsTrueCount),
-    // The same running subagents the skills chip folds in by name, kept
-    // whole so line 2 can say what each one is running at rather than only
-    // that it exists (specs/017-agent-roster).
-    agents: reading({ value: roster.length ? roster : null, at: now, source: "tasks" }),
     activity,
     ci: hasRepo
       ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
@@ -462,7 +419,6 @@ export function renderPayload(
     getActiveSkills,
     getActiveSkillsTrueCount,
     subagentActivity,
-    subagentRoster,
     getSessionActivity,
     getCiStatus,
     getRtkSavings,
@@ -757,72 +713,20 @@ export function renderReadings(
   // F7 and F6, on the line that already describes what the session is doing.
   // Both come from the transcript pass that already runs for the skills.
   const activity = shows("activity") ? readings.activity.value : null;
-  const agents = shows("agents") ? readings.agents.value : null;
-  /**
-   * The agent chip at a given number of names, or null with none running.
-   *
-   * Same "show a few, count the rest" shape as the skills chip, and the same
-   * reason: a chip per agent would spend a separator and two spaces on every
-   * name. What each agent shows is only what the tick reported — an
-   * unresolved model leaves the tier out rather than guessing one, and a task
-   * with no start time shows no age (Principle III).
-   */
-  const agentsChip = (count) => {
-    if (!agents?.length || count < 1) return null;
-    const shown = agents.slice(0, count).map((a) => {
-      // What it is doing, not how it was dispatched. The agent type is the
-      // fallback, because it is sometimes the only thing there is — and it
-      // is a poor identity when it is the generic one Claude Code sends for
-      // an ad-hoc Task, which arrives identical for every agent in flight.
-      const what = trimPhrase(a.description, AGENT_LABEL_COLUMNS) || a.label;
-      const tier = a.tier ? (a.tier.effort ? `${a.tier.model}\u00b7${a.tier.effort}` : a.tier.model) : null;
-      const age = elapsed(a.startTime, now);
-      return [what, tier, age].filter(Boolean).join(" ");
-    });
-    const hidden = Math.max(0, agents.length - shown.length);
-    return {
-      key: "agents",
-      color: "lavender",
-      text: ` ${g.agents} ${shown.join(" \u00b7 ")}${hidden > 0 ? ` +${hidden}` : ""} `,
-    };
-  };
-
   function pushLine2Extras(row) {
-    const rest = [];
     if (activity?.todos) {
       const { done, total, current } = activity.todos;
       const label = current ? `${current} (${done}/${total})` : `${done}/${total}`;
-      rest.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
+      row.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
     }
     if (activity) {
       const mark = activity.working ? g.working : g.idle;
-      rest.push({
+      row.push({
         key: "activity",
         color: activity.working ? "green" : "surface2",
         text: activity.working ? ` ${mark} working ` : ` ${mark} idle `,
       });
     }
-
-    // How many agents get named is decided against the room this line
-    // actually has, not against a constant. The alternative is what happened
-    // before: at three names the chip outgrew a 120-column window, the width
-    // guard dropped whichever whole segment ranked lowest, and the reader
-    // lost either every agent or every skill over one name too many. Naming
-    // fewer costs a name and keeps the line; the rest are still counted.
-    //
-    // The floor is one rather than zero. A chip that cannot fit even one name
-    // is left for the width guard to drop by priority, which is where that
-    // decision belongs — and the skills chip outranks it, so a genuinely
-    // narrow window keeps the skills (registry, 2026-09-06).
-    let named = null;
-    for (let count = AGENTS_SHOWN; count >= 1; count--) {
-      const candidate = agentsChip(count);
-      if (!candidate) break;
-      named = candidate;
-      if (rowWidth([...row, candidate, ...rest]) <= maxWidth) break;
-    }
-    if (named) row.push(named);
-    row.push(...rest);
   }
 
   // Line 2: active skills, one chip per skill, distinct colors, no bullets.
@@ -1115,34 +1019,6 @@ export function renderReadings(
  * Measured in columns rather than characters, so a name written in emoji or
  * CJK loses the right amount rather than half of it.
  */
-/**
- * A phrase cut to a column budget, at a word boundary where one is close
- * enough to the end to be worth using.
- *
- * The start of a task description identifies it and the end rarely does,
- * which is the opposite of a directory path, so this cuts from the right.
- * The ellipsis is not decoration: without it the reader cannot tell a short
- * description from a long one that was cut.
- */
-export function trimPhrase(text, columns) {
-  if (typeof text !== "string" || displayWidth(text) <= columns) return text ?? null;
-  const budget = Math.max(4, columns) - 1;
-  let kept = "";
-  let width = 0;
-  for (const ch of text) {
-    const next = width + displayWidth(ch);
-    if (next > budget) break;
-    kept += ch;
-    width = next;
-  }
-  // Back up to the last space, but only if that keeps most of the budget:
-  // cutting "Revisão adversarial do" back to "Revisão" would lose more than
-  // the ragged edge costs.
-  const space = kept.lastIndexOf(" ");
-  if (space >= budget * 0.6) kept = kept.slice(0, space);
-  return kept.trimEnd() + "\u2026";
-}
-
 function trimFromLeft(label, columns) {
   const target = Math.max(3, columns);
   if (displayWidth(label) <= target) return null;

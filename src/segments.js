@@ -60,13 +60,6 @@ export const SEGMENTS = [
 
   // Line 2: what is shaping the work.
   { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
-  // The running subagents, between the skills that shape the work and the
-  // todo that tracks it. Below the skills chip's 76 at the owner's decision
-  // of 2026-09-06: when a window is genuinely too narrow to hold both, the
-  // skills are what survives. That is a different question from which one a
-  // long agent list crowds out at 120 columns, which is decided by the
-  // content and answered by giving the bar a wider window.
-  { key: "agents", line: 2, order: 15, priority: 72, colour: "identity", source: "tasks" },
   { key: "todo", line: 2, order: 20, priority: 70, colour: "identity", source: "transcript" },
   { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
 

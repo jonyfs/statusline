@@ -64,7 +64,6 @@ WANTED = {
     "F252": 0xF252,    # nf-fa-hourglass_half: session duration
     "F0238": 0xF0238,  # nf-md-fire: how fast the window is being spent
     "E7A8": 0xE7A8,    # nf-dev-rust: rtk is a Rust binary
-    "F4FD": 0xF4FD,    # nf-oct-people: the running subagents
     # Animation frames (feature 003). Each was rendered and looked at: the
     # md dice_1..dice_6 range draws a boxed division sign, a list, a building
     # and a download arrow, "space_invaders" draws a crossed-out television,

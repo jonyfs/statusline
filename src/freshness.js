@@ -63,9 +63,6 @@ export const MAX_AGE_MS = {
   ci: 60_000,
   todo: REDRAW_INTERVAL_MS,
   activity: REDRAW_INTERVAL_MS,
-  // Read from the task-rows snapshot, which carries its own 30-second
-  // freshness window; this only has to survive the redraw that read it.
-  agents: REDRAW_INTERVAL_MS,
   skills: REDRAW_INTERVAL_MS,
   model: REDRAW_INTERVAL_MS,
   effort: REDRAW_INTERVAL_MS,

@@ -85,9 +85,8 @@ export const PRESETS = [
       name: "operational",
       segments: {
         skills: { line: 1, order: 5 },
-        agents: { line: 1, order: 6 },
-        todo: { line: 1, order: 7 },
-        activity: { line: 1, order: 8 },
+        todo: { line: 1, order: 6 },
+        activity: { line: 1, order: 7 },
         dir: { line: 2, order: 10 },
         branch: { line: 2, order: 20 },
         worktree: { line: 2, order: 25 },
@@ -126,7 +125,6 @@ export const PRESETS = [
       name: "twoLine",
       segments: {
         skills: { line: 1, order: 70 },
-        agents: { line: 1, order: 71 },
         activity: { line: 1, order: 72 },
         model: { line: 2, order: 5 },
         projectDir: { on: false },
@@ -153,7 +151,6 @@ export const PRESETS = [
       name: "oneLine",
       segments: {
         skills: { line: 1, order: 70 },
-        agents: { line: 1, order: 71 },
         todo: { line: 1, order: 72 },
         activity: { line: 1, order: 74 },
         model: { line: 1, order: 76 },

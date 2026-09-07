@@ -29,7 +29,6 @@ import {
   getActiveSkillsDetailed,
   getSessionActivity,
   subagentActivity,
-  subagentRoster,
 } from "./skills.js";
 import { mostRecentSkillEvent } from "./skillEvents.js";
 import { getRtkSavings, probeRtkSavings } from "./rtk.js";
@@ -73,7 +72,6 @@ const DESCRIBE = {
   sevenDay: ["sevenDay", (v, now, readings) => describeWindow(v, readings?.sevenDayReset?.value, now)],
   // One segment carrying both countdowns, so the diagnostic reports both. A
   // row that described only the 5-hour one named half of what is on the line.
-  agents: ["agents", (v) => (v?.length ? `${v.length} running: ${v.map((a) => a.label).join(", ")}` : null)],
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
@@ -163,7 +161,6 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     getActiveSkills,
     getActiveSkillsTrueCount,
     subagentActivity,
-  subagentRoster,
     getSessionActivity,
     getRtkSavings,
     getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),

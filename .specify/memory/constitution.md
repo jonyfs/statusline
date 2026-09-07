@@ -6,10 +6,11 @@ Sync Impact Report:
   named subject, and line 4's merged reset countdown is removed in favour of each window
   carrying its own reset. MAJOR because both are redefinitions of what a line MUST show, not
   clarifications.)
-- Redefined: II. Four-Line Display Structure — line 2 now names the running subagents with the
-  tier and age the harness reported, once each, counting any it cannot name, and naming as many
-  as the line has room for rather than a fixed number; the skills chip outranks them when a
-  window is too narrow for both; it is forbidden
+- Redefined: II. Four-Line Display Structure — line 2 is the session's own skills, its todo and
+  its activity, and names no subagent: the roster went there on 2026-09-06 and came off the same
+  day, because four agents with their tiers and ages crowded both the skills and the working
+  state off a 120-column window. A skill a subagent invoked belongs to that subagent's row and
+  is not counted as the session's; it is forbidden
   from giving them per-agent skill lists, because Claude Code attributes a skill invocation to a
   session and not to a subagent, so any such list would be invented. Line 4 loses the merged
   right-aligned countdown: `2h09m / 3d` asked a reader to know which half belonged to which of
@@ -173,17 +174,14 @@ order:
   differs, owner and repository, branch, worktree and its state, merge conflicts, lines changed
   this session, divergence from upstream (ahead, behind), pull request (number, state, review
   state) and the CI conclusion
-- **Line 2 — what is shaping the work**: the active skills for the current session, the
-  subagents running right now, the current todo and the current activity. Each running subagent
-  MUST be named with what the harness actually reported about it — the tier it is running at and
-  how long it has been going — and MUST NOT be given a per-agent skill list, because Claude Code
-  attributes a skill invocation to a session and not to a subagent, so such a list could only be
-  invented. A subagent MUST be named once on the line: folding the same names into the skills
-  chip beside its own chip states one fact twice. Where more are running than the line names,
-  the rest MUST be counted rather than silently dropped. **How many are named is decided against
-  the room the line has**, not against a constant: naming one fewer costs a name, where letting
-  the chip outgrow the line costs the reader every agent or every skill over one name too many.
-  When the window is too narrow to hold both chips, the skills MUST be what survives
+- **Line 2 — what is shaping the work**: the active skills for the current session, the current
+  todo and the current activity. **The skills are this session's own**: a skill invoked inside a
+  subagent belongs to that subagent's row and MUST NOT be counted here, since with four agents
+  running the chip otherwise becomes a list of things the reader is not doing. **Running
+  subagents MUST NOT be named on this line.** They were, briefly, with their tiers and ages, and
+  four of them crowded both the skills and the working state off a 120-column window; the roster
+  belongs on the subagent rows, which have a line each. What a running subagent still does here
+  is answer the working question, per Principle II's own subagent rule and specs/012
 - **Line 3 — how the model is configured**: model name and effort level, and nothing else. A
   setting that does not change often enough to be worth a permanent slot beside those two does
   not belong on this line

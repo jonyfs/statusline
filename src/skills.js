@@ -89,31 +89,6 @@ export function subagentActivity(now = Date.now(), sessionId = null) {
 }
 
 /**
- * The same running subagents, with what the tick knew about each one:
- * the tier it is running at, when it started, and how much of its own
- * context window it has spent (specs/017-line-legibility).
- *
- * Deliberately not "the agent and its skills". Claude Code attributes a
- * skill invocation to a session, not to a subagent, so there is no
- * attribution to read: a per-agent skill list would have to be invented.
- * What this returns is what the harness actually reported, and every field
- * is absent rather than guessed when the tick did not carry it.
- */
-export function subagentRoster(now = Date.now(), sessionId = null) {
-  return readTaskSnapshot(now, sessionId)
-    .filter((t) => typeof t?.label === "string" && t.label.length > 0)
-    .map((t) => ({
-      id: typeof t.id === "string" ? t.id : null,
-      label: t.label,
-      description: typeof t.description === "string" ? t.description : null,
-      tier: t.tier && typeof t.tier === "object" ? t.tier : null,
-      startTime: t.startTime ?? null,
-      tokenCount: typeof t.tokenCount === "number" ? t.tokenCount : null,
-      contextWindowSize: typeof t.contextWindowSize === "number" ? t.contextWindowSize : null,
-    }));
-}
-
-/**
  * Skills invoked recently in the current session, most recent first,
  * deduplicated by name and dropped once they fall outside the window.
  *
