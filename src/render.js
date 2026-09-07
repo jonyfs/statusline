@@ -29,11 +29,11 @@ import {
 } from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
 import { elapsed } from "./taskRows.js";
-import { getOpenTabUrl } from "./openTerminalTab.js";
+import { getOpenTabUrl, pathToFileUrl } from "./openTerminalTab.js";
 import { resetMomentLabel } from "./timeIcons.js";
 import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
-import { byLine, segment, inChannel, SEGMENTS, helpUrlFor } from "./segments.js";
+import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
 import { resolveLayout } from "./config.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
@@ -610,7 +610,12 @@ export function renderReadings(
   // differ, because in most sessions they do not.
   const projectDir = shows("projectDir") ? readings.projectDir.value : null;
   if (projectDir && projectDir !== readings.cwd) {
-    l1.push({ key: "projectDir", color: "surface2", text: ` ${g.from} ${getDirLabel(projectDir)} ` });
+    l1.push({
+      key: "projectDir",
+      color: "surface2",
+      text: ` ${g.from} ${getDirLabel(projectDir)} `,
+      url: pathToFileUrl(projectDir),
+    });
   }
   if (git) {
     const detached = git.detached === true || git.branch === "(detached)";
@@ -644,7 +649,12 @@ export function renderReadings(
     // directory cannot in one that is not.
     const repo = shows("repo") ? readings.repo.value : null;
     if (repo?.owner && repo.name) {
-      l1.push({ key: "repo", color: "surface2", text: ` ${repo.owner}/${repo.name} ` });
+      l1.push({
+        key: "repo",
+        color: "surface2",
+        text: ` ${repo.owner}/${repo.name} `,
+        url: remoteUrl,
+      });
     }
     // B10: closes the loop after a push without leaving the terminal. It is
     // a cached value by construction, and disappears rather than going
@@ -655,7 +665,15 @@ export function renderReadings(
       const passed = ci.conclusion === "success";
       const mark = running ? g.ciRunning : passed ? g.ciPass : g.ciFail;
       const colour = running ? "yellow" : passed ? "green" : "red";
-      l1.push({ key: "ci", color: colour, text: ` ${mark} ${ci.workflow ?? "CI"} ` });
+      // The runs for the branch you are on, not the repository's most recent:
+      // scoping the link the same way the segment scopes its answer is what
+      // stops a click landing on main's green tick from a branch you never
+      // pushed.
+      const runs =
+        remoteUrl && !detached && git.branch
+          ? `${remoteUrl}/actions?query=${encodeURIComponent(`branch:${git.branch}`)}`
+          : remoteUrl;
+      l1.push({ key: "ci", color: colour, text: ` ${mark} ${ci.workflow ?? "CI"} `, url: runs ?? undefined });
     }
     // What this session changed, which is a different question from what the
     // working tree looks like: the payload counts it, git does not. It sits
@@ -921,27 +939,8 @@ export function renderReadings(
    * own priority, so what a narrow terminal sheds is still a decision taken
    * in the registry.
    */
-  /**
-   * The link a segment shows on hover, where the terminal previews one.
-   *
-   * A segment that already points somewhere keeps it: opening the folder, the
-   * branch or the pull request beats reading about them. Everything else gets
-   * its own section of the README, which costs no display columns — OSC 8 is
-   * stripped before the width is counted — so nothing on the bar moves.
-   *
-   * Off by `CLAUDE_STATUSLINE_NO_HELP_LINKS=1`. Several terminals underline
-   * linked text, and underlining almost the whole bar is the one cost this
-   * carries; a reader who finds it noisy should not have to choose between
-   * that and uninstalling.
-   */
-  const withHelpLink = (seg) => {
-    if (seg.url || process.env.CLAUDE_STATUSLINE_NO_HELP_LINKS === "1") return seg;
-    const url = helpUrlFor(seg.key);
-    return url ? { ...seg, url } : seg;
-  };
-
   const assemble = (trimStep) => {
-    const built = [...content, ...buildLine3(trimStep)].map(withHelpLink);
+    const built = [...content, ...buildLine3(trimStep)];
     collect(built);
     const byLineNumber = new Map([1, 2, 3, 4].map((n) => [n, []]));
     for (const seg of built) {
