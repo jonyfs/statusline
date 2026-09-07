@@ -99,6 +99,16 @@ export function taskTier(task) {
 const SEP = " \u00b7 ";
 
 /**
+ * Names Claude Code uses when the caller did not choose one.
+ *
+ * `local_agent` is what an ad-hoc Task arrives as, and it is the same word
+ * for every such task, so it distinguishes nothing. A named agent type
+ * (`pr-shepherd`, `code-review`) says something the description does not and
+ * keeps its place on the row.
+ */
+const GENERIC_TASK_NAMES = new Set(["local_agent", "task", "agent"]);
+
+/**
  * How wide one column may be padded to.
  *
  * A single very long description would otherwise push every column after it
@@ -123,11 +133,18 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   // trimmed to `columns` and the spelled-out segment is the first thing to go.
   const leadColour = tier ? palette[tier.colour] ?? palette.lavender : palette.lavender;
 
-  // A name two running tasks share is not identifying them, it is only saying
-  // how both were dispatched — which is what happens with the generic type
-  // Claude Code sends for an ad-hoc Task. The row then leads with what this
-  // one is doing, and drops the word that was the same on every line.
-  const dropName = nameIsShared && what;
+  // A name is worth a column only when it identifies this task. Two cases
+  // where it does not: it is the placeholder Claude Code sends for a Task
+  // dispatched without a named agent type, which says only that the caller
+  // did not name one; or two running tasks share it, which says only that
+  // both were dispatched the same way. Either way the row leads with what
+  // this one is doing instead.
+  //
+  // The placeholder is matched by name because that is what it is. If Claude
+  // Code renames it the match stops and the row shows the new word, which is
+  // the behaviour this had before — a stale match degrades to noise, never to
+  // a wrong claim.
+  const dropName = Boolean(what) && (nameIsShared || GENERIC_TASK_NAMES.has(name));
 
   const cell = (plain, colour) => (plain ? { plain, text: `${fg(colour)}${plain}${RESET}` } : { plain: "", text: "" });
 

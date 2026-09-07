@@ -200,3 +200,34 @@ await test("an agent's skills sit between its name and its tier", async () => {
     );
   });
 });
+
+// `local_agent` is what an ad-hoc Task arrives as, the same word for every
+// one of them. It is a column spent saying the caller did not name an agent
+// type, which the reader can see from the fact that no name is there.
+await test("the placeholder name an unnamed Task arrives with is dropped", async () => {
+  const out = await runTaskRows({
+    now: NOW,
+    input: JSON.stringify({
+      columns: 200,
+      tasks: [
+        { id: "a", name: "local_agent", description: "Fechar os achados do PR 59", startTime: NOW - 60_000 },
+        { id: "b", name: "pr-shepherd", description: "Setting up the gate sandbox", startTime: NOW - 95_000 },
+      ],
+    }),
+  });
+  const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+  assert.doesNotMatch(rows[0], /local_agent/, "the placeholder is not a name");
+  assert.match(rows[0], /Fechar os achados do PR 59/, "the row leads with the work instead");
+  assert.match(rows[1], /pr-shepherd/, "a real agent type still earns its column");
+  assert.match(rows[1], /Setting up the gate sandbox/);
+});
+
+// With nothing else to say, the placeholder is still better than a blank row.
+await test("a placeholder with no description still names the row", async () => {
+  const out = await runTaskRows({
+    now: NOW,
+    input: JSON.stringify({ columns: 200, tasks: [{ id: "a", name: "local_agent", startTime: NOW - 60_000 }] }),
+  });
+  const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
+  assert.match(row, /local_agent/, "no description means the placeholder is all there is");
+});
