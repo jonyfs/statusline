@@ -63,22 +63,28 @@ export const SEGMENTS = [
   { key: "todo", line: 2, order: 20, priority: 70, colour: "identity", source: "transcript" },
   { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
 
-  // Line 3: how the model is configured.
+  // Line 3: what is running, and what it is running out of.
+  //
+  // Two subjects on one line, merged at the owner's decision of 2026-09-07.
+  // They were a line each: "how the model is configured" never filled one, and
+  // "what is running out" is read in the same glance as what is spending it.
+  // Everything both lines carried is still here — the terminal decides what
+  // survives, not this table, and at 120 columns that is the model, the effort,
+  // the three levels with their resets, and the savings figure.
   { key: "model", line: 3, order: 10, priority: 92, colour: "change", source: "payload" },
-  // Line 3 is the model and how hard it is thinking, and nothing else. The
-  // output style, the agent name and the session name were all here and were
-  // taken off on 2026-08-26: none of them changes often enough to earn a
-  // permanent slot beside two things that do.
   { key: "effort", line: 3, order: 20, priority: 74, colour: "identity", source: "payload" },
-
-  // Line 4: what is running out.
-  { key: "context", line: 4, order: 10, priority: 100, colour: "ramp", source: "payload" },
-  { key: "fiveHour", line: 4, order: 20, priority: 94, colour: "ramp", source: "payload" },
-  { key: "sevenDay", line: 4, order: 40, priority: 90, colour: "ramp", source: "payload" },
-  { key: "burnRate", line: 4, order: 22, priority: 66, colour: "ramp", source: "samples" },
-  { key: "projection", line: 4, order: 24, priority: 64, colour: "identity", source: "samples" },
-  { key: "duration", line: 4, order: 55, priority: 50, colour: "identity", source: "payload" },
-  { key: "rtk", line: 4, order: 60, priority: 40, colour: "identity", source: "rtk" },
+  { key: "context", line: 3, order: 30, priority: 100, colour: "ramp", source: "payload" },
+  { key: "fiveHour", line: 3, order: 40, priority: 94, colour: "ramp", source: "payload" },
+  { key: "burnRate", line: 3, order: 42, priority: 66, colour: "ramp", source: "samples" },
+  { key: "projection", line: 3, order: 44, priority: 64, colour: "identity", source: "samples" },
+  { key: "sevenDay", line: 3, order: 50, priority: 90, colour: "ramp", source: "payload" },
+  { key: "duration", line: 3, order: 55, priority: 50, colour: "identity", source: "payload" },
+  // Raised from 40, the lowest on the bar, at the owner's decision: the
+  // savings figure is to survive the merge rather than be the first thing the
+  // narrower line gives up. What goes first instead is the session duration,
+  // then the projection and the burn rate — all three derived from figures
+  // that stay on the line.
+  { key: "rtk", line: 3, order: 60, priority: 72, colour: "identity", source: "rtk" },
 ];
 
 const BY_KEY = new Map(SEGMENTS.map((s) => [s.key, s]));

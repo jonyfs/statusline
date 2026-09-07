@@ -86,38 +86,62 @@ await test("dropping a segment is preferred to shortening one", () => {
   // The two mechanisms interact, and the order matters. Dropping the
   // lowest-priority segment recovers more width than shortening a surviving
   // one, so priority runs first and the content ladder only fires when
-  // dropping cannot help. That is why the 7-day segment keeps its weekday
-  // right up until the segment itself goes.
-  const line4At = (maxWidth) =>
+  // dropping cannot help.
+  //
+  // This fixture is deliberately pathological: a branch name nobody would
+  // type, five skills and a spelled-out model. Line 1 cannot fit at any of
+  // these widths, and the trim ladder is global, so it keeps escalating past
+  // what line 3 alone would have needed. That is the shape being pinned —
+  // what survives is decided by the table, not by position.
+  const lastLineAt = (maxWidth) =>
     stripAnsi(
       renderPayload(widestPayload, { sources: widest, trackChanges: false, now: NOW, maxWidth })
     )
       .split("\n")
       .pop();
 
-  const wide = line4At(200);
-  assert.match(wide, /rtk/);
+  const wide = lastLineAt(200);
+  assert.match(wide, /rtk/, "with room, the savings figure is there");
+  assert.match(wide, /Claude Opus 5/, "and so is the model, since the merge of 2026-09-07");
   assert.match(wide, /7d 100%▲ ·/);
 
-  // 85 columns: everything still fits. Line 4 is 84 columns at its widest
-  // since each window took its own reset back from the merged segment, which
-  // is 14 columns narrower than the arrangement that preceded it.
-  const at85 = line4At(85);
-  assert.match(at85, /rtk/);
-  assert.match(at85, /5h 100%▲ · /);
-  assert.match(at85, /7d 100%▲ · /);
-
-  // 80: the savings figure goes at priority 40, and the ladder takes the
-  // reset text with it. The levels themselves never go — they are what the
-  // line is for.
-  const at80 = line4At(80);
-  assert.doesNotMatch(at80, /rtk/);
-  assert.match(at80, /5h 100%▲/);
-  assert.match(at80, /7d 100%▲/);
-  assert.equal((at80.match(/resets in/g) || []).length, 0, "the words stay off the line");
+  // Narrower: the savings figure goes, then the reset text, then the effort.
+  // The three levels never go — they are what the line is for — and neither
+  // does the model, which says what is spending them.
+  for (const width of [100, 80, 60]) {
+    const line = lastLineAt(width);
+    assert.match(line, /Claude Opus 5/, `the model survives at ${width}`);
+    assert.match(line, /Context 100%/, `the context figure survives at ${width}`);
+    assert.match(line, /5h 100%▲/, `the nearest limit survives at ${width}`);
+    assert.equal((line.match(/resets in/g) || []).length, 0, "the words stay off the line");
+  }
 
   // 45: down to the top of the table.
-  assert.match(line4At(45), /Context 100%/);
+  assert.match(lastLineAt(45), /Context 100%/);
+});
+
+// The savings figure was the lowest priority on the bar and the first thing
+// any narrow line gave up. The owner asked for it to survive the merge, so it
+// now outranks the session duration, the projection and the burn rate — all
+// three derived from figures that stay on the line.
+await test("the savings figure outlives what is derived from the line", () => {
+  const line = stripAnsi(
+    renderPayload(
+      fullPayload({
+        model: { display_name: "Opus 5" },
+        context_window: { used_percentage: 50 },
+        rate_limits: {
+          five_hour: { used_percentage: 50, resets_at: Math.floor(NOW / 1000) + 3600 },
+          seven_day: { used_percentage: 50, resets_at: Math.floor(NOW / 1000) + 3 * 86400 },
+        },
+      }),
+      { sources: { ...widest, getActiveSkills: () => [] }, trackChanges: false, now: NOW, maxWidth: 120 }
+    )
+  )
+    .split("\n")
+    .pop();
+  assert.match(line, /rtk/, "the savings figure is kept at 120 columns");
+  assert.doesNotMatch(line, /\dh\d\dm\s*$/, "the session duration went first");
 });
 
 await test("an unconstrained line keeps everything, so the guard costs nothing normally", () => {

@@ -62,7 +62,7 @@ await test("the bands are ordered and named", () => {
 });
 
 await test("a segment can be looked up by key", () => {
-  assert.equal(segment("context").line, 4);
+  assert.equal(segment("context").line, 3);
   assert.equal(segment("branch").line, 1);
   assert.equal(segment("nothing-called-this"), undefined);
 });
@@ -102,13 +102,13 @@ await test("the rendered lines follow the registry's order", async () => {
 
 await test("the colour channels name real segments", async () => {
   const { inChannel } = await import("../../src/segments.js");
-  assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "sevenDay", "burnRate"]);
+  assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "burnRate", "sevenDay"]);
   assert.deepEqual(inChannel("change"), ["branch", "pr", "skills", "model"]);
 });
 
 await test("line 1 renders in the registry's order too", async () => {
-  // Lines 3 and 4 composed themselves from the table from the start; lines 1
-  // and 2 were still assembled in whatever order the code pushed them. Now
+  // Line 3 composed itself from the table from the start; lines 1 and 2 were
+  // still assembled in whatever order the code pushed them. Now
   // every line sorts by the table, so moving a segment is a change to the
   // table rather than to a render function.
   const { renderPayload } = await import("../../src/render.js");

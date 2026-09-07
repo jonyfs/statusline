@@ -763,32 +763,14 @@ export function renderReadings(
     content.push(...l2);
   }
 
-  // Line 3: model, then effort and output style as separate segments. They
-  // are different things, and one standing in for the other behind the
-  // same icon is a segment that lies about what it shows (FR-021).
-  // Composed from the registry: which segments belong on this line, and in
-  // what order, is a property of the table rather than of this function.
-  // What each one says is still built here, because that is content, not
-  // layout.
-  const line3Content = {
-    model: () => ({
-      color: changes.colourFor("model", "red", palette),
-      text: ` ${g.model} ${modelName} `,
-    }),
-    effort: () => (effort ? { color: "peach", text: ` ${g.effort} ${effort} ` } : null),
-  };
-  const l3 = byLine(3)
-    .map((s) => {
-      const built = line3Content[s.key]?.();
-      return built ? { key: s.key, ...built } : null;
-    })
-    .filter(Boolean);
-  content.push(...l3);
-
-  // Line 4: context / 5h window + its reset / 7d window + its reset / rtk.
-  // Each reset segment's clock face is the actual hour the window resets,
-  // and the 7-day segment names the real day it expires, so the icon
-  // carries the information rather than decorating it.
+  // Line 3: what is running, and what it is running out of.
+  //
+  // Model and effort were a line of their own until 2026-09-07. They never
+  // filled one, and what is being spent reads in the same glance as what is
+  // spending it. Composed from the registry: which segments belong on this
+  // line, and in what order, is a property of the table rather than of this
+  // function. What each one says is still built here, because that is
+  // content, not layout.
   const sevenDayMoment = resetMomentLabel(sevenDayResetsAt, new Date(now));
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
   const farOutMoment =
@@ -796,7 +778,12 @@ export function renderReadings(
       ? sevenDayMoment
       : null;
 
-  const line4Content = {
+  const line3Content = {
+    model: () => ({
+      color: changes.colourFor("model", "red", palette),
+      text: ` ${g.model} ${modelName} `,
+    }),
+    effort: () => (effort ? { color: "peach", text: ` ${g.effort} ${effort} ` } : null),
     // The three ramped segments. Colour says which band the level is in, and
     // the bar's own characters say it again, because colour may not be the
     // only carrier (E6). An unknown level keeps the segment's own colour and
@@ -900,11 +887,11 @@ export function renderReadings(
     },
   };
 
-  const buildLine4 = ({ moment = true, fiveHourText = true, rtk = true } = {}) => {
+  const buildLine3 = ({ moment = true, fiveHourText = true, rtk = true } = {}) => {
     const opt = { moment, fiveHourText, rtk };
-    return byLine(4)
+    return byLine(3)
       .map((s) => {
-        const built = line4Content[s.key]?.(opt);
+        const built = line3Content[s.key]?.(opt);
         return built ? { key: s.key, ...built } : null;
       })
       .filter(Boolean);
@@ -935,7 +922,7 @@ export function renderReadings(
    * in the registry.
    */
   const assemble = (trimStep) => {
-    const built = [...content, ...buildLine4(trimStep)];
+    const built = [...content, ...buildLine3(trimStep)];
     collect(built);
     const byLineNumber = new Map([1, 2, 3, 4].map((n) => [n, []]));
     for (const seg of built) {

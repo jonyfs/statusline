@@ -66,7 +66,7 @@ await test("asking for the pool does not change the ordinary render", () => {
   renderReadings(readings(), PAYLOAD, { ...opts, asPool: true });
   const after = renderReadings(readings(), PAYLOAD, opts);
   assert(before === after, "the bar changed between renders");
-  assert(before.split("\n").length === 4, "the fixture no longer draws four lines");
+  assert(before.split("\n").length === 3, "the fixture no longer draws three lines");
 });
 
 await test("the fixture pins its timezone", () => {

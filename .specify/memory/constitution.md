@@ -2,7 +2,14 @@
 
 <!--
 Sync Impact Report:
-- Version: 5.1.0 (X gains NO_COLOR on 2026-09-07: MINOR, a new requirement rather than a
+- Version: 6.0.0 (II redefined on 2026-09-07: MAJOR, the bar draws three lines rather than four.
+  "How the model is configured" and "what is running out" become one subject: the first never
+  filled a line, and what is being spent is read in the same glance as what is spending it.
+  Nothing was dropped in the merge — the terminal decides what survives by the priorities in
+  src/segments.js. The savings figure was raised out of last place at the owner's request so it
+  survives the narrower line, and the shed order changes with the numbering: line 3 is now the
+  last one standing, carrying both the limits and the model spending them.)
+- Previously, version 5.1.0 (X gains NO_COLOR on 2026-09-07: MINOR, a new requirement rather than a
   redefinition of an existing one. The bar emitted truecolor unconditionally, so a person who
   had asked every program on the machine not to colourise could not turn this one off without
   uninstalling it. The powerline separator goes with the colour, being a shape cut out of two
@@ -171,9 +178,9 @@ Modules MUST NOT break when the palette variant changes. All prompt strings, sep
 color references MUST validate against Starship v1.26+ module/schema conventions, since that
 is the version installed and studied on the reference machine.
 
-### II. Four-Line Display Structure
+### II. Three-Line Display Structure
 
-Statusline MUST display four information lines, each with a subject a reader can name, in this
+Statusline MUST display three information lines, each with a subject a reader can name, in this
 order:
 - **Line 1 — the repository and its state**: working directory, the project directory when it
   differs, owner and repository, branch, worktree and its state, merge conflicts, lines changed
@@ -187,19 +194,27 @@ order:
   four of them crowded both the skills and the working state off a 120-column window; the roster
   belongs on the subagent rows, which have a line each. What a running subagent still does here
   is answer the working question, per Principle II's own subagent rule and specs/012
-- **Line 3 — how the model is configured**: model name and effort level, and nothing else. A
-  setting that does not change often enough to be worth a permanent slot beside those two does
-  not belong on this line
-- **Line 4 — what is running out**: context percentage, 5-hour and 7-day window usage, burn rate
-  and projection, session duration, and the token saving figure. There is no monthly window to
-  show, per Principle III. **A usage window MUST carry its own reset**, beside its own level and
-  in one chip: a level and the moment it comes back are read together, and separating them cost
-  this line its legibility. A reset the payload did not carry MUST say so rather than going
-  quiet, in the same vocabulary as the unknown percentage beside it, since a reader cannot
-  otherwise tell an absent figure from one a narrow terminal shed. **Near and far are told
-  differently, and that is the rule**: a window resetting within a day counts down, because it
-  is something to wait out; one resetting beyond a day names the day, because it is something to
-  plan around
+- **Line 3 — what is running, and what it is running out of**: model name and effort level, the
+  context percentage, the 5-hour and 7-day window usage each with its own reset, the burn rate
+  and projection, the session duration, and the token saving figure. These were two lines until
+  2026-09-07: "how the model is configured" never filled one, and what is being spent is read in
+  the same glance as what is spending it. **Nothing was dropped in the merge** — the terminal
+  decides what survives, by the priorities in `src/segments.js`, and at 120 columns that is the
+  model, the effort, the three levels with their resets and the savings figure. There is no
+  monthly window to show, per Principle III
+
+**A usage window MUST carry its own reset**, beside its own level and in one chip: a level and
+the moment it comes back are read together, and separating them cost this line its legibility. A
+reset the payload did not carry MUST say so rather than going quiet, in the same vocabulary as
+the unknown percentage beside it, since a reader cannot otherwise tell an absent figure from one
+a narrow terminal shed. **Near and far are told differently, and that is the rule**: a window
+resetting within a day counts down, because it is something to wait out; one resetting beyond a
+day names the day, because it is something to plan around.
+
+**The savings figure MUST outlive what is derived from the line.** It was the lowest priority on
+the bar and the first thing any narrow line gave up; at the owner's decision of 2026-09-07 it now
+outranks the session duration, the projection and the burn rate, all three of which are derived
+from figures that stay on the line.
 
 Each line independently loadable; failures in one line MUST NOT break others (e.g. no git repo omits
 line 1's branch/PR segments but the line still renders; no active skills omits line 2 entirely).
@@ -211,17 +226,19 @@ disappeared, and the eye can learn where to look. A segment defined only inside 
 is a segment whose narrow-terminal behaviour nobody chose.
 
 **Subagent rows are not statusline lines.** The rows drawn for running subagents come from a
-separate command with its own contract and its own tick. They MUST NOT count toward the four, and
+separate command with its own contract and its own tick. They MUST NOT count toward the three, and
 a row that cannot be rendered MUST leave Claude Code's own rendering in place instead of failing.
 
-**Four is the shape, not a floor.** A line with nothing to say is already dropped rather than
+**Three is the shape, not a floor.** A line with nothing to say is already dropped rather than
 rendered empty, and the same reasoning extends to the terminal: on a window too short or too
-narrow to hold four lines, the statusline MUST shed lines rather than wrap, because a wrapped
+narrow to hold three lines, the statusline MUST shed lines rather than wrap, because a wrapped
 bar costs more rows than the one it was trying to save and Claude Code truncates rather than
-wraps a line that overflows. Shedding MUST follow a declared order — line 2, then line 3, then
-line 1, with line 4 last, since it carries the limits whose consequences cannot be undone — MUST
-be driven by the terminal dimensions Claude Code reports rather than guessed, and MUST restore
-every line as soon as the room exists. A terminal with room for four lines MUST show four.
+wraps a line that overflows. Shedding MUST follow a declared order — line 2, then any line an
+arrangement has created beyond the three, then line 1, with line 3 last, since it carries the
+limits whose consequences cannot be undone and, since the merge, the model that is spending
+them — MUST be driven by the terminal dimensions Claude Code reports rather than guessed, and
+MUST restore every line as soon as the room exists. A terminal with room for three lines MUST
+show three.
 
 Lines MUST fit within the terminal's real width, read from the `COLUMNS` environment variable
 Claude Code sets before running the command, falling back to 120 characters when it is absent.
@@ -521,4 +538,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 5.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-07
+**Version**: 6.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-07

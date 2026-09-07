@@ -44,7 +44,7 @@ await test("with no arrangement the bar is what it always was", () => {
   const withNothing = draw(null);
   const withEmpty = draw({ version: 1, segments: {} });
   assert(withNothing === withEmpty, "an empty arrangement changed the bar");
-  assert(lines(withNothing).length === 4, "the bar no longer draws four lines");
+  assert(lines(withNothing).length === 3, "the bar no longer draws three lines");
   assert(/rtk 81% saved/.test(withNothing), "the savings segment is missing from the baseline");
 });
 
@@ -72,7 +72,7 @@ await test("a segment moved to another line renders there", () => {
 await test("the line a segment left still renders", () => {
   const after = lines(draw({ version: 1, segments: { skills: { line: 3, order: 5 } } }));
   assert(after.some((l) => /working/.test(l)), "line 2 disappeared when its first segment left");
-  assert(after.length === 4, `the bar drew ${after.length} lines instead of four`);
+  assert(after.length === 3, `the bar drew ${after.length} lines instead of three`);
 });
 
 await test("a line emptied by an arrangement is dropped rather than drawn blank", () => {
@@ -80,7 +80,7 @@ await test("a line emptied by an arrangement is dropped rather than drawn blank"
     version: 1,
     segments: { skills: { on: false }, agents: { on: false }, todo: { on: false }, activity: { on: false } },
   }));
-  assert(after.length === 3, `the bar drew ${after.length} lines instead of three`);
+  assert(after.length === 2, `the bar drew ${after.length} lines instead of two`);
   assert(after.every((l) => l.trim().length), "a blank line was drawn");
 });
 

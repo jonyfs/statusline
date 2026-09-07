@@ -89,7 +89,7 @@ await test("a line outside the four is named, and the rest of the entry applies"
   const { report, text } = reportWith({ version: 1, segments: { rtk: { line: 9, on: false } } });
   assert.match(text, /ignored line on rtk: not a line the bar has/);
   const rtk = report.segments.find((s) => s.key === "rtk");
-  assert.equal(rtk.line, 4, "the bad line was applied");
+  assert.equal(rtk.line, 3, "the bad line was applied");
   assert.equal(rtk.on, false, "the good switch beside it was dropped");
 });
 
