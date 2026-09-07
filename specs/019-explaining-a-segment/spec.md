@@ -2,7 +2,7 @@
 
 **Feature ID**: `019-explaining-a-segment`
 
-**Status**: Draft — the request as literally stated cannot be built; see Constraint
+**Status**: Superseded 2026-09-07 — the request as literally stated cannot be built; see Constraint
 
 **Date**: 2026-09-07
 
@@ -104,3 +104,9 @@ Route B is the only one that changes how the bar looks, and only on terminals
 that underline links. It is also the only one that answers a hover *in the
 terminal*, which is what was asked for. Whether that trade is worth making is
 a decision, not a detail.
+
+## What became of it
+
+Route B shipped in #13 and was withdrawn in #14 the same day. Pointing every segment at this plugin's repository meant that in someone else's project most of the bar linked to a repository that was not theirs — correct by construction, indistinguishable from a bug, and reported as one within a day (`specs/020-links-that-belong-here`).
+
+Every link now points into the project the bar is rendered in, and the segments with nothing there to point at carry none. The need this spec opened with — a reader who cannot ask the bar what a segment means — is unanswered again, and routes A and C remain the honest ways to answer it.

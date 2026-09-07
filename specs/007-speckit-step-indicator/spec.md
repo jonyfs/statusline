@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-03
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "deve mostrar, quando alguma skill speckit-* estiver executando qual o passo do sdd está sendo executado" (when a speckit-* skill is running, show which SDD step is being executed)
 
@@ -91,3 +91,7 @@ A developer uses any of the installed speckit-* skills (specify, clarify, plan, 
 - The step indicator reuses the statusline's existing active-skill detection (hook-based event log with transcript-tail fallback) rather than introducing a new detection mechanism.
 - The step indicator is a label addition to the existing skills area of the statusline, not a new dedicated line or panel.
 - Only one SDD step is shown at a time, matching the assumption that a developer works through Spec Kit's flow sequentially rather than running multiple speckit-* skills simultaneously.
+
+## What became of it
+
+The SDD step reads from the active `speckit-*` skill and shows nothing for any other skill. Pinned by `scripts/tests/sdd-step-indicator.test.js`.

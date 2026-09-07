@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-03
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "tudo que o statusline mostrar deve estar em ingles, revise isso" (everything the statusline displays must be in English — review this)
 
@@ -92,3 +92,7 @@ A contributor adds a new segment or message to the statusline in the future. Bef
 - The current codebase's English-only gap, if any, is limited to isolated literal strings rather than a systemic bilingual design; no architectural change is assumed necessary.
 - User-supplied data (git metadata, task/file names) is explicitly out of scope for translation and is expected to remain in whatever language it already is.
 - A lightweight static check (e.g., a grep-based or word-list script) is sufficient for the regression guard; no full i18n/l10n framework is being introduced.
+
+## What became of it
+
+`scripts/tests/english-output.test.js` fails on a non-English string in `src/` or `bin/cli.js`, and passes a non-English branch name and task description through untouched — the rule is about what this project writes, not about what it is shown.

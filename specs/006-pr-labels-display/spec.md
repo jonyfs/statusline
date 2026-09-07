@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-03
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "deve mostrar ao lado do pr e seu status a lista de labels que estão associados ao pr" (show, next to the PR and its status, the list of labels associated with the PR)
 
@@ -91,3 +91,7 @@ A developer on a GitLab project sees merge request labels the same way a GitHub 
 - Label data is available from the same source already used for PR number/status/review state (`gh pr view` / equivalent GitLab command), just with an additional field requested.
 - A reasonable default cap of a few labels shown before truncating (with a "+N more" style indicator) is acceptable; the exact number is a presentation detail decided during planning, not a business requirement.
 - Label color (as set on GitHub/GitLab) is out of scope for this feature; labels are shown as plain text, consistent with the statusline's existing minimal, low-color segment style.
+
+## What became of it
+
+Labels render beside the pull request state, capped with the same "show a few, count the rest" shape the skills chip uses. Pinned by `scripts/tests/pr-labels.test.js`.

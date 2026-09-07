@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-25
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "revise cada linha do statusline para validar e verificar o que pode ser melhorada em cada uma, garantindo que o funcionamento esteja ok, que tudo esteja sempre atualizado e fazendo sentido, parece que em alguns casos, skills ou contextos estão demorando muito a serem atualizadas, verifique o que pode ser melhorado, seja em scripts, hooks etc"
 
@@ -273,3 +273,7 @@ segment, its value, its age, its source, and its cost.
   inside the redraw the harness already runs, or inside events it already emits.
 - The four-line structure, the palette and the glyph vocabulary are settled by the
   constitution and are not reopened here.
+
+## What became of it
+
+Every reading carries an age and a source, and a stale one is dropped rather than drawn. `src/freshness.js` holds the maximum age per segment and the budget per source; `scripts/tests/freshness.test.js` pins that a segment past its age never renders and that an unknown usage figure shows `?%` rather than disappearing.

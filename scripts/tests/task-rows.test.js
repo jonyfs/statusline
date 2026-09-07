@@ -58,20 +58,26 @@ await test("a task with no id is left to Claude Code", () => {
 });
 
 await test("one JSON line per row, and nothing at all with no tasks", async () => {
-  const out = await runTaskRows({
-    now: NOW,
-    input: JSON.stringify({ columns: 100, tasks: [task(), task({ id: "t2", name: "review" })] }),
-  });
-  const lines = out.split("\n").filter(Boolean);
-  assert.equal(lines.length, 2);
-  for (const line of lines) {
-    const parsed = JSON.parse(line);
-    assert.ok(parsed.id);
-    assert.equal(typeof parsed.content, "string");
-  }
+  // Sandboxed: `runTaskRows` writes the roster snapshot, and without a
+  // fake HOME it writes into the real one — clobbering whatever a live
+  // session had there.
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({ columns: 100, tasks: [task(), task({ id: "t2", name: "review" })] }),
+    });
+    const lines = out.split("\n").filter(Boolean);
+    assert.equal(lines.length, 2);
+    for (const line of lines) {
+      const parsed = JSON.parse(line);
+      assert.ok(parsed.id);
+      assert.equal(typeof parsed.content, "string");
+    }
 
-  assert.equal(await runTaskRows({ now: NOW, input: JSON.stringify({ tasks: [] }) }), "");
-  assert.equal(await runTaskRows({ now: NOW, input: "{not json" }), "", "a broken tick is silent, not fatal");
+    assert.equal(await runTaskRows({ now: NOW, input: JSON.stringify({ tasks: [] }) }), "");
+    assert.equal(await runTaskRows({ now: NOW, input: "{not json" }), "", "a broken tick is silent, not fatal");
+  });
 });
 
 await test("a row respects the width it was given", () => {
@@ -137,45 +143,57 @@ await test("a tier segment never pushes the row past its columns", () => {
 // The rows are a table, and a table that does not line up is a list of
 // strings. Columns are sized across the whole tick, not per row.
 await test("the columns line up across a tick's rows", async () => {
-  const out = await runTaskRows({
-    now: NOW,
-    input: JSON.stringify({
-      columns: 200,
-      tasks: [
-        { id: "a", name: "pr-shepherd", description: "Setting up base-commit hook sandbox", model: "claude-opus-5", effort: "high", startTime: NOW - 60_000, tokenCount: 198_000, contextWindowSize: 1_000_000 },
-        { id: "b", name: "explore", description: "Locating money.ts", model: "claude-haiku-4-5", startTime: NOW - 95_000, tokenCount: 9_000, contextWindowSize: 200_000 },
-      ],
-    }),
+  // Sandboxed: `runTaskRows` writes the roster snapshot, and without a
+  // fake HOME it writes into the real one — clobbering whatever a live
+  // session had there.
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        columns: 200,
+        tasks: [
+          { id: "a", name: "pr-shepherd", description: "Setting up base-commit hook sandbox", model: "claude-opus-5", effort: "high", startTime: NOW - 60_000, tokenCount: 198_000, contextWindowSize: 1_000_000 },
+          { id: "b", name: "explore", description: "Locating money.ts", model: "claude-haiku-4-5", startTime: NOW - 95_000, tokenCount: 9_000, contextWindowSize: 200_000 },
+        ],
+      }),
+    });
+    const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+    const columnStarts = (row) => {
+      const at = [];
+      let i = -1;
+      while ((i = row.indexOf(" \u00b7 ", i + 1)) !== -1) at.push(i);
+      return at;
+    };
+    assert.deepEqual(columnStarts(rows[0]), columnStarts(rows[1]), "every separator falls in the same column");
   });
-  const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
-  const columnStarts = (row) => {
-    const at = [];
-    let i = -1;
-    while ((i = row.indexOf(" \u00b7 ", i + 1)) !== -1) at.push(i);
-    return at;
-  };
-  assert.deepEqual(columnStarts(rows[0]), columnStarts(rows[1]), "every separator falls in the same column");
 });
 
 // A column no row filled costs nothing: it is dropped rather than padded to
 // a gap that reads as a missing value.
 await test("a column no row uses is not drawn", async () => {
-  const out = await runTaskRows({
-    now: NOW,
-    input: JSON.stringify({
-      columns: 200,
-      tasks: [
-        { id: "a", name: "same", description: "first piece of work", startTime: NOW - 60_000 },
-        { id: "b", name: "same", description: "second piece of work", startTime: NOW - 95_000 },
-      ],
-    }),
+  // Sandboxed: `runTaskRows` writes the roster snapshot, and without a
+  // fake HOME it writes into the real one — clobbering whatever a live
+  // session had there.
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        columns: 200,
+        tasks: [
+          { id: "a", name: "same", description: "first piece of work", startTime: NOW - 60_000 },
+          { id: "b", name: "same", description: "second piece of work", startTime: NOW - 95_000 },
+        ],
+      }),
+    });
+    const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+    // Both share a name, so both lead with the description and the name column
+    // is empty on every row. One separator remains, before the age.
+    for (const row of rows) {
+      assert.equal((row.match(/ \u00b7 /g) || []).length, 1, `one separator, got: ${row}`);
+    }
   });
-  const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
-  // Both share a name, so both lead with the description and the name column
-  // is empty on every row. One separator remains, before the age.
-  for (const row of rows) {
-    assert.equal((row.match(/ \u00b7 /g) || []).length, 1, `one separator, got: ${row}`);
-  }
 });
 
 // The skills say what the agent is doing and the tier says what it costs.
@@ -205,31 +223,43 @@ await test("an agent's skills sit between its name and its tier", async () => {
 // one of them. It is a column spent saying the caller did not name an agent
 // type, which the reader can see from the fact that no name is there.
 await test("the placeholder name an unnamed Task arrives with is dropped", async () => {
-  const out = await runTaskRows({
-    now: NOW,
-    input: JSON.stringify({
-      columns: 200,
-      tasks: [
-        { id: "a", name: "local_agent", description: "Fechar os achados do PR 59", startTime: NOW - 60_000 },
-        { id: "b", name: "pr-shepherd", description: "Setting up the gate sandbox", startTime: NOW - 95_000 },
-      ],
-    }),
+  // Sandboxed: `runTaskRows` writes the roster snapshot, and without a
+  // fake HOME it writes into the real one — clobbering whatever a live
+  // session had there.
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        columns: 200,
+        tasks: [
+          { id: "a", name: "local_agent", description: "Fechar os achados do PR 59", startTime: NOW - 60_000 },
+          { id: "b", name: "pr-shepherd", description: "Setting up the gate sandbox", startTime: NOW - 95_000 },
+        ],
+      }),
+    });
+    const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+    assert.doesNotMatch(rows[0], /local_agent/, "the placeholder is not a name");
+    assert.match(rows[0], /Fechar os achados do PR 59/, "the row leads with the work instead");
+    assert.match(rows[1], /pr-shepherd/, "a real agent type still earns its column");
+    assert.match(rows[1], /Setting up the gate sandbox/);
   });
-  const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
-  assert.doesNotMatch(rows[0], /local_agent/, "the placeholder is not a name");
-  assert.match(rows[0], /Fechar os achados do PR 59/, "the row leads with the work instead");
-  assert.match(rows[1], /pr-shepherd/, "a real agent type still earns its column");
-  assert.match(rows[1], /Setting up the gate sandbox/);
 });
 
 // With nothing else to say, the placeholder is still better than a blank row.
 await test("a placeholder with no description still names the row", async () => {
-  const out = await runTaskRows({
-    now: NOW,
-    input: JSON.stringify({ columns: 200, tasks: [{ id: "a", name: "local_agent", startTime: NOW - 60_000 }] }),
+  // Sandboxed: `runTaskRows` writes the roster snapshot, and without a
+  // fake HOME it writes into the real one — clobbering whatever a live
+  // session had there.
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({ columns: 200, tasks: [{ id: "a", name: "local_agent", startTime: NOW - 60_000 }] }),
+    });
+    const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
+    assert.match(row, /local_agent/, "no description means the placeholder is all there is");
   });
-  const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
-  assert.match(row, /local_agent/, "no description means the placeholder is all there is");
 });
 
 // Thirty minutes answers "which skills are still shaping this session". An

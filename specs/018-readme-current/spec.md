@@ -2,7 +2,7 @@
 
 **Feature ID**: `018-readme-current`
 
-**Status**: Draft
+**Status**: Delivered 2026-09-07
 
 **Date**: 2026-09-07
 
@@ -65,3 +65,7 @@ What it currently claims, and what is true:
   `█▓▒░` gauge and the ambiguous-width `·` separator under a CJK-configured
   terminal. Documenting them is not fixing them, and the fix is a visual
   redesign the owner has not asked for.
+
+## What became of it
+
+Merged in #12. Every count, key name, icon and behaviour the README states was checked against the code, and the audit table in the Problem section names the README line that made each false claim.

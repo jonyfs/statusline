@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-03
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "quando estiver fazendo sdd usando speckit skills deve mostrar a identificaçao da spec em andamento da seguinte forma speckit-skill (identificaçao da feature)" (when doing SDD with speckit skills, show the in-progress spec's identification in this format: speckit-skill (feature identification))
 
@@ -88,3 +88,7 @@ A developer runs a speckit-* skill in a project that has no feature currently in
 - This feature's parenthetical suffix is specific to the feature identifier. How it relates to the SDD-step label already introduced by a related feature (showing something like `(Planning)`) is a presentation detail left to planning, for instance combining both or having the feature identifier take precedence in the same slot, rather than a business rule fixed here.
 - The record of "which feature is in progress" is read, never written, by the statusline; nothing here changes how or when Spec Kit's own commands update that record.
 - Only one feature is treated as "in progress" at a time, matching Spec Kit's own single-current-feature model.
+
+## What became of it
+
+The in-progress feature id is read from `.specify/feature.json`, the same file the speckit commands write, and every failure mode degrades to no parenthetical rather than an empty one. Pinned by `scripts/tests/speckit-feature-indicator.test.js`.

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-03
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "sempre considere o status do harness tb quando usando sub agente, as vezes mostra como idle porém esta executando subagente, ou seja, deve refletir no statusline tb" (always consider the harness's status too when a subagent is in use; it sometimes shows idle while a subagent is actually running, so that should be reflected on the statusline too)
 
@@ -72,3 +72,7 @@ A subagent finishes its work and the top-level session is also quiet. The status
 - "The harness's status" refers to this statusline's own working/idle indicator (line 2), which already exists and already reflects the top-level session's recent activity; this feature extends what that indicator considers, not what it displays.
 - This feature builds on the subagent-activity visibility already established for this project's skills-line work: whatever mechanism already knows "is a subagent currently running" is the source this indicator also draws from, rather than a second, independent detection method.
 - A subagent's own activity recency (rather than merely "was dispatched, ever") is what counts as "active," consistent with how the top-level session's own working/idle detection already works today.
+
+## What became of it
+
+A running subagent still makes the session read as working while its own transcript is quiet, which is the whole of what this asked for. It survived every change to line 2 since, including the removal of the agent names, and `scripts/tests/activity.test.js` separates the two claims: the agent is in the working state and is not on the line.

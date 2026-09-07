@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-03
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "verifique pq algumas skills não aparecem na linha de skills" (check why some skills don't show up on the skills line)
 
@@ -91,3 +91,7 @@ A developer wonders why a skill they ran a while ago is no longer on the line. T
 - The root causes behind skills going missing are a mix of: the active window's time-based expiry, a fixed limit on how many recent invocations are scanned before the overflow count is computed, and skill invocations that happen inside delegated subagents rather than the top-level session transcript. All three are treated as in-scope defects or gaps to close, not accepted permanently.
 - Skills invoked through mechanisms not yet recognized as skill invocations (an edge case beyond the three known causes above) are treated as a documentation gap for this feature, not a guaranteed-fixed defect, since the full set of possible invocation shapes isn't enumerable in advance.
 - No new skill-invocation UI is being introduced; this feature corrects and makes legible the existing skills line's accuracy.
+
+## What became of it
+
+The overflow count is the true number of active skills rather than the length of whatever the scan happened to examine — "these three" and "three of five" are different claims. Pinned by `scripts/tests/skills-completeness.test.js`.
