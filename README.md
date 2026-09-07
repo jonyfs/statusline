@@ -1,10 +1,11 @@
 # Claude Statusline (Catppuccin Powerline)
 
-A four-line status bar for Claude Code, in Catppuccin Powerline colors, that
-sheds lines rather than wrapping when the window is too short for four. It
+A three-line status bar for Claude Code, in Catppuccin Powerline colors, that
+sheds lines rather than wrapping when the window is too short for three. It
 shows where you are (directory, git branch, working-tree state, open pull
-request), which skills are active, which model and effort you're on, and how
-much of your context window and rate limits you've burned through.
+request), which skills are active, whether the session is working, and which
+model is running against how much of your context window and rate limits it
+has burned through.
 
 Every redraw finishes in about 25 milliseconds at the 95th percentile,
 measured against a 75 MB session transcript, and never waits on the network.
@@ -47,8 +48,11 @@ it as many times as you like; it does the same thing each time.
 
 Install also sets `refreshInterval: 60`, so the countdowns keep moving while
 a session sits idle and Claude Code stops sending events, and a
-`taskCommand` so the rows for running subagents are drawn in the same style
-as the bar.
+`subagentStatusLine` command so the rows for running subagents are drawn in
+the same style as the bar. That setting is top-level and separate from
+`statusLine`; installing over a copy that still carries the old
+`statusLine.taskCommand` removes it, since Claude Code never read that key
+and the rows it was meant to style kept their default rendering.
 
 Each of the three is optional:
 
@@ -105,7 +109,7 @@ Segments with nothing to say are dropped rather than shown empty.
 ![No git repository](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/no-git.svg)
 
 **Nothing but a session.** No git, no skills, no rtk. The skills line
-disappears entirely, so you get three lines instead of four:
+disappears entirely, so you get two lines instead of three:
 
 ![Minimal](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/minimal.svg)
 
@@ -129,7 +133,7 @@ the most important down until the next one would not fit. What you lose is
 what matters least, not whatever happened to be last in the code. Position
 stays independent of priority, so nothing slides sideways when a neighbour
 disappears. The first segment of every line is padded to the same width, so
-the boundaries line up down the bar and the four lines read as one small
+the boundaries line up down the bar and the three lines read as one small
 table — unless the padding would push a line past the limit, in which case
 that line keeps its width and gives up the alignment.
 
@@ -138,20 +142,25 @@ window, the model, and the 7-day window. Measured in this repository:
 
 | Width | What goes |
 |---|---|
-| 100 and up | nothing |
-| 80 | the session duration and the rtk figure |
-| 60 | the merged countdown, and on line 1 the CI tick and the lines-changed count |
+| 140 and up | nothing |
+| 120 | the session duration and the projection |
+| 100 | the burn rate as well |
+| 60 | the reset text, and on line 1 the CI tick and the lines-changed count |
 
 The three usage figures survive all of it, and so do the directory, the
-branch and the model.
+branch, the model and the rtk figure. That last one used to be the first
+thing any narrow line gave up; it was raised above the session duration, the
+projection and the burn rate, which are the three things on the line that
+something else already implies.
 
 ![Eighty columns](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/narrow.svg)
 
 **Too short.** Lines are shed rather than wrapped, because a wrapped bar
 costs more rows than it saves and Claude Code truncates rather than wraps.
-Skills go first, then the model line, then the directory line. Line 4 is the
-last one standing: it carries the limits whose consequences you cannot undo.
-Everything comes back the moment the window does.
+Skills go first, then any line an arrangement has created beyond the three,
+then the directory line. Line 3 is the last one standing: it carries the
+limits whose consequences you cannot undo, and since the merge it carries the
+model spending them. Everything comes back the moment the window does.
 
 ![A two-row window](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/short-window.svg)
 
@@ -219,10 +228,18 @@ figure, and it cost ten to sixteen columns on the widest line to say what
 the number already said in three. The bar survives where there is room for
 it: each running subagent gets one on its own row.
 
-Both reset countdowns share a single dimmed segment on the right of line 4:
-`🕞 1h29m / 3d`. The clock face is the sooner of the two windows, since that
-is the one about to matter. Two clock faces and two spelled-out countdowns
-used to spend a third of the line saying two things that are read together.
+Each window carries its own reset, beside its own level: `󰔛 5h 62%▴ · 2h09m`
+and ` 7d 77%▴ · Thu 18:00`. They shared one dimmed segment reading
+`1h29m / 3d` until 2026-09-06, which asked the reader to know which half
+belonged to which figure several chips away, and read as a fraction beside
+the session duration.
+
+Near and far are told differently, and that is the rule rather than an
+inconsistency: a window resetting within a day counts down, because it is
+something you wait out; one resetting beyond a day names the day, because it
+is something you plan around. A reset the payload did not carry shows `?`, in
+the same vocabulary as the `?%` beside it, so you can tell an absent figure
+from one a narrow terminal shed.
 
 The weekday beside the 7-day figure appears only when the reset is more than
 a day out. Inside a day the countdown already says it, and the weekday would
@@ -252,11 +269,46 @@ Then what the session is doing:
   finds the skills, so it costs nothing extra. A list survives longer than a
   skill does: a skill expires after thirty minutes because nothing announces
   that it stopped, while a list says its own state.
-- `● working` or `○ idle` says whether the transcript grew in the last ten
-  seconds. It is an approximation, and the honest one available: nothing
-  emits "thinking now", and the bar hides during permission prompts anyway.
-  A session with no transcript shows neither, because a session this script
-  cannot see is not a session doing nothing.
+- `󰣪 working` or `󰅶 idle` says whether the transcript grew in the last ten
+  seconds, or whether a subagent of this session is running. It is an
+  approximation, and the honest one available: nothing emits "thinking now",
+  and the bar hides during permission prompts anyway. A session with no
+  transcript shows neither, because a session this script cannot see is not a
+  session doing nothing.
+
+Running subagents are not named here. They were for a day, with their tiers
+and ages, and four of them crowded both the skills and the working state off
+a 120-column window. The roster belongs on the subagent rows below, which
+have a line each. A skill a subagent invoked is likewise its own, and is not
+counted among the session's: with four agents running, the chip would
+otherwise be a list of things you are not doing.
+
+### The rows below the bar
+
+Claude Code draws a row for each running subagent, and this plugin styles them
+in the bar's own vocabulary. A row is a table rather than a sentence: columns
+are measured across the whole tick and padded to a common width, so the title,
+the model, the gauge, the tokens and the age fall in the same place on every
+row.
+
+```
+Consertar o offline do PR 58 · humanizer · sonnet·high · ████░░░░ 34% · 336k · 2h49m
+Corrigir o CASCADE           ·           · sonnet·high · ██░░░░░░ 13% · 132k · 16m
+```
+
+A row leads with what the agent is doing rather than how it was dispatched.
+`local_agent` is the name an ad-hoc Task arrives with, the same word for every
+one of them, so it is dropped when there is a description to lead with — as is
+any name two running tasks share. A named agent type keeps its column, since
+`pr-shepherd` says something its description does not.
+
+The skills column shows what the hook recorded against that agent's id, and it
+rests on something Claude Code does not promise: the hook reports an
+`agent_id` while `session_id` stays the parent's, and the ids on these rows
+turned out to be the same values. Measured, not assumed. Where they do not
+match the column is empty, which is also what an agent that has invoked no
+skill looks like. It is not windowed the way the session's own list is: an
+agent is bounded, so the filter is whether it is still running.
 
 Everything about the repository lives on line 1, and nothing about it lives
 anywhere else: directory, repository owner and name, branch, worktree,
@@ -306,7 +358,7 @@ resetting, and a rate measured across it is arithmetic on two unrelated
 series. `doctor` reports how many samples there are, which is what answers
 "why is there no burn rate yet".
 
-## What line 4 can tell you
+## What line 3 can tell you
 
 Beyond the three usage percentages and their countdowns, the payload carries
 enough to answer most of what you would otherwise run a command for. All of
@@ -325,12 +377,19 @@ used-of-total, the window size, the 200k flag, the context sparkline, the
 API-wait figure and the clock. The payload readers behind them are still
 there, feeding the segments that remain.
 
-## Model, effort and output style
+## Model and effort
 
-Line 3 names the model, and beside it the effort level behind a lightning
-bolt. Nothing else. The output style, the agent name and the session name
-all lived here at one point and came off on 2026-08-26: none of them changes
-often enough to hold a permanent slot next to two things that do. They are separate segments on purpose: they
+Line 3 opens with the model, and beside it the effort level behind a lightning
+bolt. They had a line of their own until 2026-09-07, and it never filled one:
+a name and a word. What is being spent reads in the same glance as what is
+spending it, so the two lines became one. Nothing was dropped in the merge —
+the terminal decides what survives, by the same priority table as everywhere
+else.
+
+The output style, the agent name and the session name all lived here at one
+point and came off on 2026-08-26: none of them changes often enough to hold a
+permanent slot next to two things that do. Model and effort are separate
+segments on purpose: they
 are different settings, and until recently the output style was rendered in
 the effort slot whenever no effort level was present, which read as an
 effort level called "explanatory".
@@ -350,6 +409,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
 | `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
 | `CLAUDE_STATUSLINE_LAYOUT` | Path to an arrangement file, which beats every other place one can live. See the next-but-one section |
+| `NO_COLOR` | Set to anything non-empty, turns the colour off. It is a cross-tool convention rather than this project's, so setting it once covers every program that honours it. Nothing is lost: no figure on the bar is carried by colour alone, which is why the ramped ones wear a band mark. The Powerline separator goes with the colour and the thin one takes its place, since a solid arrow is a shape cut out of two backgrounds and there are none |
 
 ### Per-repository settings
 
@@ -368,7 +428,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts twenty-four segments on four lines, and it is a default
+The default puts twenty-two segments on three lines, and it is a default
 rather than a verdict. If you want the burn rate first, the pull request last
 and the savings figure gone, say so in an arrangement:
 
@@ -513,7 +573,7 @@ The header answers the two questions people actually ask. `terminal: 96
 columns, 24 rows` explains a segment that is missing because there was no
 room for it, and `history: 3 samples` explains why the burn rate has not
 appeared yet. The widths beside it are named by line — `rendered line 1: 51
-columns, line 3: 17 columns, line 4: 87 columns` — so with the skills line
+columns, line 3: 104 columns` — so with the skills line
 absent you are still reading each width against the content that produced
 it.
 
@@ -648,10 +708,9 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-oct-alert` | `U+F421` | merge conflicts |
 | `nf-oct-check` / `nf-oct-x` / `nf-md-progress_clock` | `U+F42E` / `U+F467` / `U+F0997` | CI passed, failed, still running |
 | `nf-oct-calendar` | `U+F455` | the 7-day window |
-| `nf-oct-clock` | `U+F43A` | a reset time with no known hour |
 | `nf-md-arrow_left` | `U+F004D` | where a directory or a worktree came from |
 | `nf-oct-tasklist` | `U+F4A0` | the todo list |
-| `nf-md-circle` / `nf-md-circle_outline` | `U+F0765` / `U+F0766` | working, idle |
+| `nf-md-hammer` / `nf-md-coffee` | `U+F08EA` / `U+F0176` | working, idle |
 | `nf-md-puzzle` | `U+F0431` | active skills |
 | `nf-md-robot` | `U+F06A9` | model |
 | `nf-fa-bolt` | `U+F0E7` | effort level |
@@ -667,13 +726,18 @@ next to a real expiry date, it reads as a date that never changes and quietly
 contradicts the text beside it. Unicode has no per-date emoji, so the actual
 day is written out as text instead.
 
-The clock faces on the reset segments are the one place emoji stay, and the
-reason is that no Nerd Font glyph varies by hour. The Material Design
-`clock_time_one` .. `clock_time_twelve` series is absent from the font this
-was built against, where `U+F1861`-`U+F186C` draw clock-plus, clock-minus,
-clock-x and a plug. The face is picked to match the real reset hour, from the
-24 emoji variants covering each hour and half-hour, so the hour is what the
-icon carries.
+There is no emoji on the bar at all. The clock faces on the reset segments
+were the one exception, kept because no Nerd Font glyph varies by hour and the
+hour was what that icon carried. They went out on 2026-09-06 with the merged
+reset segment: each window draws its own reset beside its own level now, and a
+face showing the absolute hour next to a relative countdown said the same
+thing twice in two units.
+
+The working indicator is a hammer and a coffee cup because a filled disc
+against a hollow one distinguishes two states without naming either — it works
+once a reader has been told what it means, and not before. They were chosen
+from twelve candidate pairs rendered from the installed font at the one column
+they get, since a codepoint's name is not evidence of its glyph.
 
 Eight segments carried emoji until September 2026: the directory, the skills,
 the model, the effort, the context, the 5-hour window, the session duration
@@ -734,7 +798,8 @@ read.
 |---|---|
 | `state/` | What each segment looked like last redraw, so a change can be spotted. One file per session |
 | `cache/` | Pull request, savings, remote URL and git snapshot, one file per repository |
-| `skills/` | Skill invocations recorded by the hook, one file per session |
+| `skills/` | Skill invocations recorded by the hook, one file per session. A record made inside a subagent also carries that agent's id, which is what lets its own row say what it is running |
+| `tasks/` | The subagents running on the last tick, one file per session. Keyed that way since 2026-09-06, so two Claude Code windows on two projects no longer read each other's agents |
 | `backups/` | Copies of `settings.json` taken before install and uninstall |
 
 Anything untouched for a week is swept on the first redraw of a session.
