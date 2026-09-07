@@ -222,6 +222,12 @@ undo.
 
 ![Close to the limit](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/near-compaction.svg)
 
+The two marks are the small triangles `▵` and `▴`, outline then
+filled. They were `▴` and `▲` until 2026-09-07, and those are East
+Asian Narrow and Ambiguous respectively: crossing 85% widened the mark by a
+column on a terminal configured for East Asian text, and shifted every segment
+after it. Both are Narrow now, so the band changes and the line does not move.
+
 There is no progress bar. An earlier version drew one beside the context
 figure, and it cost ten to sixteen columns on the widest line to say what
 the number already said in three. The bar survives where there is room for
@@ -408,6 +414,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
 | `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
 | `CLAUDE_STATUSLINE_LAYOUT` | Path to an arrangement file, which beats every other place one can live. See the next-but-one section |
+| `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE=1` | Counts East Asian Ambiguous characters as two columns, which is what a terminal configured for East Asian text draws them as. Nothing reports that setting, so you say it. `tmux` calls the same thing `-u`. Without it the gauge and the `·` separator are measured one column and drawn two, and every column after them slides |
 | `NO_COLOR` | Set to anything non-empty, turns the colour off. It is a cross-tool convention rather than this project's, so setting it once covers every program that honours it. Nothing is lost: no figure on the bar is carried by colour alone, which is why the ramped ones wear a band mark. The Powerline separator goes with the colour and the thin one takes its place, since a solid arrow is a shape cut out of two backgrounds and there are none |
 
 ### Per-repository settings

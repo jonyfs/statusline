@@ -1,3 +1,8 @@
+> **Closed 2026-09-07.** See the "What became of it" section of
+> [spec.md](spec.md). Unticked boxes below are left as they were: this list
+> was never worked through, and marking it done would be a second untruth on
+> top of the first.
+
 # Tasks: Multi-Agent Skills Visibility
 
 **Input**: Design documents from `/specs/013-multi-agent-skills/`
@@ -20,9 +25,9 @@
 
 **Purpose**: Verify project state and dependencies
 
-- [ ] T001 Verify Node.js v18+ is installed and available
-- [ ] T002 Review existing `src/skills.js` to understand current skill tracking implementation
-- [ ] T003 Review `src/render.js` stdin payload handling to identify extension point for `activeAgents` field
+- [~] T001 Verify Node.js v18+ is installed and available
+- [~] T002 Review existing `src/skills.js` to understand current skill tracking implementation
+- [~] T003 Review `src/render.js` stdin payload handling to identify extension point for `activeAgents` field
 
 ---
 
@@ -53,10 +58,10 @@
 ### Implementation for User Story 1
 
 - [x] T008 Modify `src/render.js` skillsReading to handle agent-grouped skill aggregation (updated to call getAggregatedSkills when activeAgents present)
-- [ ] T009 [P] [US1] Extend `src/cache.js` to cache agent identifiers alongside skill freshness state (avoid re-parsing agent structure on every render)
+- [~] T009 [P] [US1] Extend `src/cache.js` to cache agent identifiers alongside skill freshness state (avoid re-parsing agent structure on every render)
 - [x] T010 [P] [US1] Create integration test `tests/test-agent-integration.js` with mock task snapshot and mock `activeAgents` payload; verify aggregation output format
-- [ ] T011 [US1] Manually test with `echo` command piping mock payload to `statusline` CLI; validate skills line displays grouped format with overflow handling
-- [ ] T012 [US1] Test overflow scenario: >10 skills across agents; verify "+N" indicator shows correct remaining count
+- [~] T011 [US1] Manually test with `echo` command piping mock payload to `statusline` CLI; validate skills line displays grouped format with overflow handling
+- [~] T012 [US1] Test overflow scenario: >10 skills across agents; verify "+N" indicator shows correct remaining count
 
 **Checkpoint**: User Story 1 is complete and testable independently. Skills line correctly aggregates and displays agent skills with agent grouping.
 
@@ -73,10 +78,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Verify `src/skillAggregation.js` removes agent skills when agent is removed from `activeAgents` array (no lingering entries)
-- [ ] T014 [US2] Test freshness check: confirm agent skills disappear if task snapshot is stale (>30s old) per spec 011 mechanism
-- [ ] T015 [US2] Verify skill line updates correctly across renders when agents start/stop/change skills (no flickering, no stale entries)
-- [ ] T016 [US2] Document skill lifecycle in code comments: agent skill appears when agent in snapshot, removed when snapshot updated and agent gone
+- [~] T013 [US2] Verify `src/skillAggregation.js` removes agent skills when agent is removed from `activeAgents` array (no lingering entries)
+- [~] T014 [US2] Test freshness check: confirm agent skills disappear if task snapshot is stale (>30s old) per spec 011 mechanism
+- [~] T015 [US2] Verify skill line updates correctly across renders when agents start/stop/change skills (no flickering, no stale entries)
+- [~] T016 [US2] Document skill lifecycle in code comments: agent skill appears when agent in snapshot, removed when snapshot updated and agent gone
 
 **Checkpoint**: User Story 2 is complete. Agent skills have proper lifecycle; they appear and disappear with agent activity, no stale entries.
 
@@ -93,10 +98,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Review existing subagent-row mechanism (spec 011, task snapshot structure) to verify skill field naming and format
-- [ ] T018 [US3] Ensure `src/skillAggregation.js` extracts skill source in same order as subagent rows (formal `/skill` first, then task description)
-- [ ] T019 [US3] Manual validation: run both statusline and subagent-row display side-by-side; verify skill consistency (same skills named the same way)
-- [ ] T020 [US3] Test edge case: agent with unnamed skills; verify both displays omit it (no placeholder) consistently
+- [~] T017 [US3] Review existing subagent-row mechanism (spec 011, task snapshot structure) to verify skill field naming and format
+- [~] T018 [US3] Ensure `src/skillAggregation.js` extracts skill source in same order as subagent rows (formal `/skill` first, then task description)
+- [~] T019 [US3] Manual validation: run both statusline and subagent-row display side-by-side; verify skill consistency (same skills named the same way)
+- [~] T020 [US3] Test edge case: agent with unnamed skills; verify both displays omit it (no placeholder) consistently
 
 **Checkpoint**: User Story 3 is complete. Skills line and subagent rows show consistent view of agent work; developer sees one honest story.
 
@@ -106,12 +111,12 @@
 
 **Purpose**: Improvements affecting multiple stories; documentation; testing
 
-- [ ] T021 [P] Extend `tests/smoke-test.js` with multi-agent skill aggregation scenarios (mock payload with 2–3 agents, verify output format)
-- [ ] T022 [P] Add code comments in `src/skillAggregation.js` documenting deduplication algorithm, grouping logic, edge cases
-- [ ] T023 Update README.md to include example of agent-grouped skill display format (add screenshot or ANSI example)
-- [ ] T024 Verify cross-platform compatibility: smoke-test passes on Windows (path handling for task snapshot file); test on macOS and Linux
-- [ ] T025 Run quickstart.md validation scenarios (if quickstart.md is generated in Phase 1 design artifacts)
-- [ ] T026 Code review: verify no new runtime dependencies introduced; ensure implementation aligns with Constitution Principle IV (zero dependencies)
+- [~] T021 [P] Extend `tests/smoke-test.js` with multi-agent skill aggregation scenarios (mock payload with 2–3 agents, verify output format)
+- [~] T022 [P] Add code comments in `src/skillAggregation.js` documenting deduplication algorithm, grouping logic, edge cases
+- [~] T023 Update README.md to include example of agent-grouped skill display format (add screenshot or ANSI example)
+- [~] T024 Verify cross-platform compatibility: smoke-test passes on Windows (path handling for task snapshot file); test on macOS and Linux
+- [~] T025 Run quickstart.md validation scenarios (if quickstart.md is generated in Phase 1 design artifacts)
+- [~] T026 Code review: verify no new runtime dependencies introduced; ensure implementation aligns with Constitution Principle IV (zero dependencies)
 
 ---
 

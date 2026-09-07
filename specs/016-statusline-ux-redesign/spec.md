@@ -2,7 +2,7 @@
 
 **Feature ID**: `016-statusline-ux-redesign`
 
-**Status**: Draft
+**Status**: Superseded 2026-09-07
 
 **Date Created**: 2026-09-06
 
@@ -161,3 +161,17 @@ Shows: session duration, session token usage, RTK savings, rate limits
 - Spec 015 (multi-agent skills display) - baseline
 - Existing Nerd Font glyph set
 - Catppuccin color palette
+
+## What became of it
+
+Its subject shipped; its shape did not survive contact.
+
+The spec specified a four-line bar. The bar has three: "how the model is
+configured" never filled a line, and lines 3 and 4 merged at the owner's
+decision (Constitution II 6.0.0). Everything this spec asked line 4 to carry is
+still on the bar, decided by the priority table rather than by the line number.
+
+The rest of it was delivered through `specs/017-line-legibility` and the work
+that followed: the resets moved onto their own windows, the working indicator
+became a hammer and a coffee cup chosen from rendered candidates, and the icon
+set lost its last emoji.

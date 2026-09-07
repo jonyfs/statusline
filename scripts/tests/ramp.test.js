@@ -100,22 +100,22 @@ await test("the ramp reaches the rate limits as well, per E5", () => {
   const safe = atLevel(20);
   const warn = atLevel(70);
   const hot = atLevel(95);
-  assert.doesNotMatch(safe, /[▴▲]/, "nothing is wrong needs no symbol");
-  assert.match(warn, /▴/);
-  assert.match(hot, /▲/);
+  assert.doesNotMatch(safe, /[\u25b4\u25b5]/, "nothing is wrong needs no symbol");
+  assert.match(warn, /\u25b5/);
+  assert.match(hot, /\u25b4/);
   // Two of them. The context figure carries its level in colour alone since
   // 2026-08-26; the two rate limits, which have the consequence you cannot
   // undo, still mark their band.
-  assert.equal((hot.match(/▲/g) || []).length, 2);
-  assert.doesNotMatch(hot.slice(0, hot.indexOf("5h")), /▲/, "and none of them is the context figure");
+  assert.equal((hot.match(/\u25b4/g) || []).length, 2);
+  assert.doesNotMatch(hot.slice(0, hot.indexOf("5h")), /\u25b4/, "and none of them is the context figure");
 });
 
 await test("the band survives without colour, per E6", () => {
   // Section 508: colour may not be the only carrier. The bar used to do
   // this job; a one-character mark does it now, at a fraction of the width.
   assert.equal(bandMark(10), "");
-  assert.equal(bandMark(70), "▴");
-  assert.equal(bandMark(95), "▲");
+  assert.equal(bandMark(70), "\u25b5");
+  assert.equal(bandMark(95), "\u25b4");
   assert.equal(bandMark(null), "", "an unknown level has no band to mark");
 });
 

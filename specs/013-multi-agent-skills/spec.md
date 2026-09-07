@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-05
 
-**Status**: Draft
+**Status**: Abandoned 2026-09-06
 
 **Input**: User description: "a linha de skills em uso deve mostrar as skills usadas em multiplas agentes em execuçao no momento" (the skills line in use should show the skills used in multiple agents running at the moment)
 
@@ -109,3 +109,18 @@ The skills line's view of what agents are doing should be honest about the same 
 - Skill state from running agents may lag by one render cycle behind the exact moment an agent starts or finishes, consistent with how directly-invoked skill visibility can also lag slightly today.
 - The skills line's visual constraint (maximum width per the four-line structure and terminal width) already exists. Overflow handling via "+N" is already implemented; this feature must use the same mechanism for all skills (top-level and aggregated agent skills combined).
 - Principle II of the project's constitution (Four-Line Display Structure) governs how line 2 (the skills line) handles overflow and width constraints; this feature does not override or change those rules.
+
+## What became of it
+
+Never shipped, and the approach it describes was removed rather than finished.
+
+It specified aggregating subagent skills into line 2 from a `payload.activeAgents`
+field. **Claude Code does not send that field**, so the branch that read it
+never executed once; `src/skillAggregation.js` and `src/lines.js` were written,
+tagged, installed, and deleted six days later without having run.
+
+What the need became: subagents are named on their own rows, with the tier, the
+age, a context gauge and the skills the hook attributed to them
+(`specs/017-line-legibility`, `specs/019`). Line 2 carries the session's own
+skills and whether it is working, and names no agent
+(Constitution II, amended 2026-09-07).

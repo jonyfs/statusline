@@ -189,6 +189,42 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
  * Nerd Font glyphs sit in the private use area and are drawn single-width
  * in every terminal font that has them, so they count as one.
  */
+/**
+ * Exactly the East Asian Ambiguous characters this bar can emit.
+ *
+ * A set rather than ranges, and derived from what the glyph table, the ramp
+ * and the separators actually draw rather than from the blocks they sit in.
+ * The blocks are mixed: `U+25B4` and `U+25B5` are Narrow while `U+25B2` and
+ * `U+25B3` beside them are Ambiguous, so a range covering Geometric Shapes
+ * would count the band marks two columns wide when they render one — the very
+ * misalignment this exists to prevent.
+ *
+ * A character here is one column in most terminals and two in a terminal
+ * configured for East Asian text. Nothing in the environment reports which,
+ * so the reader says.
+ */
+const AMBIGUOUS = new Set([
+  0x00b7, // · middle dot, the separator between a row's columns
+  0x2190, 0x2191, 0x2193, // ← ↑ ↓ the plain-mode arrows
+  0x2500, // ─ the empty cell of a gauge
+  0x2588, 0x2592, 0x2593, // █ ▒ ▓ its fills
+  0x25b2, 0x25b3, // ▲ △ larger triangles, should either ever be drawn
+  0x25c6, // ◆ the plain-mode commit
+  0x25cb, 0x25cf, // ○ ● the plain-mode idle and modified marks
+  0x25d0, // ◐ the plain-mode running mark
+]);
+
+/**
+ * Whether Ambiguous characters are drawn two columns wide.
+ *
+ * Off by default, which is right for most terminals. `tmux` calls the same
+ * setting `-u`, and every tool that has met this problem has one, because
+ * there is no way to ask the terminal.
+ */
+function ambiguousIsWide() {
+  return process.env.CLAUDE_STATUSLINE_AMBIGUOUS_WIDE === "1";
+}
+
 export function displayWidth(text) {
   const plain = String(text)
     .replace(/\x1b\[[0-9;]*m/g, "")
@@ -209,6 +245,7 @@ export function displayWidth(text) {
     const forcedEmoji = nextCp === 0xfe0f;
     const wide =
       forcedEmoji ||
+      (ambiguousIsWide() && AMBIGUOUS.has(cp)) ||
       (cp >= 0x1100 && cp <= 0x115f) ||
       (cp >= 0x2e80 && cp <= 0xa4cf) ||
       (cp >= 0xac00 && cp <= 0xd7a3) ||
