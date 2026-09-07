@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-03
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "quando a skill parar de ser usada deve ser removida da linha de skills automaticamente" (when a skill stops being used, it must be automatically removed from the skills line)
 
@@ -87,3 +87,7 @@ A developer has used several different skills in the same session at different t
 - "Stops being used" is measured as time since the skill's last recorded invocation, not as a "task completed" signal, because the tools this statusline observes report when a skill starts but not when its work finishes. This is the same approximation the statusline's active-skill tracking already documents elsewhere as the honest choice available.
 - This feature formalizes and verifies an automatic-removal guarantee already partially present in the current design (a configurable time window), rather than introducing an entirely new mechanism; where the current behavior already satisfies a requirement here, the work is confirming and testing it, not rebuilding it.
 - The default removal delay is a reasonable "still probably relevant" span (on the order of tens of minutes) rather than a near-instant cutoff, since the same skill is often revisited a few minutes after switching to something else, and removing it too eagerly would be as misleading as leaving it too long.
+
+## What became of it
+
+A skill leaves the line once it falls outside the activity window, with no action needed, and the hook path and the transcript path agree on when. Pinned by `scripts/tests/skill-auto-removal.test.js`.

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-03
 
-**Status**: Draft
+**Status**: Superseded 2026-09-07
 
 **Input**: User description: "deve mostrar a lista de skills que estão sendo executadas tb no modo multi agente na linha de skills, hoje ainda não mostra" (the skills line should also show skills running in multi-agent mode; today it still doesn't)
 
@@ -88,3 +88,9 @@ A developer already sees a dedicated row per running subagent (its own progress 
 - Today, the main statusline render and the subagent-row display are two separate command invocations with separate inputs; the main render currently has no visibility into subagent activity at all, which is the concrete, verified reason the skills line shows nothing for it today. Closing that gap requires the render command to gain access to subagent activity somehow, by whatever mechanism is simplest and safest; the specific mechanism is a planning decision, not a business rule fixed here.
 - A subagent's identifying text (name/description, whatever the existing subagent-row feature already uses) is reused as-is for the skills line entry, rather than deriving a separate description, per FR-005's consistency requirement.
 - This feature does not require detecting which named skill a subagent is internally using, if the subagent mechanism itself doesn't already expose that; the subagent's own task-level identification is an acceptable, honest substitute, per the Edge Cases.
+
+## What became of it
+
+Its mechanism shipped and its placement did not survive. The `task-rows` snapshot it introduced is still how the bar knows a subagent is running, and still what makes line 2 say "working" while the top-level transcript is quiet.
+
+What changed is where the names go. Folding them into the skills chip was undone: subagents have their own rows now, carrying the tier, the age, a context gauge and the skills the hook attributed to them, and line 2 names no agent (Constitution II, amended 2026-09-07). The snapshot is also keyed per session, which closes the cross-session leak this spec documented as unavoidable — the tick does carry a correlation key.
