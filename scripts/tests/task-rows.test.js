@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test, stripAnsi } from "../test-harness.js";
 import { renderTaskRow, runTaskRows, taskTier } from "../../src/taskRows.js";
 import { displayWidth } from "../../src/theme.js";
-import { appendSkillEvent } from "../../src/skillEvents.js";
+import { appendSkillEvent, readSkillEvents } from "../../src/skillEvents.js";
 import { makeHome, withHome } from "./fixtures/home.js";
 
 const NOW = Date.parse("2026-08-26T12:00:00.000Z");
@@ -230,4 +230,37 @@ await test("a placeholder with no description still names the row", async () => 
   });
   const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
   assert.match(row, /local_agent/, "no description means the placeholder is all there is");
+});
+
+// Thirty minutes answers "which skills are still shaping this session". An
+// agent is bounded, so the honest filter is whether it is still running —
+// which the caller applies by looking up only the ids on the current tick.
+// Windowing on top of that dropped the skills of any agent past its first
+// half hour, which is exactly the long run where knowing matters most.
+await test("an agent that has run for hours keeps the skills it started with", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    appendSkillEvent("s1", "humanizer", { now: NOW - 3 * 60 * 60 * 1000, agentId: "a" });
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        session_id: "s1",
+        columns: 200,
+        tasks: [{ id: "a", name: "explore", description: "Consertar o offline do PR 58", startTime: NOW - 3 * 60 * 60 * 1000 }],
+      }),
+    });
+    const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
+    assert.match(row, /humanizer/, "three hours in, the skill is still what it is running");
+    assert.match(row, /3h00m/, "and the row agrees about how long that has been");
+  });
+});
+
+// The session's own list is still windowed: a skill it used three hours ago
+// is not what is shaping it now.
+await test("the session's own skill list stays windowed", async () => {
+  const home = makeHome();
+  await withHome(home, () => {
+    appendSkillEvent("s1", "humanizer", { now: NOW - 3 * 60 * 60 * 1000 });
+    assert.deepEqual(readSkillEvents("s1", { now: NOW }), []);
+  });
 });
