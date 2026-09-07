@@ -105,18 +105,23 @@ export function alignColumns(lines, width = terminalWidth()) {
 /**
  * Which lines render, given the rows available.
  *
- * The order was chosen by the owner on 2026-08-26: skills go first, then the
- * model, then the place. Line 4 is the last one standing, because it is the
- * only line carrying a limit whose consequence you cannot undo. Line 1
- * outlives line 3 because where you are and which branch you are on decide
- * whether an edit is safe.
+ * Skills go first, then whatever an arrangement has put on line 4, then the
+ * place. Line 3 is the last one standing, because it carries the limits whose
+ * consequence you cannot undo — and since the merge of 2026-09-07 it carries
+ * the model with them, so the survivor also says what is doing the spending.
+ * Line 1 outlives line 2 because where you are and which branch you are on
+ * decide whether an edit is safe.
+ *
+ * Line 4 is empty unless an arrangement moves something there. It sheds
+ * before line 1 because the bar cannot know what a person put on it, and the
+ * lines it does know about were ordered by the owner on 2026-08-26.
  *
  * Everything comes back the moment the rows do. Shedding is a response to
  * the window, not a mode the bar gets stuck in.
  */
-const SHED_ORDER = [2, 3, 1];
+const SHED_ORDER = [2, 4, 1];
 
-export function linesToRender(available = terminalHeight(), present = [1, 2, 3, 4]) {
+export function linesToRender(available = terminalHeight(), present = [1, 2, 3]) {
   let keep = [...present];
   for (const line of SHED_ORDER) {
     if (keep.length <= available) break;

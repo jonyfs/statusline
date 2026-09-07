@@ -91,7 +91,7 @@ await test("the report names each rendered row by its line", () => {
     live: false,
     probe: { ...probe, getActiveSkills: () => [], getSessionActivity: () => null },
   });
-  assert.deepEqual(report.rows.map((r) => r.line), [1, 3, 4]);
+  assert.deepEqual(report.rows.map((r) => r.line), [1, 3]);
 });
 
 await test("each window's row reports its level and its reset, as its chip draws them", () => {

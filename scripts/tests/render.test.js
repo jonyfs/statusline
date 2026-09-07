@@ -30,7 +30,7 @@ await test("survives a completely empty payload", () => {
 
 await test("omits the skills line when no skills are active", () => {
   const lines = renderPayload({}, { sources: emptySources }).split("\n");
-  assert.equal(lines.length, 3, `expected 3 lines without skills, got ${lines.length}`);
+  assert.equal(lines.length, 2, `expected 2 lines without skills, got ${lines.length}`);
 });
 
 await test("includes the skills line when skills are active", () => {
@@ -38,7 +38,7 @@ await test("includes the skills line when skills are active", () => {
     {},
     { sources: { ...emptySources, getActiveSkills: () => ["a", "b"] } }
   ).split("\n");
-  assert.equal(lines.length, 4);
+  assert.equal(lines.length, 3);
 });
 
 await test("every Catppuccin flavor renders", () => {
