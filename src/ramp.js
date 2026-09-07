@@ -20,9 +20,19 @@ const BANDS = [
     name: "ok",
     upTo: 60,
     colour: "green",
-    /** Solid blocks: nothing to say beyond the length itself. */
-    filled: "█",
-    empty: "░",
+    /**
+     * Solid blocks: nothing to say beyond the length itself.
+     *
+     * The empty cell is a light horizontal rather than the light shade it was
+     * until 2026-09-07. `U+2591` is East Asian Narrow while all three fills
+     * are Ambiguous, so on a terminal configured to draw Ambiguous wide the
+     * bar changed width as it filled: ten cells were ten columns empty and
+     * twenty full. `U+2500` is Ambiguous like the fills, so the bar is one
+     * width whatever the level, and it reads as the track the fill has not
+     * reached yet.
+     */
+    filled: "\u2588",
+    empty: "\u2500",
     suffix: "",
   },
   {
@@ -30,8 +40,8 @@ const BANDS = [
     upTo: 85,
     colour: "yellow",
     /** A lighter fill, visibly different from solid without colour. */
-    filled: "▓",
-    empty: "░",
+    filled: "\u2593",
+    empty: "\u2500",
     suffix: "",
   },
   {
@@ -39,8 +49,8 @@ const BANDS = [
     upTo: Infinity,
     colour: "red",
     /** Lighter again, and a mark the eye catches even in one colour. */
-    filled: "▒",
-    empty: "░",
+    filled: "\u2592",
+    empty: "\u2500",
     suffix: "!",
   },
 ];
@@ -58,7 +68,13 @@ const BANDS = [
 export function bandMark(pct) {
   const band = bandFor(pct);
   if (!band || band.name === "ok") return "";
-  return band.name === "warn" ? "▴" : "▲";
+  // Both marks are East Asian Narrow. They were `U+25B4` and `U+25B2` until
+  // 2026-09-07, and those are Narrow and Ambiguous respectively: crossing 85%
+  // widened the mark by a column on a terminal that draws Ambiguous wide, and
+  // shifted every segment after it on the busiest line of the bar. The
+  // escalation is outline to filled rather than small to large, which carries
+  // the band without colour exactly as before (Principle X, Section 508).
+  return band.name === "warn" ? "\u25B5" : "\u25B4";
 }
 
 /** The band a percentage falls in. Anything unusable is treated as unknown. */

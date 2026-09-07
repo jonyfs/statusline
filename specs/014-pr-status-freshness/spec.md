@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-05
 
-**Status**: Draft
+**Status**: Delivered 2026-09-05
 
 **Input**: User report: "PR status is always showing the last status of the last PR, it seems that in some cases it's becoming outdated" (status may not reflect current PR, caching or lookup issue)
 
@@ -109,3 +109,12 @@ After local git operations that might change PR relationship (merge, rebase, res
 - Caching strategy optimization (e.g., TTL, size limits) — focus is on correctness, not performance tuning
 - Network error handling beyond graceful degradation (e.g., retries) — falls to existing error handling
 - PR relationship inference (e.g., "PR #100 might still apply to this branch") — only show PR if it unambiguously belongs to current branch
+
+## What became of it
+
+Shipped and still in force. The pull request and CI answers are scoped to the
+branch they were asked about, so a branch you just left cannot leave its answer
+on the bar. `scripts/tests/branch-scope.test.js` pins it.
+
+The task list below was never ticked, which is why this spec read as Draft for
+two days after the work was in `main`.

@@ -118,9 +118,14 @@ third is done.
 - **Done**: `src/theme.js` now honours `NO_COLOR`, and drops the powerline
   separator with it, since a solid arrow is a shape cut out of two
   backgrounds and there are none without colour.
-- **Open**: the `█▓▒░` gauge in `src/ramp.js` and the `·` separator are
-  East Asian Ambiguous, which `displayWidth` counts as one column and a
-  CJK-configured terminal draws as two. Every row on the subagent list would
-  misalign there. Not fixed because the fix is a visual redesign of the
-  gauge, which is the owner's call and not a defect on the machines this has
-  been run on.
+- **Done 2026-09-07**, and worse than recorded here. The set was not uniformly
+  Ambiguous: `U+2591` LIGHT SHADE is Narrow while the three fills beside it are
+  Ambiguous, so the gauge changed width *as it filled*; and `U+25B4` is Narrow
+  while `U+25B2` is Ambiguous, so crossing 85% widened the band mark and
+  shifted the busiest line of the bar. Both were self-inconsistencies rather
+  than a uniform doubling, which is why they were worth fixing rather than
+  documenting. The gauge's empty cell is now `U+2500`, Ambiguous like its
+  fills; the marks are `U+25B5` and `U+25B4`, both Narrow. What remains
+  genuinely uniform — every Ambiguous character drawn two columns wide — is
+  answered by `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE=1`, since nothing in the
+  environment reports that setting.

@@ -143,8 +143,8 @@ await test("each window carries its own reset, and says so when it has none", ()
   // One subject, one chip: the level and when it comes back are read
   // together, so they are drawn together.
   const full = render(payload, everything);
-  assert.match(full, /5h \d+%[\u25b4\u25b2]? · 1h00m/);
-  assert.match(full, /7d \d+%[\u25b4\u25b2]? · /);
+  assert.match(full, /5h \d+%[\u25b4\u25b5]? · 1h00m/);
+  assert.match(full, /7d \d+%[\u25b4\u25b5]? · /);
   const empty = render({}, emptySources);
   assert.match(empty, /5h \?% · \?/);
   assert.doesNotMatch(empty, /\d+h\d+m/, "no countdown without a reset time");

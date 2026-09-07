@@ -1,3 +1,3 @@
   statusline  󰁍 projects  jonyfs/statusline   004-statusline-redesign-research  redesign 󰁍 main   1   4   1   2   1  +214 −87   PR #128 approved   CI 
  󰐱 speckit-implement, humanizer (Implementing)   the composer page (9/24)  󰣪 working 
- 󰚩 Opus 5                                        high  󰍛 Context 46%  󰔛 5h 62%▴ · 2h09m  󰈸 35%/h  5h limit ~13:05   7d 77%▴ · Thu 18:00   1h04m   rtk 81% saved 
+ 󰚩 Opus 5                                        high  󰍛 Context 46%  󰔛 5h 62%▵ · 2h09m  󰈸 35%/h  5h limit ~13:05   7d 77%▵ · Thu 18:00   1h04m   rtk 81% saved 

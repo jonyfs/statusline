@@ -103,7 +103,7 @@ await test("dropping a segment is preferred to shortening one", () => {
   const wide = lastLineAt(200);
   assert.match(wide, /rtk/, "with room, the savings figure is there");
   assert.match(wide, /Claude Opus 5/, "and so is the model, since the merge of 2026-09-07");
-  assert.match(wide, /7d 100%▲ ·/);
+  assert.match(wide, /7d 100%\u25b4 ·/);
 
   // Narrower: the savings figure goes, then the reset text, then the effort.
   // The three levels never go — they are what the line is for — and neither
@@ -112,7 +112,7 @@ await test("dropping a segment is preferred to shortening one", () => {
     const line = lastLineAt(width);
     assert.match(line, /Claude Opus 5/, `the model survives at ${width}`);
     assert.match(line, /Context 100%/, `the context figure survives at ${width}`);
-    assert.match(line, /5h 100%▲/, `the nearest limit survives at ${width}`);
+    assert.match(line, /5h 100%\u25b4/, `the nearest limit survives at ${width}`);
     assert.equal((line.match(/resets in/g) || []).length, 0, "the words stay off the line");
   }
 
