@@ -321,7 +321,7 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   // installed and Claude Code's `agent_id` turns out to be the same value as
   // the task `id` here, which is not documented either way; an agent with
   // nothing recorded simply shows no skills.
-  const skillsByAgent = readSkillsByAgent(sessionId, { now });
+  const skillsByAgent = readSkillsByAgent(sessionId);
 
   // Which names fail to tell one running task from another. Computed over the
   // whole tick, because a name can only be judged against its siblings.

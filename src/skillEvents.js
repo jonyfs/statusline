@@ -170,13 +170,23 @@ export async function runNoteSkill({ now = Date.now() } = {}) {
  * The skills each subagent has used inside the window, keyed by the agent id
  * the hook recorded.
  *
+ * Deliberately unwindowed, unlike the session's own list. Thirty minutes
+ * answers "which skills are still shaping this session", and a session runs
+ * for as long as it runs; an agent is bounded — it starts, works and ends —
+ * so the honest filter is whether it is still running, and the caller already
+ * applies it by looking up only the ids on the current tick. Windowing on top
+ * of that dropped the skills of any agent past its first half hour, which is
+ * exactly the long run where knowing what it is doing matters most. A
+ * finished agent's id never comes back, so its records are simply never
+ * asked for; the file's own tail cap bounds what is read.
+ *
  * Whether this is ever non-empty depends on something Claude Code does not
  * document: the hook reports an `agent_id` and the subagent rows report a
  * task `id`, and nothing states that they are the same value. Where they are
  * not, this returns nothing for that agent and the row says nothing extra,
  * which is the same outcome as the hook not being installed at all.
  */
-export function readSkillsByAgent(sessionId, { windowMs = 30 * 60 * 1000, now = Date.now() } = {}) {
+export function readSkillsByAgent(sessionId) {
   const byAgent = new Map();
   let text;
   try {
@@ -185,7 +195,6 @@ export function readSkillsByAgent(sessionId, { windowMs = 30 * 60 * 1000, now = 
     return byAgent;
   }
   if (text.length > MAX_TAIL_BYTES) text = text.slice(-MAX_TAIL_BYTES);
-  const cutoff = now - windowMs;
   for (const line of text.split("\n")) {
     if (!line) continue;
     let record;
@@ -195,7 +204,6 @@ export function readSkillsByAgent(sessionId, { windowMs = 30 * 60 * 1000, now = 
       continue;
     }
     if (!record?.agent || !record.skill) continue;
-    if (typeof record.at === "number" && record.at < cutoff) continue;
     const seen = byAgent.get(record.agent) ?? [];
     if (!seen.includes(record.skill)) seen.push(record.skill);
     byAgent.set(record.agent, seen);
