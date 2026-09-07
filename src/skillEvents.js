@@ -85,6 +85,11 @@ function scanAllSkillEvents(sessionId, { windowMs = 30 * 60 * 1000, now = Date.n
       continue;
     }
     if (typeof record?.at !== "number" || record.at < cutoff || record.at > now) continue;
+    // A record carrying an agent belongs to a subagent, and its skills belong
+    // on that agent's own row. Line 2 says what is shaping THIS session, and
+    // folding four subagents' skills into it made that chip a list of things
+    // the reader is not doing.
+    if (record.agent) continue;
     if (!record.skill || seen.has(record.skill)) continue;
     seen.add(record.skill);
     found.push(record.skill);

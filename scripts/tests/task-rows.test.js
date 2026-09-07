@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test, stripAnsi } from "../test-harness.js";
 import { renderTaskRow, runTaskRows, taskTier } from "../../src/taskRows.js";
 import { displayWidth } from "../../src/theme.js";
+import { appendSkillEvent } from "../../src/skillEvents.js";
+import { makeHome, withHome } from "./fixtures/home.js";
 
 const NOW = Date.parse("2026-08-26T12:00:00.000Z");
 const strip = (s) => s.replace(/\x1b\[[0-9;]*m/g, "");
@@ -174,4 +176,27 @@ await test("a column no row uses is not drawn", async () => {
   for (const row of rows) {
     assert.equal((row.match(/ \u00b7 /g) || []).length, 1, `one separator, got: ${row}`);
   }
+});
+
+// The skills say what the agent is doing and the tier says what it costs.
+// The first is read with the name, so it sits between them.
+await test("an agent's skills sit between its name and its tier", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    appendSkillEvent("s1", "humanizer", { now: NOW, agentId: "a" });
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        session_id: "s1",
+        columns: 200,
+        tasks: [{ id: "a", name: "explore", description: "Locating money.ts", model: "claude-opus-5", effort: "high", startTime: NOW - 60_000 }],
+      }),
+    });
+    const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
+    assert.ok(
+      row.indexOf("humanizer") > row.indexOf("Locating money.ts") &&
+        row.indexOf("humanizer") < row.indexOf("opus"),
+      `expected name, skills, tier in that order: ${row}`
+    );
+  });
 });

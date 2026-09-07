@@ -142,8 +142,10 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   return [
     cell(dropName ? what : name, leadColour),
     cell(dropName ? null : what, palette.text),
-    cell(tierLabel, palette[tier?.colour] ?? palette.surface2),
+    // Before the tier, not after: the skills say what this agent is doing and
+    // the tier says what it costs, and the first is read with the name.
     cell(skills.length ? skills.join(", ") : null, palette.green),
+    cell(tierLabel, palette[tier?.colour] ?? palette.surface2),
     cell(gauge, pct === null ? palette.green : palette[rampColour(pct, "green")] ?? palette.green),
     cell(pct === null ? null : abbreviate(task.tokenCount), palette.surface2),
     cell(elapsed(task.startTime, now), palette.surface2),
