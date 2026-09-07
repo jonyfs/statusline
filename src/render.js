@@ -33,7 +33,7 @@ import { getOpenTabUrl } from "./openTerminalTab.js";
 import { resetMomentLabel } from "./timeIcons.js";
 import { trackChanges } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
-import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
+import { byLine, segment, inChannel, SEGMENTS, helpUrlFor } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
 import { resolveLayout } from "./config.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
@@ -921,8 +921,27 @@ export function renderReadings(
    * own priority, so what a narrow terminal sheds is still a decision taken
    * in the registry.
    */
+  /**
+   * The link a segment shows on hover, where the terminal previews one.
+   *
+   * A segment that already points somewhere keeps it: opening the folder, the
+   * branch or the pull request beats reading about them. Everything else gets
+   * its own section of the README, which costs no display columns — OSC 8 is
+   * stripped before the width is counted — so nothing on the bar moves.
+   *
+   * Off by `CLAUDE_STATUSLINE_NO_HELP_LINKS=1`. Several terminals underline
+   * linked text, and underlining almost the whole bar is the one cost this
+   * carries; a reader who finds it noisy should not have to choose between
+   * that and uninstalling.
+   */
+  const withHelpLink = (seg) => {
+    if (seg.url || process.env.CLAUDE_STATUSLINE_NO_HELP_LINKS === "1") return seg;
+    const url = helpUrlFor(seg.key);
+    return url ? { ...seg, url } : seg;
+  };
+
   const assemble = (trimStep) => {
-    const built = [...content, ...buildLine3(trimStep)];
+    const built = [...content, ...buildLine3(trimStep)].map(withHelpLink);
     collect(built);
     const byLineNumber = new Map([1, 2, 3, 4].map((n) => [n, []]));
     for (const seg of built) {
