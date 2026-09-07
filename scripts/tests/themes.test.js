@@ -86,3 +86,41 @@ await test("the thin separator has to be asked for", () => {
     if (prev !== undefined) process.env.CLAUDE_STATUSLINE_SEPARATOR = prev;
   }
 });
+
+// NO_COLOR is a cross-tool convention, not this project's invention: set to
+// anything non-empty it means the person asked every program on the machine
+// not to colourise, and a bar that ignores it is one they cannot turn off
+// without uninstalling it.
+await test("NO_COLOR leaves the bar readable and free of escapes", () => {
+  const sources = {
+    ...gitSources(),
+    getSessionActivity: () => ({ skills: [], skillsTrueCount: 0, todos: null, working: true }),
+  };
+  const draw = () =>
+    renderPayload(fullPayload(), { sources, trackChanges: false, now: NOW, maxWidth: 200, maxHeight: 40 });
+
+  const coloured = draw();
+  assert.match(coloured, /\x1b\[38;2;/, "colour is on by default");
+
+  process.env.NO_COLOR = "1";
+  try {
+    const plain = draw();
+    assert.doesNotMatch(plain, /\x1b\[/, "no colour, and nothing left half-set");
+    // Principle X: colour is never the only carrier, so nothing is lost.
+    assert.match(plain, /5h /, "the figures survive");
+    assert.match(plain, /working|idle/, "and so does the state");
+  } finally {
+    delete process.env.NO_COLOR;
+  }
+});
+
+// An empty value is not a request. The convention says non-empty.
+await test("an empty NO_COLOR is not a request to drop colour", () => {
+  process.env.NO_COLOR = "";
+  try {
+    const out = renderPayload(fullPayload(), { sources: gitSources(), trackChanges: false, now: NOW, maxWidth: 200, maxHeight: 40 });
+    assert.match(out, /\x1b\[38;2;/);
+  } finally {
+    delete process.env.NO_COLOR;
+  }
+});

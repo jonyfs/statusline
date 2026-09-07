@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 5.0.0 (II and X redefined on 2026-09-06: line 2 gains the running subagents as a
+- Version: 5.1.0 (X gains NO_COLOR on 2026-09-07: MINOR, a new requirement rather than a
+  redefinition of an existing one. The bar emitted truecolor unconditionally, so a person who
+  had asked every program on the machine not to colourise could not turn this one off without
+  uninstalling it. The powerline separator goes with the colour, being a shape cut out of two
+  backgrounds that do not exist without it.)
+- Previously, version 5.0.0 (II and X redefined on 2026-09-06: line 2 gains the running subagents as a
   named subject, and line 4's merged reset countdown is removed in favour of each window
   carrying its own reset. MAJOR because both are redefinitions of what a line MUST show, not
   clarifications.)
@@ -390,6 +395,12 @@ accessibility hazard where it works.
   of 2026-08-26. The 5-hour and 7-day figures MUST keep their marks: those are the limits whose
   consequence a reader cannot undo. Any further exception MUST be recorded here rather than
   decided in a render function.
+- **Colour is a preference the reader may withdraw**: `NO_COLOR`, set to anything non-empty,
+  MUST turn colour off. It is a cross-tool convention rather than this project's invention, and
+  a bar that ignores it is one a person cannot turn off without uninstalling it. Nothing may be
+  carried by colour alone for this to be safe, which the band marks below already require. The
+  powerline separator MUST go with the colour: it is a shape cut out of two backgrounds, and
+  without them it is a filled triangle between chips that no longer have edges.
 - **One meaning per channel**: a colour on the bar MUST mean exactly one thing wherever it
   appears. Where colour marks change, it MUST NOT also encode a level on the same segment, and
   where a ramp encodes a level, that segment MUST NOT also use colour to mark change. The two
@@ -510,4 +521,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 5.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-06
+**Version**: 5.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-07

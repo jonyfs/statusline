@@ -2,7 +2,7 @@
 
 **Feature ID**: `017-line-legibility`
 
-**Status**: Implemented
+**Status**: Implemented, then amended (see "What changed after" below)
 
 **Date**: 2026-09-06
 
@@ -75,3 +75,52 @@ The same research turned up three more problems, left alone here because each is
 different kind and deserves its own decision: the mixed-width `█▓▒░` gauge in `src/ramp.js`, the
 ambiguous-width `·` separator under a CJK-configured terminal, and `src/theme.js` emitting
 truecolor with no fallback and no `NO_COLOR` support.
+
+## What changed after
+
+Written before the line had been lived with. Three of its requirements were
+overtaken the same week, by the owner and by measurement, and the record is
+worth more than the tidy version.
+
+**The agent chip came off line 2 (FR-001, FR-001a).** It went on, grew to
+three names with tiers and ages, and at about 134 columns crowded both the
+skills chip and the working indicator off a 120-column window. The roster
+moved to the subagent rows, which have a line each and now carry the tier,
+the age, the context gauge and the skills. Line 2 is the session's own
+skills, its todo and whether it is working. A running subagent still answers
+that last question without being named.
+
+**Per-agent skills turned out to be possible (FR-004).** The claim here was
+that no attribution exists. Half right: nothing in Claude Code's contract
+links the two, but the `PostToolUse` payload carries `agent_id` while
+`session_id` stays the parent's, and a probe subagent invoking `humanizer`
+recorded an agent id identical to its own row's task id. The rows show the
+skills recorded against a running task's id, and show nothing where the ids
+do not match — measured, not assumed, and degrading to silence rather than
+to invention.
+
+**A skill a subagent invoked is not the session's.** Recording the agent id
+put every subagent's invocation in the file line 2 reads, which with four
+agents running made that chip a list of things the reader is not doing.
+Records carrying an agent are now excluded from the session's own list.
+
+**The working indicator is a static glyph again.** The Braille pulse shipped
+and came off; a hammer and a coffee cup replaced the filled and hollow discs,
+chosen from a sheet of twelve candidate pairs rendered from the installed
+font. The counter rule the pulse taught stays in the constitution even though
+nothing animates: it cost a bug to learn.
+
+## Also found, not fixed
+
+Two of the three findings this spec listed as out of scope are still open. The
+third is done.
+
+- **Done**: `src/theme.js` now honours `NO_COLOR`, and drops the powerline
+  separator with it, since a solid arrow is a shape cut out of two
+  backgrounds and there are none without colour.
+- **Open**: the `█▓▒░` gauge in `src/ramp.js` and the `·` separator are
+  East Asian Ambiguous, which `displayWidth` counts as one column and a
+  CJK-configured terminal draws as two. Every row on the subagent list would
+  misalign there. Not fixed because the fix is a visual redesign of the
+  gauge, which is the owner's call and not a defect on the machines this has
+  been run on.

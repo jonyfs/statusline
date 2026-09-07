@@ -66,6 +66,11 @@ const ASCII_ARROW = "▸";
 export function separatorFor({ asciiArrows = false, style = process.env.CLAUDE_STATUSLINE_SEPARATOR } = {}) {
   if (asciiArrows) return ASCII_ARROW;
   if (style === "thin") return POWERLINE_THIN;
+  // The solid arrow is a shape cut out of two backgrounds, and with `NO_COLOR`
+  // there are no backgrounds: it becomes a row of filled triangles between
+  // chips that no longer have edges. The thin one is a line, which is what a
+  // divider without colour has to be.
+  if (!colourEnabled()) return POWERLINE_THIN;
   return POWERLINE_ARROW;
 }
 
@@ -74,17 +79,44 @@ function hexToRgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+/**
+ * Whether this render may emit colour at all.
+ *
+ * `NO_COLOR` is a cross-tool convention rather than this project's invention:
+ * set to anything non-empty, it means the person has asked every program on
+ * the machine not to colourise, and a bar that ignores it is one they cannot
+ * turn off without uninstalling it. Read per call rather than cached, so a
+ * test or a preview can set it around one render.
+ *
+ * Colour is not the only carrier of anything the bar says — Principle X
+ * requires a band mark beside the ramped figures for exactly this reason —
+ * so a colourless bar loses emphasis, never information. The powerline
+ * separators go with it: drawn without the two colours they sit between,
+ * they are a row of solid triangles saying nothing.
+ */
+export function colourEnabled() {
+  const raw = process.env.NO_COLOR;
+  return raw === undefined || raw === "";
+}
+
 function fg(hex) {
+  if (!colourEnabled()) return "";
   const [r, g, b] = hexToRgb(hex);
   return `\x1b[38;2;${r};${g};${b}m`;
 }
 
 function bg(hex) {
+  if (!colourEnabled()) return "";
   const [r, g, b] = hexToRgb(hex);
   return `\x1b[48;2;${r};${g};${b}m`;
 }
 
-const RESET = "\x1b[0m";
+const RESET_SEQ = "\x1b[0m";
+
+/** The reset, or nothing when there is no colour to reset. */
+function reset() {
+  return colourEnabled() ? RESET_SEQ : "";
+}
 
 /**
  * OSC 8 terminal hyperlink: wraps text so it's clickable in terminals that
@@ -141,7 +173,7 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
   // segment's own background (still active from the loop above) and its
   // triangle becomes invisible — same-color foreground on same-color
   // background — instead of fading into the terminal's real background.
-  out += `${RESET}${fg(resolveColour(palette, last.color))}${arrow}${RESET}`;
+  out += `${reset()}${fg(resolveColour(palette, last.color))}${arrow}${reset()}`;
   return out;
 }
 
