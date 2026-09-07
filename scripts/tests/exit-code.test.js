@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { test } from "../test-harness.js";
 
@@ -65,16 +65,23 @@ await test("the installed command is the one that renders", () => {
 // default for that is an unhandled EPIPE: a stack trace where the bar should
 // be, and a non-zero exit, which is a reason for a harness to stop calling
 // the command at all.
-await test("a reader that goes away mid-write is silent, not a stack trace", () => {
-  const result = spawnSync(
-    "/bin/sh",
-    ["-c", `${JSON.stringify(process.execPath)} ${JSON.stringify(CLI)} render | head -c 1 >/dev/null`],
-    {
-      input: "{}",
-      encoding: "utf8",
-      env: { ...process.env, CLAUDE_STATUSLINE_NO_REFRESH: "1", COLUMNS: "200" },
-    }
-  );
-  assert.equal(result.status, 0, "the pipeline exits 0");
-  assert.doesNotMatch(result.stderr ?? "", /EPIPE|at .*cli\.js/, `stderr was: ${result.stderr}`);
+//
+// Closing the read end from here rather than piping into `head`: a shell
+// pipeline needs `/bin/sh` and a `head` that takes `-c`, and Windows has
+// neither (Principle IX). What is asserted holds either way — a platform that
+// raises EPIPE must not print it, and one that swallows the write must still
+// exit 0 — so this guards the outcome rather than the mechanism.
+await test("a reader that goes away mid-write is silent, not a stack trace", async () => {
+  const child = spawn(process.execPath, [CLI, "render"], {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: { ...process.env, CLAUDE_STATUSLINE_NO_REFRESH: "1", COLUMNS: "200" },
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => (stderr += chunk));
+  child.stdout.destroy();
+  child.stdin.end("{}");
+
+  const code = await new Promise((resolve) => child.on("close", resolve));
+  assert.equal(code, 0, `exited ${code} with stderr: ${stderr}`);
+  assert.doesNotMatch(stderr, /EPIPE|at .*cli\.js/, `stderr was: ${stderr}`);
 });
