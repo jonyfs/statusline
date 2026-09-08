@@ -28,7 +28,7 @@ import { fileURLToPath } from "node:url";
 
 import { gather, renderReadings } from "../src/render.js";
 import { PALETTES } from "../src/theme.js";
-import { SEGMENTS } from "../src/segments.js";
+import { SEGMENTS, SEGMENT_ABOUT } from "../src/segments.js";
 import { PAYLOAD, SOURCES, FIXED_NOW, SAMPLES } from "./composer-fixture.js";
 import { PRESETS } from "./composer-presets.js";
 
@@ -253,6 +253,7 @@ const POOLS = ${escapeScript(pools)};
 const REGISTRY = ${escapeScript(registry)};
 const PRESETS = ${escapeScript(PRESETS)};
 const WIDTHS = ${escapeScript(WIDTHS)};
+const ABOUT = ${escapeScript(SEGMENT_ABOUT)};
 const MISSING_CONTENT = ${escapeScript(missingContent)};
 const PALETTE = ${escapeScript(PALETTES.mocha)};
 const STORAGE_KEY = "statusline-composer-v1";
@@ -473,6 +474,9 @@ function renderSegments() {
       label.className = "name";
       label.htmlFor = check.id;
       label.textContent = placement.key;
+      // The one place the gesture works: a terminal cannot raise a tooltip,
+      // and this page is a browser (specs/019, route A).
+      if (ABOUT[placement.key]) label.title = ABOUT[placement.key];
 
       li.append(check, label);
 

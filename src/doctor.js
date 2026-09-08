@@ -11,7 +11,7 @@
  */
 
 import { gather, renderReadings } from "./render.js";
-import { SEGMENTS as REGISTRY } from "./segments.js";
+import { SEGMENT_ABOUT, SEGMENTS as REGISTRY } from "./segments.js";
 import {
   getDirLabel,
   getDirUrl,
@@ -350,4 +350,30 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
 
   const report = buildReport(payload, { now });
   return json ? JSON.stringify(report, null, 2) : formatReport(report);
+}
+
+/**
+ * What every segment shows, one line each.
+ *
+ * The bar cannot be asked directly: a terminal has no hover, and the
+ * statusline is printed once by a process that exits. This is where the
+ * question goes instead, and the composer page asks the same list on hover
+ * (specs/019-explaining-a-segment).
+ *
+ * Ordered by line and then by position, so the list reads in the order the
+ * eye meets the segments rather than alphabetically.
+ */
+export function explainSegments() {
+  const rows = [...REGISTRY].sort((a, b) => a.line - b.line || a.order - b.order);
+  const width = Math.max(...rows.map((r) => r.key.length));
+  const out = [];
+  let line = null;
+  for (const row of rows) {
+    if (row.line !== line) {
+      line = row.line;
+      out.push(`${out.length ? "\n" : ""}line ${line}`);
+    }
+    out.push(`  ${row.key.padEnd(width)}  ${SEGMENT_ABOUT[row.key] ?? "(undescribed)"}`);
+  }
+  return out.join("\n");
 }

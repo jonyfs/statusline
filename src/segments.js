@@ -108,3 +108,40 @@ export function byPriority(rows = SEGMENTS) {
 export function inChannel(channel) {
   return SEGMENTS.filter((s) => s.colour === channel).map((s) => s.key);
 }
+
+/**
+ * One sentence per segment, saying what it shows.
+ *
+ * A terminal cannot raise a tooltip, so the answer lives where a reader can
+ * ask for it: `doctor --explain` prints this list, and the composer page shows
+ * a segment's line on hover, which is the one place the gesture works
+ * (specs/019-explaining-a-segment, routes A and C).
+ *
+ * Written to say what the segment shows and why it earns its width, not to
+ * restate its label. A reader who can already see `5h 62%` does not need to be
+ * told it is the five-hour figure.
+ */
+export const SEGMENT_ABOUT = {
+  dir: "The working directory, shortened from the left so the end that identifies it survives. Opens a terminal tab already changed into it.",
+  projectDir: "The project root, shown only when you are somewhere below it.",
+  repo: "Owner and repository name. Says what the directory cannot when the folder is not named after the project.",
+  branch: "The branch you are on, or the short commit id when the head is detached — those are different claims and get different icons.",
+  worktree: "The linked worktree you are in, and what it was created from.",
+  conflicts: "Unmerged paths. They used to be folded into the changed-file count, which understated a state that halts everything until it is resolved.",
+  worktreeState: "What the working tree holds and how far it has drifted: files changed, files untracked, commits to push, commits to pull. A count is omitted when it is zero.",
+  linesChanged: "Lines this session added and removed, counted by Claude Code rather than by git. It sits beside the tree counters because that is where the eye looks for a diff stat.",
+  pr: "The open pull request for this branch, its review state and its labels. Scoped to the branch, so one you just left cannot answer for the one you are on.",
+  ci: "The last workflow run for this branch. It disappears rather than going stale: a green tick ten minutes old is worse than none.",
+  skills: "The skills shaping this session, newest first, dropped once they fall outside the activity window. A skill a subagent invoked belongs to that subagent's row instead.",
+  todo: "The current todo and how far the list has got.",
+  activity: "Whether the transcript grew in the last ten seconds, or a subagent of this session is running. Nothing emits \"thinking now\", so this is the honest approximation.",
+  model: "The model answering, and how much of its context window this session carries.",
+  effort: "The reasoning effort it is running at.",
+  context: "How full the context window is. The one figure that carries its level in colour alone, at the owner's decision.",
+  fiveHour: "The five-hour usage window and when it comes back. It counts down, because inside a day a reset is something you wait out.",
+  burnRate: "How fast the five-hour window is being spent, measured across recent samples. A percentage says where you are; a rate says whether you arrive before the reset.",
+  projection: "When the five-hour window would run out, shown only when that lands before it resets — which is the only case where it changes what you do.",
+  sevenDay: "The seven-day usage window and when it comes back. It names the day, because beyond a day a reset is something you plan around.",
+  duration: "Wall-clock time since the session started.",
+  rtk: "The share of tokens rtk has saved, a lifetime average across everything it has proxied rather than a figure for this session.",
+};
