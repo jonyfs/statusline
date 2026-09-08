@@ -864,9 +864,19 @@ A segment about the session, the model or a limit has nothing in your project
 to point at, so it carries no link rather than one pointing elsewhere. For a
 while it pointed at this README instead, and in someone else's project most of
 the bar then linked to a repository that was not theirs — correct by
-construction, and indistinguishable from a bug. What a segment means is
-answered by this file and by `doctor`, neither of which needs a link on the
-bar.
+construction, and indistinguishable from a bug.
+
+## Asking what a segment shows
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js doctor --explain
+```
+
+One sentence per segment, grouped by line and in the order the eye meets them.
+The composer page shows the same sentence when you hover a segment's name,
+which is the only place the gesture works: a statusline is printed once by a
+process that then exits, so nothing is listening when a pointer moves, and no
+escape sequence carries hover text.
 
 The directory opens a new tab in iTerm2 or Terminal.app on macOS, already
 `cd`'d into the right place, via a generated `.command` script and a bit of

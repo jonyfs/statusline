@@ -107,6 +107,16 @@ a decision, not a detail.
 
 ## What became of it
 
-Route B shipped in #13 and was withdrawn in #14 the same day. Pointing every segment at this plugin's repository meant that in someone else's project most of the bar linked to a repository that was not theirs — correct by construction, indistinguishable from a bug, and reported as one within a day (`specs/020-links-that-belong-here`).
+**Closed 2026-09-07.** Route B shipped in #13 and was withdrawn in #14 the same day. Pointing every segment at this plugin's repository meant that in someone else's project most of the bar linked to a repository that was not theirs — correct by construction, indistinguishable from a bug, and reported as one within a day (`specs/020-links-that-belong-here`).
 
 Every link now points into the project the bar is rendered in, and the segments with nothing there to point at carry none. The need this spec opened with — a reader who cannot ask the bar what a segment means — is unanswered again, and routes A and C remain the honest ways to answer it.
+
+Routes A and C then shipped in #17, which is where the need finally landed:
+`doctor --explain` prints one sentence per segment, and the composer page shows
+the same sentence on hover — the one place the gesture works, and a page that
+is the tool rather than a project, so it carries none of what made the terminal
+links wrong.
+
+A segment added without a sentence fails the suite, which is the invariant this
+spec asked for in FR-002 and the only thing that keeps the list from drifting
+the way the README did.

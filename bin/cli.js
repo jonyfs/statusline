@@ -66,7 +66,14 @@ async function main() {
       break;
     }
     case "doctor": {
-      const { runDoctor } = await import("../src/doctor.js");
+      const { runDoctor, explainSegments } = await import("../src/doctor.js");
+      // `--explain` is its own answer rather than a column on the table: the
+      // table is already 122 columns wide, and a sentence per segment would
+      // either wrap it or be cut to uselessness.
+      if (rest.includes("--explain")) {
+        process.stdout.write(explainSegments() + "\n");
+        break;
+      }
       const out = await runDoctor({ json: rest.includes("--json") });
       process.stdout.write(out + "\n");
       break;
@@ -114,7 +121,7 @@ async function main() {
     }
     default:
       console.error(`Unknown command: ${subcommand}`);
-      console.error(`Usage: statusline-plugin <install|uninstall|render|doctor>`);
+      console.error(`Usage: statusline-plugin <install|uninstall|render|doctor [--json|--explain]>`);
       process.exit(1);
   }
 }
