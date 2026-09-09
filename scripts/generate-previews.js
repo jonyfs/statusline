@@ -37,9 +37,10 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderPayload } from "../src/render.js";
+import { alignTaskRows } from "../src/taskRows.js";
 import { ansiToSvg } from "../src/preview/ansiToSvg.js";
 import { PALETTES } from "../src/theme.js";
-import { SCENARIOS, FLAVOR_SCENARIO, EXTRA_FLAVORS, FIXED_NOW } from "./preview-fixtures.js";
+import { SCENARIOS, FLAVOR_SCENARIO, EXTRA_FLAVORS, FIXED_NOW, TASK_ROWS_SCENARIO } from "./preview-fixtures.js";
 
 const OUT_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -124,6 +125,25 @@ function main() {
     })
   );
   written.push("ascii-fallback.svg");
+
+  // The subagent rows are drawn by Claude Code, not by `renderPayload`, so
+  // they go through the function the installed `task-rows` command calls
+  // rather than being typed into the README by hand (Principle VIII).
+  const rowsAnsi = withFrozenClock(() =>
+    alignTaskRows(TASK_ROWS_SCENARIO.tasks, {
+      columns: TASK_ROWS_SCENARIO.columns,
+      palette: PALETTES.mocha,
+      now: FIXED_NOW * 1000,
+      skillsByAgent: new Map(TASK_ROWS_SCENARIO.skills),
+    })
+      .map((row) => row.content)
+      .join("\n")
+  );
+  writeFileSync(
+    path.join(OUT_DIR, TASK_ROWS_SCENARIO.file),
+    ansiToSvg(rowsAnsi, { title: TASK_ROWS_SCENARIO.title, background: PALETTES.mocha.base })
+  );
+  written.push(TASK_ROWS_SCENARIO.file);
 
   console.log(`Wrote ${written.length} previews to docs/previews/:`);
   for (const f of written) console.log(`  ${f}`);

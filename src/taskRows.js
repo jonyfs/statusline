@@ -377,6 +377,20 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   // nothing recorded simply shows no skills.
   const skillsByAgent = readSkillsByAgent(sessionId);
 
+  return alignTaskRows(tasks, { columns, palette, now, skillsByAgent })
+    .map((row) => JSON.stringify(row))
+    .join("\n");
+}
+
+/**
+ * A tick's rows, aligned against each other and shed to fit.
+ *
+ * Separated from `runTaskRows` so the README's illustration can be produced
+ * by the code that runs rather than typed by hand (Principle VIII). Every
+ * input it needs is an argument: it reads no stdin, no environment and no
+ * state directory, so the same tasks render the same rows anywhere.
+ */
+export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, now = Date.now(), skillsByAgent = new Map() } = {}) {
   // Which names fail to tell one running task from another. Computed over the
   // whole tick, because a name can only be judged against its siblings.
   const seen = new Map();
@@ -424,7 +438,5 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
         return null;
       }
     })
-    .filter(Boolean)
-    .map((row) => JSON.stringify(row))
-    .join("\n");
+    .filter(Boolean);
 }
