@@ -301,6 +301,32 @@ Consertar o offline do PR 58 · humanizer · sonnet·high · ████░░�
 Corrigir o CASCADE           ·           · sonnet·high · ██░░░░░░ 13% · 132k · 16m
 ```
 
+A row carries, in order: who the agent is, the skills it is running, the step
+it is on, whether it has spent anything lately, its status and directory when
+either is unusual, the tier, a context gauge, the token count and the age.
+
+```
+Fechar os nove achados do PR 67  · Staging all fixer changes for commit · idle   ·               · sonnet·high · ███░ 27% · 271k · 1h04m
+Resolver o conflito do PR 68     · Restoring review-debt.sh from backup · +12.4k · barbershop-wt · sonnet·high · ██░░ 18% · 181k · 47m
+```
+
+Two of those need saying. **The brief and the step are different facts**: the
+tick carries `description` for what the agent was asked to do, fixed for its
+life, and `label` for what it is doing this second. **`idle` means it has spent
+no tokens across the samples it reported** — waiting on a tool and being stuck
+look the same from here, and the row does not claim to know which. The growth
+is a total rather than a rate because nothing states how far apart the samples
+are.
+
+The status appears only when it is not `running`, and the directory only when
+it is not the session's — an agent working in another worktree is worth a
+column, and one working where you are is not.
+
+A row that will not fit sheds its least useful column rather than being cut off
+at the edge: the token count first, since the gauge already says the
+proportion, then the age, then the gauge itself. Who the agent is, what it is
+doing and what it costs are the last to go.
+
 A row leads with what the agent is doing rather than how it was dispatched.
 `local_agent` is the name an ad-hoc Task arrives with, the same word for every
 one of them, so it is dropped when there is a description to lead with — as is

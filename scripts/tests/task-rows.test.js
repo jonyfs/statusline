@@ -294,3 +294,117 @@ await test("the session's own skill list stays windowed", async () => {
     assert.deepEqual(readSkillEvents("s1", { now: NOW }), []);
   });
 });
+
+// The tick carries two sentences that answer different questions, and the row
+// was showing only one. `description` is the brief an agent was given and does
+// not change; `label` is the step it is on right now (specs/021-agent-rows).
+await test("a row separates the brief from the step it is on", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        columns: 200,
+        tasks: [
+          { id: "a", name: "local_agent", description: "Fechar os nove achados do PR 67", label: "Staging all fixer changes", startTime: NOW - 60_000 },
+        ],
+      }),
+    });
+    const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
+    assert.match(row, /Fechar os nove achados do PR 67/, "the brief leads");
+    assert.match(row, /Staging all fixer changes/, "and the step is beside it");
+  });
+});
+
+await test("a step identical to the brief is not repeated", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        columns: 200,
+        tasks: [{ id: "a", name: "explore", label: "Locating money.ts", startTime: NOW - 60_000 }],
+      }),
+    });
+    const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
+    assert.equal((row.match(/Locating money\.ts/g) || []).length, 1, "said once, not twice");
+  });
+});
+
+// `tokenSamples` is the only thing that separates an agent doing work from one
+// that has been waiting for minutes, and the two look identical otherwise.
+await test("a row says whether the agent has spent anything lately", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        columns: 200,
+        tasks: [
+          { id: "a", name: "one", description: "stuck", startTime: NOW - 60_000, tokenSamples: [271273, 271273, 271273] },
+          { id: "b", name: "two", description: "moving", startTime: NOW - 60_000, tokenSamples: [169000, 175200, 181390] },
+        ],
+      }),
+    });
+    const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+    assert.match(rows[0], /idle/, "no growth across the samples");
+    assert.match(rows[1], /\+12\.4k/, "growth reported as a total, since nothing says how far apart the samples are");
+  });
+});
+
+await test("a status is shown only when it is not running, and a cwd only when it differs", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    const out = await runTaskRows({
+      now: NOW,
+      input: JSON.stringify({
+        cwd: "/repos/here",
+        columns: 200,
+        tasks: [
+          { id: "a", name: "same", description: "ordinary", status: "running", cwd: "/repos/here", startTime: NOW - 60_000 },
+          { id: "b", name: "other", description: "elsewhere", status: "queued", cwd: "/repos/a-worktree", startTime: NOW - 60_000 },
+        ],
+      }),
+    });
+    const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+    assert.doesNotMatch(rows[0], /running/, "running is what every row already looks like");
+    assert.doesNotMatch(rows[0], /repos|here/, "an agent where you are says nothing");
+    assert.match(rows[1], /queued/);
+    assert.match(rows[1], /a-worktree/, "an agent in another worktree is exactly what you cannot see today");
+  });
+});
+
+// A row that overflows is cut by Claude Code, not here, so the choice of what
+// is lost has to be made before it goes out — the same reasoning the bar's
+// priority table carries.
+await test("a row sheds its least useful column rather than being cut", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    const tasks = [
+      { id: "a", name: "local_agent", description: "Fechar os nove achados do PR 67", label: "Staging all fixer changes for commit", model: "claude-sonnet-5", effort: "high", startTime: NOW - 3_840_000, tokenCount: 271_273, contextWindowSize: 1_000_000, tokenSamples: [271_273, 271_273] },
+      { id: "b", name: "local_agent", description: "Resolver o conflito do PR 68", label: "Restoring review-debt.sh", model: "claude-sonnet-5", effort: "high", startTime: NOW - 2_820_000, tokenCount: 181_390, contextWindowSize: 1_000_000, tokenSamples: [169_000, 181_390] },
+    ];
+    const at = async (columns) => {
+      const out = await runTaskRows({ now: NOW, input: JSON.stringify({ columns, tasks }) });
+      return out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
+    };
+
+    const wide = await at(200);
+    assert.match(wide[0], /271k/, "with room, the token count is there");
+    assert.match(wide[0], /1h04m/, "and so is the age");
+
+    const narrow = await at(120);
+    for (const row of narrow) {
+      assert.ok(displayWidth(row) <= 120, `a row was ${displayWidth(row)} columns: ${row}`);
+    }
+    assert.doesNotMatch(narrow[0], /271k/, "the token count goes first — the gauge already says the proportion");
+    assert.match(narrow[0], /Staging all fixer changes/, "what it is doing survives");
+    assert.match(narrow[0], /sonnet·high/, "and what it costs");
+
+    const tight = await at(70);
+    for (const row of tight) {
+      assert.ok(displayWidth(row) <= 70, `a row was ${displayWidth(row)} columns: ${row}`);
+    }
+    assert.match(tight[0], /Fechar os nove achados/, "who it is never goes");
+  });
+});
