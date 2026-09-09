@@ -138,14 +138,51 @@ function absenceReason(segment, reading, readings, now) {
   return "not rendered";
 }
 
-async function readStdin() {
+/**
+ * A payload if one is being piped in, and nothing if none is.
+ *
+ * The TTY guard is not enough on its own. Stdin can be a pipe or a socket
+ * that is open and simply idle — a wrapper script, a CI step, `nohup`, an
+ * editor's task runner — and waiting for an `end` that never comes means
+ * `doctor` hangs forever printing nothing, which is the opposite of what a
+ * diagnostic is for. One was found sleeping on this for eight hours.
+ *
+ * So the wait is bounded, and the clock restarts on every chunk: a real
+ * payload arriving slowly still completes, and a stdin that stays silent is
+ * taken as having nothing to say. Bounding it is safe here in a way it would
+ * not be in `render`, because the payload is optional — the report is built
+ * from live probes and an absent payload only costs the few rows that read
+ * from it.
+ */
+const STDIN_QUIET_MS = 250;
+
+async function readStdin({ quietMs = STDIN_QUIET_MS } = {}) {
   if (process.stdin.isTTY) return "";
   return new Promise((resolve) => {
     let data = "";
+    let settled = false;
+    let timer = null;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      process.stdin.pause();
+      resolve(data);
+    };
+    const wait = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(finish, quietMs);
+      // Never a reason on its own to keep the process alive.
+      timer.unref?.();
+    };
     process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => (data += chunk));
-    process.stdin.on("end", () => resolve(data));
-    process.stdin.on("error", () => resolve(data));
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+      wait();
+    });
+    process.stdin.on("end", finish);
+    process.stdin.on("error", finish);
+    wait();
   });
 }
 

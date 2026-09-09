@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { test } from "../test-harness.js";
 import { buildReport, formatReport } from "../../src/doctor.js";
@@ -127,4 +127,32 @@ await test("--json parses, and doctor exits 0 whatever it found", () => {
   const parsed = JSON.parse(r.stdout);
   assert.ok(Array.isArray(parsed.segments));
   assert.ok(parsed.segments.length >= 15);
+});
+
+// A diagnostic that prints nothing forever is worse than no diagnostic. The
+// TTY guard in `readStdin` misses the case that actually bit: stdin is a pipe
+// or socket that is open and idle, which is what a wrapper script, a CI step,
+// `nohup` or an editor's task runner hands it. One `doctor` was found asleep
+// on that for eight hours. The payload is optional, so the wait is bounded.
+await test("doctor answers even when stdin is open and never closes", async () => {
+  const child = spawn(process.execPath, [CLI, "doctor"], {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: { ...process.env, CLAUDE_STATUSLINE_NO_REFRESH: "1" },
+  });
+  let stdout = "";
+  child.stdout.on("data", (chunk) => (stdout += chunk));
+  // stdin is deliberately left open: nothing is written and nothing is ended.
+
+  const code = await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error("doctor was still waiting on stdin after 10s"));
+    }, 10_000);
+    child.on("close", (c) => {
+      clearTimeout(timer);
+      resolve(c);
+    });
+  });
+  assert.equal(code, 0);
+  assert.match(stdout, /working directory/, "it reported without the payload it never got");
 });
