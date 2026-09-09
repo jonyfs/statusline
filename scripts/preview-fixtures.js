@@ -312,3 +312,59 @@ export const FLAVOR_SCENARIO = {
   payload: SCENARIOS[0].payload,
   sources: SCENARIOS[0].sources,
 };
+
+/**
+ * A tick of subagent rows, for the illustration in the README.
+ *
+ * Three agents rather than two, because the row's sparse columns only show
+ * their cost when at least one row fills them and the others do not — which
+ * is the whole point of the order and cannot be seen with a single agent.
+ * Start times are offsets from the frozen clock so the ages do not drift.
+ */
+export const TASK_ROWS_SCENARIO = {
+  file: "agent-rows.svg",
+  title: "Three subagents, aligned against each other",
+  columns: 200,
+  skills: [
+    ["b", ["humanizer"]],
+    ["c", ["code-review", "humanizer"]],
+  ],
+  tasks: [
+    {
+      id: "a",
+      name: "local_agent",
+      description: "Close the nine findings on PR 67",
+      label: "Staging all fixer changes for commit",
+      model: "claude-sonnet-5",
+      effort: "high",
+      status: "running",
+      startTime: FIXED_NOW * 1000 - 3_840_000,
+      tokenCount: 271_273,
+      contextWindowSize: 1_000_000,
+    },
+    {
+      id: "b",
+      name: "local_agent",
+      description: "Resolve the conflict and the three on PR 68",
+      label: "Restoring review-debt.sh from backup",
+      model: "claude-sonnet-5",
+      effort: "high",
+      status: "running",
+      startTime: FIXED_NOW * 1000 - 2_820_000,
+      tokenCount: 181_390,
+      contextWindowSize: 1_000_000,
+    },
+    {
+      id: "c",
+      name: "pr-shepherd",
+      description: "Review gate 39 of the contract",
+      label: "Reading docs/governance/gate-39.md",
+      model: "claude-opus-5",
+      effort: "xhigh",
+      status: "queued",
+      startTime: FIXED_NOW * 1000 - 60_000,
+      tokenCount: 9_120,
+      contextWindowSize: 1_000_000,
+    },
+  ],
+};

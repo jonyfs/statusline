@@ -296,22 +296,13 @@ are measured across the whole tick and padded to a common width, so the tier,
 the title, the gauge, the tokens and the age fall in the same place on every
 row.
 
-```
-sonnet·high · humanizer · Consertar o offline do PR 58 · ████░░░░ 34% · 336k · 2h49m
-sonnet·high ·           · Corrigir o CASCADE           · ██░░░░░░ 13% · 132k · 16m
-```
-
 A row carries, in order: the tier, the status when it is not `running`, the
 agent type when it identifies anything, the skills it is running, the brief it
 was given, the step it is on, a context gauge, the token count and the age.
 That order was picked on 2026-09-08 from rendered examples rather than argued
 for on paper.
 
-```
-sonnet·high ·        ·             ·                        · Fechar os nove achados do PR 67 · Staging all fixer changes · ███─── 27% · 271k · 1h04m
-sonnet·high ·        ·             · humanizer              · Resolver o conflito do PR 68    · Restoring review-debt.sh  · ██──── 18% · 181k · 47m
-opus·xhigh  · queued · pr-shepherd · code-review, humanizer · Revisar o gate 39 do contrato   · Reading gate-39.md        · ────── 5%  · 9k   · 1m
-```
+![Three subagent rows](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/agent-rows.svg)
 
 The three leading columns are sparse, and the blank they leave on most rows is
 the price of that order: alignment reserves their width whether or not a row
@@ -970,6 +961,8 @@ node scripts/generate-previews.js
 
 That runs every scenario in `scripts/preview-fixtures.js` through the same
 render function the real status bar uses, and writes `docs/previews/*.svg`.
+The subagent rows go through `alignTaskRows`, which is what the installed
+`task-rows` command calls, so that image cannot drift from the rows either.
 The inputs are fixed and both the clock and the timezone are pinned, so
 running it without changing any code produces no diff, on any machine. Nerd
 Font glyphs are baked in as extracted outlines from
