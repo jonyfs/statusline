@@ -196,9 +196,10 @@ await test("a column no row uses is not drawn", async () => {
   });
 });
 
-// The skills say what the agent is doing and the tier says what it costs.
-// The first is read with the name, so it sits between them.
-await test("an agent's skills sit between its name and its tier", async () => {
+// The owner's order, chosen from rendered examples: what it costs leads, then
+// what is unusual about the task, then who it is, what it is running, and only
+// then the brief.
+await test("the tier leads the row and the skills come before the brief", async () => {
   const home = makeHome();
   await withHome(home, async () => {
     appendSkillEvent("s1", "humanizer", { now: NOW, agentId: "a" });
@@ -212,9 +213,10 @@ await test("an agent's skills sit between its name and its tier", async () => {
     });
     const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
     assert.ok(
-      row.indexOf("humanizer") > row.indexOf("Locating money.ts") &&
-        row.indexOf("humanizer") < row.indexOf("opus"),
-      `expected name, skills, tier in that order: ${row}`
+      row.indexOf("opus") < row.indexOf("explore") &&
+        row.indexOf("explore") < row.indexOf("humanizer") &&
+        row.indexOf("humanizer") < row.indexOf("Locating money.ts"),
+      `expected tier, name, skills, brief in that order: ${row}`
     );
   });
 });
@@ -331,28 +333,7 @@ await test("a step identical to the brief is not repeated", async () => {
   });
 });
 
-// `tokenSamples` is the only thing that separates an agent doing work from one
-// that has been waiting for minutes, and the two look identical otherwise.
-await test("a row says whether the agent has spent anything lately", async () => {
-  const home = makeHome();
-  await withHome(home, async () => {
-    const out = await runTaskRows({
-      now: NOW,
-      input: JSON.stringify({
-        columns: 200,
-        tasks: [
-          { id: "a", name: "one", description: "stuck", startTime: NOW - 60_000, tokenSamples: [271273, 271273, 271273] },
-          { id: "b", name: "two", description: "moving", startTime: NOW - 60_000, tokenSamples: [169000, 175200, 181390] },
-        ],
-      }),
-    });
-    const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
-    assert.match(rows[0], /idle/, "no growth across the samples");
-    assert.match(rows[1], /\+12\.4k/, "growth reported as a total, since nothing says how far apart the samples are");
-  });
-});
-
-await test("a status is shown only when it is not running, and a cwd only when it differs", async () => {
+await test("a status is shown only when it is not running", async () => {
   const home = makeHome();
   await withHome(home, async () => {
     const out = await runTaskRows({
@@ -368,9 +349,7 @@ await test("a status is shown only when it is not running, and a cwd only when i
     });
     const rows = out.split("\n").filter(Boolean).map((l) => stripAnsi(JSON.parse(l).content));
     assert.doesNotMatch(rows[0], /running/, "running is what every row already looks like");
-    assert.doesNotMatch(rows[0], /repos|here/, "an agent where you are says nothing");
     assert.match(rows[1], /queued/);
-    assert.match(rows[1], /a-worktree/, "an agent in another worktree is exactly what you cannot see today");
   });
 });
 
@@ -393,18 +372,20 @@ await test("a row sheds its least useful column rather than being cut", async ()
     assert.match(wide[0], /271k/, "with room, the token count is there");
     assert.match(wide[0], /1h04m/, "and so is the age");
 
-    const narrow = await at(120);
+    const narrow = await at(110);
     for (const row of narrow) {
-      assert.ok(displayWidth(row) <= 120, `a row was ${displayWidth(row)} columns: ${row}`);
+      assert.ok(displayWidth(row) <= 110, `a row was ${displayWidth(row)} columns: ${row}`);
     }
     assert.doesNotMatch(narrow[0], /271k/, "the token count goes first — the gauge already says the proportion");
+    assert.match(narrow[0], /27%/, "the gauge outlives the count it duplicates");
     assert.match(narrow[0], /Staging all fixer changes/, "what it is doing survives");
     assert.match(narrow[0], /sonnet·high/, "and what it costs");
 
-    const tight = await at(70);
+    const tight = await at(80);
     for (const row of tight) {
-      assert.ok(displayWidth(row) <= 70, `a row was ${displayWidth(row)} columns: ${row}`);
+      assert.ok(displayWidth(row) <= 80, `a row was ${displayWidth(row)} columns: ${row}`);
     }
+    assert.doesNotMatch(tight[0], /Staging all fixer changes/, "the step goes before the brief does");
     assert.match(tight[0], /Fechar os nove achados/, "who it is never goes");
   });
 });

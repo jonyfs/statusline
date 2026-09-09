@@ -292,46 +292,45 @@ otherwise be a list of things you are not doing.
 
 Claude Code draws a row for each running subagent, and this plugin styles them
 in the bar's own vocabulary. A row is a table rather than a sentence: columns
-are measured across the whole tick and padded to a common width, so the title,
-the model, the gauge, the tokens and the age fall in the same place on every
+are measured across the whole tick and padded to a common width, so the tier,
+the title, the gauge, the tokens and the age fall in the same place on every
 row.
 
 ```
-Consertar o offline do PR 58 · humanizer · sonnet·high · ████░░░░ 34% · 336k · 2h49m
-Corrigir o CASCADE           ·           · sonnet·high · ██░░░░░░ 13% · 132k · 16m
+sonnet·high · humanizer · Consertar o offline do PR 58 · ████░░░░ 34% · 336k · 2h49m
+sonnet·high ·           · Corrigir o CASCADE           · ██░░░░░░ 13% · 132k · 16m
 ```
 
-A row carries, in order: who the agent is, the skills it is running, the step
-it is on, whether it has spent anything lately, its status and directory when
-either is unusual, the tier, a context gauge, the token count and the age.
+A row carries, in order: the tier, the status when it is not `running`, the
+agent type when it identifies anything, the skills it is running, the brief it
+was given, the step it is on, a context gauge, the token count and the age.
+That order was picked on 2026-09-08 from rendered examples rather than argued
+for on paper.
 
 ```
-Fechar os nove achados do PR 67  · Staging all fixer changes for commit · idle   ·               · sonnet·high · ███░ 27% · 271k · 1h04m
-Resolver o conflito do PR 68     · Restoring review-debt.sh from backup · +12.4k · barbershop-wt · sonnet·high · ██░░ 18% · 181k · 47m
+sonnet·high ·        ·             ·                        · Fechar os nove achados do PR 67 · Staging all fixer changes · ███─── 27% · 271k · 1h04m
+sonnet·high ·        ·             · humanizer              · Resolver o conflito do PR 68    · Restoring review-debt.sh  · ██──── 18% · 181k · 47m
+opus·xhigh  · queued · pr-shepherd · code-review, humanizer · Revisar o gate 39 do contrato   · Reading gate-39.md        · ────── 5%  · 9k   · 1m
 ```
 
-Two of those need saying. **The brief and the step are different facts**: the
-tick carries `description` for what the agent was asked to do, fixed for its
-life, and `label` for what it is doing this second. **`idle` means it has spent
-no tokens across the samples it reported** — waiting on a tool and being stuck
-look the same from here, and the row does not claim to know which. The growth
-is a total rather than a rate because nothing states how far apart the samples
-are.
+The three leading columns are sparse, and the blank they leave on most rows is
+the price of that order: alignment reserves their width whether or not a row
+fills them. That was rendered and looked at before the order was settled.
 
-The status appears only when it is not `running`, and the directory only when
-it is not the session's — an agent working in another worktree is worth a
-column, and one working where you are is not.
+The brief and the step are different facts: the tick carries `description` for
+what the agent was asked to do, fixed for its life, and `label` for what it is
+doing this second. The gauge keeps its percentage, because nine cells put 5%
+and 0% in the same picture and the figure is what separates them.
 
 A row that will not fit sheds its least useful column rather than being cut off
 at the edge: the token count first, since the gauge already says the
-proportion, then the age, then the gauge itself. Who the agent is, what it is
-doing and what it costs are the last to go.
+proportion, then the age, then the gauge itself, then the type, the status, the
+skills and the step. The tier and the brief are the last to go.
 
-A row leads with what the agent is doing rather than how it was dispatched.
 `local_agent` is the name an ad-hoc Task arrives with, the same word for every
-one of them, so it is dropped when there is a description to lead with — as is
-any name two running tasks share. A named agent type keeps its column, since
-`pr-shepherd` says something its description does not.
+one of them, so its column stays empty — as it does for any name two running
+tasks share. A named agent type fills it, since `pr-shepherd` says something
+its description does not.
 
 The skills column shows what the hook recorded against that agent's id, and it
 rests on something Claude Code does not promise: the hook reports an

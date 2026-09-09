@@ -125,26 +125,21 @@ const MAX_COLUMN = 48;
  * row and the token count on the next, and padding them to a common width
  * lines up things that are not the same thing.
  */
-function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [], sessionCwd = null } = {}) {
+function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [] } = {}) {
   const name = task.name || task.type || "task";
   const what = taskDescription(task);
   const tier = taskTier(task);
+  const step = taskStep(task);
   // Whatever leads carries the tier colour, so the roster reads at a glance even when the row is
   // trimmed to `columns` and the spelled-out segment is the first thing to go.
   const leadColour = tier ? palette[tier.colour] ?? palette.lavender : palette.lavender;
 
-  // A name is worth a column only when it identifies this task. Two cases
-  // where it does not: it is the placeholder Claude Code sends for a Task
-  // dispatched without a named agent type, which says only that the caller
-  // did not name one; or two running tasks share it, which says only that
-  // both were dispatched the same way. Either way the row leads with what
-  // this one is doing instead.
-  //
-  // The placeholder is matched by name because that is what it is. If Claude
-  // Code renames it the match stops and the row shows the new word, which is
-  // the behaviour this had before — a stale match degrades to noise, never to
-  // a wrong claim.
-  const dropName = Boolean(what) && (nameIsShared || GENERIC_TASK_NAMES.has(name));
+  // The agent type is worth a column only when it identifies this task. Two
+  // cases where it does not: it is the placeholder Claude Code sends for a
+  // Task dispatched without a named agent type, which says only that the
+  // caller did not name one; or two running tasks share it, which says only
+  // that both were dispatched the same way.
+  const typeIdentifies = !nameIsShared && !GENERIC_TASK_NAMES.has(name);
 
   const cell = (plain, colour) => (plain ? { plain, text: `${fg(colour)}${plain}${RESET}` } : { plain: "", text: "" });
 
@@ -154,31 +149,21 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
       : null;
 
   const tierLabel = tier ? (tier.effort ? `${tier.model}\u00b7${tier.effort}` : tier.model) : null;
+  // The bar keeps its number. Nine cells put 5% and 0% in the same picture,
+  // and the figure is what separates them.
   const gauge = pct === null ? null : `${bar(pct, columns)} ${Math.round(pct)}%`;
 
-  const step = taskStep(task);
-  const progress = taskProgress(task);
-  const status = taskStatus(task);
-  const elsewhere = taskElsewhere(task, sessionCwd);
-
+  // The order is the owner's, chosen on 2026-09-08 from rendered examples:
+  // what it costs, then what is unusual about it, then who it is and what it
+  // is doing. The three sparse columns lead, which means most rows open with
+  // the width they reserve — the trade was made with that in view.
   return [
-    cell(dropName ? what : name, leadColour),
-    cell(dropName ? null : what, palette.text),
-    // Before the tier, not after: the skills say what this agent is doing and
-    // the tier says what it costs, and the first is read with the name.
+    cell(tierLabel, tier ? palette[tier.colour] ?? palette.surface2 : palette.surface2),
+    cell(taskStatus(task), palette.peach),
+    cell(typeIdentifies ? name : null, palette.lavender),
     cell(skills.length ? skills.join(", ") : null, palette.green),
-    // The step it is on, which is not the brief it was given.
+    cell(what ?? (typeIdentifies ? null : name), leadColour),
     cell(step, palette.sapphire),
-    // Whether it has spent anything lately. `idle` is dimmed rather than
-    // coloured for alarm: waiting on a tool looks the same from here as being
-    // stuck, and the row does not know which.
-    cell(progress, progress === "idle" ? palette.surface2 : palette.teal),
-    // Only a status that is not `running`, since running is what every other
-    // row already looks like.
-    cell(status, palette.peach),
-    // Only a directory that is not the session's.
-    cell(elsewhere, palette.mauve),
-    cell(tierLabel, palette[tier?.colour] ?? palette.surface2),
     cell(gauge, pct === null ? palette.green : palette[rampColour(pct, "green")] ?? palette.green),
     cell(pct === null ? null : abbreviate(task.tokenCount), palette.surface2),
     cell(elapsed(task.startTime, now), palette.surface2),
@@ -229,14 +214,13 @@ function joinCells(cells, widths, palette) {
  * it is doing now, and what it costs.
  */
 const SHED_ORDER = [
-  9,  // the token count: the gauge beside it already says the proportion
-  10, // the age: the least actionable thing on the row
-  8,  // the gauge: its percentage is the last of it to go
-  4,  // whether it has spent anything lately
-  6,  // the directory, which is only there when it is not the session's
-  5,  // the status, which is only there when it is not `running`
-  3,  // the step it is on
-  2,  // the skills it is running
+  7, // the token count: the gauge beside it already says the proportion
+  8, // the age: the least actionable thing on the row
+  6, // the gauge: its percentage is the last of it to go
+  2, // the agent type, which is only there when it identifies something
+  1, // the status, which is only there when it is not `running`
+  3, // the skills it is running
+  5, // the step it is on
 ];
 
 /** The widths each column must reach for a tick's rows to line up. */
@@ -298,45 +282,10 @@ function taskStep(task) {
   return step === taskDescription(task) ? null : step;
 }
 
-/**
- * Whether the agent has consumed anything across the samples it reported.
- *
- * `tokenSamples` is a short ring of recent token counts. All equal means it
- * has spent nothing over that window: waiting on a tool, on the network, or
- * stuck — and from the outside those look the same, so this says what is
- * observed rather than which of them it is.
- *
- * The growth is reported as a total rather than a rate, because nothing
- * states how far apart the samples are. A per-minute figure would be an
- * invented unit on top of a real measurement.
- */
-function taskProgress(task) {
-  const samples = Array.isArray(task?.tokenSamples)
-    ? task.tokenSamples.filter((n) => typeof n === "number" && Number.isFinite(n))
-    : [];
-  if (samples.length < 2) return null;
-  const growth = samples[samples.length - 1] - samples[0];
-  if (growth <= 0) return "idle";
-  return `+${abbreviate(growth)}`;
-}
-
 /** A status worth a column: `running` is what every row already looks like. */
 function taskStatus(task) {
   const raw = task?.status;
   return typeof raw === "string" && raw && raw !== "running" ? raw : null;
-}
-
-/**
- * The agent's directory, shown only when it is not the session's.
- *
- * Same rule the project directory follows on line 1: an agent working where
- * you are says nothing, and one working in another worktree is exactly what
- * you would want to know and cannot see today.
- */
-function taskElsewhere(task, sessionCwd) {
-  const cwd = typeof task?.cwd === "string" ? task.cwd : null;
-  if (!cwd || !sessionCwd || cwd === sessionCwd) return null;
-  return cwd.split(/[\\/]/).filter(Boolean).pop() ?? null;
 }
 
 /**
@@ -436,12 +385,10 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
     if (n) seen.set(n, (seen.get(n) ?? 0) + 1);
   }
 
-  const sessionCwd = typeof payload?.cwd === "string" ? payload.cwd : null;
   const optionsFor = (task) => ({
     columns,
     palette,
     now,
-    sessionCwd,
     nameIsShared: (seen.get(taskLabel(task)) ?? 0) > 1,
     skills: skillsByAgent.get(task?.id) ?? [],
   });
