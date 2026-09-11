@@ -355,22 +355,22 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     samples: reading({ value: [], at: now, source: "samples" }),
     rtk: timed("rtk", () => probe.getRtkSavings(cwd)),
     model: reading({
-      value: payload?.model?.display_name || payload?.model?.id || "Claude",
+      value: payloadText(payload?.model?.display_name) ?? payloadText(payload?.model?.id) ?? "Claude",
       at: now,
       source: "payload",
     }),
-    effort: reading({ value: payload?.effort?.level ?? null, at: now, source: "payload" }),
-    outputStyle: reading({ value: payload?.output_style?.name ?? null, at: now, source: "payload" }),
+    effort: reading({ value: payloadText(payload?.effort?.level), at: now, source: "payload" }),
+    outputStyle: reading({ value: payloadText(payload?.output_style?.name), at: now, source: "payload" }),
     // Everything below arrives on stdin. None of it costs a process, and
     // none of it was on the bar before feature 002.
-    agent: reading({ value: payload?.agent?.name ?? null, at: now, source: "payload" }),
-    sessionName: reading({ value: payload?.session_name ?? null, at: now, source: "payload" }),
-    projectDir: reading({ value: payload?.workspace?.project_dir ?? null, at: now, source: "payload" }),
+    agent: reading({ value: payloadText(payload?.agent?.name), at: now, source: "payload" }),
+    sessionName: reading({ value: payloadText(payload?.session_name), at: now, source: "payload" }),
+    projectDir: reading({ value: payloadText(payload?.workspace?.project_dir), at: now, source: "payload" }),
     worktree: reading({
-      value: payload?.worktree?.name
-        ? { name: payload.worktree.name, from: payload.worktree.original_branch ?? null }
-        : payload?.workspace?.git_worktree
-          ? { name: payload.workspace.git_worktree, from: null }
+      value: payloadText(payload?.worktree?.name)
+        ? { name: payloadText(payload.worktree.name), from: payloadText(payload.worktree.original_branch) }
+        : payloadText(payload?.workspace?.git_worktree)
+          ? { name: payloadText(payload.workspace.git_worktree), from: null }
           : null,
       at: now,
       source: "payload",
@@ -383,6 +383,28 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     sevenDay: reading({ value: sevenDayPct, at: now, source: "payload" }),
     sevenDayReset: reading({ value: sevenDayResetsAt, at: now, source: "payload" }),
   };
+}
+
+/**
+ * A payload field that is supposed to be text, or nothing.
+ *
+ * Claude Code sends well-typed payloads, so this is not about what it does
+ * send — it is about what reaches the bar when something upstream changes
+ * shape. A field that arrives as an object interpolates as the literal
+ * `[object Object]`, and a boolean as `true`: both render as confident,
+ * meaningless text in a place a reader trusts. That has happened once here
+ * already, when a refresh wrapped a numeric value in a branch object and the
+ * bar spent a day showing `[object Object]` for the rtk savings.
+ *
+ * Anything that is not a string becomes null so the caller's fallback runs,
+ * which is how an unknown field is meant to be handled everywhere else on
+ * the bar. Numbers included: a model named `42` is a payload defect, and
+ * `Claude` is a better answer than `42`.
+ */
+function payloadText(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
 
 /**
