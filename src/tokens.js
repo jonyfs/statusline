@@ -35,6 +35,9 @@ export function getRateLimits(payload) {
  */
 const RESETTING_GRACE_MS = 2 * 60 * 1000;
 
+/** The longest window the payload describes, with room to spare. */
+const MAX_PLAUSIBLE_WINDOW_MS = 30 * 24 * 3600 * 1000;
+
 /**
  * `resetsAt` is a Unix timestamp in seconds, as returned by the payload.
  * `now` is injectable so a countdown can be tested at a chosen instant
@@ -43,6 +46,13 @@ const RESETTING_GRACE_MS = 2 * 60 * 1000;
 export function formatResetCountdown(resetsAtSeconds, now = Date.now()) {
   if (typeof resetsAtSeconds !== "number" || !Number.isFinite(resetsAtSeconds)) return null;
   const diffMs = resetsAtSeconds * 1000 - now;
+  // Both windows this formats are bounded by their own names: five hours and
+  // seven days. A reset further out than that is not a longer window, it is a
+  // timestamp in the wrong unit — milliseconds where seconds were meant, which
+  // is finite, positive, and renders as a confident `resets in 20687174d`.
+  // Beyond the bound the honest answer is that the reset time is unknown,
+  // which the bar already draws as `?`.
+  if (diffMs > MAX_PLAUSIBLE_WINDOW_MS) return null;
   if (diffMs <= 0) {
     return diffMs > -RESETTING_GRACE_MS ? "resetting now" : null;
   }

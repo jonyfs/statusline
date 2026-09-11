@@ -43,11 +43,25 @@ function assertNotRunningFromNpxCache() {
 function loadSettings() {
   const file = settingsPath();
   if (!existsSync(file)) return {};
+  let parsed;
   try {
-    return JSON.parse(readFileSync(file, "utf8"));
+    parsed = JSON.parse(readFileSync(file, "utf8"));
   } catch {
     throw new Error(`Could not parse existing ${file} — fix or remove it before installing.`);
   }
+  // Valid JSON is not enough: the settings root has to be a plain object for
+  // the keys to survive being written back. Assigning `statusLine` to an
+  // array succeeds silently in JavaScript and is then dropped by
+  // `JSON.stringify`, which serialises only a list's indices — so the install
+  // reported "Statusline installed." over a file it had changed in no way.
+  // A refusal is the honest outcome; a false success is the one that costs
+  // someone an afternoon.
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(
+      `${file} is ${Array.isArray(parsed) ? "a list" : `a ${parsed === null ? "null" : typeof parsed}`}, not a settings object — fix or remove it before installing.`
+    );
+  }
+  return parsed;
 }
 
 function backupSettings(settings) {

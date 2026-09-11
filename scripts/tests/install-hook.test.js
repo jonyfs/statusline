@@ -174,3 +174,32 @@ await test("uninstall takes the interval and the subagent row command with it", 
     assert.deepEqual(home.read(), { theme: "dark" }, "everything this install wrote is gone");
   });
 });
+
+// Valid JSON is not enough for the install to be able to do its job. The
+// settings root has to be a plain object for the keys to survive being
+// written back: assigning `statusLine` to a list succeeds silently in
+// JavaScript and is then dropped by `JSON.stringify`, which serialises only
+// a list's indices. The install reported "Statusline installed." over a file
+// it had changed in no way — a false success, which costs more than a
+// refusal, because the person believes they are done.
+await test("a settings file that is not an object is refused, not silently ignored", async () => {
+  for (const root of ["[1,2,3]", "null", "42", '"a string"']) {
+    const home = makeHome({});
+    await withHome(home, () => {
+      home.write(JSON.parse(root));
+      assert.throws(() => install(), /not a settings object/, `${root} must be refused`);
+      assert.equal(home.raw().trim(), JSON.stringify(JSON.parse(root), null, 2), `${root} must be left alone`);
+    });
+  }
+});
+
+await test("an ordinary settings object is still installed into, keys intact", async () => {
+  const home = makeHome({ model: "opus", myOwnKey: "do not lose me" });
+  await withHome(home, () => {
+    install();
+    const settings = home.read();
+    assert.equal(settings.myOwnKey, "do not lose me", "someone else's key survives");
+    assert.equal(settings.model, "opus");
+    assert.ok(settings.statusLine?.command, "and the statusline is actually there");
+  });
+});

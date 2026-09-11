@@ -31,10 +31,24 @@ function fg(hex) {
   return `\x1b[38;2;${(n >> 16) & 255};${(n >> 8) & 255};${n & 255}m`;
 }
 
+/**
+ * The earliest instant a subagent could plausibly have started.
+ *
+ * A `startTime` is meant to be milliseconds since the epoch. The failure
+ * this guards against is one that reads as data rather than as an error: a
+ * timestamp in *seconds* is a perfectly finite number, and subtracting it
+ * from a millisecond clock yields about fifty-five years, which the
+ * formatter below renders as a confident `488076h00m`. A row claiming an
+ * agent has been working since the 1970s is not a long-running agent, it is
+ * a unit mismatch, and the honest answer is that the age is unknown.
+ */
+const EARLIEST_PLAUSIBLE_START = Date.UTC(2020, 0, 1);
+
 /** How long a task has been running, in the same units the bar uses. */
 export function elapsed(startTime, now) {
   const started = typeof startTime === "number" ? startTime : Date.parse(startTime ?? "");
   if (!Number.isFinite(started)) return null;
+  if (started < EARLIEST_PLAUSIBLE_START) return null;
   const seconds = Math.max(0, Math.round((now - started) / 1000));
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
@@ -126,7 +140,12 @@ const MAX_COLUMN = 48;
  * lines up things that are not the same thing.
  */
 function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [] } = {}) {
-  const name = task.name || task.type || "task";
+  // Text, or the placeholder. A name that arrives as an object interpolates
+  // as the literal `[object Object]` into the column a reader uses to tell
+  // one agent from another.
+  const named = typeof task.name === "string" && task.name.trim() ? task.name.trim() : null;
+  const typed = typeof task.type === "string" && task.type.trim() ? task.type.trim() : null;
+  const name = named ?? typed ?? "task";
   const what = taskDescription(task);
   const tier = taskTier(task);
   const step = taskStep(task);
@@ -143,15 +162,25 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
 
   const cell = (plain, colour) => (plain ? { plain, text: `${fg(colour)}${plain}${RESET}` } : { plain: "", text: "" });
 
-  const pct =
-    typeof task.tokenCount === "number" && typeof task.contextWindowSize === "number" && task.contextWindowSize > 0
-      ? (task.tokenCount / task.contextWindowSize) * 100
+  // Both numbers have to be real and non-negative for the ratio to mean
+  // anything. A negative `tokenCount` used to render as `-10%` beside an
+  // empty bar and `-100` tokens — three cells all stating a quantity that
+  // cannot exist. An impossible count is an unknown count.
+  const counted = typeof task.tokenCount === "number" && Number.isFinite(task.tokenCount) && task.tokenCount >= 0
+    ? task.tokenCount
+    : null;
+  const windowSize =
+    typeof task.contextWindowSize === "number" && Number.isFinite(task.contextWindowSize) && task.contextWindowSize > 0
+      ? task.contextWindowSize
       : null;
+  const pct = counted !== null && windowSize !== null ? (counted / windowSize) * 100 : null;
 
   const tierLabel = tier ? (tier.effort ? `${tier.model}\u00b7${tier.effort}` : tier.model) : null;
   // The bar keeps its number. Nine cells put 5% and 0% in the same picture,
   // and the figure is what separates them.
-  const gauge = pct === null ? null : `${bar(pct, columns)} ${Math.round(pct)}%`;
+  // `bar` clamps to 0-100; the figure beside it has to agree, or a task over
+  // its own window reads as `500%` against a bar that stops at full.
+  const gauge = pct === null ? null : `${bar(pct, columns)} ${Math.round(Math.min(100, pct))}%`;
 
   // The order is the owner's, chosen on 2026-09-08 from rendered examples:
   // what it costs, then what is unusual about it, then who it is and what it
@@ -165,7 +194,7 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
     cell(what ?? (typeIdentifies ? null : name), leadColour),
     cell(step, palette.sapphire),
     cell(gauge, pct === null ? palette.green : palette[rampColour(pct, "green")] ?? palette.green),
-    cell(pct === null ? null : abbreviate(task.tokenCount), palette.surface2),
+    cell(counted === null ? null : abbreviate(counted), palette.surface2),
     cell(elapsed(task.startTime, now), palette.surface2),
   ];
 }
