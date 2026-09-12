@@ -22,6 +22,7 @@ import os from "node:os";
 import { PALETTES, displayWidth } from "./theme.js";
 import { bar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
+import { plainText } from "./text.js";
 import { readSkillsByAgent } from "./skillEvents.js";
 
 const RESET = "\x1b[0m";
@@ -143,9 +144,7 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   // Text, or the placeholder. A name that arrives as an object interpolates
   // as the literal `[object Object]` into the column a reader uses to tell
   // one agent from another.
-  const named = typeof task.name === "string" && task.name.trim() ? task.name.trim() : null;
-  const typed = typeof task.type === "string" && task.type.trim() ? task.type.trim() : null;
-  const name = named ?? typed ?? "task";
+  const name = plainText(task.name) ?? plainText(task.type) ?? "task";
   const what = taskDescription(task);
   const tier = taskTier(task);
   const step = taskStep(task);
@@ -283,13 +282,12 @@ export function renderTaskRow(task, options = {}) {
  * prefers it.
  */
 function taskLabel(task) {
-  return task?.name || task?.type || null;
+  return plainText(task?.name) ?? plainText(task?.type) ?? null;
 }
 
 /** The standing brief: what this agent was asked to do, fixed for its life. */
 function taskDescription(task) {
-  const raw = task?.description ?? task?.label;
-  return typeof raw === "string" && raw.trim() ? raw.trim() : null;
+  return plainText(task?.description) ?? plainText(task?.label);
 }
 
 /**
@@ -305,16 +303,15 @@ function taskDescription(task) {
  * less than showing it once.
  */
 function taskStep(task) {
-  const raw = task?.label;
-  if (typeof raw !== "string" || !raw.trim()) return null;
-  const step = raw.trim();
+  const step = plainText(task?.label);
+  if (!step) return null;
   return step === taskDescription(task) ? null : step;
 }
 
 /** A status worth a column: `running` is what every row already looks like. */
 function taskStatus(task) {
-  const raw = task?.status;
-  return typeof raw === "string" && raw && raw !== "running" ? raw : null;
+  const status = plainText(task?.status);
+  return status && status !== "running" ? status : null;
 }
 
 /**
