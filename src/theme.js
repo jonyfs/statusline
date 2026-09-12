@@ -204,14 +204,22 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
  * so the reader says.
  */
 const AMBIGUOUS = new Set([
+  // Drawn today:
   0x00b7, // · middle dot, the separator between a row's columns
-  0x2190, 0x2191, 0x2193, // ← ↑ ↓ the plain-mode arrows
   0x2500, // ─ the empty cell of a gauge
   0x2588, 0x2592, 0x2593, // █ ▒ ▓ its fills
-  0x25b2, 0x25b3, // ▲ △ larger triangles, should either ever be drawn
-  0x25c6, // ◆ the plain-mode commit
-  0x25cb, 0x25cf, // ○ ● the plain-mode idle and modified marks
-  0x25d0, // ◐ the plain-mode running mark
+  // Not drawn today, and listed anyway. These are Ambiguous per Unicode
+  // whether or not this bar uses them, and every one of them was on the bar
+  // at some point: the arrows and the four circles were the substitute glyph
+  // set until 2026-09-12, when it was rebuilt out of Narrow codepoints so it
+  // measures one width on every terminal, and the larger triangles were the
+  // gauge's band marks until 2026-09-07. A width table that describes more
+  // characters than the renderer currently draws costs a lookup and is right
+  // the day one of them comes back; one that tracked only current usage would
+  // be silently wrong that day instead.
+  0x2190, 0x2191, 0x2193, // ← ↑ ↓
+  0x25b2, 0x25b3, // ▲ △
+  0x25c6, 0x25cb, 0x25cf, 0x25d0, // ◆ ○ ● ◐
 ]);
 
 /**
