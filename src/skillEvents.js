@@ -17,6 +17,7 @@
  */
 
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { plainText } from "./text.js";
 import path from "node:path";
 import os from "node:os";
 
@@ -90,9 +91,10 @@ function scanAllSkillEvents(sessionId, { windowMs = 30 * 60 * 1000, now = Date.n
     // folding four subagents' skills into it made that chip a list of things
     // the reader is not doing.
     if (record.agent) continue;
-    if (!record.skill || seen.has(record.skill)) continue;
-    seen.add(record.skill);
-    found.push(record.skill);
+    const skill = plainText(record.skill);
+    if (!skill || seen.has(skill)) continue;
+    seen.add(skill);
+    found.push(skill);
   }
 
   return found;
@@ -130,7 +132,10 @@ export function mostRecentSkillEvent(sessionId) {
     } catch {
       continue;
     }
-    if (record?.skill && typeof record?.at === "number") return { skill: record.skill, at: record.at };
+    // Cleaned on the way out rather than on the way in, so records written
+    // before this guard existed are safe to read too.
+    const skill = plainText(record?.skill);
+    if (skill && typeof record?.at === "number") return { skill, at: record.at };
   }
   return null;
 }
@@ -153,7 +158,9 @@ export async function runNoteSkill({ now = Date.now() } = {}) {
   try {
     const payload = JSON.parse(raw || "{}");
     const input = payload?.tool_input || payload?.toolInput || {};
-    const skill = input.skill || input.name || payload?.skill;
+    // Cleaned on the way in as well: there is no reason to store a name the
+    // bar will refuse to draw, and the file is easier to read without them.
+    const skill = plainText(input.skill) ?? plainText(input.name) ?? plainText(payload?.skill);
     const sessionId = payload?.session_id || payload?.sessionId;
     // Present when the call came from inside a subagent, absent when it came
     // from the session itself. `session_id` stays the parent's either way, so
@@ -203,9 +210,10 @@ export function readSkillsByAgent(sessionId) {
     } catch {
       continue;
     }
-    if (!record?.agent || !record.skill) continue;
+    const skill = plainText(record.skill);
+    if (!record?.agent || !skill) continue;
     const seen = byAgent.get(record.agent) ?? [];
-    if (!seen.includes(record.skill)) seen.push(record.skill);
+    if (!seen.includes(skill)) seen.push(skill);
     byAgent.set(record.agent, seen);
   }
   return byAgent;

@@ -37,6 +37,7 @@ import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
 import { resolveLayout } from "./config.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
+import { plainText } from "./text.js";
 import { ratePerHour, projectFull } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight } from "./layout.js";
 
@@ -429,15 +430,17 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
  * already, when a refresh wrapped a numeric value in a branch object and the
  * bar spent a day showing `[object Object]` for the rtk savings.
  *
+ * Control characters go with it, through `plainText`: a newline in a value
+ * decided how many lines the bar had, and a raw escape in one was a command
+ * the terminal ran.
+ *
  * Anything that is not a string becomes null so the caller's fallback runs,
  * which is how an unknown field is meant to be handled everywhere else on
  * the bar. Numbers included: a model named `42` is a payload defect, and
  * `Claude` is a better answer than `42`.
  */
 function payloadText(value) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+  return plainText(value);
 }
 
 /**

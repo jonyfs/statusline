@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { plainText } from "./text.js";
 import path from "node:path";
 import { pathToFileUrl } from "./openTerminalTab.js";
 import { SOURCE_BUDGET_MS, MAX_AGE_MS } from "./freshness.js";
@@ -134,9 +135,11 @@ export function parsePorcelainV2(text) {
       skipNext = false;
       continue;
     }
-    if (record.startsWith("# branch.oid ")) oid = record.slice(13).trim();
-    else if (record.startsWith("# branch.head ")) head = record.slice(14).trim();
-    else if (record.startsWith("# branch.upstream ")) upstream = record.slice(18).trim();
+    // A ref name reaches the bar and a Powerline segment, so it goes through
+    // the same boundary as every other value that came from outside.
+    if (record.startsWith("# branch.oid ")) oid = plainText(record.slice(13));
+    else if (record.startsWith("# branch.head ")) head = plainText(record.slice(14));
+    else if (record.startsWith("# branch.upstream ")) upstream = plainText(record.slice(18));
     else if (record.startsWith("# branch.ab ")) {
       const m = record.slice(12).trim().match(/^\+(\d+)\s+-(\d+)$/);
       if (m) {
@@ -269,7 +272,7 @@ export function normalizePr(raw, source) {
     // `gh` sends label objects (`{name, color, ...}`); the payload and any
     // MR source already send plain names. Only the name is kept — colour
     // and id are not the statusline's to carry (specs/006, data-model.md).
-    labels: Array.isArray(raw.labels) ? raw.labels.map((l) => (typeof l === "string" ? l : l?.name)).filter(Boolean) : [],
+    labels: Array.isArray(raw.labels) ? raw.labels.map((l) => plainText(typeof l === "string" ? l : l?.name)).filter(Boolean) : [],
     source,
   };
 }

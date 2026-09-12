@@ -766,6 +766,27 @@ next to a real expiry date, it reads as a date that never changes and quietly
 contradicts the text beside it. Unicode has no per-date emoji, so the actual
 day is written out as text instead.
 
+Everything the bar draws that it did not write itself goes through one
+boundary first (`src/text.js`). A model name and a session name from the
+payload, a brief and a step from a subagent tick, a skill name from the hook,
+a branch name and a pull request's labels from git and gh: none of those
+places promises the text is printable, and the bar's own output is a stream of
+escape sequences, so a control character in a value is not a display glitch.
+It is a command the terminal runs.
+
+Two things went wrong before that boundary existed, both measured. A newline
+in any of those values split one bar line into two, so a value decided how
+many lines the bar had, and the width guard, which measures lines one at a
+time, then passed a 340-column line as fitting in 120. And a raw `U+001B`
+went straight through: `\x1b[2J` in a skill name clears the reader's screen,
+and a half-written OSC 8 sequence in a description swallows the text after it
+into a hyperlink.
+
+C0 and C1 control characters go now, along with `U+007F`, and any run of
+whitespace becomes one space rather than nothing, because a tab inside a
+description is separating two words. Everything printable survives, including
+the wide characters the width table exists to measure.
+
 There is no emoji on the bar at all, and since 2026-09-12 that is true of the
 substitute set as well. It had kept fourteen of them: a folder, a leaf, a
 robot, a crab. That was wrong on two counts. An emoji is two columns wide where
