@@ -16,7 +16,7 @@
  * silent about, which leaves Claude Code's own rendering in place.
  */
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { PALETTES, displayWidth } from "./theme.js";
@@ -318,6 +318,65 @@ function taskStatus(task) {
 }
 
 /**
+ * Where a session's reserved column widths are kept.
+ *
+ * Sibling of the roster rather than part of it: the roster is read by the
+ * other process, and this is read only by this one.
+ */
+function widthMemoryPath(sessionId) {
+  const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
+  return path.join(os.homedir(), ".claude", "statusline", "tasks", `${safe}.widths.json`);
+}
+
+/**
+ * The widths this session has already reserved for its sparse columns.
+ *
+ * Column widths are the widest cell across the rows of one tick, which makes
+ * them a function of the moment rather than of the session. Three of the
+ * columns are usually empty — a status is only shown when it is not
+ * `running`, an agent type only when it identifies something, and skills only
+ * once an agent has invoked one — so each of them spends most of a session at
+ * width zero and is dropped. The tick one of them first fills, it appears,
+ * and every column to its right moves: measured at nine columns, on rows
+ * whose own content had not changed at all. A row that jumps is a row nobody
+ * can read across.
+ *
+ * bazel has the clearest statement of the rule, in a comment next to its own
+ * progress bar: "To keep the UI appearance more stable, always show the
+ * elapsed time if we also show a strategy (otherwise the strategy will jump
+ * in the progress bar)." Once a column exists, it keeps existing.
+ *
+ * So a width, once reserved, is held for the rest of the session. Only the
+ * three sparse columns are remembered: their content is short and bounded — a
+ * status word, an agent type, a list of skill names — whereas the brief and
+ * the step are free text whose width should follow whichever agents are
+ * actually running, and pinning those to a long-finished agent's description
+ * would waste more room than the jump ever cost.
+ *
+ * Shedding still wins. This reserves room; it does not argue for keeping a
+ * column the terminal has no space for.
+ */
+const REMEMBERED_COLUMNS = [1, 2, 3];
+
+function readWidthMemory(sessionId) {
+  try {
+    const raw = JSON.parse(readFileSync(widthMemoryPath(sessionId), "utf8"));
+    return Array.isArray(raw?.widths) ? raw.widths.map((n) => (typeof n === "number" && n >= 0 ? n : 0)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeWidthMemory(sessionId, widths) {
+  try {
+    mkdirSync(path.dirname(widthMemoryPath(sessionId)), { recursive: true });
+    writeFileSync(widthMemoryPath(sessionId), JSON.stringify({ widths }));
+  } catch {
+    // A bar that cannot remember a width is still a bar.
+  }
+}
+
+/**
  * Where a tick's roster is written.
  *
  * Keyed by the session that produced it. It was a single `latest.json` until
@@ -406,9 +465,25 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   // nothing recorded simply shows no skills.
   const skillsByAgent = readSkillsByAgent(sessionId);
 
-  return alignTaskRows(tasks, { columns, palette, now, skillsByAgent })
-    .map((row) => JSON.stringify(row))
-    .join("\n");
+  const remembered = readWidthMemory(sessionId);
+  let used = [];
+  const rows = alignTaskRows(tasks, {
+    columns,
+    palette,
+    now,
+    skillsByAgent,
+    remembered,
+    reportWidths: (w) => (used = w),
+  });
+  // Only what a column actually reached is remembered, and only upwards.
+  const next = remembered.slice();
+  for (const i of REMEMBERED_COLUMNS) {
+    const reached = used[i] ?? 0;
+    if (reached > (next[i] ?? 0)) next[i] = reached;
+  }
+  if (next.some((w, i) => w !== remembered[i])) writeWidthMemory(sessionId, next);
+
+  return rows.map((row) => JSON.stringify(row)).join("\n");
 }
 
 /**
@@ -419,7 +494,7 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
  * input it needs is an argument: it reads no stdin, no environment and no
  * state directory, so the same tasks render the same rows anywhere.
  */
-export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, now = Date.now(), skillsByAgent = new Map() } = {}) {
+export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, now = Date.now(), skillsByAgent = new Map(), remembered = [], reportWidths = null } = {}) {
   // Which names fail to tell one running task from another. Computed over the
   // whole tick, because a name can only be judged against its siblings.
   const seen = new Map();
@@ -451,13 +526,30 @@ export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, n
   // that overflows is not truncated here — Claude Code cuts it — so the choice
   // of what is lost has to be made before it goes out.
   const dropped = new Set();
-  let widths = columnWidths(measured.map((m) => m.cells), dropped);
+  // The reserved widths are folded in before anything is shed, so a sparse
+  // column that this session has already shown keeps its room even on a tick
+  // where no row fills it — and nothing to its right moves.
+  const reserve = (w) => {
+    for (const i of REMEMBERED_COLUMNS) {
+      if (dropped.has(i)) continue;
+      const held = remembered[i];
+      if (typeof held === "number" && held > (w[i] ?? 0)) w[i] = held;
+    }
+    return w;
+  };
+  let widths = reserve(columnWidths(measured.map((m) => m.cells), dropped));
   for (const column of SHED_ORDER) {
     const widest = Math.max(...measured.map((m) => displayWidth(joinCells(m.cells, widths, palette))));
     if (widest <= columns) break;
     dropped.add(column);
-    widths = columnWidths(measured.map((m) => m.cells), dropped);
+    widths = reserve(columnWidths(measured.map((m) => m.cells), dropped));
   }
+
+  // The widths this tick settled on, for a caller that persists them. An
+  // out-parameter rather than a second return value, so the previews and the
+  // tests that only want rows are unaffected, and rather than a property on
+  // the function, which two concurrent callers would overwrite.
+  if (typeof reportWidths === "function") reportWidths(widths);
 
   return measured
     .map(({ task }) => {

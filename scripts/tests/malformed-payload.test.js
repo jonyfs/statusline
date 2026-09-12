@@ -3,7 +3,7 @@ import { test } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { alignTaskRows, elapsed } from "../../src/taskRows.js";
 import { formatResetCountdown } from "../../src/tokens.js";
-import { PALETTES } from "../../src/theme.js";
+import { PALETTES, displayWidth } from "../../src/theme.js";
 
 const LAYOUT = { arrangement: null, origin: "default", path: null, error: null };
 const NOW = Date.UTC(2026, 8, 5, 12, 0, 0);
@@ -104,4 +104,28 @@ await test("a reset further out than any window it describes is unknown", () => 
   assert.equal(formatResetCountdown(seconds + 31 * 86400, NOW), null, "past any window it names");
   assert.equal(formatResetCountdown(seconds + 1320, NOW), "resets in 0h22m", "a real reset still reads");
   assert.equal(formatResetCountdown(seconds + 3 * 86400, NOW), "resets in 3d 0h", "and so does a seven-day one");
+});
+
+// The substitute set exists because the Nerd Font is absent, so it cannot be
+// filled with private use area codepoints. What it must not contain is emoji:
+// every one is two columns wide where the glyph it stands in for is one, so
+// the substitute set drew a different bar from the real one rather than the
+// same bar in plainer clothes. Checked in both ambiguity modes, because a
+// terminal configured for East Asian text has to measure the same widths.
+await test("the no-Nerd-Font glyph set is one column wide, with no emoji", async () => {
+  const { GLYPHS } = await import("../../src/render.js");
+  const entries = Object.entries(GLYPHS.plain);
+  assert.ok(entries.length >= 20, "the substitute set should cover the bar");
+
+  for (const [name, glyph] of entries) {
+    for (const ch of glyph) {
+      const cp = ch.codePointAt(0);
+      assert.ok(cp < 0x1f000, `${name} uses an emoji (U+${cp.toString(16).toUpperCase()})`);
+      assert.ok(
+        cp < 0xe000 || cp > 0xf8ff,
+        `${name} uses a private use area codepoint, which is the font this set exists without`
+      );
+    }
+    assert.equal(displayWidth(glyph), 1, `${name} must measure one column`);
+  }
 });

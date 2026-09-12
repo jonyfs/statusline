@@ -261,7 +261,7 @@ is what takes it off a line with no room.
 ## What it knows about the work
 
 Line 2 opens with the skills in play, as one chip carrying the list rather
-than one chip per name: `🧩 humanizer, dataviz, mermaid`. A chip each spent a
+than one chip per name: `◈ humanizer, dataviz, mermaid`. A chip each spent a
 separator and two spaces on every name, so three of them gave up a third of
 the line to padding, and they read as three facts when they are one. Five
 names fit; past that the rest are counted (`+2`) rather than dropped
@@ -307,6 +307,24 @@ for on paper.
 The three leading columns are sparse, and the blank they leave on most rows is
 the price of that order: alignment reserves their width whether or not a row
 fills them. That was rendered and looked at before the order was settled.
+
+Those reservations last the session. A column's width is normally the widest
+cell across one tick's rows, which makes it a function of the moment rather
+than of the session. A status appears only when it is not `running`, an agent
+type only when it identifies something, and skills only once an agent has
+invoked one, so each of those three columns sat at width zero and was dropped.
+On the tick one of them first filled, every column to its right moved nine
+columns, on rows whose own content had not changed. A row that moves between
+ticks cannot be read across. bazel keeps the rule in a comment beside its own
+progress bar: *"To keep the UI appearance more stable, always show the elapsed
+time if we also show a strategy (otherwise the strategy will jump in the
+progress bar)."* Once a column exists here, it keeps existing.
+
+Only those three are remembered. The brief and the step are free text whose
+width should follow whichever agents are running, and holding a column open for
+a long-finished agent's description would waste more room than the jump ever
+cost. Shedding still wins over a reservation: reserving room is not an argument
+for keeping a column the terminal has no space for.
 
 The brief and the step are different facts: the tick carries `description` for
 what the agent was asked to do, fixed for its life, and `label` for what it is
@@ -362,7 +380,7 @@ roughly the first minute of a session.
 
 | Segment | Says |
 |---|---|
-| `🔥 9%/h` | how fast the 5-hour window is filling |
+| `⇡ 9%/h` | how fast the 5-hour window is filling |
 | `5h limit ~16:40` | when the 5-hour window would hit its limit, and only when that lands before the window resets |
 
 A rate drawn from twelve seconds of history swings wildly, and a number that
@@ -387,7 +405,7 @@ it is free: it arrives on stdin with everything else.
 
 | Segment | Reads |
 |---|---|
-| `⏳ 1h04m` | wall-clock time since the session started |
+| `◔ 1h04m` | wall-clock time since the session started |
 
 They sit low in the priority table, so on a narrow terminal they are the
 first to go and the three percentages stay.
@@ -695,10 +713,10 @@ upstream to compare against:
 ![No upstream](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/no-upstream.svg)
 
 Two more things sit on line 1 when they have something to say. A worktree
-names itself and the branch it came from (`my-feature ← main`), because the
+names itself and the branch it came from (`my-feature ⇐ main`), because the
 branch name alone does not always tell you which tree you are in. And if
 Claude has moved during the session, the directory it started in appears
-after the one it is in now (`📁 src ← statusline`).
+after the one it is in now (`⌂ src ⇐ statusline`).
 
 A detached HEAD shows the commit id behind a commit icon, and doesn't link
 anywhere, because a commit is not a branch:
@@ -748,7 +766,20 @@ next to a real expiry date, it reads as a date that never changes and quietly
 contradicts the text beside it. Unicode has no per-date emoji, so the actual
 day is written out as text instead.
 
-There is no emoji on the bar at all. The clock faces on the reset segments
+There is no emoji on the bar at all, and since 2026-09-12 that is true of the
+substitute set as well. It had kept fourteen of them: a folder, a leaf, a
+robot, a crab. That was wrong on two counts. An emoji is two columns wide where
+the Nerd Font glyph it stands in for is one, so the substitute bar drew a
+different shape rather than the same shape in plainer clothes. And the emoji
+came off everything else without this set following.
+
+Nerd Font glyphs are not the replacement, since that set exists because the
+font is absent. It is Geometric Shapes, Arrows and Miscellaneous Technical now,
+every codepoint checked to measure one column both normally and under
+`CLAUDE_STATUSLINE_AMBIGUOUS_WIDE`, so the substitute bar is one width on every
+terminal.
+
+The clock faces on the reset segments
 were the one exception, kept because no Nerd Font glyph varies by hour and the
 hour was what that icon carried. They went out on 2026-09-06 with the merged
 reset segment: each window draws its own reset beside its own level now, and a

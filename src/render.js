@@ -151,32 +151,65 @@ export const GLYPHS = {
     burn: NF_BURN,
     rtk: NF_RUST,
   },
+  /**
+   * The set for a terminal with no Nerd Font.
+   *
+   * Every one of these was an emoji until 2026-09-12, which was wrong twice
+   * over. An emoji is two columns wide where the glyph it stands in for is
+   * one, so the substitute set drew a different bar from the real one rather
+   * than the same bar in plainer clothes. And the bar had already had its
+   * emoji taken off it at the owner's request; this table was simply missed.
+   *
+   * Nerd Font glyphs are not the answer here, tempting as it is: this table
+   * exists precisely because the font is absent, so filling it with private
+   * use area codepoints would leave the same empty boxes it is meant to
+   * avoid. These are Geometric Shapes, Arrows and Miscellaneous Technical —
+   * present in ordinary system fonts, and one column wide.
+   *
+   * Every codepoint below is checked to measure one column both normally and
+   * under `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE`, so a terminal configured for
+   * East Asian text draws the same widths as one that is not. `U+25CB` (the
+   * obvious hollow circle for idle) is Ambiguous and was rejected for that
+   * reason in favour of the dotted `U+25CC`, which also reads better: a
+   * broken outline for an agent that is not doing anything.
+   */
   plain: {
-    branch: "\u{1F33F}",   // 🌿
-    commit: "\u{25C6}",    // ◆
-    pr: "\u{1F500}",       // 🔀
-    calendar: "\u{1F4C5}", // 📅
-    modified: "\u{25CF}",  // ●
+    branch: "\u2387",     // ⎇ the conventional plain-text branch mark
+    // `U+25C6` until 2026-09-12: it is East Asian Ambiguous, so this set
+    // measured a different width under `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE` than
+    // without it. Every glyph here is Narrow, so the substitute bar is one
+    // width on every terminal.
+    commit: "\u25AA",     // ▪
+    pr: "\u21C4",         // ⇄ two directions, which is what a pull request is
+    calendar: "\u25A4",   // ▤ a ruled sheet
+    modified: "\u25C9",   // ◉
     added: "+",
-    push: "\u{2191}",      // ↑
-    pull: "\u{2193}",      // ↓
-    dir: "\u{1F4C1}",      // 📁
-    from: "\u{2190}",      // ←
-    conflict: "\u{2716}",  // ✖
-    ciPass: "\u{2713}",    // ✓
-    ciFail: "\u{2717}",    // ✗
-    ciRunning: "\u{25D0}", // ◐
-    todo: "\u{25B8}",      // ▸
-    working: "\u{1F528}",  // 🔨
-    idle: "\u{2615}",      // ☕
-    skills: "\u{1F9E9}",   // 🧩
-    model: "\u{1F916}",    // 🤖
-    effort: "\u{26A1}",    // ⚡
-    context: "\u{1F9E0}",  // 🧠
-    timer: "\u{23F1}\u{FE0F}", // ⏱️
-    duration: "\u{23F3}",  // ⏳
-    burn: "\u{1F525}",     // 🔥
-    rtk: "\u{1F980}",      // 🦀
+    // The plain arrows were `U+2191`/`U+2193`/`U+2190`, all three East Asian
+    // Ambiguous. The doubled forms are Narrow and read the same.
+    push: "\u21D1",        // ⇑
+    pull: "\u21D3",        // ⇓
+    dir: "\u2302",        // ⌂
+    from: "\u21D0",        // ⇐
+    conflict: "\u2716",   // ✖
+    ciPass: "\u2713",     // ✓
+    ciFail: "\u2717",     // ✗
+    ciRunning: "\u229A",  // ⊚
+    todo: "\u25B8",       // ▸
+    // Filled against broken: the same distinction the Nerd set draws with a
+    // hammer and a coffee cup, and the one CircleCI's own columnar glyph set
+    // makes with a filled and a hollow circle.
+    working: "\u25CE",    // ◎
+    idle: "\u25CC",       // ◌
+    skills: "\u25C8",     // ◈
+    model: "\u25C7",      // ◇
+    effort: "\u21AF",     // ↯
+    context: "\u25A6",    // ▦
+    timer: "\u25F7",      // ◷
+    duration: "\u25D4",   // ◔
+    // Not `U+25B4`: that is the gauge's own critical band mark, and one glyph
+    // cannot mean both "this is the burn rate" and "this level is critical".
+    burn: "\u21E1",       // ⇡
+    rtk: "\u25BE",        // ▾ a reduction, which is what a saving is
   },
 };
 

@@ -389,3 +389,64 @@ await test("a row sheds its least useful column rather than being cut", async ()
     assert.match(tight[0], /Fechar os nove achados/, "who it is never goes");
   });
 });
+
+// Column widths are the widest cell across one tick's rows, which makes them
+// a function of the moment rather than of the session. The three sparse
+// columns spend most of a session empty and dropped; the tick one of them
+// first fills, every column to its right moves — nine columns, measured, on
+// rows whose own content had not changed. bazel's own progress bar carries the
+// rule in a comment: "To keep the UI appearance more stable, always show the
+// elapsed time if we also show a strategy (otherwise the strategy will jump)."
+await test("a sparse column keeps its room once the session has shown it", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    const task = (id, status) => ({
+      id,
+      name: "local_agent",
+      description: `Brief for ${id}`,
+      label: `Step for ${id}`,
+      model: "claude-sonnet-5",
+      effort: "high",
+      status,
+      startTime: NOW - 600_000,
+      tokenCount: 100_000,
+      contextWindowSize: 1_000_000,
+    });
+    const at = async (status) => {
+      const out = await runTaskRows({
+        now: NOW,
+        input: JSON.stringify({ session_id: "held", columns: 200, tasks: [task("a", "running"), task("b", status)] }),
+      });
+      const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
+      return row.indexOf("Brief for a");
+    };
+
+    const quiet = await at("running");
+    const showing = await at("queued");
+    assert.ok(showing > quiet, "the column has to appear at all the first time it is filled");
+
+    // The point of the memory: it does not snap back, and it does not move again.
+    assert.equal(await at("running"), showing, "an emptied column keeps the room it took");
+    assert.equal(await at("running"), showing, "and keeps it on every later tick");
+    assert.equal(await at("queued"), showing, "and refilling it moves nothing");
+  });
+});
+
+// Reserving room is not an argument for keeping a column the terminal has no
+// space for. Shedding is decided after the reservation is folded in.
+await test("a remembered width still loses to a terminal that cannot fit it", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    const tasks = [
+      { id: "a", name: "pr-shepherd", description: "Review the contract gate", label: "Reading the file", model: "claude-opus-5", effort: "xhigh", status: "queued", startTime: NOW - 600_000, tokenCount: 100_000, contextWindowSize: 1_000_000 },
+    ];
+    const wide = await runTaskRows({ now: NOW, input: JSON.stringify({ session_id: "shed", columns: 200, tasks }) });
+    assert.match(stripAnsi(JSON.parse(wide.split("\n")[0]).content), /queued/, "with room, the status is there");
+
+    const narrow = await runTaskRows({ now: NOW, input: JSON.stringify({ session_id: "shed", columns: 60, tasks }) });
+    for (const line of narrow.split("\n").filter(Boolean)) {
+      const row = stripAnsi(JSON.parse(line).content);
+      assert.ok(displayWidth(row) <= 60, `a row was ${displayWidth(row)} columns: ${row}`);
+    }
+  });
+});
