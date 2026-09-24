@@ -192,9 +192,12 @@ if ($CtxDir -and -not (Test-Path -LiteralPath $CtxDir)) {
 
 $lines = @($MarkerStart,
            'For additional context about technologies to be used, project structure,',
-           'shell commands, and other important information, read the current plan')
+           'shell commands, and other important information, read the current feature''s')
 if ($PlanPath) {
-    $lines += "at $PlanPath"
+    # plan.md for a full-track feature, spec.md for a quick one, so the
+    # sentence has to name what it actually points at.
+    if ($PlanPath -like '*plan.md') { $lines += "plan at $PlanPath" }
+    else                            { $lines += "spec at $PlanPath" }
 }
 $lines += $MarkerEnd
 $Section = ($lines -join "`n") + "`n"

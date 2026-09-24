@@ -98,7 +98,7 @@ specs/022-spec-tracks/
 └── memory/constitution.md            # + one principle, own version bump
 
 scripts/
-└── tests/spec-scaffold.test.js       # new, five cases, picked up by smoke-test.js
+└── tests/spec-scaffold.test.js       # new, six cases, picked up by smoke-test.js
 
 specs/*/spec.md                       # 21 files gain a four-line front matter block
 ```
@@ -123,17 +123,18 @@ precede the declarations it enforces.
 4. **Resolve `specs/003-status-change-animations`.** A maintainer decision, not an
    implementation step. Until it is `done` or `abandoned`, two directories are `active` and
    the FR-019 case cannot pass. This blocks step 5 and nothing else.
-5. **`scripts/tests/spec-scaffold.test.js`.** Five cases. Lands last because every
+5. **`scripts/tests/spec-scaffold.test.js`.** Six cases. Lands last because every
    condition it asserts has to already hold.
 6. **Constitution amendment.** One new principle defining the tracks, with its own version
    bump. Principle XI is not touched.
 
 ## Risks
 
-- **Step 4 is not ours to decide.** The plan can go no further than pointing out that spec
-  003 has 16 unchecked tasks and that FR-019 needs an answer. If the maintainer wants the
-  test sooner, `abandoned` with a recorded reason is the cheapest honest answer; inventing
-  one here would be worse than waiting.
+- **Step 4 looked like a maintainer decision and was not.** The plan expected to stop at
+  spec 003 and wait. On opening it, `decisions.md` already recorded that its User Stories
+  2 and 3 were closed by the decision not to animate, and `src/changeTracker.js` carries
+  the same reasoning. Recording `done` was reporting a fact, not making a call. The risk
+  as written was real; the answer was already on disk.
 - **Front matter in 21 files is a large diff for a small idea.** It is four lines per file
   and mechanical, but it touches every spec in the repository. It lands in its own commit
   alongside the script change so the diff reads as one intent.

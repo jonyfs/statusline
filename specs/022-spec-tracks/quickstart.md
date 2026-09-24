@@ -112,6 +112,28 @@ cp /tmp/CLAUDE.md.bak CLAUDE.md
 
 Restore both files and re-run the suite; expect `0 failed` again.
 
+## 6b. A quick feature does not borrow another feature's plan (FR-009, FR-013)
+
+The agent-context script used to write the newest `specs/*/plan.md` into the `CLAUDE.md`
+block. A quick feature has none, so the block would have named a different feature.
+
+```bash
+cp .specify/feature.json /tmp/fj.bak; cp CLAUDE.md /tmp/cm.bak
+mkdir -p specs/900-quick-probe
+printf -- '---\ntrack: quick\nstatus: active\n---\n\n# Probe\n' > specs/900-quick-probe/spec.md
+printf '{"feature_directory":"specs/900-quick-probe"}\n' > .specify/feature.json
+bash .specify/extensions/agent-context/scripts/bash/update-agent-context.sh
+sed -n '1,5p' CLAUDE.md
+node scripts/smoke-test.js
+rm -rf specs/900-quick-probe
+cp /tmp/fj.bak .specify/feature.json; cp /tmp/cm.bak CLAUDE.md
+bash .specify/extensions/agent-context/scripts/bash/update-agent-context.sh
+```
+
+Expected: the block names `specs/900-quick-probe/spec.md`, the sentence reads "spec at"
+rather than "plan at", and the suite stays green. Before the fix the block named
+`specs/022-spec-tracks/plan.md` and the "both pointers name the same feature" case failed.
+
 ## 7. Nothing about the bar changed (SC-006)
 
 The same `node scripts/smoke-test.js` run covers this: the 489 pre-existing cases must

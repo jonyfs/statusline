@@ -253,8 +253,13 @@ if [ "$DRY_RUN" != true ]; then
         if [ -n "$TEMPLATE" ] && [ -f "$TEMPLATE" ]; then
             cp "$TEMPLATE" "$SPEC_FILE"
         else
-            echo "Warning: Spec template not found; created empty spec file" >&2
-            touch "$SPEC_FILE"
+            # Not `touch`. An empty spec carries no declaration, and an
+            # undeclared spec is a hard error in check-prerequisites: creating
+            # a feature would immediately break the tooling that created it.
+            # A minimal declared stub keeps the scripts working and leaves the
+            # author a file to fill in.
+            echo "Warning: Spec template not found; created a minimal declared spec file" >&2
+            printf -- '---\ntrack: quick\nstatus: active\n---\n\n# Feature Specification\n' > "$SPEC_FILE"
         fi
     fi
 

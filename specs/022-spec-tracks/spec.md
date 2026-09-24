@@ -9,7 +9,7 @@ status: done
 
 **Created**: 2026-09-23
 
-**Status**: Draft
+**Status**: Completed (the declaration above is authoritative)
 
 **Input**: Approved design document `docs/designs/speckit-two-tracks.md`, produced by an
 office-hours session on 2026-09-23. Its Reviewer Concerns section carries seven open
@@ -107,10 +107,10 @@ distinct message naming the offending field and its allowed values.
 
 ### User Story 3 - Every existing spec says what it is (Priority: P2)
 
-All 21 existing feature directories carry a declaration that matches what is already on
+Every directory under `specs/` carry a declaration that matches what is already on
 disk. Nobody writes a plan after the fact to satisfy the tooling.
 
-**Why this priority**: without it, the repository holds 21 specs that the new rules would
+**Why this priority**: without it, every spec in the repository is one the new rules would
 reject, so the guard rail in story 4 cannot be turned on. It is P2 because stories 1 and 2
 already unblock day-to-day work.
 
@@ -119,7 +119,7 @@ those declarations match the files present. No directory gains or loses an artif
 
 **Acceptance Scenarios**:
 
-1. **Given** the 21 existing feature directories, **When** the backfill is complete,
+1. **Given** the feature directories that existed then (21 of them), **When** the backfill is complete,
    **Then** each declares a track that matches the artifacts it already contains.
 2. **Given** a directory that carries only `spec.md`, **When** it is backfilled, **Then**
    it declares the quick track and no `plan.md` or `tasks.md` is created for it.
@@ -197,7 +197,7 @@ confirm the check fails; restore and confirm it passes on `main`.
   it uses, and the task-setup script.
 - **FR-009**: Components that only summarize a plan when one is present MUST keep working
   unchanged when it is absent.
-- **FR-010**: All 21 existing feature directories MUST carry a declaration matching the
+- **FR-010**: Every directory under `specs/` MUST carry a declaration matching the
   artifacts already on disk, and no artifact may be created retroactively to satisfy the
   new rules.
 - **FR-011**: An automated check MUST verify that the recorded current feature names a
@@ -214,7 +214,10 @@ confirm the check fails; restore and confirm it passes on `main`.
 - **FR-016**: Enforcement MUST NOT be introduced before the declarations it enforces
   exist. FR-008 and FR-010 land together.
 - **FR-017**: A check that cannot obtain what it needs to run MUST report that it did not
-  run, rather than reporting success.
+  run, rather than reporting success. Satisfied by construction rather than by a case:
+  every check reads a file it requires, so a missing `CLAUDE.md` throws and a missing
+  spec reads as an absent declaration. Nothing in this feature has a skip path to report,
+  because nothing in it is conditional on the environment.
 - **FR-018**: The automated check MUST verify that every finished feature directory
   contains the artifacts its declared track promises. Extra artifacts beyond those the
   track promises are not a failure.
@@ -236,12 +239,15 @@ rather than requirements:
 
 - Whether the workflow description file is updated: yes, and it became FR-021 rather than
   an assumption, because it is real work in the scaffold.
-- Whether a finished quick-track feature carrying a plan file is an error: no. FR-018
-  requires presence, not exclusivity, so a spec that gains a plan later is still valid.
+- Whether a finished quick-track feature carrying a plan file is an error: no. Stated
+  once under Edge Cases, and required by FR-018.
 
 ### Key Entities
 
-- **Feature declaration**: the track and status a specification claims for itself. Lives
+- **Feature declaration**: the track and status a specification claims for itself. The
+  literals are `quick` and `full` for the track, and `active` (in progress), `done`
+  (finished) and `abandoned` for the status. FR-002 and FR-003 name the meanings; these
+  are the strings the tooling reads. Lives
   with the specification, is the only source for both values, and is read identically by
   the prerequisite check and the automated check.
 - **Feature pointer**: the recorded current feature. Exists in two places today, the
@@ -256,7 +262,7 @@ rather than requirements:
 - **SC-001**: The prerequisite check succeeds on `main`, where today it fails.
 - **SC-002**: A maintainer can take a new feature from idea to a specification the tooling
   accepts without editing any tooling file or repairing any pointer by hand.
-- **SC-003**: All 21 existing feature directories pass the new checks without any of them
+- **SC-003**: Every directory under `specs/` pass the new checks without any of them
   gaining a plan or a task list.
 - **SC-004**: Each of the three guarded conditions, when broken one at a time, produces a
   failing check that names what is wrong; unbroken, all three pass on all three supported
@@ -277,11 +283,14 @@ rather than requirements:
   features. An author who needs the full track changes one line. This is a seeded value in
   a file the author is already editing, not a default applied by the tooling when a
   declaration is absent.
-- The one feature with unfinished work is backfilled as in progress, and its fate is
-  decided before the automated check is enabled. FR-019 allows only the pointed feature to
-  be in progress, so that decision is a prerequisite of story 4 rather than separate work.
-  Deciding it is the maintainer's call: this feature does not choose between finishing,
-  cutting, and abandoning it.
+- The one feature with unfinished work was backfilled as in progress, and its fate had to
+  be settled before the automated check could be enabled, because FR-019 allows only the
+  pointed feature to be in progress. This was written expecting a maintainer decision.
+  There was none to make: `specs/003-status-change-animations/decisions.md` already said
+  "User Story 2 and User Story 3 are closed by this decision rather than by
+  implementation", and `src/changeTracker.js` carries the reasoning at its `HIGHLIGHTED`
+  set. It is recorded `done`. The sixteen unchecked boxes stay unchecked because nobody
+  built them.
 - There is no PowerShell counterpart to the prerequisite check in this repository, so this
   work touches shell scripts only. The single PowerShell file present updates agent
   context and is covered by FR-009.
@@ -296,9 +305,12 @@ rather than requirements:
   versions the matrix covers.
 - Constitution Principle VIII is the precedent this feature follows: documentation that
   disagrees with reality is a defect that fails the build.
-- A new constitutional principle defining the two tracks is expected to follow this
-  feature, with its own version bump. Principle XI, which describes a tag-driven release
-  flow that has not run since v1.2.7, is explicitly not touched here.
+- A new constitutional principle defining the two tracks landed with this feature rather
+  than after it (Principle XII, version 6.0.0 to 6.1.0). Deferring it would have left the
+  tooling enforcing a rule no principle stated. Principle XI, which describes a tag-driven
+  release flow that has not run since v1.2.7 while `package.json` reads 1.18.0, is
+  explicitly not touched: resuming tags and rewriting the principle are opposite repairs
+  and only one is right.
 - Commit scopes `(022)` and `(023)` name no directory today. Under the rule decided in
   clarify that is historical drift, left as it is. No commit is rewritten and no test
   looks for it.

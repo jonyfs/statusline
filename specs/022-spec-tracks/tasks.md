@@ -49,9 +49,10 @@ depends on both.
 **Checkpoint**: the reader exists and every spec declares itself. Nothing enforces it yet,
 so `main` is still green.
 
-FR-009 has no task of its own: `update-agent-context.sh` and its PowerShell counterpart
-only summarize a plan when one is present, so they keep working for a quick feature with
-no change. T029's suite run is what would catch a regression there.
+FR-009 originally had no task, on the assumption that the agent-context scripts only
+summarize a plan when one is present and so need no change. That assumption was wrong, and
+the gap is why the conflict below went unnoticed until `/speckit-analyze` read the script.
+T030 closes it.
 
 ---
 
@@ -146,7 +147,25 @@ These tasks are the feature, not a check on it.
 
 - [X] T026 [P] Update `.specify/workflows/speckit/workflow.yml` so it describes both tracks rather than a single mandatory cycle (FR-021)
 - [X] T027 Amend `.specify/memory/constitution.md` with one new principle defining the two tracks and the declaration contract, with its own version bump. Do not touch Principle XI
-- [X] T028 Run `node scripts/smoke-test.js` and confirm the count equals the T002 baseline plus the five new cases, with zero failures (SC-006)
+- [X] T028 Run `node scripts/smoke-test.js` and confirm the count equals the T002 baseline plus the six new cases, with zero failures (SC-006)
+- [X] T030 Make the agent-context scripts follow the pointer rather than the newest plan on
+      disk (FR-009, FR-013). `update-agent-context.sh` picked the most recently modified
+      `specs/*/plan.md` across the whole tree, so a quick-track feature, having no plan,
+      would have had another feature's plan written into its `CLAUDE.md` block, and the
+      T024 case would have failed in CI on the first quick feature after this landed. Both
+      the bash and PowerShell versions now read `.specify/feature.json` and use that
+      feature's `plan.md`, or its `spec.md` when it has no plan, falling back to the old
+      sweep only when there is no pointer at all. The block's sentence names which of the
+      two it points at
+- [X] T031 Fix the create-new-feature fallback (FR-015, U1). When the spec template cannot
+      be resolved it ran `touch "$SPEC_FILE"`, producing an empty undeclared spec that
+      `check-prerequisites.sh` then rejects: creating a feature would break the tooling
+      that created it. It now writes a minimal declared stub
+- [X] T032 Correct the constitution's own footer (D1, D2). Principle XII had been added
+      and the Sync Impact Report bumped, but `**Version**:` still read 6.0.0 and the
+      Compliance Review and Repository State sections still enumerated Principles I to XI.
+      The Governance section requires a MINOR bump for a new principle. Also corrected
+      "four-line format" in that enumeration, stale since 6.0.0 made the bar three lines
 - [X] T029 Prove SC-008. A `--depth 1` clone was the planned method but clones the last commit, not the working tree, so it could not see this work. Verified more strictly instead: the working tree copied without `.git` at all, where `git rev-parse` fails outright, still runs 495 passed / 0 failed
 
 ---

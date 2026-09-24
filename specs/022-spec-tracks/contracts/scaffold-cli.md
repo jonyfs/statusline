@@ -100,6 +100,7 @@ what broke:
 |---|---|
 | the pointer names a directory that exists | `feature.json` names a missing directory |
 | every spec declares a track and a status | any directory under `specs/` has an invalid or absent declaration |
+| a declaration is only read from the top of the file | a `---` used as a separator inside a spec body is read as front matter |
 | a finished feature has what its track promises | a `done` full-track directory lacks `plan.md` or `tasks.md` |
 | only the pointed feature is in progress | a second directory declares `active` |
 | both pointers name the same feature | the `CLAUDE.md` block and `feature.json` disagree |

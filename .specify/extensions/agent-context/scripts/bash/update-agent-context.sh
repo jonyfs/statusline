@@ -122,23 +122,51 @@ unset _cf_parts _seg
 
 PLAN_PATH="${1:-}"
 if [[ -z "$PLAN_PATH" ]]; then
-  # Pick the most recently modified plan.md one level deep (specs/<feature>/plan.md).
-  # Use find + sort by modification time to avoid ls/head fragility with
-  # spaces in paths or SIGPIPE from pipefail.
-  _plan_abs="$("$_python" - "$PROJECT_ROOT" <<'PY'
-import sys, os
+  # The feature the pointer names, not the newest plan on disk.
+  #
+  # Picking the most recently modified specs/*/plan.md used to be the whole
+  # rule, and it is wrong in two ways. A quick-track feature has no plan, so
+  # the block would name some other feature's plan and tell every agent
+  # reading project instructions that the wrong feature is current. And even
+  # for a full feature, "newest mtime" is not "current": touching an old plan
+  # moves the pointer.
+  #
+  # So: the feature .specify/feature.json names, its plan.md when it has one
+  # and its spec.md when it does not. The newest-plan sweep survives only as a
+  # last resort, for a checkout with no feature.json at all.
+  _ctx_target="$("$_python" - "$PROJECT_ROOT" <<'PYPICK'
+import json
+import sys
 from pathlib import Path
-specs = Path(sys.argv[1]) / "specs"
+
+root = Path(sys.argv[1])
+
+fj = root / ".specify" / "feature.json"
+if fj.is_file():
+    try:
+        named = json.loads(fj.read_text()).get("feature_directory") or ""
+    except (ValueError, OSError):
+        named = ""
+    if named:
+        d = Path(named)
+        if not d.is_absolute():
+            d = root / d
+        if d.is_dir():
+            for candidate in ("plan.md", "spec.md"):
+                if (d / candidate).is_file():
+                    print(d / candidate)
+                    sys.exit(0)
+
 plans = sorted(
-    specs.glob("*/plan.md"),
+    (root / "specs").glob("*/plan.md"),
     key=lambda p: p.stat().st_mtime,
     reverse=True,
 )
 print(plans[0] if plans else "")
-PY
+PYPICK
 )"
-  if [[ -n "$_plan_abs" ]]; then
-    PLAN_PATH="${_plan_abs#"$PROJECT_ROOT/"}"
+  if [[ -n "$_ctx_target" ]]; then
+    PLAN_PATH="${_ctx_target#"$PROJECT_ROOT/"}"
   fi
 fi
 
@@ -151,9 +179,14 @@ trap 'rm -f "$TMP_SECTION"' EXIT
 {
   echo "$MARKER_START"
   echo "For additional context about technologies to be used, project structure,"
-  echo "shell commands, and other important information, read the current plan"
+  echo "shell commands, and other important information, read the current feature's"
   if [[ -n "$PLAN_PATH" ]]; then
-    echo "at $PLAN_PATH"
+    # plan.md for a full-track feature, spec.md for a quick one, so the
+    # sentence has to name what it actually points at.
+    case "$PLAN_PATH" in
+      *plan.md) echo "plan at $PLAN_PATH" ;;
+      *)        echo "spec at $PLAN_PATH" ;;
+    esac
   fi
   echo "$MARKER_END"
 } > "$TMP_SECTION"

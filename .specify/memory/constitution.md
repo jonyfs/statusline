@@ -578,8 +578,8 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Amendment Process**: Constitution changes require documented rationale (breaking changes, new principle, or clarification). Version bumped according to semver: MAJOR for principle removals/redefinitions, MINOR for new principles/sections, PATCH for wording/clarification only.
 
-**Compliance Review**: Each feature merged MUST verify adherence to Principles I–XI (Starship compatibility, four-line format, token tracking, clone distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support, live-state icons, tag-driven releases). Reviews checked via PR review checklist.
+**Compliance Review**: Each feature merged MUST verify adherence to Principles I–XII (Starship compatibility, three-line format, token tracking, clone distribution, documentation, English-only code, MVP-first scope, generated previews, cross-platform support, live-state icons, tag-driven releases, declared spec tracks). Reviews checked via PR review checklist.
 
-**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XI. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
+**Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 6.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-07
+**Version**: 6.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-23
