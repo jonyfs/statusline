@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Explaining a segment
 
 **Feature ID**: `019-explaining-a-segment`

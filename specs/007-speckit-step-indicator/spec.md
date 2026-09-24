@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Spec-Driven Development Step Indicator
 
 **Feature Branch**: `007-speckit-step-indicator`

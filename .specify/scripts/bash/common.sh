@@ -151,6 +151,76 @@ _persist_feature_json() {
     fi
 }
 
+# Read a spec's own declaration of what it is: which artifacts complete it, and
+# where it sits in its life. The declaration is YAML front matter, and it is the
+# only place either value is written.
+#
+#   ---
+#   track: quick
+#   status: active
+#   ---
+#
+# Prints two lines, always, so a caller can `eval` the output without checking
+# first:
+#
+#   SPEC_TRACK=quick
+#   SPEC_STATUS=active
+#
+# An absent block, an absent key, or a value outside the allowed set prints an
+# empty value for that key rather than failing. The caller decides what message
+# its own context calls for, which is why a missing track and a missing status
+# can be reported differently.
+#
+# The block is only recognized when the opening `---` is the FIRST line of the
+# file. Existing specs use `---` as a separator between user stories, and one of
+# those must never be mistaken for a declaration.
+#
+# Always returns 0. A parser failure here must not abort a caller running under
+# `set -e`, for the same reason read_feature_json_feature_directory above does
+# not.
+read_spec_declaration() {
+    local spec_file="$1"
+    # Named with a leading underscore because `status` is a read-only special
+    # variable in zsh, and this file gets sourced by hand often enough that a
+    # collision there is a real cost for no benefit.
+    local _track='' _status=''
+
+    if [[ -f "$spec_file" ]]; then
+        local block
+        # awk rather than sed: the range has to start at line 1 specifically,
+        # and stop at the first closing delimiter rather than the last.
+        block=$(awk 'NR==1 && $0!="---" {exit} NR==1 {next} $0=="---" {exit} {print}' "$spec_file" 2>/dev/null) || block=''
+
+        if [[ -n "$block" ]]; then
+            _track=$(printf '%s\n' "$block" | sed -n -E 's/^[[:space:]]*track:[[:space:]]*([^[:space:]#]+).*$/\1/p' | head -n 1)
+            _status=$(printf '%s\n' "$block" | sed -n -E 's/^[[:space:]]*status:[[:space:]]*([^[:space:]#]+).*$/\1/p' | head -n 1)
+        fi
+    fi
+
+    # Anything outside the allowed set is reported as absent. There is no
+    # nearest match and no case folding: a spec that says `Quick` is a spec
+    # that gets fixed, not guessed at.
+    case "$_track" in
+        quick|full) ;;
+        *) _track='' ;;
+    esac
+    case "$_status" in
+        active|done|abandoned) ;;
+        *) _status='' ;;
+    esac
+
+    printf 'SPEC_TRACK=%q\n' "$_track"
+    printf 'SPEC_STATUS=%q\n' "$_status"
+    return 0
+}
+
+# True when the declared track and status together require plan.md and tasks.md.
+# Artifacts are enforced at `done` only: a full feature is written spec first,
+# then plan, then tasks, and the check must not fail in between.
+spec_requires_full_artifacts() {
+    [[ "$1" == "full" && "$2" == "done" ]]
+}
+
 get_feature_paths() {
     # Split decl/assignment so a SPECIFY_INIT_DIR validation failure in
     # get_repo_root propagates as a hard error instead of being masked by `local`.

@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Statusline Line-by-Line Audit and Freshness Guarantees
 
 **Feature Branch**: `001-statusline-freshness-audit`

@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Speckit Feature Indicator
 
 **Feature Branch**: `009-speckit-feature-indicator`

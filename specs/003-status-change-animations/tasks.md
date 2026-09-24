@@ -14,6 +14,13 @@ three platforms (Principle IX), and two of this feature's requirements
 (constant frame width, byte-identical output with animation off) are the kind
 that survive review and fail in a terminal.
 
+> **Closed by decision, not by implementation.** The sixteen unchecked boxes below are
+> User Story 2 and User Story 3, which [`decisions.md`](./decisions.md) closes: the board
+> was rendered, no candidate set was chosen, and the bar marks a change with a colour
+> shift instead. `src/changeTracker.js` carries the reasoning at its `HIGHLIGHTED` set.
+> The boxes are left unchecked because nobody built them; the feature is `done` because
+> the question it asked was answered.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

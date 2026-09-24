@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: PR Label Display
 
 **Feature Branch**: `006-pr-labels-display`

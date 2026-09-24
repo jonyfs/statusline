@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Statusline Redesign Review, Chosen by the Owner
 
 **Feature Branch**: `002-statusline-design-review`

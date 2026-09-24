@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Statusline English-Only Output
 
 **Feature Branch**: `005-statusline-english-only`

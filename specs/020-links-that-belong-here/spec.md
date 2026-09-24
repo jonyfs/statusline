@@ -1,3 +1,8 @@
+---
+track: quick
+status: done
+---
+
 # Feature Specification: Links that belong to the project you are in
 
 **Feature ID**: `020-links-that-belong-here`

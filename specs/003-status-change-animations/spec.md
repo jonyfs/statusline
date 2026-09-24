@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Something Moves When Something Changes
 
 **Feature Branch**: `003-status-change-animations`

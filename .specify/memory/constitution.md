@@ -2,7 +2,14 @@
 
 <!--
 Sync Impact Report:
-- Version: 6.0.0 (II redefined on 2026-09-07: MAJOR, the bar draws three lines rather than four.
+- Version: 6.1.0 (XII added on 2026-09-23: MINOR, a new principle rather than a redefinition.
+  A spec declares in its own front matter which artifacts complete it, and the scaffold requires
+  only what that declaration promises. Four of the last five features had shipped with spec.md
+  alone while the tooling demanded a plan for every one, so check-prerequisites.sh failed on its
+  first call. Nothing in I through XI changed; XI in particular was left alone, and the gap
+  between the tag-driven flow it describes and the untagged versions since v1.2.7 remains an
+  open question with its own decision to make.)
+- Previously, version 6.0.0 (II redefined on 2026-09-07: MAJOR, the bar draws three lines rather than four.
   "How the model is configured" and "what is running out" become one subject: the first never
   filled a line, and what is being spent is read in the same glance as what is spending it.
   Nothing was dropped in the merge — the terminal decides what survives by the priorities in
@@ -504,6 +511,43 @@ never ship by accident and the tag is the single source of truth for what was re
 - **CI guards the invariants other principles declare**: continuous integration MUST run the
   test matrix across all three platforms (Principle IX) and MUST fail when regenerating previews
   produces a diff (Principle VIII).
+
+### XII. A Spec Declares What Completes It
+
+Every feature specification MUST open with YAML front matter naming its track and its status,
+and the scaffold MUST require only what that declaration promises. A spec that does not declare
+is an error, never a guess.
+
+```yaml
+---
+track: quick
+status: active
+---
+```
+
+- **Two tracks, no third**: `quick` means `spec.md` alone is the complete artifact set. `full`
+  means `spec.md`, `plan.md` and `tasks.md` together are. Most features here are quick ones, and
+  the tooling MUST stop treating the short path as a failure of the long one.
+- **Enforced at `done` only**: `status` is `active`, `done` or `abandoned`. Artifacts are checked
+  when a feature says it is finished. A full feature is written spec first, then plan, then
+  tasks, so demanding all three from the start would fail the normal path.
+- **One feature in progress**: at most one directory may be `active`, and it MUST be the one
+  `.specify/feature.json` names. Otherwise a feature left `active` forever never has to show its
+  artifacts, and the requirement becomes opt-in.
+- **The two pointers agree**: the `<!-- SPECKIT START -->` block in `CLAUDE.md` and
+  `.specify/feature.json` MUST name the same feature. They disagreed for several features before
+  this principle existed, and every agent reading project instructions was told the wrong one.
+- **Declaration beats inference, and nothing infers**: a missing block, a missing key or an
+  unrecognized value MUST fail with a message naming the offending key and its allowed values.
+  There is no default in the tooling. The template seeds `track: quick` into a new spec, which is
+  a value the author is already editing, not a value the parser supplies.
+- **Checked by the suite, not by history**: `scripts/tests/spec-scaffold.test.js` enforces the
+  above and MUST read files only. A check that reads git history would skip on the shallow
+  checkouts CI makes by default, which is a guard rail that does not guard.
+
+This is Principle VIII pointed at the scaffold: documentation that disagrees with reality is a
+defect, whether it is a README image or the file that says which feature is current.
+
 
 ## Development & Distribution Workflow
 

@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Research It, Then Let the Owner Build the Bar
 
 **Feature Branch**: `004-statusline-redesign-research`
