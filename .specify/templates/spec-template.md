@@ -1,3 +1,8 @@
+---
+track: quick
+status: active
+---
+
 # Feature Specification: [FEATURE NAME]
 
 **Feature Branch**: `[###-feature-name]`
@@ -7,6 +12,17 @@
 **Status**: Draft
 
 **Input**: User description: "$ARGUMENTS"
+
+**Track**: `quick` means this `spec.md` is the complete artifact set. `full` means this spec,
+a `plan.md` and a `tasks.md` together are. Choose `full` when the work needs decisions
+recorded before it starts: a new data shape, a change across several files, anything where
+a reviewer would ask "why this way". Choose `quick` otherwise. The seeded value is `quick`
+because most features here are. Changing it is one line, and the tooling will not guess
+for you.
+
+**Status**: `active` while the work is in progress, `done` when it ships, `abandoned` with
+the reason written into this file if it never does. Artifacts are only required at `done`,
+so a full-track feature is free to exist without its plan while the plan is being written.
 
 ## User Scenarios & Testing *(mandatory)*
 

@@ -4,7 +4,7 @@ workflow:
   name: "Full SDD Cycle"
   version: "1.0.0"
   author: "GitHub"
-  description: "Runs specify → plan → tasks → implement with review gates"
+  description: "Runs specify, then plan and tasks for a full-track feature, then implement, with review gates"
 
 requires:
   # 0.8.5 is the first release with engine-side resolution of the
@@ -38,6 +38,19 @@ inputs:
     type: string
     default: "full"
     enum: ["full", "backend-only", "frontend-only"]
+
+# Two tracks, declared by each spec in its own front matter.
+#
+#   quick  spec.md alone is the complete artifact set
+#   full   spec.md, plan.md and tasks.md together are
+#
+# This workflow runs the full track end to end. A quick feature stops after
+# `specify` and goes straight to implementation: it has no plan to review and
+# no task list to generate, and `check-prerequisites.sh` will not ask for
+# either. Four of the last five features in this repository were quick ones,
+# so the short path is the common one, not the exception.
+#
+# The track lives in spec.md and nowhere else. See specs/022-spec-tracks/.
 
 steps:
   - id: specify

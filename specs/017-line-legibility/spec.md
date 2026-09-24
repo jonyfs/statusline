@@ -1,3 +1,8 @@
+---
+track: quick
+status: done
+---
+
 # Feature Specification: Line 2 and Line 4 Legibility
 
 **Feature ID**: `017-line-legibility`

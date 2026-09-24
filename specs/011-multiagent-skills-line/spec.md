@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Multi-Agent Skills On The Skills Line
 
 **Feature Branch**: `011-multiagent-skills-line`

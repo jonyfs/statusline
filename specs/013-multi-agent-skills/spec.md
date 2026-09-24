@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Multi-Agent Skills Visibility
 
 **Feature Branch**: `013-multi-agent-skills`

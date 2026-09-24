@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Skills Line Completeness
 
 **Feature Branch**: `008-skills-line-completeness`

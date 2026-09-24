@@ -118,13 +118,49 @@ if [[ ! -d "$FEATURE_DIR" ]]; then
     exit 1
 fi
 
-if [[ ! -f "$IMPL_PLAN" ]]; then
-    echo "ERROR: plan.md not found in $FEATURE_DIR" >&2
-    echo "Run /speckit-plan first to create the implementation plan." >&2
+# The spec is required under every track, and it has to be read before anything
+# else can be decided: it is where the feature says what it is.
+if [[ ! -f "$FEATURE_SPEC" ]]; then
+    echo "ERROR: spec.md not found in $FEATURE_DIR" >&2
+    echo "Run /speckit-specify first to create the feature structure." >&2
     exit 1
 fi
 
-# Check for tasks.md if required
+eval "$(read_spec_declaration "$FEATURE_SPEC")"
+
+# A spec that does not say what it is gets fixed, not guessed at. The two
+# messages are separate so a wrong status is never reported as a track problem.
+if [[ -z "$SPEC_TRACK" ]]; then
+    echo "ERROR: $FEATURE_SPEC declares no valid track (expected quick|full)" >&2
+    echo "Add a front matter block at the top of spec.md with track: and status: keys." >&2
+    exit 1
+fi
+
+if [[ -z "$SPEC_STATUS" ]]; then
+    echo "ERROR: $FEATURE_SPEC declares no valid status (expected active|done|abandoned)" >&2
+    echo "Add a front matter block at the top of spec.md with track: and status: keys." >&2
+    exit 1
+fi
+
+# Artifacts are required by what the track promises, and only once the feature
+# says it is done. A full feature is written spec first, then plan, then tasks,
+# so demanding all three from the start would fail the normal path.
+if spec_requires_full_artifacts "$SPEC_TRACK" "$SPEC_STATUS"; then
+    if [[ ! -f "$IMPL_PLAN" ]]; then
+        echo "ERROR: plan.md not found in $FEATURE_DIR" >&2
+        echo "This feature declares the full track. Run /speckit-plan first to create the implementation plan." >&2
+        exit 1
+    fi
+
+    if [[ ! -f "$TASKS" ]]; then
+        echo "ERROR: tasks.md not found in $FEATURE_DIR" >&2
+        echo "This feature declares the full track. Run /speckit-tasks first to create the task list." >&2
+        exit 1
+    fi
+fi
+
+# --require-tasks is independent of the declaration: a caller passing it is
+# about to implement and genuinely needs the file, whatever the track says.
 if $REQUIRE_TASKS && [[ ! -f "$TASKS" ]]; then
     echo "ERROR: tasks.md not found in $FEATURE_DIR" >&2
     echo "Run /speckit-tasks first to create the task list." >&2

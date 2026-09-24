@@ -1,3 +1,8 @@
+---
+track: quick
+status: done
+---
+
 # Feature Specification: A README that describes the bar that ships
 
 **Feature ID**: `018-readme-current`

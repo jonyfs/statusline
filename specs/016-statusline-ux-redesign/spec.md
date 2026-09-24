@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Statusline UX Redesign
 
 **Feature ID**: `016-statusline-ux-redesign`

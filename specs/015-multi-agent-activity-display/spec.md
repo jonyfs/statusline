@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Multi-Agent Activity Display
 
 **Feature Branch**: `015-multi-agent-activity-display`

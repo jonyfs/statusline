@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Subagent-Aware Activity Status
 
 **Feature Branch**: `012-subagent-activity-status`

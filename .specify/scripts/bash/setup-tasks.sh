@@ -27,16 +27,33 @@ _paths_output=$(get_feature_paths) || { echo "ERROR: Failed to resolve feature p
 eval "$_paths_output"
 unset _paths_output
 
-# Validate required files
-if [[ ! -f "$IMPL_PLAN" ]]; then
-    echo "ERROR: plan.md not found in $FEATURE_DIR" >&2
-    echo "Run /speckit-plan first to create the implementation plan." >&2
-    exit 1
-fi
-
+# Validate required files. The spec comes first: it carries the declaration that
+# decides whether anything else is required at all.
 if [[ ! -f "$FEATURE_SPEC" ]]; then
     echo "ERROR: spec.md not found in $FEATURE_DIR" >&2
     echo "Run /speckit-specify first to create the feature structure." >&2
+    exit 1
+fi
+
+eval "$(read_spec_declaration "$FEATURE_SPEC")"
+
+# Same two messages as check-prerequisites, word for word. Two scripts
+# disagreeing about what a bad declaration looks like would be its own defect.
+if [[ -z "$SPEC_TRACK" ]]; then
+    echo "ERROR: $FEATURE_SPEC declares no valid track (expected quick|full)" >&2
+    echo "Add a front matter block at the top of spec.md with track: and status: keys." >&2
+    exit 1
+fi
+
+if [[ -z "$SPEC_STATUS" ]]; then
+    echo "ERROR: $FEATURE_SPEC declares no valid status (expected active|done|abandoned)" >&2
+    echo "Add a front matter block at the top of spec.md with track: and status: keys." >&2
+    exit 1
+fi
+
+if spec_requires_full_artifacts "$SPEC_TRACK" "$SPEC_STATUS" && [[ ! -f "$IMPL_PLAN" ]]; then
+    echo "ERROR: plan.md not found in $FEATURE_DIR" >&2
+    echo "This feature declares the full track. Run /speckit-plan first to create the implementation plan." >&2
     exit 1
 fi
 

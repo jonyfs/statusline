@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: PR Status Freshness & Cache Correctness
 
 **Feature Branch**: `014-pr-status-freshness`

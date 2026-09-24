@@ -1,3 +1,8 @@
+---
+track: full
+status: done
+---
+
 # Feature Specification: Skill Auto-Removal
 
 **Feature Branch**: `010-skill-auto-removal`

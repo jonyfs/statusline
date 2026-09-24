@@ -1,3 +1,8 @@
+---
+track: quick
+status: done
+---
+
 # Feature Specification: What a subagent row can say
 
 **Feature ID**: `021-agent-rows`
