@@ -51,6 +51,11 @@ inputs:
 # so the short path is the common one, not the exception.
 #
 # The track lives in spec.md and nowhere else. See specs/022-spec-tracks/.
+#
+# Note the collision: `inputs.scope` above also takes a value named "full", and
+# it means something unrelated (how much of the product a run covers, against
+# backend-only and frontend-only). A spec's track and a run's scope are
+# independent.
 
 steps:
   - id: specify
