@@ -27,6 +27,13 @@ await test("inProgressFeatureId reads the basename of feature_directory", () => 
   assert.equal(inProgressFeatureId(root), "009-speckit-feature-indicator");
 });
 
+await test("inProgressFeatureId walks up from a subdirectory to find the project root", () => {
+  const root = projectWithFeature("specs/009-speckit-feature-indicator");
+  const subdir = path.join(root, "packages", "foo");
+  mkdirSync(subdir, { recursive: true });
+  assert.equal(inProgressFeatureId(subdir), "009-speckit-feature-indicator");
+});
+
 await test("inProgressFeatureId returns null with no .specify directory", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "no-specify-"));
   assert.equal(inProgressFeatureId(root), null);

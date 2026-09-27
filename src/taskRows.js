@@ -397,10 +397,9 @@ function snapshotPath(sessionId) {
  * `render`/statusLine command (a different process, per its own tick) can
  * fold running subagent activity into the skills line. `task-rows` and
  * `render` share no other state (specs/011-multiagent-skills-line,
- * research.md): the tick payload carries no session id or cwd to key a
- * per-session file by, so this is a single global snapshot, overwritten on
- * every tick, read with a short freshness window rather than trusted
- * indefinitely. A write failure never affects this command's own output.
+ * research.md): the snapshot is keyed by session id, with `latest.json` as
+ * the fallback when the tick carries no id. A write failure never affects
+ * this command's own output.
  */
 function writeTaskSnapshot(tasks, now, sessionId) {
   try {

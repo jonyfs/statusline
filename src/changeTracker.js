@@ -80,6 +80,11 @@ function loadState(sessionId) {
   }
 }
 
+/** Reads the saved sample history for a session, or an empty list. */
+export function loadSamples(sessionId) {
+  return loadState(sessionId)?.samples || [];
+}
+
 /**
  * Deletes state, cache and skill-event files untouched for a week. Without
  * this, every session Claude Code ever opened would leave a file behind
@@ -120,7 +125,7 @@ function saveState(sessionId, state) {
  * the line permanently animated and the highlight would stop meaning
  * anything.
  */
-export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = true, sample = null } = {}) {
+export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = true, sample = null, samples = null } = {}) {
   if (!enabled) {
     return {
       isChanged: () => false,
@@ -149,13 +154,24 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
   // trend, and the rule that the savings figure only renders once it has
   // moved. It rides in the file that already exists rather than a second
   // store, and is bounded so the file cannot grow.
-  const samples = sample ? pushSample(previous?.samples, { at: now, ...sample }) : previous?.samples || [];
+  //
+  // Callers that already built the history (e.g. the renderer's gather
+  // phase, which needs it for the diagnostic too) pass it in directly;
+  // otherwise we push one new sample onto the previous ring.
+  let nextSamples;
+  if (samples) {
+    nextSamples = samples;
+  } else if (sample) {
+    nextSamples = pushSample(previous?.samples, { at: now, ...sample });
+  } else {
+    nextSamples = previous?.samples || [];
+  }
 
   // Swept once per session, on its first render — deterministic, and
   // frequent enough given each session starts exactly once.
   if (!previous) pruneStaleState(now);
 
-  saveState(sessionId, { snapshot, changedAt, frame, samples });
+  saveState(sessionId, { snapshot, changedAt, frame, samples: nextSamples });
 
   return {
     isChanged: (key) => Object.hasOwn(changedAt, key),
@@ -172,6 +188,6 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
     /** Kept so a caller can still ask, and always answers with the icon. */
     iconFor: (_key, staticIcon) => staticIcon,
     /** The sample ring, for whatever wants to read a direction out of it. */
-    samples,
+    samples: nextSamples,
   };
 }

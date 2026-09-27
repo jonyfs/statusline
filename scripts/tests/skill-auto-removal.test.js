@@ -99,6 +99,21 @@ await test("one skill's staleness does not affect a fresh, unrelated skill", () 
   assert.deepEqual(active, ["fresh-skill"], "only the fresh skill is shown, the stale one is gone");
 });
 
+// Edge case: a zero or negative override is refused so expiry is never
+// disabled by accident.
+await test("windowMs rejects zero and negative overrides", () => {
+  const prev = process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN;
+  try {
+    process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN = "0";
+    assert.equal(windowMs(), 30 * 60 * 1000);
+    process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN = "-5";
+    assert.equal(windowMs(), 30 * 60 * 1000);
+  } finally {
+    if (prev === undefined) delete process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN;
+    else process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN = prev;
+  }
+});
+
 // Edge case: no further session activity at all still expires the skill.
 await test("a skill invoked once with no further session activity still expires", () => {
   const w = windowMs();

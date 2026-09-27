@@ -5,7 +5,6 @@ import {
   hasEnough,
   ratePerHour,
   projectFull,
-  movedBy,
   MAX_SAMPLES,
   MIN_SAMPLES_FOR_RATE,
   MAX_SPAN_MS,
@@ -78,14 +77,6 @@ await test("a series already at the limit projects now", () => {
   full[0].fiveHourPct = 90;
   const at = projectFull(full, "fiveHourPct", T0);
   assert.equal(at, T0);
-});
-
-await test("a value only counts as moved once it has moved far enough", () => {
-  assert.equal(movedBy(80, 80, 5), false);
-  assert.equal(movedBy(80, 84, 5), false);
-  assert.equal(movedBy(80, 85, 5), true);
-  assert.equal(movedBy(80, 75, 5), true, "down counts too");
-  assert.equal(movedBy(undefined, 80, 5), true, "the first value always counts");
 });
 
 // Bounding the history --------------------------------------------------

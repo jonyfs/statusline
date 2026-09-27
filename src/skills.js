@@ -59,10 +59,9 @@ function taskSnapshotPath(sessionId) {
  * with no subagent activity to report, line 2 falls back to exactly today's
  * directly-invoked-only behaviour (FR-004).
  *
- * The snapshot is a single global file, not per-session (see the write
- * side in `taskRows.js` for why): with two concurrent Claude Code sessions
- * on the same machine, this can surface one session's subagent activity on
- * the other's line. Documented, accepted limitation, not a defect.
+ * The snapshot is keyed by session id, so two Claude Code windows on two
+ * projects no longer read each other's running agents. `latest.json` is the
+ * fallback name when neither side has a session id.
  */
 function readTaskSnapshot(now, sessionId) {
   let raw;
@@ -209,21 +208,30 @@ export function getSessionActivity(transcriptPath, { now = Date.now(), limit = 3
  * tracking is a normal case, not an error (FR-004).
  */
 export function inProgressFeatureId(projectRoot = process.cwd()) {
-  let raw;
-  try {
-    raw = readFileSync(path.join(projectRoot, ".specify", "feature.json"), "utf8");
-  } catch {
-    return null;
+  // The current directory may be a subdirectory of the project root, so walk
+  // up until the Spec Kit marker is found or the filesystem root is reached.
+  let dir = projectRoot;
+  for (let depth = 0; depth < 64; depth++) {
+    let raw;
+    try {
+      raw = readFileSync(path.join(dir, ".specify", "feature.json"), "utf8");
+    } catch {
+      const parent = path.dirname(dir);
+      if (parent === dir) return null;
+      dir = parent;
+      continue;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    const featureDir = parsed?.feature_directory;
+    if (typeof featureDir !== "string" || !featureDir) return null;
+    return path.basename(featureDir);
   }
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  const dir = parsed?.feature_directory;
-  if (typeof dir !== "string" || !dir) return null;
-  return path.basename(dir);
+  return null;
 }
 
 /**

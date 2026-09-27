@@ -95,7 +95,7 @@ await test("the report names each rendered row by its line", () => {
 });
 
 await test("each window's row reports its level and its reset, as its chip draws them", () => {
-  const report = buildReport(fullPayload({ cwd: process.cwd() }), { now: NOW, live: false, probe });
+  const report = buildReport(fullPayload({ cwd: process.cwd(), now: NOW }), { now: NOW, live: false, probe });
   for (const key of ["fiveHour", "sevenDay"]) {
     const row = report.segments.find((r) => r.key === key);
     assert.equal(row.rendered, true, `${key} is on line 4, so the diagnostic must not call it absent`);

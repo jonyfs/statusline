@@ -1,10 +1,9 @@
 /**
  * A short history of the numbers that move.
  *
- * Four selected items need to know where a value has been, not only where it
+ * Three selected items need to know where a value has been, not only where it
  * is: the burn rate on the 5-hour window, the projection that follows from
- * it, the context trend, and the rule that the savings figure only renders
- * once it has moved five points.
+ * it, and the context trend.
  *
  * The samples live in the per-session state file the change tracker already
  * writes, swept on the same schedule and failing the same safe way. A second
@@ -128,12 +127,4 @@ export function projectFull(samples, field, now) {
   return now + ((100 - current) / rate) * 3_600_000;
 }
 
-/**
- * Whether a value has moved far enough from the last one shown to be worth
- * the width. Item C5's chosen form for the savings figure: five points.
- */
-export function movedBy(previous, current, points) {
-  if (typeof current !== "number") return false;
-  if (typeof previous !== "number") return true;
-  return Math.abs(current - previous) >= points;
-}
+

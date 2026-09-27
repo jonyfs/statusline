@@ -31,14 +31,14 @@ import { getRtkSavings } from "./rtk.js";
 import { elapsed } from "./taskRows.js";
 import { getOpenTabUrl, pathToFileUrl } from "./openTerminalTab.js";
 import { resetMomentLabel } from "./timeIcons.js";
-import { trackChanges } from "./changeTracker.js";
+import { trackChanges, loadSamples } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
 import { resolveLayout } from "./config.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
 import { plainText } from "./text.js";
-import { ratePerHour, projectFull } from "./samples.js";
+import { ratePerHour, projectFull, pushSample } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight } from "./layout.js";
 
 // Nerd Font glyphs, written as escapes rather than literal private-use
@@ -320,6 +320,16 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
 
   const cwd = payload?.workspace?.current_dir || payload?.cwd || process.cwd();
   const { fiveHourPct, fiveHourResetsAt, sevenDayPct, sevenDayResetsAt } = getRateLimits(payload);
+  const ctxPct = getContextPercent(payload);
+  // RTK is needed both for its segment and for the sample history, so read it
+  // once and reuse the timed reading.
+  const rtkReading = timed("rtk", () => probe.getRtkSavings(cwd));
+  const sampleHistory = pushSample(loadSamples(payload?.session_id), {
+    at: now,
+    contextPct: payload?.context_window?.used_percentage ?? ctxPct,
+    fiveHourPct: payload?.rate_limits?.five_hour?.used_percentage ?? fiveHourPct,
+    rtkPct: rtkReading.value,
+  });
 
   const git = timed("git", () => probe.getGitInfo(cwd));
   const hasRepo = git.value !== null;
@@ -384,10 +394,6 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     ci: hasRepo
       ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
       : missing("gh", "not a repository"),
-    // Exposed so the diagnostic can say how much history exists, which is
-    // why a rate is or is not on the bar yet.
-    samples: reading({ value: [], at: now, source: "samples" }),
-    rtk: timed("rtk", () => probe.getRtkSavings(cwd)),
     model: reading({
       value: payloadText(payload?.model?.display_name) ?? payloadText(payload?.model?.id) ?? "Claude",
       at: now,
@@ -411,11 +417,13 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     }),
     tokens: reading({ value: getContextTokens(payload), at: now, source: "payload" }),
     sessionCost: reading({ value: getSessionCost(payload), at: now, source: "payload" }),
-    context: reading({ value: getContextPercent(payload), at: now, source: "payload" }),
+    context: reading({ value: ctxPct, at: now, source: "payload" }),
     fiveHour: reading({ value: fiveHourPct, at: now, source: "payload" }),
     fiveHourReset: reading({ value: fiveHourResetsAt, at: now, source: "payload" }),
     sevenDay: reading({ value: sevenDayPct, at: now, source: "payload" }),
     sevenDayReset: reading({ value: sevenDayResetsAt, at: now, source: "payload" }),
+    rtk: rtkReading,
+    samples: reading({ value: sampleHistory, at: now, source: "samples" }),
   };
 }
 
@@ -563,6 +571,8 @@ export function renderReadings(
 
   // Only discrete state feeds change tracking — usage percentages tick on
   // almost every render and would leave the line permanently animated.
+  // The sample history was already built in `gather` so the diagnostic can
+  // report it without duplicating the work; change tracking just persists it.
   const changes = trackChanges(
     payload?.session_id,
     {
@@ -577,26 +587,14 @@ export function renderReadings(
     {
       enabled: tracking,
       now,
-      // The four segments that need a direction rather than a value read
-      // from here. Sampling costs one small write on a file that is already
-      // written every redraw.
-      //
-      // The raw percentages, not the rounded ones the bar shows. A slope of
-      // a tenth of a point per redraw quantizes into a step of one whole
-      // point when sampled after rounding, and the rate computed from that
-      // is wrong by whatever the rounding happened to do.
-      sample: {
-        contextPct: payload?.context_window?.used_percentage ?? ctxPct,
-        fiveHourPct: payload?.rate_limits?.five_hour?.used_percentage ?? fiveHourPct,
-        rtkPct,
-      },
+      samples: readings.samples.value,
     }
   );
 
   // Sampling normally rides the session's own state file. A generated page
   // has no session, so it brings its own history rather than showing a bar
   // with two segments permanently missing.
-  const sampleHistory = sampleOverride ?? changes.samples;
+  const sampleHistory = sampleOverride ?? readings.samples.value;
 
   const palette = PALETTES[flavor] || PALETTES.mocha;
   const g = asciiArrows ? GLYPHS.plain : GLYPHS.nerd;
