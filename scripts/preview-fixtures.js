@@ -209,6 +209,26 @@ export const SCENARIOS = [
     },
   },
   {
+    file: "limit-lifted.svg",
+    title: "The 5-hour window used up, and an administrator's spend limit being spent behind a Claude gateway",
+    payload: {
+      ...basePayload,
+      context_window: { used_percentage: 44 },
+      rate_limits: {
+        five_hour: { used_percentage: 100, resets_at: FIXED_NOW + 5040 },
+        seven_day: { used_percentage: 71, resets_at: FIXED_NOW + 3 * 86400 + 21600 },
+        spend_limit: { used_percentage: 23, resets_at: FIXED_NOW + 12 * 86400 },
+      },
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+    },
+  },
+  {
     file: "no-upstream.svg",
     title: "A branch with no upstream — no ahead/behind counters at all, which is not the same as being in sync",
     payload: basePayload,

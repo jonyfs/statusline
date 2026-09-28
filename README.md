@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run |
 | 2 | Skills used recently, as one list, then todo progress and whether Claude is working or idle |
-| 3 | Model and effort level, the context window, the 5-hour and 7-day windows each with its own reset, burn rate and projection, session duration, rtk savings |
+| 3 | Model and effort level, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, burn rate and projection, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -117,6 +117,22 @@ nearly exhausted window shows up as one:
 
 ![Near the rate limit](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/near-limit.svg)
 
+**Past the limit, on an allowance an administrator raised.** A window that is
+used up says `full` beside its reset, because the payload keeps sending the
+same 100% until then and a figure that cannot move otherwise looks like a bar
+that stopped updating. Behind a Claude gateway with spend limits, Claude Code
+also sends the spend limit, and it gets its own chip: how much of it is used
+and when its period resets. It goes past 100% once the limit is exceeded,
+because that is how the payload reports it:
+
+![Past the 5-hour limit, spending a raised allowance](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/limit-lifted.svg)
+
+Outside a gateway setup the payload says nothing about a raised allowance, so
+the bar shows `full` and nothing more. It will not work out a remaining
+balance from what you have spent, how many messages you sent, or how long you
+have been working. `statusline-plugin doctor` tells you which case you are in:
+its `spendLimit` row is either on with its figure, or off with the reason.
+
 **An older Claude Code that doesn't send rate-limit fields.** Unknown values
 show `?%` and `reset time unknown`. Nothing gets estimated to fill the gap:
 
@@ -137,7 +153,10 @@ table — unless the padding would push a line past the limit, in which case
 that line keeps its width and gives up the alignment.
 
 Six segments are the last to go: context, branch, directory, the 5-hour
-window, the model, and the 7-day window. Measured in this repository:
+window, the model, and the 7-day window. A seventh joins them behind a gateway
+that reports a spend limit: the spend limit itself, ranked just under the
+context figure, since it decides whether work can go on once a window is used
+up. Measured in this repository:
 
 | Width | What goes |
 |---|---|
@@ -200,9 +219,9 @@ thing, with the outlines baked in.
 
 ## Reading a level at a glance
 
-The context figure, the 5-hour window and the 7-day window all colour
-themselves by level: green below 60%, yellow to 85%, red above it. Same
-thresholds on all three, so a glance reads them the same way.
+The context figure, the 5-hour window, the 7-day window and the spend limit
+all colour themselves by level: green below 60%, yellow to 85%, red above it.
+Same thresholds on all of them, so a glance reads them the same way.
 
 Colour is not the only carrier, because around one man in twelve cannot
 separate red from green. Each band past the first adds a mark:
@@ -210,8 +229,9 @@ separate red from green. Each band past the first adds a mark:
 | Band | Renders as |
 |---|---|
 | below 60% | `5h 41%` |
-| 60% to 85% | `5h 72%▴` |
-| above 85% | `5h 94%▲` |
+| 60% to 85% | `5h 72%▵` |
+| above 85% | `5h 94%▴` |
+| 100% or more | `5h 100%▴ full` |
 
 Nothing is wrong needs no symbol, which is why the safe band has none.
 
@@ -629,11 +649,15 @@ it.
 
 **Context, 5-hour and 7-day percentages, and both reset countdowns** come
 straight out of Claude Code's own `context_window` and `rate_limits` fields.
-Nothing is estimated.
+Nothing is estimated. **The spend limit** comes from `rate_limits.spend_limit`,
+which Claude Code sends only behind a Claude gateway with spend limits, and
+only while its period has not reset. Without it, the chip is simply absent.
 
-There's no monthly figure, and that's deliberate. Anthropic's plan limits
-stop at a 7-day window, so a monthly number would have to be invented, and
-this thing doesn't invent numbers to fill space.
+There's no monthly figure of its own making, and that's deliberate.
+Anthropic's plan limits stop at a 7-day window, so a monthly number would have
+to be invented, and this thing doesn't invent numbers to fill space. A spend
+limit whose period happens to be a month is different: Claude Code reports
+that one.
 
 **The rtk savings figure** comes from `rtk gain --format json`, and only
 appears when `rtk` is installed. It is rtk's own lifetime average across
@@ -759,6 +783,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-fa-hourglass_half` | `U+F252` | session duration |
 | `nf-md-fire` | `U+F0238` | burn rate |
 | `nf-dev-rust` | `U+E7A8` | rtk, which is a Rust binary |
+| `nf-md-wallet` | `U+F0584` | the spend limit |
 
 The 7-day calendar is a blank grid, and deliberately not the 📆 emoji. Every
 emoji font draws a fixed date into that glyph; Apple's shows "17". Sitting

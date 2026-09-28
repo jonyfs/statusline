@@ -46,10 +46,12 @@ await test("positions within a line are unique and ordered", () => {
 await test("the top band is what a narrow terminal keeps", () => {
   // data-model.md, agreed 2026-08-26: these six are what an 80-column
   // terminal shows, and the priority table is how that promise is kept.
+  // The spend limit joined them on 2026-09-28 (specs/023-extra-usage-limit):
+  // it exists only behind a gateway, where it decides whether work goes on.
   const top = SEGMENTS.filter((s) => s.priority >= PRIORITY_BANDS.essential)
     .sort((a, b) => b.priority - a.priority)
     .map((s) => s.key);
-  assert.deepEqual(top, ["context", "branch", "dir", "fiveHour", "model", "sevenDay"]);
+  assert.deepEqual(top, ["context", "branch", "dir", "spendLimit", "fiveHour", "model", "sevenDay"]);
 });
 
 await test("the bands are ordered and named", () => {
@@ -102,7 +104,7 @@ await test("the rendered lines follow the registry's order", async () => {
 
 await test("the colour channels name real segments", async () => {
   const { inChannel } = await import("../../src/segments.js");
-  assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "burnRate", "sevenDay"]);
+  assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "burnRate", "sevenDay", "spendLimit"]);
   assert.deepEqual(inChannel("change"), ["branch", "pr", "skills", "model"]);
 });
 

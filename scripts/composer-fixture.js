@@ -47,6 +47,8 @@ export const PAYLOAD = {
   rate_limits: {
     five_hour: { used_percentage: 62, resets_at: FIXED_NOW + 7740 },
     seven_day: { used_percentage: 77, resets_at: FIXED_NOW + 3 * 86400 + 21600 },
+    // A gateway setup, so the composer has the spend limit to arrange too.
+    spend_limit: { used_percentage: 34, resets_at: FIXED_NOW + 12 * 86400 },
   },
   cost: {
     total_duration_ms: 1000 * 60 * 64,
