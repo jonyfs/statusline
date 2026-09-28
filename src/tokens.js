@@ -6,6 +6,12 @@
  *   context_window: { used_percentage, remaining_percentage, ... }
  *   rate_limits: { five_hour: { used_percentage, resets_at }, seven_day: { ... } }
  *
+ * Behind a Claude gateway with spend limits, `rate_limits` also carries
+ * `spend_limit` with the same two fields. Its percentage goes above 100 once
+ * the limit is exceeded, and the entry is absent everywhere else, so an
+ * absent spend limit is the normal case rather than an unknown one
+ * (specs/023-extra-usage-limit).
+ *
  * A field the payload does not carry stays null here and renders as `?%`.
  * Principle III forbids standing an estimate in its place.
  */
@@ -15,10 +21,21 @@ export function getContextPercent(payload) {
   return typeof pct === "number" && Number.isFinite(pct) ? Math.round(pct) : null;
 }
 
+/** A usable spend figure: finite and not negative. Above 100 is allowed. */
+function spendPercent(v) {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null;
+}
+
 export function getRateLimits(payload) {
   const fiveHour = payload?.rate_limits?.five_hour;
   const sevenDay = payload?.rate_limits?.seven_day;
+  const spend = payload?.rate_limits?.spend_limit;
+  const spendLimitPct = spendPercent(spend?.used_percentage);
   return {
+    spendLimitPct,
+    // A reset with no figure beside it describes nothing on the bar.
+    spendLimitResetsAt:
+      spendLimitPct !== null && typeof spend?.resets_at === "number" ? spend.resets_at : null,
     fiveHourPct: typeof fiveHour?.used_percentage === "number" ? Math.round(fiveHour.used_percentage) : null,
     fiveHourResetsAt: typeof fiveHour?.resets_at === "number" ? fiveHour.resets_at : null,
     sevenDayPct: typeof sevenDay?.used_percentage === "number" ? Math.round(sevenDay.used_percentage) : null,
@@ -39,20 +56,29 @@ const RESETTING_GRACE_MS = 2 * 60 * 1000;
 const MAX_PLAUSIBLE_WINDOW_MS = 30 * 24 * 3600 * 1000;
 
 /**
+ * A spend limit's period can be a calendar month, and a 31-day month would
+ * trip the windows' 30-day bound. The bound exists to catch a timestamp in
+ * milliseconds, which lands twenty million days out, so 32 days catches it
+ * just as well.
+ */
+export const MAX_PLAUSIBLE_SPEND_PERIOD_MS = 32 * 24 * 3600 * 1000;
+
+/**
  * `resetsAt` is a Unix timestamp in seconds, as returned by the payload.
  * `now` is injectable so a countdown can be tested at a chosen instant
  * rather than only against the wall clock.
  */
-export function formatResetCountdown(resetsAtSeconds, now = Date.now()) {
+export function formatResetCountdown(resetsAtSeconds, now = Date.now(), { maxMs = MAX_PLAUSIBLE_WINDOW_MS } = {}) {
   if (typeof resetsAtSeconds !== "number" || !Number.isFinite(resetsAtSeconds)) return null;
   const diffMs = resetsAtSeconds * 1000 - now;
-  // Both windows this formats are bounded by their own names: five hours and
+  // The windows this formats are bounded by their own names: five hours and
   // seven days. A reset further out than that is not a longer window, it is a
   // timestamp in the wrong unit — milliseconds where seconds were meant, which
   // is finite, positive, and renders as a confident `resets in 20687174d`.
   // Beyond the bound the honest answer is that the reset time is unknown,
-  // which the bar already draws as `?`.
-  if (diffMs > MAX_PLAUSIBLE_WINDOW_MS) return null;
+  // which the bar already draws as `?`. A spend limit passes its own, longer
+  // bound, since its period can be a month.
+  if (diffMs > maxMs) return null;
   if (diffMs <= 0) {
     return diffMs > -RESETTING_GRACE_MS ? "resetting now" : null;
   }
@@ -127,8 +153,8 @@ export function formatDuration(ms) {
  * A countdown with no words, for the segment that carries two of them.
  * `1h29m`, `3d`, or null when the moment is unknown or long past.
  */
-export function shortCountdown(resetsAtSeconds, now = Date.now()) {
-  const full = formatResetCountdown(resetsAtSeconds, now);
+export function shortCountdown(resetsAtSeconds, now = Date.now(), bound = {}) {
+  const full = formatResetCountdown(resetsAtSeconds, now, bound);
   if (full === null) return null;
   if (full === "resetting now") return "now";
   return full.replace(/^resets in /, "").replace(/ (\d+)h$/, "");

@@ -26,6 +26,7 @@ import {
   getSessionCost,
   formatDuration,
   abbreviate,
+  MAX_PLAUSIBLE_SPEND_PERIOD_MS,
 } from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
 import { elapsed } from "./taskRows.js";
@@ -108,6 +109,11 @@ const NF_TIMER = "\u{F051B}";    // nf-md-timer. F44E, listed as "stopwatch",
 const NF_HOURGLASS = "\u{F252}"; // nf-fa-hourglass_half: session duration
 const NF_BURN = "\u{F0238}";     // nf-md-fire: how fast the window is going
 const NF_RUST = "\u{E7A8}";      // nf-dev-rust: rtk is a Rust binary
+// The spend limit. Rendered from the installed font before adoption
+// (specs/023-extra-usage-limit/glyph-evidence.png): F0114 nf-md-cash draws a
+// banknote, which reads as currency rather than a budget being spent, and
+// F00F6, listed in one cheat sheet as a cart, draws a calendar.
+const NF_WALLET = "\u{F0584}";  // nf-md-wallet
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -151,6 +157,7 @@ export const GLYPHS = {
     duration: NF_HOURGLASS,
     burn: NF_BURN,
     rtk: NF_RUST,
+    spend: NF_WALLET,
   },
   /**
    * The set for a terminal with no Nerd Font.
@@ -211,6 +218,8 @@ export const GLYPHS = {
     // cannot mean both "this is the burn rate" and "this level is critical".
     burn: "\u21E1",       // ⇡
     rtk: "\u25BE",        // ▾ a reduction, which is what a saving is
+    // ASCII, East Asian Narrow, in every font, and used nowhere else on the bar.
+    spend: "$",
   },
 };
 
@@ -319,7 +328,8 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
   };
 
   const cwd = payload?.workspace?.current_dir || payload?.cwd || process.cwd();
-  const { fiveHourPct, fiveHourResetsAt, sevenDayPct, sevenDayResetsAt } = getRateLimits(payload);
+  const { fiveHourPct, fiveHourResetsAt, sevenDayPct, sevenDayResetsAt, spendLimitPct, spendLimitResetsAt } =
+    getRateLimits(payload);
   const ctxPct = getContextPercent(payload);
   // RTK is needed both for its segment and for the sample history, so read it
   // once and reuse the timed reading.
@@ -422,6 +432,8 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     fiveHourReset: reading({ value: fiveHourResetsAt, at: now, source: "payload" }),
     sevenDay: reading({ value: sevenDayPct, at: now, source: "payload" }),
     sevenDayReset: reading({ value: sevenDayResetsAt, at: now, source: "payload" }),
+    spendLimit: reading({ value: spendLimitPct, at: now, source: "payload" }),
+    spendLimitReset: reading({ value: spendLimitResetsAt, at: now, source: "payload" }),
     rtk: rtkReading,
     samples: reading({ value: sampleHistory, at: now, source: "samples" }),
   };
@@ -566,6 +578,10 @@ export function renderReadings(
   const sevenDayPct = readings.sevenDay.value;
   const fiveHourResetsAt = readings.fiveHourReset.value;
   const sevenDayResetsAt = readings.sevenDayReset.value;
+  // Absent is the normal state here, so unlike the two windows it gets no
+  // `?%`: most accounts have no spend limit at all (Principle III).
+  const spendLimitPct = readings.spendLimit?.value ?? null;
+  const spendLimitResetsAt = readings.spendLimitReset?.value ?? null;
   const fiveHourResetLabel = formatResetCountdown(fiveHourResetsAt, now) ?? "reset time unknown";
   const sevenDayResetLabel = formatResetCountdown(sevenDayResetsAt, now) ?? "reset time unknown";
 
@@ -852,6 +868,23 @@ export function renderReadings(
       ? sevenDayMoment
       : null;
 
+  // The spend limit's reset follows the 7-day rule, with the longer bound a
+  // monthly period needs.
+  const spendBound = { maxMs: MAX_PLAUSIBLE_SPEND_PERIOD_MS };
+  const spendFarOut =
+    typeof spendLimitResetsAt === "number" &&
+    spendLimitResetsAt * 1000 - now > ONE_DAY_MS &&
+    formatResetCountdown(spendLimitResetsAt, now, spendBound) !== null
+      ? resetMomentLabel(spendLimitResetsAt, new Date(now))
+      : null;
+
+  // A window at its limit says so in a word. The payload keeps sending the
+  // same 100 until the reset, so without it a figure that cannot move reads
+  // as a statusline that stopped updating (specs/023-extra-usage-limit). The
+  // word sits outside the reset text so shedding the reset never removes it:
+  // it is the part that explains why the number is not changing.
+  const fullMark = (pct) => (typeof pct === "number" && pct >= 100 ? " full" : "");
+
   const line3Content = {
     model: () => ({
       color: changes.colourFor("model", "red", palette),
@@ -891,7 +924,7 @@ export function renderReadings(
       const resets = o.fiveHourText ? (shortCountdown(fiveHourResetsAt, now) ?? "?") : null;
       return {
         color: rampColour(fiveHourPct, "green"),
-        text: ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)}${resets ? ` \u00b7 ${resets}` : ""} `,
+        text: ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)}${fullMark(fiveHourPct)}${resets ? ` \u00b7 ${resets}` : ""} `,
       };
     },
     sevenDay: (o) => {
@@ -904,7 +937,19 @@ export function renderReadings(
       const moment = o.moment ? (farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?") : null;
       return {
         color: rampColour(sevenDayPct, "sapphire"),
-        text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${moment ? ` \u00b7 ${moment}` : ""} `,
+        text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${fullMark(sevenDayPct)}${moment ? ` \u00b7 ${moment}` : ""} `,
+      };
+    },
+    // The allowance a gateway reports once an administrator sets a spend
+    // limit. It is drawn as reported, past 100% included, because that is how
+    // the payload says the limit has been exceeded; capping it would hide the
+    // one figure still moving. Its reset is shed with the 7-day one.
+    spendLimit: (o) => {
+      if (spendLimitPct === null) return null;
+      const moment = o.moment ? (spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?") : null;
+      return {
+        color: rampColour(spendLimitPct, "teal"),
+        text: ` ${g.spend} spend ${spendLimitPct}%${bandMark(spendLimitPct)}${moment ? ` \u00b7 ${moment}` : ""} `,
       };
     },
     // C5 asked for this figure to render only once it had moved five points,
@@ -945,6 +990,9 @@ export function renderReadings(
     // reason, since the 7-day figure sits two segments away and is also a
     // limit.
     projection: () => {
+      // A window already at its limit says `full` on its own chip. A time
+      // beside it would announce, as a forecast, a limit already reached.
+      if (typeof fiveHourPct === "number" && fiveHourPct >= 100) return null;
       const at = projectFull(sampleHistory, "fiveHourPct", now);
       if (at === null) return null;
       if (typeof fiveHourResetsAt === "number" && at >= fiveHourResetsAt * 1000) return null;

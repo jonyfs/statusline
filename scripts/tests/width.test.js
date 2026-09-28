@@ -103,18 +103,29 @@ await test("dropping a segment is preferred to shortening one", () => {
   const wide = lastLineAt(200);
   assert.match(wide, /rtk/, "with room, the savings figure is there");
   assert.match(wide, /Claude Opus 5/, "and so is the model, since the merge of 2026-09-07");
-  assert.match(wide, /7d 100%\u25b4 ·/);
+  // An exhausted window says `full` (specs/023-extra-usage-limit).
+  assert.match(wide, /7d 100%\u25b4 full ·/);
 
   // Narrower: the savings figure goes, then the reset text, then the effort.
   // The three levels never go — they are what the line is for — and neither
   // does the model, which says what is spending them.
-  for (const width of [100, 80, 60]) {
+  //
+  // An exhausted window costs five more columns for the word `full`
+  // (specs/023-extra-usage-limit). With both windows exhausted and this
+  // fixture's 23-character model name, that pushes the model off below about
+  // 75 columns: it ranks under the 5-hour window, which is the priority table
+  // doing its job. At 60 the limits and the context figure are what is left.
+  for (const width of [100, 80]) {
     const line = lastLineAt(width);
     assert.match(line, /Claude Opus 5/, `the model survives at ${width}`);
     assert.match(line, /Context 100%/, `the context figure survives at ${width}`);
     assert.match(line, /5h 100%\u25b4/, `the nearest limit survives at ${width}`);
     assert.equal((line.match(/resets in/g) || []).length, 0, "the words stay off the line");
   }
+
+  const at60 = lastLineAt(60);
+  assert.match(at60, /Context 100%/, "the context figure survives at 60");
+  assert.match(at60, /5h 100%\u25b4 full/, "the exhausted window still says so at 60");
 
   // 45: down to the top of the table.
   assert.match(lastLineAt(45), /Context 100%/);

@@ -58,7 +58,7 @@ export const PRESETS = [
   {
     id: "lean",
     label: "Lean",
-    optimisesFor: "Reading the whole bar in one fixation. Ten segments, nothing that repeats what a neighbour already says.",
+    optimisesFor: "Reading the whole bar in one fixation. Ten segments, eleven behind a gateway that reports a spend limit, and nothing that repeats what a neighbour already says.",
     givesUp: "The counters and the second-order figures: the working-tree counts, the CI tick, the burn rate, the projection, the session duration and the savings.",
     forWhom: "Somebody who checks the bar between thoughts rather than studying it.",
     conflicts: [],
@@ -69,7 +69,7 @@ export const PRESETS = [
         "dir", "branch", "pr",
         "skills", "activity",
         "model",
-        "context", "fiveHour", "sevenDay"
+        "context", "fiveHour", "sevenDay", "spendLimit"
       ),
     },
   },
@@ -103,14 +103,14 @@ export const PRESETS = [
   {
     id: "peripheral",
     label: "Peripheral",
-    optimisesFor: "Registering without being read. Five segments and three colour ramps, so the state lands in the corner of the eye.",
+    optimisesFor: "Registering without being read. Five segments and three colour ramps, plus the spend limit where a gateway reports one, so the state lands in the corner of the eye.",
     givesUp: "Almost everything. No pull request, no skills, no counters, no countdown.",
     forWhom: "Somebody with the terminal on a second monitor who wants to notice trouble, not audit a session.",
     conflicts: [],
     arrangement: {
       version: 1,
       name: "peripheral",
-      segments: only("branch", "model", "context", "fiveHour", "sevenDay"),
+      segments: only("branch", "model", "context", "fiveHour", "sevenDay", "spendLimit"),
     },
   },
   {
@@ -158,6 +158,7 @@ export const PRESETS = [
         context: { line: 1, order: 80 },
         fiveHour: { line: 1, order: 82 },
         sevenDay: { line: 1, order: 84 },
+        spendLimit: { line: 1, order: 86 },
         burnRate: { on: false },
         projection: { on: false },
         duration: { on: false },

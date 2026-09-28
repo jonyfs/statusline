@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current feature's
-plan at specs/022-spec-tracks/plan.md
+plan at specs/023-extra-usage-limit/plan.md
 <!-- SPECKIT END -->
 
 ## Skill routing

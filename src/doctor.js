@@ -32,7 +32,7 @@ import {
 } from "./skills.js";
 import { mostRecentSkillEvent } from "./skillEvents.js";
 import { getRtkSavings, probeRtkSavings } from "./rtk.js";
-import { formatResetCountdown } from "./tokens.js";
+import { formatResetCountdown, MAX_PLAUSIBLE_SPEND_PERIOD_MS } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
 import { displayWidth } from "./theme.js";
@@ -70,6 +70,11 @@ const DESCRIBE = {
   burnRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   sevenDay: ["sevenDay", (v, now, readings) => describeWindow(v, readings?.sevenDayReset?.value, now)],
+  spendLimit: [
+    "spendLimit",
+    (v, now, readings) =>
+      v === null ? null : describeWindow(v, readings?.spendLimitReset?.value, now, { maxMs: MAX_PLAUSIBLE_SPEND_PERIOD_MS }),
+  ],
   // One segment carrying both countdowns, so the diagnostic reports both. A
   // row that described only the 5-hour one named half of what is on the line.
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
@@ -79,9 +84,9 @@ const DESCRIBE = {
 };
 
 /** A usage window as its chip draws it: the level, and when it resets. */
-function describeWindow(pct, resetsAt, now) {
+function describeWindow(pct, resetsAt, now, bound) {
   const level = pct === null || pct === undefined ? "?%" : `${pct}%`;
-  return `${level} · ${formatResetCountdown(resetsAt, now) ?? "reset time unknown"}`;
+  return `${level} · ${formatResetCountdown(resetsAt, now, bound) ?? "reset time unknown"}`;
 }
 
 const SEGMENTS = REGISTRY.map((row) => {
@@ -123,6 +128,11 @@ function absenceReason(segment, reading, readings, now) {
         : "not a git repository";
     }
     if (segment.key === "rtk") return "rtk not installed, or nothing cached yet";
+    // Absent on most accounts, which is not a fault: say where it comes from
+    // so nobody files a bug about a figure the payload never carries.
+    if (segment.key === "spendLimit") {
+      return "not in the payload: Claude Code reports a spend limit only behind a Claude gateway with spend limits";
+    }
     if (segment.key === "effort") return "the payload carries no effort level";
     if (segment.key === "outputStyle") return "no output style set";
     return "nothing to show";

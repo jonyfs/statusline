@@ -2,7 +2,13 @@
 
 <!--
 Sync Impact Report:
-- Version: 6.1.0 (XII added on 2026-09-23: MINOR, a new principle rather than a redefinition.
+- Version: 6.2.0 (III amended on 2026-09-28: MINOR, a field added to a list rather than a
+  requirement redefined. Claude Code sends `rate_limits.spend_limit` behind a Claude gateway
+  with spend limits, and the bar ignored it, so a user whose administrator raised their limit
+  kept reading an exhausted `5h 100%` with no sign of the allowance they were now spending.
+  The spend limit is the one figure allowed above 100%, because the payload reports it that
+  way once the limit is exceeded. See specs/023-extra-usage-limit/.)
+- Previously, version 6.1.0 (XII added on 2026-09-23: MINOR, a new principle rather than a redefinition.
   A spec declares in its own front matter which artifacts complete it, and the scaffold requires
   only what that declaration promises. Four of the last five features had shipped with spec.md
   alone while the tooling demanded a plan for every one, so check-prerequisites.sh failed on its
@@ -263,15 +269,24 @@ cannot already read beside it.
 
 System MUST display token/rate-limit usage using only the exact fields Claude Code provides on
 the `statusLine` command's stdin payload (`context_window.used_percentage`,
-`rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage`, and each
-window's `resets_at`) — never a locally estimated or invented figure standing in for real
+`rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage`,
+`rate_limits.spend_limit.used_percentage`, and each entry's `resets_at`) — never a locally estimated or invented figure standing in for real
 account data. Anthropic's plan limits are a 5-hour window and a 7-day window; there is no
 monthly quota, so the statusline MUST NOT display a "monthly" figure — inventing one to fill a
 slot would be a fabricated number presented as real. Three percentages are shown: context
 window usage, 5-hour window usage, 7-day window usage, plus a reset countdown computed from the
-7-day window's `resets_at`. If a field is absent from the payload (older Claude Code version,
+7-day window's `resets_at`. A fourth, the spend limit, is shown only where the payload carries
+it. Its period may be a month, and that is the one exception to the rule above: it is a
+figure Claude Code reports, not one the statusline invented. If a field is absent from the payload (older Claude Code version,
 or a render before the session has usage), the segment MUST show `?%` rather than a guessed
 value, and MUST NOT break the rest of the line.
+
+The spend limit is different in two ways. Claude Code sends it only behind a Claude gateway
+with spend limits, so its absence is the normal state for most accounts: the segment MUST be
+omitted when the entry is absent rather than shown as `?%`. And its `used_percentage` goes
+above 100 once the limit is exceeded, so the statusline MUST show it as reported rather than
+capping it. A granted allowance the payload does not carry MUST NOT be displayed at all: no
+figure may be derived from spend, message count or elapsed time to stand in for it.
 
 ### IV. Installable by Clone, With Install/Uninstall Commands
 
@@ -582,4 +597,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 6.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-23
+**Version**: 6.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-28

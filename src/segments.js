@@ -78,6 +78,11 @@ export const SEGMENTS = [
   { key: "burnRate", line: 3, order: 42, priority: 66, colour: "ramp", source: "samples" },
   { key: "projection", line: 3, order: 44, priority: 64, colour: "identity", source: "samples" },
   { key: "sevenDay", line: 3, order: 50, priority: 90, colour: "ramp", source: "payload" },
+  // Present only behind a Claude gateway with spend limits, where it is the
+  // allowance that decides whether work can continue once a window is used
+  // up, so it outranks both windows. Placed after them so neither moves
+  // (specs/023-extra-usage-limit).
+  { key: "spendLimit", line: 3, order: 52, priority: 95, colour: "ramp", source: "payload" },
   { key: "duration", line: 3, order: 55, priority: 50, colour: "identity", source: "payload" },
   // Raised from 40, the lowest on the bar, at the owner's decision: the
   // savings figure is to survive the merge rather than be the first thing the
@@ -142,6 +147,7 @@ export const SEGMENT_ABOUT = {
   burnRate: "How fast the five-hour window is being spent, measured across recent samples. A percentage says where you are; a rate says whether you arrive before the reset.",
   projection: "When the five-hour window would run out, shown only when that lands before it resets — which is the only case where it changes what you do.",
   sevenDay: "The seven-day usage window and when it comes back. It names the day, because beyond a day a reset is something you plan around.",
+  spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",
   duration: "Wall-clock time since the session started.",
   rtk: "The share of tokens rtk has saved, a lifetime average across everything it has proxied rather than a figure for this session.",
 };
