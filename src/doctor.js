@@ -10,7 +10,11 @@
  * and the whole point of the command is to show where they differ.
  */
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import os from "node:os";
 import { gather, renderReadings } from "./render.js";
+import { checkInstall } from "./install.js";
 import { SEGMENT_ABOUT, SEGMENTS as REGISTRY } from "./segments.js";
 import {
   getDirLabel,
@@ -371,7 +375,17 @@ export function formatReport(report) {
   const ignoredLines = a.ignored.map(
     (entry) => `  ignored ${entry.what}${entry.key ? ` on ${entry.key}` : ""}: ${entry.reason}`
   );
+  const installLines = !report.install
+    ? []
+    : report.install.length === 0
+      ? ["install: this plugin is not in settings.json"]
+      : report.install.every((c) => c.ok)
+        ? [`install: ${report.install.map((c) => c.entry).join(", ")} intact`]
+        : report.install
+            .filter((c) => !c.ok)
+            .map((c) => `install: ${c.entry} is broken: ${c.problem}. Run \`update\` or \`install\` again.`);
   return [
+    ...installLines,
     `working directory: ${report.cwd}`,
     arrangementLine,
     ...ignoredLines,
@@ -396,7 +410,22 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
   }
 
   const report = buildReport(payload, { now });
+  report.install = readInstallChecks();
   return json ? JSON.stringify(report, null, 2) : formatReport(report);
+}
+
+/**
+ * This plugin's entries in the real settings file, checked for paths that
+ * no longer exist. Read here rather than in `buildReport`, which the tests
+ * call and which must not depend on the machine running them.
+ */
+function readInstallChecks() {
+  try {
+    const file = path.join(os.homedir(), ".claude", "settings.json");
+    return checkInstall(JSON.parse(readFileSync(file, "utf8")));
+  } catch {
+    return null;
+  }
 }
 
 /**
