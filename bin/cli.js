@@ -1,6 +1,12 @@
 #!/usr/bin/env node
-import { render } from "../src/render.js";
-import { install, uninstall } from "../src/install.js";
+// Nothing is imported statically. The modules use syntax and APIs an old
+// Node cannot load, and a failed static import happens before any line here
+// runs, so the version check below would never get to say why. On Node 14
+// the bar used to read "statusline unavailable" after an install that had
+// reported success (specs/024-install-update).
+const MIN_NODE_MAJOR = 18;
+const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
+const nodeTooOld = !(nodeMajor >= MIN_NODE_MAJOR);
 
 const [, , subcommand, ...rest] = process.argv;
 
@@ -36,26 +42,67 @@ function ignoreClosedOutput() {
   }
 }
 
+const UPDATE_COMMAND = `node "${process.argv[1]}" update`;
+
+function installFlags() {
+  return {
+    registerHook: !rest.includes("--no-hook"),
+    refreshInterval: !rest.includes("--no-refresh-interval"),
+    taskRows: !rest.includes("--no-task-rows"),
+  };
+}
+
 async function main() {
   ignoreClosedOutput();
+  if (nodeTooOld) {
+    if (subcommand === "render" || subcommand === undefined) {
+      process.stdout.write(` statusline needs Node ${MIN_NODE_MAJOR}+ \n`);
+      return;
+    }
+    throw new Error(`Node ${MIN_NODE_MAJOR} or newer is required; this is Node ${process.versions.node}. Nothing was changed.`);
+  }
   switch (subcommand) {
     case "install": {
+      const { install } = await import("../src/install.js");
       const result = install({
-        registerHook: !rest.includes("--no-hook"),
-        refreshInterval: !rest.includes("--no-refresh-interval"),
-        taskRows: !rest.includes("--no-task-rows"),
+        ...installFlags(),
       });
+      const version = [result.version && `v${result.version}`, result.commit, result.date && `(${result.date})`]
+        .filter(Boolean)
+        .join(" ");
       console.log(`Statusline installed.`);
+      console.log(`  Version:       ${version || "unknown"}`);
       console.log(`  Settings file: ${result.settingsPath}`);
       console.log(`  Backup saved:  ${result.backupPath}`);
       console.log(`  Command:       ${result.command}`);
       console.log(`  Skill hook:    ${result.hookRegistered ? "registered (PostToolUse: Skill)" : "skipped"}`);
       console.log(`  Refresh every: ${result.refreshInterval ? `${result.refreshInterval}s` : "only on events"}`);
       console.log(`  Task rows:     ${result.taskRows ? "styled by this plugin" : "left to Claude Code"}`);
-      if (result.alreadyInstalled) console.log(`  (was already installed — safe to run again)`);
+      // This used to say "safe to run again", which read as "you are current"
+      // to someone whose second `git clone` had just failed. The settings
+      // being in place says nothing about whether the code is new.
+      if (result.alreadyInstalled) {
+        console.log(`  Settings were already in place. To get a newer version: ${UPDATE_COMMAND}`);
+      }
+      break;
+    }
+    case "update": {
+      const { update } = await import("../src/update.js");
+      const flags = rest.filter((f) => f.startsWith("--no-"));
+      const result = update({ flags });
+      if (!result.ok) {
+        console.error(result.reason);
+        process.exit(result.exitCode || 1);
+      }
+      console.log(
+        result.current
+          ? `Already at the latest commit (${result.after}); settings refreshed.`
+          : `Updated ${result.before} to ${result.after}.`
+      );
       break;
     }
     case "uninstall": {
+      const { uninstall } = await import("../src/install.js");
       const result = uninstall();
       if (result.changed) {
         console.log(`Statusline removed from ${result.settingsPath}.`);
@@ -112,6 +159,7 @@ async function main() {
         if (process.env.CLAUDE_STATUSLINE_TEST_THROW === "1") {
           throw new Error("deliberate failure, for the exit-code test");
         }
+        const { render } = await import("../src/render.js");
         out = await render({ flavor, asciiArrows });
       } catch {
         out = renderFallback();
@@ -121,7 +169,7 @@ async function main() {
     }
     default:
       console.error(`Unknown command: ${subcommand}`);
-      console.error(`Usage: statusline-plugin <install|uninstall|render|doctor [--json|--explain]>`);
+      console.error(`Usage: statusline-plugin <install|update|uninstall|render|doctor [--json|--explain]>`);
       process.exit(1);
   }
 }

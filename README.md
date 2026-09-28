@@ -37,7 +37,20 @@ git clone https://github.com/jonyfs/statusline.git ~/.claude/statusline-plugin
 node ~/.claude/statusline-plugin/bin/cli.js install
 ```
 
+On Windows, `cmd.exe` does not expand `~`. In PowerShell:
+
+```powershell
+git clone https://github.com/jonyfs/statusline.git "$HOME\.claude\statusline-plugin"
+node "$HOME\.claude\statusline-plugin\bin\cli.js" install
+```
+
+In `cmd.exe`, use `%USERPROFILE%\.claude\statusline-plugin` in both places.
+
 Then restart Claude Code, or start a new session.
+
+Install refuses to run on Node older than 18 and changes nothing. It prints the
+version and commit it installed, so you can tell at a glance whether you got
+the code you expected.
 
 The install step backs up your existing `~/.claude/settings.json` to
 `~/.claude/statusline/backups/settings.<timestamp>.json`, sets the
@@ -72,12 +85,28 @@ temporary directory will break the day you delete it.
 To update later:
 
 ```bash
-cd ~/.claude/statusline-plugin && git pull
+node ~/.claude/statusline-plugin/bin/cli.js update
 ```
 
-No reinstall needed for the statusline itself; your settings still point at
-the same files. Run `install` once more if you want a hook a newer version
-added, which is the only thing a `git pull` cannot register for you.
+It fast-forwards the clone and then runs `install` from the new code, and it
+names the commit before and after. It stops without changing anything if the
+clone has local edits, if its history has diverged, or if it is not a git
+clone, and it tells you which and what to do. It never resets or discards
+anything for you.
+
+Running the two install commands again does **not** update an existing
+install. `git clone` fails because the directory already exists, and
+`install` then runs the old code. Use `update`.
+
+A plain `cd ~/.claude/statusline-plugin && git pull` still works too: your
+settings point at the clone's own files, so nothing needs reinstalling for the
+statusline itself.
+
+Run `update` (or `install`) again after removing the Node version you
+installed with. The skill hook and the subagent rows record the exact
+interpreter that ran the install, so they stop working when it is gone.
+`statusline-plugin doctor` reports that on its first line, as
+`install: ... is broken`.
 
 ## Uninstall
 

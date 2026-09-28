@@ -1,10 +1,55 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, unlinkSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
+const PACKAGE_PATH = fileURLToPath(new URL("../package.json", import.meta.url));
+
+/** The oldest Node this code runs on, as `package.json`'s `engines` says. */
+export const MIN_NODE_MAJOR = 18;
+
+/**
+ * Why this Node cannot run the plugin, or null when it can.
+ *
+ * On Node 14 the install used to print "Statusline installed." and the bar
+ * then drew "statusline unavailable": nothing checked `engines`, so the
+ * failure surfaced later and somewhere else (specs/024-install-update).
+ */
+export function unsupportedNode(version = process.versions.node) {
+  const major = Number.parseInt(String(version).split(".")[0], 10);
+  if (Number.isFinite(major) && major >= MIN_NODE_MAJOR) return null;
+  return `Node ${MIN_NODE_MAJOR} or newer is required; this is Node ${version}.`;
+}
+
+/**
+ * What is being installed: the package version, and the clone's commit when
+ * there is one. Printed so that an install run over a clone that a failed
+ * `git clone` never updated says plainly that it is the old code.
+ */
+export function installedVersion() {
+  let version = null;
+  try {
+    version = JSON.parse(readFileSync(PACKAGE_PATH, "utf8")).version ?? null;
+  } catch {
+    // A missing package.json is not a reason to refuse an install.
+  }
+  let commit = null;
+  let date = null;
+  try {
+    const out = execFileSync("git", ["log", "-1", "--format=%h %cs"], {
+      cwd: path.dirname(PACKAGE_PATH),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 5000,
+    }).trim();
+    [commit = null, date = null] = out.split(" ");
+  } catch {
+    // Not a clone, or no git: the version alone still says something.
+  }
+  return { version, commit, date };
+}
 
 // Resolved per call rather than at import time, so a test can point HOME at
 // a throwaway directory. Install and uninstall write to the file a
@@ -72,9 +117,27 @@ function backupSettings(settings) {
   return backupPath;
 }
 
+/**
+ * Written to a temporary file beside the target and renamed over it, which
+ * is atomic on all three platforms. Written in place, a process killed
+ * mid-write left a truncated settings file, and Claude Code reads this one
+ * file for everything else it is configured with.
+ */
 function writeSettings(settings) {
-  mkdirSync(path.dirname(settingsPath()), { recursive: true });
-  writeFileSync(settingsPath(), JSON.stringify(settings, null, 2) + "\n");
+  const file = settingsPath();
+  mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.tmp`;
+  try {
+    writeFileSync(tmp, JSON.stringify(settings, null, 2) + "\n");
+    renameSync(tmp, file);
+  } catch (err) {
+    try {
+      unlinkSync(tmp);
+    } catch {
+      // nothing to clean up
+    }
+    throw err;
+  }
 }
 
 /**
@@ -149,6 +212,19 @@ function isOurCommand(command) {
 }
 
 /**
+ * This plugin's skill hook, wherever its clone lives.
+ *
+ * `isOurCommand` matches the running clone's own path, which is right for
+ * uninstall and wrong for cleanup: a clone moved or re-made elsewhere left
+ * the first one's hook behind, and every skill then ran two hooks, one of
+ * them in a directory that may be gone. `note-skill` is a subcommand no other
+ * tool has, and it sits at the very end of the command this install writes.
+ */
+function isOurSkillHookAnywhere(command) {
+  return /cli\.js"\s+note-skill\s*$/.test(String(command || ""));
+}
+
+/**
  * Adds the `PostToolUse` entry that records skill invocations, leaving
  * every other hook alone. Idempotent: a second install replaces this
  * plugin's own entry rather than stacking another beside it.
@@ -159,7 +235,8 @@ function registerHook(settings) {
   const existing = Array.isArray(settings.hooks.PostToolUse) ? settings.hooks.PostToolUse : [];
 
   const others = existing.filter(
-    (group) => !(group?.hooks || []).some((h) => isOurCommand(h?.command))
+    (group) =>
+      !(group?.hooks || []).some((h) => isOurCommand(h?.command) || isOurSkillHookAnywhere(h?.command))
   );
 
   settings.hooks.PostToolUse = [
@@ -190,6 +267,8 @@ export function install({
   taskRows: wantTaskRows = true,
 } = {}) {
   assertNotRunningFromNpxCache();
+  const tooOld = unsupportedNode();
+  if (tooOld) throw new Error(tooOld);
 
   const settings = loadSettings();
   const backupPath = backupSettings(settings);
@@ -228,7 +307,47 @@ export function install({
     refreshInterval: wantInterval ? REFRESH_INTERVAL_SECONDS : null,
     taskRows: Boolean(wantTaskRows),
     alreadyInstalled,
+    ...installedVersion(),
   };
+}
+
+const OUR_SUBCOMMANDS = new Set(["render", "task-rows", "note-skill"]);
+
+/** The two quoted paths and the subcommand of a command this plugin wrote. */
+function parseCommand(command) {
+  const m = /^"([^"]+)"\s+"([^"]+)"\s+(\S+)\s*$/.exec(String(command || ""));
+  return m ? { interpreter: m[1], cli: m[2], subcommand: m[3] } : null;
+}
+
+/**
+ * Whether each entry this plugin wrote still points at something that exists.
+ *
+ * The skill hook and the subagent rows name the interpreter that ran the
+ * install, as Principle IX requires, so removing that Node version breaks
+ * them with nothing on screen to say why. `doctor` asks this instead. A bare
+ * `node`, which the status line uses, is resolved by the shell and is not a
+ * path to check.
+ */
+export function checkInstall(settings, exists = existsSync) {
+  const entries = [];
+  if (settings?.statusLine?.command) entries.push(["statusLine", settings.statusLine.command]);
+  if (settings?.subagentStatusLine?.command) entries.push(["subagentStatusLine", settings.subagentStatusLine.command]);
+  for (const group of settings?.hooks?.PostToolUse || []) {
+    for (const h of group?.hooks || []) {
+      if (isOurSkillHookAnywhere(h?.command)) entries.push(["skill hook", h.command]);
+    }
+  }
+  return entries
+    .map(([entry, command]) => [entry, parseCommand(command)])
+    .filter(([, parsed]) => parsed && /cli\.js$/.test(parsed.cli) && OUR_SUBCOMMANDS.has(parsed.subcommand))
+    .map(([entry, { interpreter, cli }]) => {
+      const missing = [];
+      if (path.isAbsolute(interpreter) && !exists(interpreter)) missing.push(`interpreter ${interpreter}`);
+      if (!exists(cli)) missing.push(`script ${cli}`);
+      return missing.length
+        ? { entry, ok: false, problem: `${missing.join(" and ")} no longer exists` }
+        : { entry, ok: true, problem: null };
+    });
 }
 
 /**
