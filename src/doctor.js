@@ -15,6 +15,8 @@ import path from "node:path";
 import os from "node:os";
 import { gather, renderReadings } from "./render.js";
 import { checkInstall } from "./install.js";
+import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
+import { repoKey, readEntry } from "./cache.js";
 import { SEGMENT_ABOUT, SEGMENTS as REGISTRY } from "./segments.js";
 import {
   getDirLabel,
@@ -249,6 +251,10 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     getSessionActivity,
     getRtkSavings,
     getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
+    // The diagnostic reports the update state; it neither starts a check nor
+    // marks a one-time notice as seen.
+    maybeStartUpdateCheck: () => false,
+    getUpdateNotice: () => peekUpdateNotice(),
   };
 
   const started = Date.now();
@@ -420,6 +426,7 @@ export function formatReport(report) {
             .map((c) => `install: ${c.entry} is broken: ${c.problem}. Run \`update\` or \`install\` again.`);
   return [
     ...installLines,
+    ...(report.updates ? [report.updates] : []),
     `working directory: ${report.cwd}`,
     arrangementLine,
     ...ignoredLines,
@@ -445,6 +452,7 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
 
   const report = buildReport(payload, { now });
   report.install = readInstallChecks();
+  report.updates = updatesLine(readEntry(repoKey(UPDATE_ROOT), "update")?.value, readBehaviour(), now);
   return json ? JSON.stringify(report, null, 2) : formatReport(report);
 }
 

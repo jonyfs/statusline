@@ -108,6 +108,51 @@ interpreter that ran the install, so they stop working when it is gone.
 `statusline-plugin doctor` reports that on its first line, as
 `install: ... is broken`.
 
+### Automatic updates
+
+Once a day the statusline checks its clone's upstream in the background and,
+by default, takes whatever improvements and bug fixes it finds. It reads the
+commit prefixes: `feat:` counts as an improvement and `fix:` as a fix.
+Anything else, such as docs, chores or merges, never triggers an update on
+its own. Neither the bar nor the session waits for the check, and without a
+network it gives up quietly and tries again the next day.
+
+The bar says what happened, on line 1:
+
+| Chip | Meaning | Shown |
+|---|---|---|
+| `statusline updated · 1 feature, 2 fixes` | the update was applied | once, in the first session after it |
+| `update ready · 1 feature, 2 fixes` | waiting, in `notify` | until you update |
+| `update blocked · local edits` | the clone has changes of its own, or its history diverged | until it is resolved |
+| `update failed` | the pull or the install failed; the previous version keeps running | once |
+
+![An update waiting](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/update-ready.svg)
+
+A redraw that happens while files are being replaced can print
+` statusline unavailable ` once. The next one runs the new version.
+
+Three behaviours, `auto` by default:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js updates           # show the current one
+node ~/.claude/statusline-plugin/bin/cli.js updates notify    # tell me, do not apply
+node ~/.claude/statusline-plugin/bin/cli.js updates off       # never check
+node ~/.claude/statusline-plugin/bin/cli.js check-updates     # what is waiting, right now
+```
+
+`CLAUDE_STATUSLINE_UPDATES=auto|notify|off` overrides the setting, and
+`CLAUDE_STATUSLINE_NO_REFRESH=1` stops the check along with every other
+background refresh. `doctor` shows the behaviour, when the last check ran and
+what it found.
+
+What `auto` trusts: whoever can push to your clone's upstream, the same as
+running `update` by hand. It only ever fast-forwards from the upstream already
+configured in the clone. It refuses local edits, local commits and a diverged
+history, and never resets or discards anything. git does not transfer hooks,
+so a fetch runs none of the remote's code; the first thing from the remote
+that runs is the install after the pull. Commits are not checked against a
+signature. If that trust is more than you want, use `notify`.
+
 ## Uninstall
 
 ```bash
@@ -838,6 +883,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-dev-rust` | `U+E7A8` | rtk, which is a Rust binary |
 | `nf-md-wallet` | `U+F0584` | the spend limit |
 | `nf-md-thermometer` / `nf-md-snowflake` | `U+F050F` / `U+F0717` | the prompt cache, warm and cold |
+| `nf-md-download` / `nf-md-arrow_up_bold` | `U+F01DA` / `U+F0737` | an update waiting or blocked, and one applied |
 
 The 7-day calendar is a blank grid, and deliberately not the 📆 emoji. Every
 emoji font draws a fixed date into that glyph; Apple's shows "17". Sitting

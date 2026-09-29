@@ -39,6 +39,14 @@ const PROBES = {
     return pct === null ? { state: "failed", value: null } : { state: "found", value: pct };
   },
   ci: (cwd) => probeCiResult(cwd, REFRESH_BUDGET_MS.gh),
+  // The daily update check (specs/026-update-check). `cwd` is the clone the
+  // statusline runs from, which is what the redraw passed when it started
+  // this process. The result is always an answer, including a failed fetch,
+  // so the next check waits a day either way instead of retrying every redraw.
+  update: async (cwd) => {
+    const { runUpdateCheck } = await import("./updateCheck.js");
+    return { state: "found", value: runUpdateCheck({ root: cwd }) };
+  },
 };
 
 export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PROBES } = {}) {
@@ -51,7 +59,7 @@ export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PR
 
   let result = { state: "failed", value: null };
   try {
-    result = probe(cwd, key) ?? result;
+    result = (await probe(cwd, key)) ?? result;
   } catch {
     result = { state: "failed", value: null };
   }

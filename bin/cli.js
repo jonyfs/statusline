@@ -44,6 +44,14 @@ function ignoreClosedOutput() {
 
 const UPDATE_COMMAND = `node "${process.argv[1]}" update`;
 
+/** The line `install` and `update` print about updates (specs/026-update-check, FR-014). */
+async function updatesSummary() {
+  const { readBehaviour } = await import("../src/updateCheck.js");
+  const { mode } = readBehaviour();
+  const other = mode === "auto" ? "notify" : "auto";
+  return `${mode} (change with: node "${process.argv[1]}" updates ${other})`;
+}
+
 function installFlags() {
   return {
     registerHook: !rest.includes("--no-hook"),
@@ -78,6 +86,7 @@ async function main() {
       console.log(`  Skill hook:    ${result.hookRegistered ? "registered (PostToolUse: Skill)" : "skipped"}`);
       console.log(`  Refresh every: ${result.refreshInterval ? `${result.refreshInterval}s` : "only on events"}`);
       console.log(`  Task rows:     ${result.taskRows ? "styled by this plugin" : "left to Claude Code"}`);
+      console.log(`  Updates:       ${await updatesSummary()}`);
       // This used to say "safe to run again", which read as "you are current"
       // to someone whose second `git clone` had just failed. The settings
       // being in place says nothing about whether the code is new.
@@ -99,6 +108,33 @@ async function main() {
           ? `Already at the latest commit (${result.after}); settings refreshed.`
           : `Updated ${result.before} to ${result.after}.`
       );
+      break;
+    }
+    case "updates": {
+      const { readBehaviour, writeBehaviour, UPDATE_MODES } = await import("../src/updateCheck.js");
+      const [mode] = rest;
+      if (mode !== undefined) {
+        if (!UPDATE_MODES.includes(mode)) {
+          console.error(`Unknown update behaviour "${mode}". Use one of: ${UPDATE_MODES.join(", ")}.`);
+          process.exit(1);
+        }
+        writeBehaviour(mode);
+      }
+      const now = readBehaviour();
+      const where = {
+        default: "default",
+        file: "from ~/.claude/statusline/updates.json",
+        environment: "CLAUDE_STATUSLINE_UPDATES overrides the file",
+      }[now.source];
+      const other = now.mode === "auto" ? "notify" : "auto";
+      console.log(`Updates: ${now.mode} (${where}). Change with: node "${process.argv[1]}" updates ${other}`);
+      break;
+    }
+    case "check-updates": {
+      const { checkUpdatesReport } = await import("../src/updateCheck.js");
+      const report = checkUpdatesReport(undefined, { updateCommand: UPDATE_COMMAND });
+      (report.ok ? console.log : console.error)(report.text);
+      if (!report.ok) process.exit(1);
       break;
     }
     case "uninstall": {
@@ -169,7 +205,7 @@ async function main() {
     }
     default:
       console.error(`Unknown command: ${subcommand}`);
-      console.error(`Usage: statusline-plugin <install|update|uninstall|render|doctor [--json|--explain]>`);
+      console.error(`Usage: statusline-plugin <install|update|updates [auto|notify|off]|check-updates|uninstall|render|doctor [--json|--explain]>`);
       process.exit(1);
   }
 }

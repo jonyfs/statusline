@@ -69,6 +69,9 @@ WANTED = {
     "F050F": 0xF050F,  # nf-md-thermometer: a warm prompt cache
     "F0717": 0xF0717,  # nf-md-snowflake: a cold one. F09A2, listed as a
                        # database refresh, draws a speaker
+    "F01DA": 0xF01DA,  # nf-md-download: an update ready, blocked or failed
+    "F0737": 0xF0737,  # nf-md-arrow_up_bold: the statusline updated. F0CE0,
+                       # listed as an up arrow in a circle, points right
     # Animation frames (feature 003). Each was rendered and looked at: the
     # md dice_1..dice_6 range draws a boxed division sign, a list, a building
     # and a download arrow, "space_invaders" draws a crossed-out television,

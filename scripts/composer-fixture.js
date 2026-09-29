@@ -101,6 +101,10 @@ export const SOURCES = {
   }),
   getRtkSavings: () => 81,
   getDirUrl: () => null,
+  // An update waiting, so the composer has the update chip to arrange; and
+  // never a real check from a page generator.
+  maybeStartUpdateCheck: () => false,
+  getUpdateNotice: () => ({ state: "ready", text: "update ready \u00b7 1 fix" }),
 };
 
 /**

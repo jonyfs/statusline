@@ -14,6 +14,10 @@ export const emptySources = {
   subagentActivity: () => [],
   getRtkSavings: () => null,
   getDirUrl: () => null,
+  // The update check reads the clone and can start a detached process; a test
+  // that renders must never do either (specs/026-update-check).
+  maybeStartUpdateCheck: () => false,
+  getUpdateNotice: () => null,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */
