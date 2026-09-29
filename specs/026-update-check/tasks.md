@@ -64,8 +64,8 @@ directory, as `scripts/tests/install-update.test.js` already does. No test reach
 - [X] T016 Stub `maybeStartUpdateCheck` and `getUpdateNotice` in `scripts/tests/fixtures/sources.js` and in `SOURCES` in `scripts/composer-fixture.js` (with a `ready` notice there, so the pool draws the chip), regenerate `scripts/tests/fixtures/composer-bar.txt` deliberately, and run `npm run composer`
 - [X] T017 [P] Add an `update-ready.svg` case to `scripts/preview-fixtures.js` and run `npm run previews`
 - [X] T018 [P] Document the check, the three behaviours, the chip states, what `auto` trusts (fast-forward from the clone's own upstream, no signature check) and how to turn it off in `README.md`; update its command list and glyph table; apply the humanizer to the new prose (FR-013)
-- [ ] T019 Run `npm test` and the quickstart in `specs/026-update-check/quickstart.md` in a throwaway HOME, and record the results
-- [ ] T020 Set `status: done` in `specs/026-update-check/spec.md`
+- [X] T019 Run `npm test` and the quickstart in `specs/026-update-check/quickstart.md` in a throwaway HOME, and record the results
+- [X] T020 Set `status: done` in `specs/026-update-check/spec.md`
 
 ## Dependencies
 

@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: The statusline tells you it has an update, and can take it
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-09-29
 
-**Status**: Draft (the declaration above is authoritative)
+**Status**: Completed (the declaration above is authoritative)
 
 **Input**: User description: "crie um script que cheque por updates no github do repositóro do
 statusline e faça autmaticamente o update antes de carregar o statusline no claude, dando a

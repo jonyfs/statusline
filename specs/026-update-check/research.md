@@ -92,6 +92,11 @@ directly rather than through `shouldRefresh`, whose half-age rule would make it 
 against real repositories. `GIT_TERMINAL_PROMPT=0` and a closed stdin mean a fork behind
 credentials fails instead of waiting for a password nobody can type.
 
+**Found in the quickstart**: the refresh process receives the directory it was started in as
+`cwd`, and the first version checked that directory. Run by hand from another repository, it
+checked the wrong one, and in `auto` it would have pulled it. The `update` probe now ignores
+`cwd` and always checks the clone its own code lives in.
+
 ## R6. Where the behaviour is set
 
 **Decision**: `~/.claude/statusline/updates.json`, holding `{ "mode": "auto" | "notify" |

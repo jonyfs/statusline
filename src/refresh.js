@@ -39,13 +39,14 @@ const PROBES = {
     return pct === null ? { state: "failed", value: null } : { state: "found", value: pct };
   },
   ci: (cwd) => probeCiResult(cwd, REFRESH_BUDGET_MS.gh),
-  // The daily update check (specs/026-update-check). `cwd` is the clone the
-  // statusline runs from, which is what the redraw passed when it started
-  // this process. The result is always an answer, including a failed fetch,
-  // so the next check waits a day either way instead of retrying every redraw.
-  update: async (cwd) => {
-    const { runUpdateCheck } = await import("./updateCheck.js");
-    return { state: "found", value: runUpdateCheck({ root: cwd }) };
+  // The daily update check (specs/026-update-check). It checks the clone this
+  // code runs from, never `cwd`: the working directory is whatever directory
+  // the refresh happened to start in, and in `auto` a check pointed at the
+  // wrong repository would pull it. The result is always an answer, including
+  // a failed fetch, so the next check waits a day instead of every redraw.
+  update: async () => {
+    const { runUpdateCheck, REPO_ROOT } = await import("./updateCheck.js");
+    return { state: "found", value: runUpdateCheck({ root: REPO_ROOT }) };
   },
 };
 
