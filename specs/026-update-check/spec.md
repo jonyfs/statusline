@@ -32,19 +32,34 @@ week sees none of them until they happen to run `update`. The repository's commi
 the difference between the clone and the remote can be described in the user's terms: how many
 improvements and how many fixes are waiting.
 
+## Clarifications
+
+### Session 2026-09-29
+
+- Q: Which behaviour is the default? → A: `auto`. A pending improvement or fix is applied at
+  session start and the user is told afterwards what arrived. `notify` and `off` are there for
+  whoever prefers them, and install says plainly that updates are automatic and how to change it.
+- Q: When is an automatic update applied? → A: In the background, as soon as the check finds
+  it, even mid-session. Neither the redraw nor session start waits for it. A redraw that lands
+  while files are being replaced may show the fallback text once; the next redraw runs the new
+  version. The user is told at the next session start what arrived.
+- Q: How often does the check reach GitHub? → A: At most once every 24 hours per clone, as
+  first written. A fix can take up to a day to arrive on its own; `update` and the on-demand
+  check are there for anyone who wants it sooner.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Know that improvements and fixes are waiting (Priority: P1)
 
-A user starts a Claude Code session. Their clone is behind the remote by two fixes and one
+A user who set the behaviour to `notify` starts a Claude Code session. Their clone is behind the remote by two fixes and one
 improvement. They are told, once, that an update is available, what it contains in those terms,
 and the one command that applies it.
 
-**Why this priority**: It closes the gap on its own, touches nothing the user did not ask for,
-and every other story builds on the same check.
+**Why this priority**: Every other story builds on the same check, and it is what an automatic
+update falls back to when it refuses (local edits, diverged history).
 
-**Independent Test**: With a clone two `fix:` commits and one `feat:` commit behind its
-upstream, start a session and confirm the user sees one notice naming 1 improvement and 2 fixes
+**Independent Test**: With the behaviour set to `notify` and a clone two `fix:` commits and one
+`feat:` commit behind its upstream, start a session and confirm the user sees one notice naming 1 improvement and 2 fixes
 and the update command, and that the clone is unchanged.
 
 **Acceptance Scenarios**:
@@ -63,32 +78,32 @@ and the update command, and that the clone is unchanged.
 
 ---
 
-### User Story 2 - Updates happen by themselves, when the user chose that (Priority: P2)
+### User Story 2 - Updates happen by themselves (Priority: P1)
 
-A user who wants to stop thinking about it turns on automatic updates. From then on, a pending
-improvement or fix is applied at the start of a session, and they are told afterwards what
-changed.
+A user never thinks about updates. A pending improvement or fix is applied in the background as
+soon as the check finds it, and they are told at the next session start what changed.
 
-**Why this priority**: It is what the request asks for literally, but it runs code fetched from
-the internet without a per-update decision, so it has to be something the user turns on, not
-the default.
+**Why this priority**: It is what the request asks for, and it is the default (clarification of
+2026-09-29). It runs code fetched from the internet without a per-update decision, so it keeps
+every refusal `update` already has, and the user is told at install that it is on.
 
-**Independent Test**: With automatic updates on and a clone behind by one `fix:` commit, start
-a session and confirm the clone was fast-forwarded, the install re-ran, and the user was told
-which fix arrived.
+**Independent Test**: With the default behaviour and a clone behind by one `fix:` commit, run
+the background check and confirm the clone was fast-forwarded and the install re-ran; then start
+a session and confirm the user is told which fix arrived.
 
 **Acceptance Scenarios**:
 
-1. **Given** automatic updates on and a clean clone behind by a `feat:` or `fix:` commit,
-   **When** a session starts, **Then** the clone is updated the same way `update` does it and
-   the user is told what arrived.
-2. **Given** automatic updates on and a clone with local edits or a diverged history, **When**
-   a session starts, **Then** nothing is changed, and the user is told why and what to run.
-3. **Given** automatic updates on and an update that fails part-way, **When** the session
-   starts, **Then** the previous working version keeps running and the user is told the update
-   failed.
-4. **Given** automatic updates off (the default), **When** a session starts with an update
-   pending, **Then** behaviour is Story 1's: a notice, no change.
+1. **Given** the default behaviour and a clean clone behind by a `feat:` or `fix:` commit,
+   **When** the background check finds it, **Then** the clone is updated then, the same way
+   `update` does it, and the user is told what arrived at the next session start.
+2. **Given** the default behaviour and a clone with local edits or a diverged history, **When**
+   the check finds an update, **Then** nothing is changed, and at the next session start the
+   user is told why and what to run.
+3. **Given** the default behaviour and an update that fails part-way, **When** the next
+   session starts, **Then** the previous working version is still running and the user is told
+   the update failed.
+4. **Given** the behaviour set to `notify`, **When** a session starts with an update pending,
+   **Then** behaviour is Story 1's: a notice, no change.
 
 ---
 
@@ -115,8 +130,10 @@ which fix arrived.
   improvement nor a fix, and does not trigger a notice on its own.
 - A remote commit subject contains control characters or is very long: it is cleaned and
   shortened before it is shown.
-- Many sessions start at once (several terminals): at most one check runs at a time, and the
-  others use its result.
+- Many sessions start at once (several terminals): at most one check runs at a time, at most
+  one update is applied, and the others see its result.
+- A check finishes while a session is running: in `auto` the update is applied then, and the
+  notice of what arrived waits for the next session start.
 - The user has set `CLAUDE_STATUSLINE_NO_REFRESH`, which already stops background work: no
   check runs either.
 
@@ -127,20 +144,24 @@ which fix arrived.
 - **FR-001**: The statusline MUST be able to find out, without changing the clone, how many
   commits its upstream has that the clone does not, and the type and subject of each.
 - **FR-002**: The check MUST never delay the statusline's own redraw or the start of a session.
-  It runs in the background with a time limit, and its result is used by the next session that
-  starts after it finishes.
+  It runs in the background with a time limit. In `notify` and `off` it MUST NOT change any file
+  in the clone; in `auto` it applies the update itself, in the same background process, as soon
+  as it has found one.
 - **FR-003**: The check MUST run at most once every 24 hours per clone, and at most one at a
   time.
 - **FR-004**: Commits MUST be classified by their subject prefix: `feat` as an improvement,
   `fix` as a bug fix, anything else as neither. Only improvements and fixes trigger a notice or
   an automatic update.
-- **FR-005**: The update behaviour MUST be one of `off`, `notify` and `auto`, with `notify` as
+- **FR-005**: The update behaviour MUST be one of `off`, `notify` and `auto`, with `auto` as
   the default.
 - **FR-006**: In `notify`, at session start, the user MUST see a notice with the counts, up to
   three subject lines and the update command, once per distinct pending update.
-- **FR-007**: In `auto`, at session start, a pending improvement or fix MUST be applied through
+- **FR-007**: In `auto`, a pending improvement or fix MUST be applied by the background check
+  that found it, through
   the same path as the `update` command, with all of its refusals (local edits, diverged
-  history, not a clone), and the user MUST be told the result either way.
+  history, not a clone). The user MUST be told the result, applied or refused, at the next
+  session start. A redraw during the update MAY show the fallback text once and MUST show the
+  new version on the one after.
 - **FR-008**: An automatic update MUST only fast-forward to the clone's configured upstream. It
   MUST never reset, discard, or merge, and a failure MUST leave the previous version running.
 - **FR-009**: The user MUST be able to check on demand, printing what is pending without
@@ -152,6 +173,8 @@ which fix arrived.
   before it reaches the terminal.
 - **FR-013**: The README MUST describe the check, the three behaviours, what `auto` trusts, and
   how to turn it off.
+- **FR-014**: `install` and `update` MUST print the current update behaviour and the command
+  that changes it, so a user learns that updates are automatic before the first one happens.
 
 ### Key Entities
 
@@ -170,8 +193,9 @@ which fix arrived.
 - **SC-002**: Session start and the first redraw take no longer with the check than without it,
   on a machine with no network.
 - **SC-003**: The same pending update is announced at most once per day.
-- **SC-004**: With `auto` on, a clean clone behind by an improvement or fix is current after
-  the next session start in 100% of test runs; a clone with local edits is untouched in 100%.
+- **SC-004**: With the default behaviour, a clean clone behind by an improvement or fix is current as
+  soon as the background check completes, in 100% of test runs; a clone with local edits is
+  untouched in 100%.
 - **SC-005**: No check result, notice, or update ever discards a local change.
 
 ## Assumptions
@@ -182,8 +206,8 @@ which fix arrived.
 - The check reaches the network through the user's own `git`, with its existing credentials and
   remote. No GitHub API token is needed for the public repository.
 - `auto` trusts whoever can push to the clone's upstream, exactly as `update` already does when
-  the user runs it by hand. That trust is stated in the README rather than hidden behind the
-  default.
+  the user runs it by hand. Since it is the default, that trust is stated in the README and in
+  the output of `install`, not left to be discovered.
 - Commit types follow the repository's existing convention; releases and tags are not involved,
   since this project ships by merge.
 - A keyboard prompt ("update now? y/n") is out of scope for this spec: the statusline cannot
