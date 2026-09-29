@@ -34,9 +34,9 @@
 - Payload field names (`prompt_cache`, `warm`, `expires_at` and the rest) and the
   `CLAUDE_STATUSLINE_DEBUG` switch are the external contract and the user-facing switch, not
   implementation choices, so they pass the "no implementation details" items.
-- The one open risk is recorded as an assumption rather than a clarification marker: no live
-  payload carrying the block has been captured on this machine. Planning should take one with
-  `CLAUDE_STATUSLINE_DEBUG=1` before fixing field handling.
-- Two product calls were made with defaults and are worth confirming in `/speckit-clarify`:
-  hit ratio and miss count stay off the bar (doctor only), and a warm chip turns to the warning
-  band at 1 minute left.
+- The open risk at specification time, no live payload carrying the block, was settled in
+  planning from the payload builder in the installed Claude Code binary (research R1).
+- The product calls were settled in `/speckit-clarify` on 2026-09-29: a warm chip shows only
+  inside its closing window (2 minutes on a 5m TTL, 10 on 1h), a cold chip shows the tokens
+  and the cause, and causes read as fixed short phrases. Hit ratio and miss count stayed in
+  `doctor`.

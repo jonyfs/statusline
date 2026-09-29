@@ -83,16 +83,14 @@ await test("a narrow line drops by priority, not by position", () => {
 });
 
 await test("dropping a segment is preferred to shortening one", () => {
-  // The two mechanisms interact, and the order matters. Dropping the
-  // lowest-priority segment recovers more width than shortening a surviving
-  // one, so priority runs first and the content ladder only fires when
-  // dropping cannot help.
+  // The two mechanisms interact, and the order matters. Lower priorities are
+  // dropped first; reset text is shortened only when an essential segment
+  // would otherwise go, through the chips' `variants` in `fitToWidth`
+  // (specs/027-bar-polish). There was a trim ladder here once; it never ran.
   //
   // This fixture is deliberately pathological: a branch name nobody would
-  // type, five skills and a spelled-out model. Line 1 cannot fit at any of
-  // these widths, and the trim ladder is global, so it keeps escalating past
-  // what line 3 alone would have needed. That is the shape being pinned —
-  // what survives is decided by the table, not by position.
+  // type, five skills and a spelled-out model. What survives is decided by
+  // the table, not by position.
   const lastLineAt = (maxWidth) =>
     stripAnsi(
       renderPayload(widestPayload, { sources: widest, trackChanges: false, now: NOW, maxWidth })
@@ -106,16 +104,12 @@ await test("dropping a segment is preferred to shortening one", () => {
   // An exhausted window says `full` (specs/023-extra-usage-limit).
   assert.match(wide, /7d 100%\u25b4 full ·/);
 
-  // Narrower: the savings figure goes, then the reset text, then the effort.
-  // The three levels never go — they are what the line is for — and neither
-  // does the model, which says what is spending them.
-  //
-  // An exhausted window costs five more columns for the word `full`
-  // (specs/023-extra-usage-limit). With both windows exhausted and this
-  // fixture's 23-character model name, that pushes the model off below about
-  // 75 columns: it ranks under the 5-hour window, which is the priority table
-  // doing its job. At 60 the limits and the context figure are what is left.
-  for (const width of [100, 80]) {
+  // Narrower: the savings figure goes, then the effort, then the 7-day reset,
+  // then the 5-hour countdown. The levels never go, since they are what the
+  // line is for, and the model stays down to 70 columns. At 60 this fixture's
+  // 23-character model name no longer fits beside the context figure and
+  // `5h 100%▴ full` even with every reset gone, so it goes by priority.
+  for (const width of [100, 80, 70]) {
     const line = lastLineAt(width);
     assert.match(line, /Claude Opus 5/, `the model survives at ${width}`);
     assert.match(line, /Context 100%/, `the context figure survives at ${width}`);
