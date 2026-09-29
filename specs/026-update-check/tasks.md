@@ -19,7 +19,7 @@ directory, as `scripts/tests/install-update.test.js` already does. No test reach
 
 ## Phase 1: Setup
 
-- [ ] T001 Render `specs/026-update-check/glyph-evidence.png` is already committed; add `U+F01DA` and `U+F0737` to `WANTED` in `scripts/extract-glyphs.py` with the evidence comments from research R3, and regenerate `src/preview/glyphs.json`, confirming only those two outlines are added
+- [ ] T001 With the rendered evidence already in `specs/026-update-check/glyph-evidence.png`, add `U+F01DA` and `U+F0737` to `WANTED` in `scripts/extract-glyphs.py` with the evidence comments from research R3, and regenerate `src/preview/glyphs.json`, confirming only those two outlines are added
 
 ## Phase 2: Foundational (blocks every story)
 
