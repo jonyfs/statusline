@@ -33,10 +33,13 @@
 
 - `git`, commit prefixes (`feat:`, `fix:`), `CLAUDE_STATUSLINE_NO_REFRESH` and `doctor` are the
   project's existing contract and switches, not implementation choices.
-- The request asks for an automatic update and for the user's option to update. The spec reads
-  that as a setting: `notify` by default, `auto` when the user turns it on, `off` to silence it.
-  That is the main call to confirm in `/speckit-clarify`, together with the 24-hour check
-  interval.
-- Security: `auto` runs code fetched from the network on every session start. The spec keeps
-  it opt-in, fast-forward only, and behind the same refusals as `update`; worth a
-  `/specjedi-security` pass before implementing.
+- The request asks for an automatic update and for the user's option to update. The spec first
+  read that as `notify` by default; `/speckit-clarify` on 2026-09-29 made `auto` the default,
+  applied in the background as soon as the daily check finds an improvement or fix, with
+  `notify` and `off` as the user's options.
+- Security: `auto` runs code fetched from the network without a per-update decision. It stays
+  fast-forward only, from the clone's own upstream, behind the same refusals as `update`, and
+  install says it is on. The planned `/specjedi-security` pass did not run; research R7 records
+  the threat notes in its place.
+- The notice was specified as a session-start message; planning found Claude Code discards a
+  `SessionStart` hook's user message, so it is a chip on the bar, the fallback the spec named.
