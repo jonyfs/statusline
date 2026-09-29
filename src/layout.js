@@ -19,6 +19,7 @@
  */
 
 import { displayWidth } from "./theme.js";
+import { PRIORITY_BANDS } from "./segments.js";
 
 /** What to assume when Claude Code is too old to set `COLUMNS`. */
 export const DEFAULT_WIDTH = 120;
@@ -75,8 +76,40 @@ export function fitToWidth(row, width = terminalWidth()) {
   const current = () =>
     row.filter((s) => !dropped.has(s.key)).map((s) => (shortened.has(s.key) ? { ...s, text: shortened.get(s.key) } : s));
 
+  // Before the first essential segment would be dropped, every essential
+  // segment still standing gives up the text it can spare, lowest priority
+  // first: the 7-day reset, then the 5-hour countdown, then the spend reset.
+  // Lower priorities have all gone by then, since the loop reaches essentials
+  // last, and they do not come back into the room this frees
+  // (specs/027-bar-polish).
+  let essentialsShortened = false;
+  const shortenEssentials = () => {
+    essentialsShortened = true;
+    for (const s of byPriority) {
+      if (s.priority < PRIORITY_BANDS.essential || dropped.has(s.key)) continue;
+      for (const text of s.variants || []) {
+        shortened.set(s.key, text);
+        const kept = current();
+        if (rowWidth(kept) <= width) return kept;
+      }
+    }
+    return null;
+  };
+
   for (const candidate of byPriority) {
     if (dropped.size === row.length - 1) break;
+    if (!essentialsShortened && candidate.priority >= PRIORITY_BANDS.essential) {
+      const kept = shortenEssentials();
+      if (kept) return kept;
+    }
+    if (shortened.has(candidate.key) && candidate.priority >= PRIORITY_BANDS.essential) {
+      // Already at its shortest; nothing left but to drop it.
+      shortened.delete(candidate.key);
+      dropped.add(candidate.key);
+      const kept = current();
+      if (rowWidth(kept) <= width) return kept;
+      continue;
+    }
     for (const text of candidate.variants || []) {
       shortened.set(candidate.key, text);
       const kept = current();

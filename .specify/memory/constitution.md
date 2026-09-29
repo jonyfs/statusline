@@ -2,7 +2,11 @@
 
 <!--
 Sync Impact Report:
-- Version: 6.3.0 (III amended on 2026-09-29: MINOR, a payload block added to the list of
+- Version: 6.3.1 (IV corrected on 2026-09-29: PATCH, the text brought in line with what install
+  has written for a long time. It said install sets "only the `statusLine` key"; it also writes
+  the refresh interval, the subagent rows and the skill hook, each behind a flag. No rule
+  changed. See specs/027-bar-polish/.)
+- Previously, version 6.3.0 (III amended on 2026-09-29: MINOR, a payload block added to the list of
   displayed fields. Claude Code 2.1.283+ sends `prompt_cache` on every redraw and redraws
   when a warm cache expires; the bar now says when the cache is about to go cold, or has, and
   what the next request will write again. Minutes come from the payload's own `expires_at`,
@@ -315,7 +319,9 @@ this principle.
 
 Install MUST:
 - Back up the user's existing `~/.claude/settings.json` to a timestamped file before touching it
-- Set only the `statusLine` key, leaving every other setting untouched
+- Set only the keys this plugin owns: `statusLine` (with its `refreshInterval`),
+  `subagentStatusLine`, and one `PostToolUse` hook matching `Skill`, each skippable with a flag,
+  leaving every other setting untouched
 - Report the settings file it wrote, the backup it made, and the command it installed
 - Refuse to run from a package-manager scratch directory (`~/.npm/_npx/<hash>/...`). Such a path
   is evicted later, and recording it produces a statusline that works now and silently
@@ -608,4 +614,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 6.3.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-29
+**Version**: 6.3.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-29

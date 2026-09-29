@@ -66,6 +66,8 @@ export const SEGMENTS = [
   { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
   { key: "todo", line: 2, order: 20, priority: 70, colour: "identity", source: "transcript" },
   { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
+  // The editor's vim mode, when vim mode is on (specs/027-bar-polish).
+  { key: "vim", line: 2, order: 40, priority: 42, colour: "identity", source: "payload" },
 
   // Line 3: what is running, and what it is running out of.
   //
@@ -77,6 +79,8 @@ export const SEGMENTS = [
   // the three levels with their resets, and the savings figure.
   { key: "model", line: 3, order: 10, priority: 92, colour: "change", source: "payload" },
   { key: "effort", line: 3, order: 20, priority: 74, colour: "identity", source: "payload" },
+  // Fast mode, beside the effort (specs/027-bar-polish).
+  { key: "fastMode", line: 3, order: 22, priority: 73, colour: "identity", source: "payload" },
   { key: "context", line: 3, order: 30, priority: 100, colour: "ramp", source: "payload" },
   { key: "fiveHour", line: 3, order: 40, priority: 94, colour: "ramp", source: "payload" },
   { key: "burnRate", line: 3, order: 42, priority: 66, colour: "ramp", source: "samples" },
@@ -152,6 +156,8 @@ export const SEGMENT_ABOUT = {
   activity: "Whether the transcript grew in the last ten seconds, or a subagent of this session is running. Nothing emits \"thinking now\", so this is the honest approximation.",
   model: "The model answering, and how much of its context window this session carries.",
   effort: "The reasoning effort it is running at.",
+  fastMode: "Fast mode, shown only while it is on, because it spends the limits faster.",
+  vim: "The editor's vim mode, shown only while vim mode is on.",
   context: "How full the context window is. The one figure that carries its level in colour alone, at the owner's decision.",
   fiveHour: "The five-hour usage window and when it comes back. It counts down, because inside a day a reset is something you wait out.",
   burnRate: "How fast the five-hour window is being spent, measured across recent samples. A percentage says where you are; a rate says whether you arrive before the reset.",

@@ -21,9 +21,9 @@ the code does, because they *are* what the code does.
 
 | Line | What's on it |
 |---|---|
-| 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run |
-| 2 | Skills used recently, as one list, then todo progress and whether Claude is working or idle |
-| 3 | Model and effort level, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the prompt cache when it is about to go cold or has, burn rate and projection, session duration, rtk savings |
+| 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run, and the statusline's own update state |
+| 2 | Skills used recently, as one list, then todo progress, whether Claude is working or idle, and the vim mode while vim mode is on |
+| 3 | Model and effort level, `fast` while fast mode is on, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the prompt cache when it is about to go cold or has, burn rate and projection, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -258,16 +258,22 @@ up. Measured in this repository:
 
 | Width | What goes |
 |---|---|
-| 140 and up | nothing |
-| 120 | the session duration and the projection |
-| 100 | the burn rate as well |
-| 60 | the reset text, and on line 1 the CI tick and the lines-changed count |
+| 160 and up | nothing |
+| 140 | on line 1, the repository name |
+| 130 | the session duration, and on line 1 the lines-changed count |
+| 120 | the projection, and on line 1 the CI tick |
+| 110 | on line 1, the pull request |
+| 100 | the burn rate |
+| 90 | the rtk figure, and on line 1 the tree counters |
+| 70 | the effort level and the 7-day reset |
 
 The three usage figures survive all of it, and so do the directory, the
-branch, the model and the rtk figure. That last one used to be the first
-thing any narrow line gave up; it was raised above the session duration, the
-projection and the burn rate, which are the three things on the line that
-something else already implies.
+branch and the model. Reset text is the one thing that shortens instead of
+going: before anything essential would be dropped, the 7-day reset goes, then
+the 5-hour countdown, then the spend reset, and only then the lowest essential
+segment. In this layout the 5-hour countdown was still there at 60 columns.
+The rtk figure outlasts the session duration, the projection and the burn
+rate, the three things on the line that something else already implies.
 
 ![Eighty columns](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/narrow.svg)
 
@@ -884,6 +890,8 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-md-wallet` | `U+F0584` | the spend limit |
 | `nf-md-thermometer` / `nf-md-snowflake` | `U+F050F` / `U+F0717` | the prompt cache, warm and cold |
 | `nf-md-download` / `nf-md-arrow_up_bold` | `U+F01DA` / `U+F0737` | an update waiting or blocked, and one applied |
+| `nf-custom-vim` | `U+E62B` | the vim mode, while vim mode is on |
+| `nf-md-speedometer` | `U+F04C5` | fast mode, while it is on |
 
 The 7-day calendar is a blank grid, and deliberately not the 📆 emoji. Every
 emoji font draws a fixed date into that glyph; Apple's shows "17". Sitting
