@@ -31,6 +31,7 @@ import {
   cacheMinutesLeft,
 } from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
+import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
 import { elapsed } from "./taskRows.js";
 import { getOpenTabUrl, pathToFileUrl } from "./openTerminalTab.js";
 import { resetMomentLabel } from "./timeIcons.js";
@@ -122,6 +123,11 @@ const NF_WALLET = "\u{F0584}";  // nf-md-wallet
 // with a Bluetooth mark, and F06B0 draws a clock with an arrow.
 const NF_THERMOMETER = "\u{F050F}"; // nf-md-thermometer: warm
 const NF_SNOWFLAKE = "\u{F0717}";   // nf-md-snowflake: cold
+// The statusline's own updates, one icon per direction (specs/026-update-
+// check/glyph-evidence.png). F0CE0, listed as an up arrow in a circle, points
+// right; F4A9, listed as a rocket, draws a monitor; F06B1 draws a watch.
+const NF_DOWNLOAD = "\u{F01DA}";      // nf-md-download: ready, blocked, failed
+const NF_ARROW_UP_BOLD = "\u{F0737}"; // nf-md-arrow_up_bold: updated
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -168,6 +174,8 @@ export const GLYPHS = {
     spend: NF_WALLET,
     cacheWarm: NF_THERMOMETER,
     cacheCold: NF_SNOWFLAKE,
+    updateReady: NF_DOWNLOAD,
+    updateDone: NF_ARROW_UP_BOLD,
   },
   /**
    * The set for a terminal with no Nerd Font.
@@ -235,6 +243,9 @@ export const GLYPHS = {
     // for the other one.
     cacheWarm: "\u21BB",  // ↻ still reusable
     cacheCold: "\u2744",  // ❄
+    // Both East Asian Narrow, and not the doubled arrows push and pull use.
+    updateReady: "\u2913", // ⤓
+    updateDone: "\u2912",  // ⤒
   },
 };
 
@@ -356,6 +367,16 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     rtkPct: rtkReading.value,
   });
 
+  // The statusline's own update check (specs/026-update-check). Starting it
+  // is two cache reads and, once a day, a detached process; reading its
+  // result is one more read. Neither can fail the redraw.
+  try {
+    probe.maybeStartUpdateCheck?.({ now });
+  } catch {
+    // a check that cannot start is tried again on the next redraw
+  }
+  const updateReading = timed("update", () => probe.getUpdateNotice?.(payload?.session_id ?? null, { now }) ?? null);
+
   const git = timed("git", () => probe.getGitInfo(cwd));
   const hasRepo = git.value !== null;
   // A detached HEAD has no branch name to scope a lookup by, and the short
@@ -450,6 +471,7 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     spendLimit: reading({ value: spendLimitPct, at: now, source: "payload" }),
     spendLimitReset: reading({ value: spendLimitResetsAt, at: now, source: "payload" }),
     promptCache: reading({ value: getPromptCache(payload, now), at: now, source: "payload" }),
+    update: updateReading,
     rtk: rtkReading,
     samples: reading({ value: sampleHistory, at: now, source: "samples" }),
   };
@@ -517,6 +539,8 @@ export function renderPayload(
     getCiStatus,
     getRtkSavings,
     getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
+    maybeStartUpdateCheck,
+    getUpdateNotice,
     ...sources,
   };
 
@@ -819,6 +843,14 @@ export function renderReadings(
         url: pr.url,
       });
     }
+  }
+  // The statusline's own update state, in or out of a repository: it is about
+  // the install, not the directory (specs/026-update-check). One colour, since
+  // the channel is identity; the icon and the words say which state it is.
+  const update = shows("update") ? readings.update?.value : null;
+  if (update?.text) {
+    const icon = update.state === "updated" ? g.updateDone : g.updateReady;
+    l1.push({ key: "update", color: "teal", text: ` ${icon} ${update.text} ` });
   }
   // What every line is built from, before the arrangement decides where any
   // of it goes. Content and placement are two questions, and keeping them

@@ -57,6 +57,10 @@ export const SEGMENTS = [
   { key: "linesChanged", line: 1, order: 35, priority: 48, colour: "identity", source: "payload" },
   { key: "pr", line: 1, order: 50, priority: 82, colour: "change", source: "gh" },
   { key: "ci", line: 1, order: 60, priority: 56, colour: "identity", source: "gh" },
+  // The statusline's own update state (specs/026-update-check): about the
+  // install, not the session, so it sits with the repository's state. Useful
+  // band, after the CI tick, so nothing already on the line moves.
+  { key: "update", line: 1, order: 70, priority: 60, colour: "identity", source: "cache" },
 
   // Line 2: what is shaping the work.
   { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
@@ -142,6 +146,7 @@ export const SEGMENT_ABOUT = {
   linesChanged: "Lines this session added and removed, counted by Claude Code rather than by git. It sits beside the tree counters because that is where the eye looks for a diff stat.",
   pr: "The open pull request for this branch, its review state and its labels. Scoped to the branch, so one you just left cannot answer for the one you are on.",
   ci: "The last workflow run for this branch. It disappears rather than going stale: a green tick ten minutes old is worse than none.",
+  update: "The statusline's own updates: what the daily check found upstream in improvements and fixes, whether it applied them, or why it could not. An update or a failure shows once; something waiting or blocked stays until it is resolved.",
   skills: "The skills shaping this session, newest first, dropped once they fall outside the activity window. A skill a subagent invoked belongs to that subagent's row instead.",
   todo: "The current todo and how far the list has got.",
   activity: "Whether the transcript grew in the last ten seconds, or a subagent of this session is running. Nothing emits \"thinking now\", so this is the honest approximation.",

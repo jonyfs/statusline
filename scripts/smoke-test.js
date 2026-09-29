@@ -41,6 +41,12 @@ const suiteHome = mkdtempSync(path.join(os.tmpdir(), "statusline-suite-home-"));
 process.env.HOME = suiteHome;
 process.env.USERPROFILE = suiteHome;
 
+// Automatic updates are the default, and a render case that forgets to stub
+// the update probe would otherwise start a real check against the clone
+// running the suite, which in `auto` means a `git pull` of it. The update
+// cases pass their own behaviour and their own temporary repositories.
+process.env.CLAUDE_STATUSLINE_UPDATES = "off";
+
 const testDir = fileURLToPath(new URL("./tests/", import.meta.url));
 
 console.log(`\nstatusline smoke test — ${process.platform} / node ${process.version}\n`);

@@ -79,6 +79,10 @@ export const MAX_AGE_MS = {
   spendLimit: 1_000,
   spendLimitReset: 1_000,
   promptCache: 1_000,
+  // The daily update check (specs/026-update-check). As a cache key this is
+  // also how long its lock lasts, so a check killed part-way is retried the
+  // next day rather than on the next redraw.
+  update: 24 * 60 * 60 * 1000,
 };
 
 /**
@@ -102,6 +106,8 @@ export const REFRESH_BUDGET_MS = {
   git: 10_000,
   gh: 5_000,
   rtk: 5_000,
+  // A fetch, a fast-forward and an install, one after the other.
+  update: 120_000,
 };
 
 /** The bytes the transcript tail read may consume before it gives up. */

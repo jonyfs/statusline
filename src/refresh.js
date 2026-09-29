@@ -39,6 +39,15 @@ const PROBES = {
     return pct === null ? { state: "failed", value: null } : { state: "found", value: pct };
   },
   ci: (cwd) => probeCiResult(cwd, REFRESH_BUDGET_MS.gh),
+  // The daily update check (specs/026-update-check). It checks the clone this
+  // code runs from, never `cwd`: the working directory is whatever directory
+  // the refresh happened to start in, and in `auto` a check pointed at the
+  // wrong repository would pull it. The result is always an answer, including
+  // a failed fetch, so the next check waits a day instead of every redraw.
+  update: async () => {
+    const { runUpdateCheck, REPO_ROOT } = await import("./updateCheck.js");
+    return { state: "found", value: runUpdateCheck({ root: REPO_ROOT }) };
+  },
 };
 
 export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PROBES } = {}) {
@@ -51,7 +60,7 @@ export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PR
 
   let result = { state: "failed", value: null };
   try {
-    result = probe(cwd, key) ?? result;
+    result = (await probe(cwd, key)) ?? result;
   } catch {
     result = { state: "failed", value: null };
   }

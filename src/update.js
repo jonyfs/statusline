@@ -23,8 +23,19 @@ const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
 const REPO_ROOT = path.dirname(path.dirname(CLI_PATH));
 const CLONE_COMMAND = "git clone https://github.com/jonyfs/statusline.git ~/.claude/statusline-plugin";
 
+export const REPO_ROOT_PATH = REPO_ROOT;
+
+/**
+ * Without a terminal there is nobody to type a password, and git asking for
+ * one would sit until the timeout. The automatic update runs detached, so it
+ * says so; a person running `update` by hand keeps git's own prompt.
+ */
+function gitEnv() {
+  return process.stdin.isTTY ? process.env : { ...process.env, GIT_TERMINAL_PROMPT: "0" };
+}
+
 function runGit(root, args) {
-  const r = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 60_000 });
+  const r = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 60_000, env: gitEnv(), stdio: ["ignore", "pipe", "pipe"] });
   return {
     ok: r.status === 0,
     missing: r.error?.code === "ENOENT",
@@ -44,13 +55,15 @@ const refuse = (reason, extra = {}) => ({ ok: false, reason, exitCode: 1, ...ext
 
 export function update({ root = REPO_ROOT, flags = [], runInstall = defaultRunInstall, git = runGit } = {}) {
   const inside = git(root, ["rev-parse", "--is-inside-work-tree"]);
-  if (inside.missing) return refuse("git is not on the PATH, and updating a clone needs it.");
+  if (inside.missing) return refuse("git is not on the PATH, and updating a clone needs it.", { cause: "no git" });
   if (!inside.ok || inside.out.trim() !== "true") {
-    return refuse(`${root} is not a git clone, so there is nothing to pull. Install from a clone instead:\n\n  ${CLONE_COMMAND}`);
+    return refuse(`${root} is not a git clone, so there is nothing to pull. Install from a clone instead:\n\n  ${CLONE_COMMAND}`, {
+      cause: "not a clone",
+    });
   }
 
   const dirty = git(root, ["status", "--porcelain"]);
-  if (!dirty.ok) return refuse(`git status failed in ${root}: ${dirty.err}`);
+  if (!dirty.ok) return refuse(`git status failed in ${root}: ${dirty.err}`, { cause: "git failed" });
   if (dirty.out) {
     const files = dirty.out.split("\n").map((l) => `  ${l.slice(3)}`).join("\n");
     return refuse(
@@ -61,7 +74,8 @@ export function update({ root = REPO_ROOT, flags = [], runInstall = defaultRunIn
         "",
         `Set them aside with \`git -C "${root}" stash\`, or discard them with`,
         `\`git -C "${root}" checkout -- .\`, then run update again.`,
-      ].join("\n")
+      ].join("\n"),
+      { cause: "local edits" }
     );
   }
 
@@ -77,7 +91,7 @@ export function update({ root = REPO_ROOT, flags = [], runInstall = defaultRunIn
         "",
         `Look with \`git -C "${root}" status\` and decide what to keep. Nothing was reset.`,
       ].join("\n"),
-      { before }
+      { before, cause: "history diverged" }
     );
   }
   const after = git(root, ["rev-parse", "--short", "HEAD"]).out.trim() || null;
@@ -89,6 +103,7 @@ export function update({ root = REPO_ROOT, flags = [], runInstall = defaultRunIn
       before,
       after,
       exitCode: status,
+      cause: "install failed",
     });
   }
   return { ok: true, before, after, current: before === after, exitCode: 0 };

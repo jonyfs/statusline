@@ -44,6 +44,10 @@ const noSources = {
   getSessionActivity: () => null,
   getRtkSavings: () => null,
   getDirUrl: () => null,
+  // A preview never starts a real update check, and shows a notice only when
+  // a case asks for one.
+  maybeStartUpdateCheck: () => false,
+  getUpdateNotice: () => null,
 };
 
 export const SCENARIOS = [
@@ -248,6 +252,18 @@ export const SCENARIOS = [
       getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getRtkSavings: () => 81,
+    },
+  },
+  {
+    file: "update-ready.svg",
+    title: "The daily check found improvements and fixes upstream, in notify",
+    payload: basePayload,
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getRtkSavings: () => 81,
+      getUpdateNotice: () => ({ state: "ready", text: "update ready \u00b7 1 feature, 2 fixes" }),
     },
   },
   {
