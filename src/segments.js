@@ -83,6 +83,11 @@ export const SEGMENTS = [
   // up, so it outranks both windows. Placed after them so neither moves
   // (specs/023-extra-usage-limit).
   { key: "spendLimit", line: 3, order: 52, priority: 95, colour: "ramp", source: "payload" },
+  // Only when the prompt cache is cold, or warm and about to go cold: the one
+  // moment its state changes what you do next (specs/025-prompt-cache-chip).
+  // Actionable, so it sits under the allowances and the model and above the
+  // burn rate. Order 54 moves nothing that was already on the line.
+  { key: "promptCache", line: 3, order: 54, priority: 80, colour: "ramp", source: "payload" },
   { key: "duration", line: 3, order: 55, priority: 50, colour: "identity", source: "payload" },
   // Raised from 40, the lowest on the bar, at the owner's decision: the
   // savings figure is to survive the merge rather than be the first thing the
@@ -147,6 +152,7 @@ export const SEGMENT_ABOUT = {
   burnRate: "How fast the five-hour window is being spent, measured across recent samples. A percentage says where you are; a rate says whether you arrive before the reset.",
   projection: "When the five-hour window would run out, shown only when that lands before it resets — which is the only case where it changes what you do.",
   sevenDay: "The seven-day usage window and when it comes back. It names the day, because beyond a day a reset is something you plan around.",
+  promptCache: "The prompt cache, shown only when it matters: warm with minutes left once it is close to expiring, or cold with the tokens the next request writes again and the likely reason it was lost. Silent while there is time to spare.",
   spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",
   duration: "Wall-clock time since the session started.",
   rtk: "The share of tokens rtk has saved, a lifetime average across everything it has proxied rather than a figure for this session.",

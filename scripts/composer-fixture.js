@@ -50,6 +50,16 @@ export const PAYLOAD = {
     // A gateway setup, so the composer has the spend limit to arrange too.
     spend_limit: { used_percentage: 34, resets_at: FIXED_NOW + 12 * 86400 },
   },
+  // Cold, so the composer has the prompt-cache chip to arrange. No miss cause:
+  // with one, line 3 outgrows the 200 columns the pool is checked at and the
+  // session duration drops off the fixture's bar.
+  prompt_cache: {
+    warm: false,
+    caching_observed: true,
+    ttl: "5m",
+    expires_at: null,
+    recache_tokens_if_cold: 184000,
+  },
   cost: {
     total_duration_ms: 1000 * 60 * 64,
     total_api_duration_ms: 1000 * 60 * 9,

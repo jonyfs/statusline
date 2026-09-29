@@ -159,3 +159,26 @@ await test("an arranged bar still drops by priority", async () => {
   assert.ok(/Context 46%/.test(tight), "the highest-priority segment was dropped");
   assert.ok(!/rtk 81% saved/.test(tight), "the lowest-priority segment survived a 60-column window");
 });
+
+// specs/025-prompt-cache-chip: a segment's shorter forms.
+await test("a segment with variants shortens before it is dropped, after lower priorities go", async () => {
+  const { fitToWidth, rowWidth } = await import("../../src/layout.js");
+  const seg = (key, text, priority, extra = {}) => ({ key, text, priority, color: "red", ...extra });
+  const row = [
+    seg("top", " top ", 100),
+    seg("low", " low-priority ", 10),
+    seg("chip", " chip · aaaa · bbbb ", 50, { variants: [" chip · aaaa ", " chip "] }),
+  ];
+  const fullWidth = rowWidth(row);
+  const lowWidth = rowWidth([row[1]]) - rowWidth([]);
+  const at = (w) => fitToWidth(row, w).map((s) => s.text.trim());
+
+  assert.deepEqual(at(fullWidth), ["top", "low-priority", "chip · aaaa · bbbb"]);
+  // One column short: the lower-priority neighbour goes first, untouched chip stays whole.
+  assert.deepEqual(at(fullWidth - 1), ["top", "chip · aaaa · bbbb"]);
+  // Tighter: the chip gives up its last words, then the next, then itself.
+  const noLow = fullWidth - lowWidth;
+  assert.deepEqual(at(noLow - 1), ["top", "chip · aaaa"]);
+  assert.deepEqual(at(noLow - 8), ["top", "chip"]);
+  assert.deepEqual(at(rowWidth([row[0]])), ["top"]);
+});

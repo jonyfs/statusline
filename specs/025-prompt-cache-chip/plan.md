@@ -78,7 +78,8 @@ specs/025-prompt-cache-chip/
 src/
 ├── tokens.js      # getPromptCache()
 ├── segments.js    # promptCache row and SEGMENT_ABOUT sentence
-├── render.js      # reading, glyph rows, chip builder, two trim options
+├── render.js      # reading, glyph rows, chip builder with variants
+├── layout.js      # fitToWidth tries a segment's variants before dropping it
 ├── freshness.js   # MAX_AGE_MS entry
 └── doctor.js      # DESCRIBE row and absence reasons
 scripts/

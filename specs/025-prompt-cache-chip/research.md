@@ -71,19 +71,23 @@ job.
 
 ## R6. Width
 
-**Decision**: Registry row `{ key: "promptCache", line: 3, order: 54, priority: 80 }`. Two new
-trim options, `cacheCause` and `cacheTokens`, go at the front of the trim ladder:
-
-```
-{}, {cacheCause:false}, {cacheCause:false, cacheTokens:false},
-{... moment:false}, {... fiveHourText:false}, {... rtk:false}
-```
+**Decision**: Registry row `{ key: "promptCache", line: 3, order: 54, priority: 80 }`. A cold
+chip carries `variants`, its shorter texts in the order it gives them up (without the cause,
+then without the token count), and `fitToWidth` in `src/layout.js` tries them before dropping
+the segment.
 
 **Rationale**: Order 54 sits between the spend limit (52) and the duration (55), so nothing
 existing moves. Priority 80 is in the actionable band, under the three allowances and the
-model, above the burn rate. The cause and the token count are the chip's least essential text,
-so they go before any other segment loses its own text. A ladder step with no chip on the line
-changes nothing, so existing bars render as before.
+model, above the burn rate.
+
+The first design added two steps to the renderer's `TRIM_STEPS` ladder. Implementation showed
+the ladder almost never runs: `fitToWidth` always makes a row fit by dropping segments, so the
+ladder's "does every row fit" check passes before any step is taken, and the chip was dropped
+whole at 100 columns. Variants work inside `fitToWidth` instead. They keep the bar's rule that
+a lower-priority neighbour goes before anything shortens, and when the guard reaches the chip
+it loses the cause, then the token count, then itself. No other segment declares variants, so
+every other bar lays out exactly as before. Measured on a fixture: the full chip at 110
+columns, no cause at 100, no tokens at 80, no chip at 70.
 
 ## R7. Cause phrases
 

@@ -66,6 +66,9 @@ WANTED = {
     "E7A8": 0xE7A8,    # nf-dev-rust: rtk is a Rust binary
     "F0584": 0xF0584,  # nf-md-wallet: the spend limit. F0114 "cash" draws a
                        # banknote, and F00F6, listed as a cart, a calendar
+    "F050F": 0xF050F,  # nf-md-thermometer: a warm prompt cache
+    "F0717": 0xF0717,  # nf-md-snowflake: a cold one. F09A2, listed as a
+                       # database refresh, draws a speaker
     # Animation frames (feature 003). Each was rendered and looked at: the
     # md dice_1..dice_6 range draws a boxed division sign, a list, a building
     # and a download arrow, "space_invaders" draws a crossed-out television,

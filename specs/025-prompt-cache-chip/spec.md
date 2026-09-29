@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: The bar says when the prompt cache goes cold, and why it did
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-09-29
 
-**Status**: Draft (the declaration above is authoritative)
+**Status**: Completed (the declaration above is authoritative)
 
 **Input**: User description: "chip de estado do cache de prompt no statusline, usando o bloco
 prompt_cache do payload do Claude Code (warm, expires_at, hit_ratio, misses, last_miss_cause,
