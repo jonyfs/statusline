@@ -128,6 +128,9 @@ const NF_SNOWFLAKE = "\u{F0717}";   // nf-md-snowflake: cold
 // right; F4A9, listed as a rocket, draws a monitor; F06B1 draws a watch.
 const NF_DOWNLOAD = "\u{F01DA}";      // nf-md-download: ready, blocked, failed
 const NF_ARROW_UP_BOLD = "\u{F0737}"; // nf-md-arrow_up_bold: updated
+// Two modes the payload reports (specs/027-bar-polish/glyph-evidence.png).
+const NF_VIM = "\u{E62B}";           // nf-custom-vim: the vim mode
+const NF_SPEEDOMETER = "\u{F04C5}";  // nf-md-speedometer: fast mode
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -176,6 +179,8 @@ export const GLYPHS = {
     cacheCold: NF_SNOWFLAKE,
     updateReady: NF_DOWNLOAD,
     updateDone: NF_ARROW_UP_BOLD,
+    vim: NF_VIM,
+    fast: NF_SPEEDOMETER,
   },
   /**
    * The set for a terminal with no Nerd Font.
@@ -246,6 +251,8 @@ export const GLYPHS = {
     // Both East Asian Narrow, and not the doubled arrows push and pull use.
     updateReady: "\u2913", // ⤓
     updateDone: "\u2912",  // ⤒
+    vim: "\u2328",        // ⌨
+    fast: "\u21F6",       // ⇶ three arrows
   },
 };
 
@@ -472,6 +479,9 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     spendLimitReset: reading({ value: spendLimitResetsAt, at: now, source: "payload" }),
     promptCache: reading({ value: getPromptCache(payload, now), at: now, source: "payload" }),
     update: updateReading,
+    // Only present when vim mode is on; a mode that is not text is no mode.
+    vim: reading({ value: payloadText(payload?.vim?.mode), at: now, source: "payload" }),
+    fastMode: reading({ value: payload?.fast_mode === true ? true : null, at: now, source: "payload" }),
     rtk: rtkReading,
     samples: reading({ value: sampleHistory, at: now, source: "samples" }),
   };
@@ -867,6 +877,10 @@ export function renderReadings(
       const label = current ? `${current} (${done}/${total})` : `${done}/${total}`;
       row.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
     }
+    // The editor's vim mode, beside what the session is doing. Absent unless
+    // vim mode is on (specs/027-bar-polish).
+    const vimMode = shows("vim") ? readings.vim?.value : null;
+    if (vimMode) row.push({ key: "vim", color: "lavender", text: ` ${g.vim} ${vimMode} ` });
     if (activity) {
       const mark = activity.working ? g.working : g.idle;
       row.push({
@@ -949,6 +963,9 @@ export function renderReadings(
       text: ` ${g.model} ${modelName} `,
     }),
     effort: () => (effort ? { color: "peach", text: ` ${g.effort} ${effort} ` } : null),
+    // Fast mode spends faster, so it sits with the model and effort that say
+    // what is spending. Drawn only when on (specs/027-bar-polish).
+    fastMode: () => (shows("fastMode") && readings.fastMode?.value ? { color: "peach", text: ` ${g.fast} fast ` } : null),
     // The three ramped segments. Colour says which band the level is in, and
     // the bar's own characters say it again, because colour may not be the
     // only carrier (E6). An unknown level keeps the segment's own colour and
@@ -973,42 +990,38 @@ export function renderReadings(
     // belonged to the figure three chips back and the right half to the one
     // between them — and the slash read as a fraction beside `1h04m`, which
     // really is one thing over another. One subject, one chip.
-    fiveHour: (o) => {
+    fiveHour: () => {
       // `?` rather than nothing when the payload carried no reset: with the
       // countdown simply absent, a reader cannot tell "the harness did not
       // say" from "a narrow terminal shed it", and the first is a fact about
       // the data (Principle III). It reads in the same vocabulary as the `?%`
-      // beside it, and it is shed under width like any other reset text.
-      const resets = o.fiveHourText ? (shortCountdown(fiveHourResetsAt, now) ?? "?") : null;
-      return {
-        color: rampColour(fiveHourPct, "green"),
-        text: ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)}${fullMark(fiveHourPct)}${resets ? ` \u00b7 ${resets}` : ""} `,
-      };
+      // beside it, and it is shed under width like any other reset text: the
+      // chip's one variant is itself without the countdown, which the width
+      // guard reaches before it drops anything essential (specs/027).
+      const resets = shortCountdown(fiveHourResetsAt, now) ?? "?";
+      const level = ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)}${fullMark(fiveHourPct)}`;
+      return { color: rampColour(fiveHourPct, "green"), text: `${level} \u00b7 ${resets} `, variants: [`${level} `] };
     },
-    sevenDay: (o) => {
+    sevenDay: () => {
       // Near and far are told differently, and that is the rule rather than an
       // inconsistency: a window resetting in hours is something you wait out,
       // so it counts down; one resetting on Thursday is a date you plan
       // around, so it names the day. C4 chose the weekday for the far case on
       // the reasoning that a countdown three days long is noise; the near case
       // used to be covered by the merged segment, and now lives here.
-      const moment = o.moment ? (farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?") : null;
-      return {
-        color: rampColour(sevenDayPct, "sapphire"),
-        text: ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${fullMark(sevenDayPct)}${moment ? ` \u00b7 ${moment}` : ""} `,
-      };
+      const moment = farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?";
+      const level = ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${fullMark(sevenDayPct)}`;
+      return { color: rampColour(sevenDayPct, "sapphire"), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
     },
     // The allowance a gateway reports once an administrator sets a spend
     // limit. It is drawn as reported, past 100% included, because that is how
     // the payload says the limit has been exceeded; capping it would hide the
     // one figure still moving. Its reset is shed with the 7-day one.
-    spendLimit: (o) => {
+    spendLimit: () => {
       if (spendLimitPct === null) return null;
-      const moment = o.moment ? (spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?") : null;
-      return {
-        color: rampColour(spendLimitPct, "teal"),
-        text: ` ${g.spend} spend ${spendLimitPct}%${bandMark(spendLimitPct)}${moment ? ` \u00b7 ${moment}` : ""} `,
-      };
+      const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
+      const level = ` ${g.spend} spend ${spendLimitPct}%${bandMark(spendLimitPct)}`;
+      return { color: rampColour(spendLimitPct, "teal"), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
     },
     // The prompt cache, drawn only when its state changes what you do next:
     // cold, or warm inside its closing window. A warm cache with time to
@@ -1039,8 +1052,8 @@ export function renderReadings(
     // a narrow line drops — the same outcome the throttle was reaching for,
     // decided by the terminal rather than by a threshold the figure cannot
     // cross.
-    rtk: (o) => {
-      if (!o.rtk || rtkPct === null) return null;
+    rtk: () => {
+      if (rtkPct === null) return null;
       return { color: "mauve", text: ` ${g.rtk} rtk ${rtkPct}% saved ` };
     },
 
@@ -1084,42 +1097,33 @@ export function renderReadings(
     },
   };
 
-  const buildLine3 = ({ moment = true, fiveHourText = true, rtk = true } = {}) => {
-    const opt = { moment, fiveHourText, rtk };
-    return byLine(3)
+  const buildLine3 = () =>
+    byLine(3)
       .map((s) => {
-        const built = line3Content[s.key]?.(opt);
+        const built = line3Content[s.key]?.();
         return built ? { key: s.key, ...built } : null;
       })
       .filter(Boolean);
-  };
 
-  // The 120-column limit is a promise the constitution makes, and until now
-  // nothing checked it. Content comes off in a fixed order, least
-  // informative first, and the first step that brings the line inside the
-  // limit is the last one taken. A wrapped statusline costs a whole extra
-  // terminal row, which is worse than any one of these omissions.
-  // Line 4 comes off least-informative first: the 7-day reset (the furthest
-  // consequence), then the 5-hour countdown, then the savings figure. The
-  // percentages themselves are never shed here — they are what the line is.
-  const TRIM_STEPS = [
-    {},
-    { moment: false },
-    { moment: false, fiveHourText: false },
-    { moment: false, fiveHourText: false, rtk: false },
-  ];
+  // The 120-column limit is a promise the constitution makes. Lower
+  // priorities are dropped first; before anything essential goes, the
+  // essential chips give up their reset text, the 7-day one first, then the
+  // 5-hour countdown, through their `variants` in `fitToWidth`
+  // (specs/027-bar-polish). That used to be a four-step ladder here, which
+  // never ran: `fitToWidth` always made a row fit, so the ladder's own "does
+  // it fit" check passed before its first step.
   /**
    * Puts every built segment on the line the arrangement gives it, in the
    * order it gives it, and drops what will not fit.
    *
-   * Content is built once per trim step; placement is applied here. A
+   * Content is built once; placement is applied here. A
    * segment that has been switched off never reaches a row, whatever its
    * priority, and a segment moved to another line arrives there with its
    * own priority, so what a narrow terminal sheds is still a decision taken
    * in the registry.
    */
-  const assemble = (trimStep) => {
-    const built = [...content, ...buildLine3(trimStep)];
+  const assemble = () => {
+    const built = [...content, ...buildLine3()];
     collect(built);
     const byLineNumber = new Map([1, 2, 3, 4].map((n) => [n, []]));
     for (const seg of built) {
@@ -1140,7 +1144,7 @@ export function renderReadings(
     return { rows: out, lines };
   };
 
-  let assembled = assemble(TRIM_STEPS[0]);
+  let assembled = assemble();
 
   // Line 1's own trim step: the directory label, shortened from the left,
   // because the end of a path identifies it and the start rarely does.
@@ -1157,18 +1161,11 @@ export function renderReadings(
       const shortened = trimFromLeft(dirLabel, displayWidth(dirLabel) - over - 1);
       if (shortened !== null) {
         content[dirIndex] = dirSegment(shortened);
-        assembled = assemble(TRIM_STEPS[0]);
+        assembled = assemble();
       }
     }
   }
 
-  // The line carrying the limits comes off in a fixed order, least
-  // informative first, and the first step that brings every line inside the
-  // width is the last one taken.
-  for (const step of TRIM_STEPS.slice(1)) {
-    if (assembled.rows.every((row) => rowWidth(row) <= maxWidth)) break;
-    assembled = assemble(step);
-  }
 
   rows.push(...assembled.rows);
   rendered.push(...assembled.lines);

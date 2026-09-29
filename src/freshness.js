@@ -83,6 +83,8 @@ export const MAX_AGE_MS = {
   // also how long its lock lasts, so a check killed part-way is retried the
   // next day rather than on the next redraw.
   update: 24 * 60 * 60 * 1000,
+  vim: REDRAW_INTERVAL_MS,
+  fastMode: REDRAW_INTERVAL_MS,
 };
 
 /**

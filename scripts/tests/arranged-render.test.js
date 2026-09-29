@@ -78,7 +78,7 @@ await test("the line a segment left still renders", () => {
 await test("a line emptied by an arrangement is dropped rather than drawn blank", () => {
   const after = lines(draw({
     version: 1,
-    segments: { skills: { on: false }, agents: { on: false }, todo: { on: false }, activity: { on: false } },
+    segments: { skills: { on: false }, agents: { on: false }, todo: { on: false }, activity: { on: false }, vim: { on: false } },
   }));
   assert(after.length === 2, `the bar drew ${after.length} lines instead of two`);
   assert(after.every((l) => l.trim().length), "a blank line was drawn");

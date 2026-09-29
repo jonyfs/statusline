@@ -50,6 +50,9 @@ export const PAYLOAD = {
     // A gateway setup, so the composer has the spend limit to arrange too.
     spend_limit: { used_percentage: 34, resets_at: FIXED_NOW + 12 * 86400 },
   },
+  // Both modes on, so the composer has their chips to arrange.
+  vim: { mode: "NORMAL" },
+  fast_mode: true,
   // Cold, so the composer has the prompt-cache chip to arrange. No miss cause:
   // with one, line 3 outgrows the 200 columns the pool is checked at and the
   // session duration drops off the fixture's bar.

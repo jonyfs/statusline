@@ -69,6 +69,8 @@ WANTED = {
     "F050F": 0xF050F,  # nf-md-thermometer: a warm prompt cache
     "F0717": 0xF0717,  # nf-md-snowflake: a cold one. F09A2, listed as a
                        # database refresh, draws a speaker
+    "E62B": 0xE62B,    # nf-custom-vim: the vim mode
+    "F04C5": 0xF04C5,  # nf-md-speedometer: fast mode
     "F01DA": 0xF01DA,  # nf-md-download: an update ready, blocked or failed
     "F0737": 0xF0737,  # nf-md-arrow_up_bold: the statusline updated. F0CE0,
                        # listed as an up arrow in a circle, points right

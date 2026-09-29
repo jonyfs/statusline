@@ -75,7 +75,7 @@ await test("shedding an arranged bar follows the same order", async () => {
 
   // With the skills line emptied, two rows exist rather than three, and
   // neither is shed to make room for a line that is not there.
-  const emptied = { version: 1, segments: { skills: { on: false }, todo: { on: false }, activity: { on: false } } };
+  const emptied = { version: 1, segments: { skills: { on: false }, todo: { on: false }, activity: { on: false }, vim: { on: false } } };
   assert.equal(drawAt(3, emptied).length, 2, "a bar with two lines shed one anyway");
   assert.ok(drawAt(3, emptied).some((l) => /Opus 5/.test(l)), "the model was shed while there was room");
 
