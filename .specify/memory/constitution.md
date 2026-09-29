@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 6.2.0 (III amended on 2026-09-28: MINOR, a field added to a list rather than a
+- Version: 6.3.0 (III amended on 2026-09-29: MINOR, a payload block added to the list of
+  displayed fields. Claude Code 2.1.283+ sends `prompt_cache` on every redraw and redraws
+  when a warm cache expires; the bar now says when the cache is about to go cold, or has, and
+  what the next request will write again. Minutes come from the payload's own `expires_at`,
+  so nothing is estimated. See specs/025-prompt-cache-chip/.)
+- Previously, version 6.2.0 (III amended on 2026-09-28: MINOR, a field added to a list rather than a
   requirement redefined. Claude Code sends `rate_limits.spend_limit` behind a Claude gateway
   with spend limits, and the bar ignored it, so a user whose administrator raised their limit
   kept reading an exhausted `5h 100%` with no sign of the allowance they were now spending.
@@ -270,7 +275,8 @@ cannot already read beside it.
 System MUST display token/rate-limit usage using only the exact fields Claude Code provides on
 the `statusLine` command's stdin payload (`context_window.used_percentage`,
 `rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage`,
-`rate_limits.spend_limit.used_percentage`, and each entry's `resets_at`) — never a locally estimated or invented figure standing in for real
+`rate_limits.spend_limit.used_percentage`, each entry's `resets_at`, and the `prompt_cache`
+block) — never a locally estimated or invented figure standing in for real
 account data. Anthropic's plan limits are a 5-hour window and a 7-day window; there is no
 monthly quota, so the statusline MUST NOT display a "monthly" figure — inventing one to fill a
 slot would be a fabricated number presented as real. Three percentages are shown: context
@@ -287,6 +293,11 @@ omitted when the entry is absent rather than shown as `?%`. And its `used_percen
 above 100 once the limit is exceeded, so the statusline MUST show it as reported rather than
 capping it. A granted allowance the payload does not carry MUST NOT be displayed at all: no
 figure may be derived from spend, message count or elapsed time to stand in for it.
+
+The prompt cache is shown only while the payload's `prompt_cache` block says caching is
+observed. Its countdown is the payload's `expires_at` minus now, and its token figure is the
+payload's `recache_tokens_if_cold`; the statusline MUST NOT compute either from anything else,
+and MUST NOT turn them into a cost.
 
 ### IV. Installable by Clone, With Install/Uninstall Commands
 
@@ -597,4 +608,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 6.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-28
+**Version**: 6.3.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-29

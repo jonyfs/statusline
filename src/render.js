@@ -27,6 +27,8 @@ import {
   formatDuration,
   abbreviate,
   MAX_PLAUSIBLE_SPEND_PERIOD_MS,
+  getPromptCache,
+  cacheMinutesLeft,
 } from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
 import { elapsed } from "./taskRows.js";
@@ -114,6 +116,12 @@ const NF_RUST = "\u{E7A8}";      // nf-dev-rust: rtk is a Rust binary
 // banknote, which reads as currency rather than a budget being spent, and
 // F00F6, listed in one cheat sheet as a cart, draws a calendar.
 const NF_WALLET = "\u{F0584}";  // nf-md-wallet
+// The prompt cache, one icon per state so the icon itself says which
+// (Principle X). Rendered before adoption (specs/025-prompt-cache-chip/
+// glyph-evidence.png): F09A2, listed as a database refresh, draws a speaker
+// with a Bluetooth mark, and F06B0 draws a clock with an arrow.
+const NF_THERMOMETER = "\u{F050F}"; // nf-md-thermometer: warm
+const NF_SNOWFLAKE = "\u{F0717}";   // nf-md-snowflake: cold
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -158,6 +166,8 @@ export const GLYPHS = {
     burn: NF_BURN,
     rtk: NF_RUST,
     spend: NF_WALLET,
+    cacheWarm: NF_THERMOMETER,
+    cacheCold: NF_SNOWFLAKE,
   },
   /**
    * The set for a terminal with no Nerd Font.
@@ -220,6 +230,11 @@ export const GLYPHS = {
     rtk: "\u25BE",        // ▾ a reduction, which is what a saving is
     // ASCII, East Asian Narrow, in every font, and used nowhere else on the bar.
     spend: "$",
+    // Both East Asian Narrow. `U+2744` has an emoji form, but its default
+    // presentation is text and the bar never sends the selector that asks
+    // for the other one.
+    cacheWarm: "\u21BB",  // ↻ still reusable
+    cacheCold: "\u2744",  // ❄
   },
 };
 
@@ -434,6 +449,7 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     sevenDayReset: reading({ value: sevenDayResetsAt, at: now, source: "payload" }),
     spendLimit: reading({ value: spendLimitPct, at: now, source: "payload" }),
     spendLimitReset: reading({ value: spendLimitResetsAt, at: now, source: "payload" }),
+    promptCache: reading({ value: getPromptCache(payload, now), at: now, source: "payload" }),
     rtk: rtkReading,
     samples: reading({ value: sampleHistory, at: now, source: "samples" }),
   };
@@ -582,6 +598,7 @@ export function renderReadings(
   // `?%`: most accounts have no spend limit at all (Principle III).
   const spendLimitPct = readings.spendLimit?.value ?? null;
   const spendLimitResetsAt = readings.spendLimitReset?.value ?? null;
+  const promptCache = readings.promptCache?.value ?? null;
   const fiveHourResetLabel = formatResetCountdown(fiveHourResetsAt, now) ?? "reset time unknown";
   const sevenDayResetLabel = formatResetCountdown(sevenDayResetsAt, now) ?? "reset time unknown";
 
@@ -667,7 +684,16 @@ export function renderReadings(
     for (const seg of segs) {
       if (pooled.has(seg.key)) continue;
       pooled.add(seg.key);
-      pool.push({ key: seg.key, text: seg.text, color: seg.color, ...(seg.url ? { url: seg.url } : {}) });
+      pool.push({
+        key: seg.key,
+        text: seg.text,
+        color: seg.color,
+        ...(seg.url ? { url: seg.url } : {}),
+        // The composer page fits with the same `fitToWidth`, so a segment's
+        // shorter forms travel with it or the page would drop what the
+        // terminal only shortens.
+        ...(seg.variants ? { variants: seg.variants } : {}),
+      });
     }
   };
 
@@ -951,6 +977,23 @@ export function renderReadings(
         color: rampColour(spendLimitPct, "teal"),
         text: ` ${g.spend} spend ${spendLimitPct}%${bandMark(spendLimitPct)}${moment ? ` \u00b7 ${moment}` : ""} `,
       };
+    },
+    // The prompt cache, drawn only when its state changes what you do next:
+    // cold, or warm inside its closing window. A warm cache with time to
+    // spare, or a provider that reports no caching, draws nothing at all. A
+    // cold chip carries shorter `variants`: when the width guard reaches it,
+    // the cause comes off, then the token count, and only then the chip.
+    promptCache: () => {
+      if (!promptCache?.observed) return null;
+      if (promptCache.state === "warm") {
+        if (!promptCache.closing) return null;
+        return { color: "yellow", text: ` ${g.cacheWarm} cache warm \u00b7 ${cacheMinutesLeft(promptCache.secondsLeft)} ` };
+      }
+      const tokens = promptCache.recacheTokens !== null ? abbreviate(promptCache.recacheTokens) : null;
+      const chip = (...parts) => ` ${g.cacheCold} cache cold${parts.filter(Boolean).map((t) => ` \u00b7 ${t}`).join("")} `;
+      const text = chip(tokens, promptCache.cause);
+      const variants = [chip(tokens), chip()].filter((v, i, all) => v !== text && all.indexOf(v) === i);
+      return { color: "red", text, ...(variants.length ? { variants } : {}) };
     },
     // C5 asked for this figure to render only once it had moved five points,
     // on the reasoning that a number repeating itself every redraw is a

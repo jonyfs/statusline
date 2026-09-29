@@ -229,6 +229,28 @@ export const SCENARIOS = [
     },
   },
   {
+    file: "prompt-cache-cold.svg",
+    title: "Back from a break: the prompt cache went cold, what the next request writes again, and why",
+    payload: {
+      ...basePayload,
+      context_window: { used_percentage: 58 },
+      prompt_cache: {
+        warm: false,
+        caching_observed: true,
+        ttl: "5m",
+        expires_at: null,
+        recache_tokens_if_cold: 184000,
+        last_miss_cause: { causes: ["tools_changed"] },
+      },
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getRtkSavings: () => 81,
+    },
+  },
+  {
     file: "no-upstream.svg",
     title: "A branch with no upstream — no ahead/behind counters at all, which is not the same as being in sync",
     payload: basePayload,

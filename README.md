@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run |
 | 2 | Skills used recently, as one list, then todo progress and whether Claude is working or idle |
-| 3 | Model and effort level, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, burn rate and projection, session duration, rtk savings |
+| 3 | Model and effort level, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the prompt cache when it is about to go cold or has, burn rate and projection, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -161,6 +161,30 @@ the bar shows `full` and nothing more. It will not work out a remaining
 balance from what you have spent, how many messages you sent, or how long you
 have been working. `statusline-plugin doctor` tells you which case you are in:
 its `spendLimit` row is either on with its figure, or off with the reason.
+
+To see what your own Claude Code sends, start it with `CLAUDE_STATUSLINE_DEBUG=1`
+in its environment. Every redraw then writes the raw payload to
+`~/.claude/statusline/debug-last-payload.json`. Without the variable the file
+is not written, so an old copy there says nothing about today.
+
+**The prompt cache, when it matters.** Claude Code keeps the start of the
+conversation cached for five minutes or an hour. While it is warm the next
+request reads it cheaply; once it goes cold the next request writes all of it
+again. The bar says nothing while the cache has time to spare. In the last two
+minutes of a five-minute cache, or the last ten of an hour-long one, it shows
+`cache warm · 1m` so you can send the next message before it expires. Once it
+has gone cold it shows `cache cold`, the tokens the next request will write
+again, and the likely reason it was lost:
+
+![The prompt cache gone cold](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/prompt-cache-cold.svg)
+
+The reasons read `tools changed`, `prompt changed`, `model changed`,
+`history rewritten` or `server side`. A cache that simply ran out of time shows
+no reason, since that is what cold means. On a narrow terminal the reason goes
+first, then the token count, and then the chip. All of it comes from the
+`prompt_cache` block that Claude Code 2.1.283 and later send, so nothing is
+estimated, and nothing is turned into a price. The `doctor` row adds the hit
+ratio and the miss count.
 
 **An older Claude Code that doesn't send rate-limit fields.** Unknown values
 show `?%` and `reset time unknown`. Nothing gets estimated to fill the gap:
@@ -493,7 +517,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato` or `latte` |
 | `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
-| `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json`, for when a field changes shape in some future version |
+| `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
 | `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
 | `CLAUDE_STATUSLINE_LAYOUT` | Path to an arrangement file, which beats every other place one can live. See the next-but-one section |
@@ -813,6 +837,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-md-fire` | `U+F0238` | burn rate |
 | `nf-dev-rust` | `U+E7A8` | rtk, which is a Rust binary |
 | `nf-md-wallet` | `U+F0584` | the spend limit |
+| `nf-md-thermometer` / `nf-md-snowflake` | `U+F050F` / `U+F0717` | the prompt cache, warm and cold |
 
 The 7-day calendar is a blank grid, and deliberately not the 📆 emoji. Every
 emoji font draws a fixed date into that glyph; Apple's shows "17". Sitting

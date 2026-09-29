@@ -36,7 +36,13 @@ import {
 } from "./skills.js";
 import { mostRecentSkillEvent } from "./skillEvents.js";
 import { getRtkSavings, probeRtkSavings } from "./rtk.js";
-import { formatResetCountdown, MAX_PLAUSIBLE_SPEND_PERIOD_MS } from "./tokens.js";
+import {
+  formatResetCountdown,
+  MAX_PLAUSIBLE_SPEND_PERIOD_MS,
+  abbreviate,
+  cacheMinutesLeft,
+  PROMPT_CACHE_CLOSING_S,
+} from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
 import { displayWidth } from "./theme.js";
@@ -74,6 +80,7 @@ const DESCRIBE = {
   burnRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   sevenDay: ["sevenDay", (v, now, readings) => describeWindow(v, readings?.sevenDayReset?.value, now)],
+  promptCache: ["promptCache", (v) => describePromptCache(v)],
   spendLimit: [
     "spendLimit",
     (v, now, readings) =>
@@ -86,6 +93,23 @@ const DESCRIBE = {
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
   dir: ["dir", (v) => v ?? null],
 };
+
+/**
+ * The whole prompt-cache block, for the chip that shows only part of it and
+ * only some of the time. Null when the chip is not drawn, so the row falls to
+ * a reason instead of claiming a value that is not on the bar.
+ */
+function describePromptCache(pc) {
+  if (!pc?.observed) return null;
+  if (pc.state === "warm" && !pc.closing) return null;
+  const parts = [pc.state, pc.ttl];
+  if (pc.state === "warm") parts.push(`${cacheMinutesLeft(pc.secondsLeft)} left`);
+  if (pc.state === "cold" && pc.recacheTokens !== null) parts.push(`${abbreviate(pc.recacheTokens)} to re-cache`);
+  if (pc.cause) parts.push(pc.cause);
+  if (pc.hitRatio !== null) parts.push(`${Math.round(pc.hitRatio * 100)}% hits`);
+  if (pc.misses !== null) parts.push(`${pc.misses} ${pc.misses === 1 ? "miss" : "misses"}`);
+  return parts.filter(Boolean).join(", ");
+}
 
 /** A usage window as its chip draws it: the level, and when it resets. */
 function describeWindow(pct, resetsAt, now, bound) {
@@ -117,6 +141,16 @@ const LIVE_PROBES = {
 function absenceReason(segment, reading, readings, now) {
   if (!reading) return "no reading";
   if (reading.error) return `source failed: ${reading.error}`;
+  if (segment.key === "promptCache") {
+    const pc = reading.value;
+    if (!pc) return "not in the payload: Claude Code 2.1.283+ sends it after the first response";
+    if (!pc.observed) return "caching is not reported by this provider";
+    if (pc.state === "warm" && !pc.closing) {
+      const left = pc.secondsLeft === null ? "time left unknown" : `${cacheMinutesLeft(pc.secondsLeft)} left`;
+      const window = pc.ttl ? `the ${PROMPT_CACHE_CLOSING_S[pc.ttl] / 60}m closing window` : "any closing window, with no TTL";
+      return `warm, ${pc.ttl ?? "unknown TTL"}, ${left}: outside ${window}`;
+    }
+  }
 
   const inRepo = readings?.git?.value != null;
   if (Array.isArray(reading.value) && reading.value.length === 0) {

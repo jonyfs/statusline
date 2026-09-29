@@ -78,6 +78,7 @@ export const MAX_AGE_MS = {
   sevenDayReset: 1_000,
   spendLimit: 1_000,
   spendLimitReset: 1_000,
+  promptCache: 1_000,
 };
 
 /**

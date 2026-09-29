@@ -16,6 +16,8 @@
  * Principle III forbids standing an estimate in its place.
  */
 
+import { plainText } from "./text.js";
+
 export function getContextPercent(payload) {
   const pct = payload?.context_window?.used_percentage;
   return typeof pct === "number" && Number.isFinite(pct) ? Math.round(pct) : null;
@@ -158,4 +160,88 @@ export function shortCountdown(resetsAtSeconds, now = Date.now(), bound = {}) {
   if (full === null) return null;
   if (full === "resetting now") return "now";
   return full.replace(/^resets in /, "").replace(/ (\d+)h$/, "");
+}
+
+/**
+ * The prompt cache, as Claude Code 2.1.283+ describes it on every redraw
+ * (specs/025-prompt-cache-chip). The block is absent until the first request
+ * completes, and `ttl` is only ever `5m` or `1h`, both confirmed from the
+ * builder in the installed binary rather than assumed.
+ *
+ * Null when there is no usable block: `warm` is the subject, so without a
+ * boolean there is nothing to say. Every other field is checked on its own
+ * and dropped when unusable, so one bad number costs one figure, not the
+ * chip.
+ */
+const PROMPT_CACHE_TTLS = new Set(["5m", "1h"]);
+
+/** How close to expiry a warm cache has to be before it is worth a chip. */
+export const PROMPT_CACHE_CLOSING_S = { "5m": 120, "1h": 600 };
+
+/** No TTL is longer than this; an expiry beyond it is in the wrong unit. */
+const PROMPT_CACHE_MAX_AHEAD_S = 3600;
+
+/**
+ * The miss causes, as the chip says them. `null` means the cause says nothing
+ * a cold cache does not already say: a TTL expiry is what cold means, and
+ * `unknown` is the absence of a cause.
+ */
+const PROMPT_CACHE_CAUSES = {
+  tools_changed: "tools changed",
+  system_prompt_changed: "prompt changed",
+  model_changed: "model changed",
+  messages_rewritten: "history rewritten",
+  likely_server_side: "server side",
+  unknown: null,
+  ttl_expired_5m: null,
+  ttl_expired_1h: null,
+};
+
+function cacheCause(causes) {
+  if (!Array.isArray(causes)) return null;
+  for (const code of causes) {
+    const text = plainText(code);
+    if (!text) continue;
+    if (Object.hasOwn(PROMPT_CACHE_CAUSES, text)) {
+      if (PROMPT_CACHE_CAUSES[text] !== null) return PROMPT_CACHE_CAUSES[text];
+      continue;
+    }
+    // A cause added after this was written: say it as sent rather than drop
+    // it or pretend to know what it means.
+    return text;
+  }
+  return null;
+}
+
+export function getPromptCache(payload, now = Date.now()) {
+  const pc = payload?.prompt_cache;
+  if (!pc || typeof pc !== "object" || typeof pc.warm !== "boolean") return null;
+  const finite = (v) => typeof v === "number" && Number.isFinite(v);
+  const count = (v) => (finite(v) && v >= 0 ? v : null);
+
+  const ttl = PROMPT_CACHE_TTLS.has(pc.ttl) ? pc.ttl : null;
+  const aheadS = finite(pc.expires_at) ? pc.expires_at - now / 1000 : null;
+  const expired = aheadS !== null && aheadS <= 0;
+  const state = pc.warm && !expired ? "warm" : "cold";
+  const secondsLeft =
+    state === "warm" && aheadS !== null && aheadS <= PROMPT_CACHE_MAX_AHEAD_S ? Math.floor(aheadS) : null;
+
+  return {
+    state,
+    ttl,
+    secondsLeft,
+    closing: state === "warm" && ttl !== null && secondsLeft !== null && secondsLeft <= PROMPT_CACHE_CLOSING_S[ttl],
+    observed: pc.caching_observed === true,
+    recacheTokens: count(pc.recache_tokens_if_cold),
+    cause: state === "cold" ? cacheCause(pc.last_miss_cause?.causes) : null,
+    hitRatio: finite(pc.hit_ratio) && pc.hit_ratio >= 0 && pc.hit_ratio <= 1 ? pc.hit_ratio : null,
+    misses: count(pc.misses),
+    requests: count(pc.requests),
+  };
+}
+
+/** `1m`, `9m`, or `<1m`: whole minutes rounded down, never promising time that is not there. */
+export function cacheMinutesLeft(secondsLeft) {
+  if (typeof secondsLeft !== "number") return null;
+  return secondsLeft < 60 ? "<1m" : `${Math.floor(secondsLeft / 60)}m`;
 }

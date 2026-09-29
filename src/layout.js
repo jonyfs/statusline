@@ -66,11 +66,25 @@ export function fitToWidth(row, width = terminalWidth()) {
 
   const byPriority = [...row].sort((a, b) => a.priority - b.priority);
   const dropped = new Set();
+  // A segment may carry `variants`: shorter texts, in the order it gives
+  // them up. When the guard reaches such a segment it tries each before
+  // dropping it, so the segment loses its least essential words first. The
+  // order between segments is still priority's: a lower-priority neighbour
+  // goes before this one shortens (specs/025-prompt-cache-chip).
+  const shortened = new Map();
+  const current = () =>
+    row.filter((s) => !dropped.has(s.key)).map((s) => (shortened.has(s.key) ? { ...s, text: shortened.get(s.key) } : s));
 
   for (const candidate of byPriority) {
     if (dropped.size === row.length - 1) break;
+    for (const text of candidate.variants || []) {
+      shortened.set(candidate.key, text);
+      const kept = current();
+      if (rowWidth(kept) <= width) return kept;
+    }
+    shortened.delete(candidate.key);
     dropped.add(candidate.key);
-    const kept = row.filter((s) => !dropped.has(s.key));
+    const kept = current();
     if (rowWidth(kept) <= width) return kept;
   }
 
