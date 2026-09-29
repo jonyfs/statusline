@@ -25,10 +25,21 @@ process.env.LINES = process.env.CLAUDE_STATUSLINE_TEST_LINES || "40";
 // the suite needs it too, and it has to happen before any Date exists.
 process.env.TZ = "UTC";
 
-import { readdirSync } from "node:fs";
+import { readdirSync, mkdtempSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { summary } from "./test-harness.js";
+
+// Every case runs in a throwaway HOME. The renderer reads session state, the
+// sample history and the caches from ~/.claude/statusline, and install writes
+// ~/.claude/settings.json. Leaving each case to remember `withHome` failed
+// twice: fixtures landed in the real tasks directory (cd4bacb), and a render
+// case read the machine's own sample history and failed whenever it held a
+// burn rate. Set before any test module loads; `withHome` still nests inside.
+const suiteHome = mkdtempSync(path.join(os.tmpdir(), "statusline-suite-home-"));
+process.env.HOME = suiteHome;
+process.env.USERPROFILE = suiteHome;
 
 const testDir = fileURLToPath(new URL("./tests/", import.meta.url));
 
