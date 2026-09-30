@@ -49,3 +49,14 @@ README.md          per-platform install, verification, troubleshooting
 .specify/memory/constitution.md   IX, 7.0.0
 scripts/tests/platform.test.js, install-hook.test.js, new cross-platform.test.js
 ```
+
+## Results (2026-09-30)
+
+- Local suite: 582 passed. Linux container (node:22): 582 passed, and the three installed
+  commands ran through `sh` and `bash`.
+- CI run 36770426338 on `feat/cross-platform`: all 15 jobs green, including the nine suite
+  combinations and `installed-commands` on Windows, where install wrote
+  `node "D:/a/statusline/statusline/bin/cli.js" render` and the status line, skill hook and
+  subagent rows each ran through Git Bash, PowerShell 7 and Windows PowerShell.
+- The `DEP0040 punycode` warning in that job's log comes from `actions/setup-node`, not from
+  this project.

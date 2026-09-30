@@ -8,5 +8,5 @@
 - [X] T006 [US3] Failing tests, then `projectOverrides(cwd)` in `src/install.js` and its line in `src/doctor.js`
 - [X] T007 [US1] Add `windows-install` and `linux-install` jobs to `.github/workflows/ci.yml` that install into a temporary profile and run the written statusLine, hook and task-row commands through PowerShell and Git Bash, and through `sh`
 - [X] T008 [US4] Rewrite the README install section per platform with prerequisites, commands, verification and troubleshooting, including the project-override case; apply the humanizer
-- [ ] T009 Run the suite locally and in the Linux container, trigger CI on the branch, and record the results
-- [ ] T010 Set `status: done` in `specs/028-cross-platform/spec.md`
+- [X] T009 Run the suite locally and in the Linux container, trigger CI on the branch, and record the results
+- [X] T010 Set `status: done` in `specs/028-cross-platform/spec.md`

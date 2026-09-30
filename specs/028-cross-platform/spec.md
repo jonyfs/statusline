@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: The same statusline on Linux and Windows
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-09-30
 
-**Status**: Draft (the declaration above is authoritative)
+**Status**: Completed (the declaration above is authoritative)
 
 **Input**: User description: "crie uma spec para que o statusline funcione da mesma forma em
 outros sistemas operacionais como linux e windows, veja o que precisa ser ajustado para se
