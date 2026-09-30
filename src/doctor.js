@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { gather, renderReadings } from "./render.js";
-import { checkInstall } from "./install.js";
+import { checkInstall, projectOverrides } from "./install.js";
 import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
 import { repoKey, readEntry } from "./cache.js";
 import { SEGMENT_ABOUT, SEGMENTS as REGISTRY } from "./segments.js";
@@ -424,8 +424,12 @@ export function formatReport(report) {
         : report.install
             .filter((c) => !c.ok)
             .map((c) => `install: ${c.entry} is broken: ${c.problem}. Run \`update\` or \`install\` again.`);
+  const overrideLines = (report.overrides ?? []).map(
+    (o) => `install: ${o.file} sets its own statusLine, and Claude Code uses it here instead of this one (${o.command})`
+  );
   return [
     ...installLines,
+    ...overrideLines,
     ...(report.updates ? [report.updates] : []),
     `working directory: ${report.cwd}`,
     arrangementLine,
@@ -452,6 +456,9 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
 
   const report = buildReport(payload, { now });
   report.install = readInstallChecks();
+  // A project statusLine wins over the user's, so a person in that project
+  // sees another bar and this one looks broken (specs/028-cross-platform).
+  report.overrides = projectOverrides(payload?.workspace?.project_dir || payload?.cwd || process.cwd());
   report.updates = updatesLine(readEntry(repoKey(UPDATE_ROOT), "update")?.value, readBehaviour(), now);
   return json ? JSON.stringify(report, null, 2) : formatReport(report);
 }

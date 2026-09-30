@@ -26,12 +26,14 @@ await test("open-tab script is macOS-only", () => {
   assert.equal(buildOpenTabScript("/tmp/x", "ghostty", "darwin"), null);
 });
 
-await test("install command quotes paths containing spaces", () => {
-  const cmd = buildCommandForTest(
-    "C:\\Program Files\\nodejs\\node.exe",
-    "C:\\Users\\John Smith\\cli.js"
-  );
-  assert.match(cmd, /^"C:\\Program Files\\nodejs\\node\.exe" "C:\\Users\\John Smith\\cli\.js" render$/);
+await test("install command quotes a script path with spaces and keeps PowerShell able to run it", () => {
+  // Until specs/028 this was `"C:\\Program Files\\nodejs\\node.exe" "..." render`,
+  // which PowerShell reads as an expression and never runs.
+  const cmd = buildCommandForTest("C:\\Program Files\\nodejs\\node.exe", "C:\\Users\\John Smith\\cli.js", "render", {
+    platform: "win32",
+    nodeRuns: () => true,
+  });
+  assert.equal(cmd, 'node "C:/Users/John Smith/cli.js" render');
 });
 
 await test("renderer does not shell out with interpolated user data", () => {

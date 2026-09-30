@@ -30,23 +30,61 @@ is only as wide as what you have.
 
 ## Install
 
-You need Node 18 or newer and git. There are no dependencies to fetch.
+Every platform needs the same three things, and nothing else is fetched:
+
+- **Node 18 or newer.** Check with `node --version`. Install refuses anything
+  older and changes nothing.
+- **git**, to clone and later update.
+- **A Nerd Font in your terminal**, for the icons. MesloLGS NF and FiraCode
+  Nerd Font both work. Without one, set `CLAUDE_STATUSLINE_ASCII=1` and the
+  bar uses plain symbols instead.
+
+### macOS and Linux
 
 ```bash
 git clone https://github.com/jonyfs/statusline.git ~/.claude/statusline-plugin
 node ~/.claude/statusline-plugin/bin/cli.js install
 ```
 
-On Windows, `cmd.exe` does not expand `~`. In PowerShell:
+On Linux, install Node from your distribution or nodejs.org, and pick the
+Nerd Font in your terminal's profile settings (GNOME Terminal, Konsole,
+Alacritty, kitty and the VS Code terminal each have their own font setting).
+
+### Windows
+
+Claude Code runs the status line through Git Bash when it is installed and
+through PowerShell when it is not. Either works; installing
+[Git for Windows](https://git-scm.com/download/win) gives you git and Git
+Bash together. Install Node from nodejs.org, then in PowerShell:
 
 ```powershell
 git clone https://github.com/jonyfs/statusline.git "$HOME\.claude\statusline-plugin"
 node "$HOME\.claude\statusline-plugin\bin\cli.js" install
 ```
 
-In `cmd.exe`, use `%USERPROFILE%\.claude\statusline-plugin` in both places.
+In Git Bash, the macOS and Linux commands above work as they are. In
+`cmd.exe`, write `%USERPROFILE%\.claude\statusline-plugin` wherever the
+PowerShell lines say `$HOME\.claude\statusline-plugin`, since `cmd.exe` does
+not expand `~` or `$HOME`. In Windows Terminal, set the Nerd Font under
+Settings, your profile, Appearance, Font face.
 
-Then restart Claude Code, or start a new session.
+Install writes the command with forward slashes and an unquoted `node`, the
+one form both Git Bash and PowerShell can run. If `node` is not on the PATH
+of the shell you install from, it has to write the full path to `node.exe`
+in quotes, which only Git Bash can run, and it prints a warning saying so.
+
+### Check it worked
+
+Restart Claude Code, or start a new session: settings are read at startup.
+Then run:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js doctor
+```
+
+The first line should read `install: statusLine, subagentStatusLine, skill
+hook intact`. If the bar you see in Claude Code is not this one, see
+"Another statusline shows instead" under Troubleshooting.
 
 Install refuses to run on Node older than 18 and changes nothing. It prints the
 version and commit it installed, so you can tell at a glance whether you got
@@ -666,7 +704,10 @@ the terminal uses, so a bar it shows is a bar you will get.
 
 Runs on Linux, macOS and Windows. The test suite covers path handling, URL
 construction, platform guards and the degraded rendering paths, and it runs
-on all three in CI.
+on all three in CI with Node 18, 20 and 22. A second CI job installs into a
+throwaway profile and runs the commands install wrote the way Claude Code
+does: through `sh` and `bash` on Linux and macOS, and through Git Bash,
+PowerShell 7 and Windows PowerShell on Windows.
 
 One feature is genuinely platform-limited:
 
@@ -1020,6 +1061,21 @@ work, or set `CLAUDE_STATUSLINE_ASCII=1`.
 
 **Nothing changed after installing.** Restart your Claude Code session.
 `settings.json` is read at startup.
+
+**Another statusline shows instead.** Claude Code applies a project's own
+settings over yours, so a `statusLine` in the project's `.claude/settings.json`
+or `.claude/settings.local.json` wins wherever you open that project. Run
+`doctor` from the project directory: it names the file that takes precedence.
+Remove the `statusLine` key there, or ask whoever owns the project. If `doctor`
+names no such file and its first line does not say `intact`, the install did
+not happen on this machine, or another tool rewrote `~/.claude/settings.json`
+after it; run `install` again.
+
+**The bar is blank on Windows.** Run `doctor`. If install printed a warning
+that it had to quote the path to `node.exe`, only Git Bash can run that
+command: install Git for Windows, or put `node` on the PATH and run `install`
+again. Installs from before 1.23 wrote a quoted form PowerShell cannot run at
+all; `update` or `install` rewrites it.
 
 **A percentage shows `?%`.** Claude Code didn't send that field this time,
 either because it's an older version or because the session hasn't used

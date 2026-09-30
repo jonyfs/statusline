@@ -18,10 +18,20 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import os from "node:os";
 
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
 const REPO_ROOT = path.dirname(path.dirname(CLI_PATH));
-const CLONE_COMMAND = "git clone https://github.com/jonyfs/statusline.git ~/.claude/statusline-plugin";
+/**
+ * The clone command with the real profile path, forward slashes on Windows:
+ * `~` means nothing to cmd.exe, so a command printed with it is one a
+ * Windows user cannot paste (specs/028-cross-platform).
+ */
+export function cloneCommand(platform = process.platform, home = os.homedir()) {
+  const target = path.join(home, ".claude", "statusline-plugin");
+  const shown = platform === "win32" ? target.replace(/\\/g, "/") : target;
+  return `git clone https://github.com/jonyfs/statusline.git "${shown}"`;
+}
 
 export const REPO_ROOT_PATH = REPO_ROOT;
 
@@ -57,7 +67,7 @@ export function update({ root = REPO_ROOT, flags = [], runInstall = defaultRunIn
   const inside = git(root, ["rev-parse", "--is-inside-work-tree"]);
   if (inside.missing) return refuse("git is not on the PATH, and updating a clone needs it.", { cause: "no git" });
   if (!inside.ok || inside.out.trim() !== "true") {
-    return refuse(`${root} is not a git clone, so there is nothing to pull. Install from a clone instead:\n\n  ${CLONE_COMMAND}`, {
+    return refuse(`${root} is not a git clone, so there is nothing to pull. Install from a clone instead:\n\n  ${cloneCommand()}`, {
       cause: "not a clone",
     });
   }

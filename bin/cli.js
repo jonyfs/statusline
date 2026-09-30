@@ -87,6 +87,11 @@ async function main() {
       console.log(`  Refresh every: ${result.refreshInterval ? `${result.refreshInterval}s` : "only on events"}`);
       console.log(`  Task rows:     ${result.taskRows ? "styled by this plugin" : "left to Claude Code"}`);
       console.log(`  Updates:       ${await updatesSummary()}`);
+      if (result.needsGitBash) {
+        console.log(`  Warning:       node is not on this shell's PATH, so a command had to keep a quoted`);
+        console.log(`                 interpreter path. Git Bash can run it; PowerShell cannot. Install Git`);
+        console.log(`                 for Windows, or put node on the PATH and run install again.`);
+      }
       // This used to say "safe to run again", which read as "you are current"
       // to someone whose second `git clone` had just failed. The settings
       // being in place says nothing about whether the code is new.
@@ -123,7 +128,7 @@ async function main() {
       const now = readBehaviour();
       const where = {
         default: "default",
-        file: "from ~/.claude/statusline/updates.json",
+        file: `from ${(await import("node:path")).join((await import("node:os")).homedir(), ".claude", "statusline", "updates.json")}`,
         environment: "CLAUDE_STATUSLINE_UPDATES overrides the file",
       }[now.source];
       const other = now.mode === "auto" ? "notify" : "auto";

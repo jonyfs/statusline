@@ -39,6 +39,42 @@ jobs:
       - name: Verify uninstall is a safe no-op when not installed
         run: node bin/cli.js uninstall
 
+  installed-commands:
+    # The suite checks the command strings install writes; this runs them,
+    # through the shells Claude Code uses, the way it runs them. On Windows
+    # that is Git Bash when present and PowerShell when not, and a quoted
+    # interpreter was a PowerShell ParserError that no string test noticed
+    # (specs/028-cross-platform).
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            shells: git-bash pwsh powershell
+          - os: ubuntu-latest
+            shells: sh bash
+          - os: macos-latest
+            shells: sh bash
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install into a throwaway profile and run what it wrote
+        shell: bash
+        env:
+          CLAUDE_STATUSLINE_UPDATES: "off"
+          CLAUDE_STATUSLINE_NO_REFRESH: "1"
+        run: |
+          PROFILE_DIR="$RUNNER_TEMP/profile"
+          mkdir -p "$PROFILE_DIR"
+          export HOME="$PROFILE_DIR" USERPROFILE="$PROFILE_DIR"
+          node bin/cli.js install
+          node scripts/ci/run-installed-commands.js ${{ matrix.shells }}
+
   previews-current:
     # Principle VIII: a README image that disagrees with the code is a
     # defect. Regenerating must produce no diff, which only holds if the
