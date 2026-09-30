@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 6.3.1 (IV corrected on 2026-09-29: PATCH, the text brought in line with what install
+- Version: 7.0.0 (IX redefined on 2026-09-30: MAJOR, a MUST changed rather than added. IX
+  required both the interpreter and the script path quoted, and the command install wrote in
+  that form was a PowerShell `ParserError`, so on Windows without Git Bash the bar never ran.
+  The rule now asks for a command every shell Claude Code uses can parse. See
+  specs/028-cross-platform/.)
+- Previously, version 6.3.1 (IV corrected on 2026-09-29: PATCH, the text brought in line with what install
   has written for a long time. It said install sets "only the `statusLine` key"; it also writes
   the refresh interval, the subagent rows and the skill hook, each behind a flag. No rule
   changed. See specs/027-bar-polish/.)
@@ -408,10 +413,17 @@ cloned by whoever runs Claude Code, and Claude Code runs on all three.
   Windows drive-letter form (`file:///C:/...`), converts backslashes, and percent-encodes
   spaces — a naive `` `file://${path}` `` yields an unopenable URL on Windows and on any
   path containing a space.
-- **Spawned commands**: anything written into `settings.json` or passed to a shell MUST quote
-  both the interpreter and the script path, since either may contain spaces on any platform.
-  The interpreter MUST be `process.execPath` rather than a bare `node`, which may not be on
-  the PATH of the shell Claude Code spawns.
+- **Spawned commands**: anything written into `settings.json` MUST parse in every shell Claude
+  Code runs it through: POSIX `sh`, Git Bash, and PowerShell, which Claude Code uses on Windows
+  when Git Bash is absent. The script path MUST be quoted. The interpreter MUST NOT be quoted
+  unless it contains whitespace on a POSIX system: PowerShell reads a line that opens with a
+  quoted string as an expression and never runs it, and the `&` that would fix that is a
+  syntax error in bash (measured 2026-09-30, specs/028-cross-platform). On Windows, paths MUST
+  use forward slashes, as Claude Code's own documentation instructs. The interpreter MUST be
+  `process.execPath` rather than a bare `node`, which may not be on the PATH of the shell
+  Claude Code spawns, except on Windows when that path contains whitespace, where a bare
+  `node` that the installing shell can run is used instead. The status line's bare `node`
+  remains the documented exception it was.
 - **Shell command strings**: values derived from the payload or the environment MUST NOT be
   interpolated into a shell command string. Working directory travels as the `cwd` option;
   command strings stay constant. A directory named with shell metacharacters would otherwise
@@ -614,4 +626,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 6.3.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-29
+**Version**: 7.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-30

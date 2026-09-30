@@ -65,6 +65,10 @@ const backupDir = () => path.join(os.homedir(), ".claude", "statusline", "backup
  * clue why. Refusing here, with the command that does work, is far
  * kinder than that delayed failure.
  */
+function cloneCommandFor() {
+  return `git clone https://github.com/jonyfs/statusline.git "${shellPath(path.join(os.homedir(), ".claude", "statusline-plugin"))}"`;
+}
+
 function assertNotRunningFromNpxCache() {
   const normalized = CLI_PATH.replace(/\\/g, "/");
   if (!normalized.includes("/_npx/")) return;
@@ -79,8 +83,8 @@ function assertNotRunningFromNpxCache() {
       "",
       "Clone it somewhere permanent instead:",
       "",
-      "  git clone https://github.com/jonyfs/statusline.git ~/.claude/statusline-plugin",
-      "  node ~/.claude/statusline-plugin/bin/cli.js install",
+      `  ${cloneCommandFor()}`,
+      `  node "${shellPath(path.join(os.homedir(), ".claude", "statusline-plugin", "bin", "cli.js"))}" install`,
     ].join("\n")
   );
 }
@@ -141,17 +145,53 @@ function writeSettings(settings) {
 }
 
 /**
- * Both the interpreter and the script path are quoted because either can
- * contain spaces — `C:\Users\John Smith\...` on Windows, `/Users/x/My
- * Projects/...` anywhere — and an unquoted path would be split into
- * separate arguments by the shell.
+ * A path as a shell command should carry it. Claude Code's statusline docs
+ * ask for forward slashes on Windows, and every Windows program this
+ * project starts accepts them.
  */
-function buildCommand(interpreter, cliPath, subcommand = "render") {
-  return `"${interpreter}" "${cliPath}" ${subcommand}`;
+export function shellPath(p, platform = process.platform) {
+  return platform === "win32" ? String(p).replace(/\\/g, "/") : String(p);
 }
 
-/** Exposed so the cross-platform smoke test can check Windows-style paths. */
+let nodeRunsCache;
+/** Whether a bare `node` runs from the shell doing the install. */
+function nodeRuns() {
+  if (nodeRunsCache !== undefined) return nodeRunsCache;
+  try {
+    // No `shell: true` here. `execFileSync` searches PATH on its own, and
+    // Node 26 deprecates passing arguments through a shell (DEP0190),
+    // which printed a warning over the install's own output.
+    execFileSync("node", ["--version"], { stdio: "ignore", timeout: 5000 });
+    nodeRunsCache = true;
+  } catch {
+    nodeRunsCache = false;
+  }
+  return nodeRunsCache;
+}
+
+/**
+ * A command every shell Claude Code runs it through can parse: POSIX `sh`,
+ * Git Bash, and PowerShell, which it uses on Windows when Git Bash is absent
+ * (specs/028-cross-platform, Principle IX).
+ *
+ * The script path is quoted, since it can hold spaces anywhere. The
+ * interpreter is not: PowerShell reads a line that opens with a quoted
+ * string as an expression and never runs it, and the `&` that would make it
+ * a command is a syntax error in bash. So an interpreter with a space is
+ * quoted only on POSIX, and on Windows, where the usual one is
+ * `C:\Program Files\nodejs\node.exe`, it becomes a bare `node` when that
+ * runs; otherwise it stays quoted and only Git Bash can run it, which
+ * install says.
+ */
+function buildCommand(interpreter, cliPath, subcommand = "render", { platform = process.platform, nodeRuns: canRunNode = nodeRuns } = {}) {
+  let interp = shellPath(interpreter, platform);
+  if (/\s/.test(interp)) interp = platform === "win32" && canRunNode() ? "node" : `"${interp}"`;
+  return `${interp} "${shellPath(cliPath, platform)}" ${subcommand}`;
+}
+
+/** Exposed so the cross-platform tests can check each platform's form. */
 export const buildCommandForTest = buildCommand;
+export const CLI_PATH_FOR_TEST = CLI_PATH;
 
 /**
  * Prefers a bare `node` over this process's absolute executable path,
@@ -165,15 +205,7 @@ export const buildCommandForTest = buildCommand;
  * whose PATH has no node at all.
  */
 function resolveInterpreter() {
-  try {
-    // No `shell: true` here. `execFileSync` searches PATH on its own, and
-    // Node 26 deprecates passing arguments through a shell (DEP0190),
-    // which printed a warning over the install's own output.
-    execFileSync("node", ["--version"], { stdio: "ignore", timeout: 5000 });
-    return "node";
-  } catch {
-    return process.execPath;
-  }
+  return nodeRuns() ? "node" : process.execPath;
 }
 
 /**
@@ -307,16 +339,42 @@ export function install({
     refreshInterval: wantInterval ? REFRESH_INTERVAL_SECONDS : null,
     taskRows: Boolean(wantTaskRows),
     alreadyInstalled,
+    // Only Git Bash can run a command whose interpreter had to stay quoted.
+    needsGitBash: process.platform === "win32" && [command, hookCommand, settings.subagentStatusLine?.command].some((c) => typeof c === "string" && c.startsWith('"')),
     ...installedVersion(),
   };
+}
+
+/**
+ * A `statusLine` in the project's own settings, which Claude Code applies
+ * over the user's, so the bar a person sees there is not this one. `doctor`
+ * names it; nothing here edits a project file.
+ */
+export function projectOverrides(cwd = process.cwd()) {
+  const found = [];
+  for (const name of ["settings.json", "settings.local.json"]) {
+    const file = path.join(cwd, ".claude", name);
+    let command;
+    try {
+      command = JSON.parse(readFileSync(file, "utf8"))?.statusLine?.command;
+    } catch {
+      continue;
+    }
+    if (typeof command !== "string") continue;
+    const ours = /cli\.js"?\s+render\s*$/.test(command) && /statusline/i.test(command);
+    if (!ours) found.push({ file, command });
+  }
+  return found;
 }
 
 const OUR_SUBCOMMANDS = new Set(["render", "task-rows", "note-skill"]);
 
 /** The two quoted paths and the subcommand of a command this plugin wrote. */
 function parseCommand(command) {
-  const m = /^"([^"]+)"\s+"([^"]+)"\s+(\S+)\s*$/.exec(String(command || ""));
-  return m ? { interpreter: m[1], cli: m[2], subcommand: m[3] } : null;
+  // The interpreter is quoted in commands written before specs/028 and when
+  // it holds a space on POSIX, and bare otherwise.
+  const m = /^(?:"([^"]+)"|(\S+))\s+"([^"]+)"\s+(\S+)\s*$/.exec(String(command || ""));
+  return m ? { interpreter: m[1] ?? m[2], cli: m[3], subcommand: m[4] } : null;
 }
 
 /**

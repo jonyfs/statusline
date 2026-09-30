@@ -31,13 +31,20 @@ await test("--no-hook skips it, and the install is otherwise the same", async ()
   });
 });
 
-await test("the hook command uses the absolute interpreter, with both paths quoted", async () => {
+await test("the hook command uses the absolute interpreter, with the script path quoted", async () => {
   // Principle IX for a command string this feature introduces. The
   // `statusLine` command's bare `node` is a documented exception that
   // predates it and does not extend here.
   const command = buildHookCommand();
-  assert.match(command, /^"[^"]+" "[^"]+" note-skill$/);
-  assert.ok(command.startsWith(`"${process.execPath}"`), `interpreter was ${command.split('"')[1]}`);
+  // The interpreter is unquoted so PowerShell can run it (specs/028), unless
+  // it holds a space on this platform.
+  const interp = /\s/.test(process.execPath) && process.platform !== "win32" ? `"${process.execPath}"` : process.execPath;
+  if (process.platform === "win32") {
+    assert.match(command, /^\S+ "[^"]+" note-skill$/);
+  } else {
+    assert.ok(command.startsWith(`${interp} "`), `command was ${command}`);
+    assert.match(command, /"[^"]+" note-skill$/);
+  }
 });
 
 await test("installing twice does not stack two hooks", async () => {
@@ -132,7 +139,8 @@ await test("install writes the refresh interval and the subagent row command", a
     assert.equal(written.subagentStatusLine.type, "command");
     assert.match(written.subagentStatusLine.command, /task-rows$/);
     assert.ok(
-      written.subagentStatusLine.command.startsWith(`"${process.execPath}"`),
+      // Unquoted so PowerShell can run it (specs/028-cross-platform).
+      process.platform === "win32" || written.subagentStatusLine.command.startsWith(`${process.execPath} "`),
       "spawned commands use the running interpreter"
     );
   });
