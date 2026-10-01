@@ -85,6 +85,9 @@ export const MAX_AGE_MS = {
   update: 24 * 60 * 60 * 1000,
   vim: REDRAW_INTERVAL_MS,
   fastMode: REDRAW_INTERVAL_MS,
+  harness: REDRAW_INTERVAL_MS,
+  premiumRequests: REDRAW_INTERVAL_MS,
+  allowAll: REDRAW_INTERVAL_MS,
 };
 
 /**

@@ -81,6 +81,10 @@ export const SEGMENTS = [
   { key: "effort", line: 3, order: 20, priority: 74, colour: "identity", source: "payload" },
   // Fast mode, beside the effort (specs/027-bar-polish).
   { key: "fastMode", line: 3, order: 22, priority: 73, colour: "identity", source: "payload" },
+  // Copilot CLI only (specs/029-multi-harness). Allow-all ranks high: every
+  // tool runs without asking while it is on, which is a state to see.
+  { key: "allowAll", line: 3, order: 24, priority: 85, colour: "identity", source: "payload" },
+  { key: "premiumRequests", line: 3, order: 57, priority: 62, colour: "identity", source: "payload" },
   { key: "context", line: 3, order: 30, priority: 100, colour: "ramp", source: "payload" },
   { key: "fiveHour", line: 3, order: 40, priority: 94, colour: "ramp", source: "payload" },
   { key: "burnRate", line: 3, order: 42, priority: 66, colour: "ramp", source: "samples" },
@@ -157,6 +161,8 @@ export const SEGMENT_ABOUT = {
   model: "The model answering, and how much of its context window this session carries.",
   effort: "The reasoning effort it is running at.",
   fastMode: "Fast mode, shown only while it is on, because it spends the limits faster.",
+  allowAll: "Copilot CLI only: allow-all is on, so every tool runs without asking.",
+  premiumRequests: "Copilot CLI only: the premium requests this session has used.",
   vim: "The editor's vim mode, shown only while vim mode is on.",
   context: "How full the context window is. The one figure that carries its level in colour alone, at the owner's decision.",
   fiveHour: "The five-hour usage window and when it comes back. It counts down, because inside a day a reset is something you wait out.",

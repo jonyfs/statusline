@@ -70,6 +70,8 @@ WANTED = {
     "F0717": 0xF0717,  # nf-md-snowflake: a cold one. F09A2, listed as a
                        # database refresh, draws a speaker
     "E62B": 0xE62B,    # nf-custom-vim: the vim mode
+    "F4B8": 0xF4B8,    # nf-oct-copilot: Copilot's premium requests
+    "F099E": 0xF099E,  # nf-md-shield_off: Copilot's allow-all
     "F04C5": 0xF04C5,  # nf-md-speedometer: fast mode
     "F01DA": 0xF01DA,  # nf-md-download: an update ready, blocked or failed
     "F0737": 0xF0737,  # nf-md-arrow_up_bold: the statusline updated. F0CE0,

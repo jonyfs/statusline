@@ -32,6 +32,25 @@ import {
 } from "./tokens.js";
 import { getRtkSavings } from "./rtk.js";
 import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
+import { detectHarness } from "./harness.js";
+import { copilotSessionActivity } from "./copilotEvents.js";
+
+/**
+ * Under Copilot CLI, the transcript probes read its session's `events.jsonl`
+ * instead of a Claude transcript, and return the same shapes, so nothing
+ * downstream changes (specs/029-multi-harness). Subagent rows are Claude
+ * Code's alone.
+ */
+export function harnessProbes(probe, harness) {
+  if (harness !== "copilot") return probe;
+  return {
+    ...probe,
+    getSessionActivity: (sessionDir, opts) => copilotSessionActivity(sessionDir, opts),
+    getActiveSkills: (_path, _limit, { scanned } = {}) => scanned ?? [],
+    getActiveSkillsTrueCount: (_path, { scannedTrueCount } = {}) => scannedTrueCount ?? 0,
+    subagentActivity: () => [],
+  };
+}
 import { elapsed } from "./taskRows.js";
 import { getOpenTabUrl, pathToFileUrl } from "./openTerminalTab.js";
 import { resetMomentLabel } from "./timeIcons.js";
@@ -131,6 +150,10 @@ const NF_ARROW_UP_BOLD = "\u{F0737}"; // nf-md-arrow_up_bold: updated
 // Two modes the payload reports (specs/027-bar-polish/glyph-evidence.png).
 const NF_VIM = "\u{E62B}";           // nf-custom-vim: the vim mode
 const NF_SPEEDOMETER = "\u{F04C5}";  // nf-md-speedometer: fast mode
+// Copilot CLI's two figures (specs/029-multi-harness/glyph-evidence.png).
+// F0565, listed as a ticket, draws a shield with a tick.
+const NF_COPILOT = "\u{F4B8}";       // nf-oct-copilot: premium requests
+const NF_SHIELD_OFF = "\u{F099E}";   // nf-md-shield_off: allow all
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -181,6 +204,8 @@ export const GLYPHS = {
     updateDone: NF_ARROW_UP_BOLD,
     vim: NF_VIM,
     fast: NF_SPEEDOMETER,
+    premium: NF_COPILOT,
+    allowAll: NF_SHIELD_OFF,
   },
   /**
    * The set for a terminal with no Nerd Font.
@@ -253,6 +278,8 @@ export const GLYPHS = {
     updateDone: "\u2912",  // ⤒
     vim: "\u2328",        // ⌨
     fast: "\u21F6",       // ⇶ three arrows
+    premium: "\u2726",    // ✦
+    allowAll: "\u2298",   // ⊘
   },
 };
 
@@ -482,6 +509,15 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     // Only present when vim mode is on; a mode that is not text is no mode.
     vim: reading({ value: payloadText(payload?.vim?.mode), at: now, source: "payload" }),
     fastMode: reading({ value: payload?.fast_mode === true ? true : null, at: now, source: "payload" }),
+    // Which agent sent this payload, and the two figures only Copilot sends
+    // (specs/029-multi-harness).
+    harness: reading({ value: detectHarness(payload), at: now, source: "payload" }),
+    premiumRequests: reading({
+      value: Number.isFinite(payload?.cost?.total_premium_requests) && payload.cost.total_premium_requests > 0 ? payload.cost.total_premium_requests : null,
+      at: now,
+      source: "payload",
+    }),
+    allowAll: reading({ value: payload?.allow_all_enabled === true ? true : null, at: now, source: "payload" }),
     rtk: rtkReading,
     samples: reading({ value: sampleHistory, at: now, source: "samples" }),
   };
@@ -557,7 +593,7 @@ export function renderPayload(
   const cwd = payload?.workspace?.current_dir || payload?.cwd || process.cwd();
   const found = layout ?? resolveLayout(cwd);
 
-  const readings = gather(payload, probe, { now });
+  const readings = gather(payload, harnessProbes(probe, detectHarness(payload)), { now });
   return renderReadings(readings, payload, {
     asciiArrows,
     flavor,
@@ -957,6 +993,11 @@ export function renderReadings(
   // it is the part that explains why the number is not changing.
   const fullMark = (pct) => (typeof pct === "number" && pct >= 100 ? " full" : "");
 
+  // Copilot CLI reports no rate limits at all, so their chips are absent there
+  // rather than `?%`, which would claim an unknown figure for a limit that does
+  // not exist (Principle III, specs/029-multi-harness).
+  const noLimits = readings.harness?.value === "copilot" && !payload?.rate_limits;
+
   const line3Content = {
     model: () => ({
       color: changes.colourFor("model", "red", palette),
@@ -991,6 +1032,7 @@ export function renderReadings(
     // between them — and the slash read as a fraction beside `1h04m`, which
     // really is one thing over another. One subject, one chip.
     fiveHour: () => {
+      if (noLimits) return null;
       // `?` rather than nothing when the payload carried no reset: with the
       // countdown simply absent, a reader cannot tell "the harness did not
       // say" from "a narrow terminal shed it", and the first is a fact about
@@ -1003,6 +1045,7 @@ export function renderReadings(
       return { color: rampColour(fiveHourPct, "green"), text: `${level} \u00b7 ${resets} `, variants: [`${level} `] };
     },
     sevenDay: () => {
+      if (noLimits) return null;
       // Near and far are told differently, and that is the rule rather than an
       // inconsistency: a window resetting in hours is something you wait out,
       // so it counts down; one resetting on Thursday is a date you plan
@@ -1018,6 +1061,7 @@ export function renderReadings(
     // the payload says the limit has been exceeded; capping it would hide the
     // one figure still moving. Its reset is shed with the 7-day one.
     spendLimit: () => {
+      if (noLimits) return null;
       if (spendLimitPct === null) return null;
       const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
       const level = ` ${g.spend} spend ${spendLimitPct}%${bandMark(spendLimitPct)}`;
@@ -1060,6 +1104,7 @@ export function renderReadings(
     // B1: a percentage says where you are; a rate says whether you get there
     // before the window resets, which is the decision you actually make.
     burnRate: () => {
+      if (noLimits) return null;
       const rate = ratePerHour(sampleHistory, "fiveHourPct");
       if (rate === null || rate <= 0) return null;
       return {
@@ -1078,6 +1123,7 @@ export function renderReadings(
     // reason, since the 7-day figure sits two segments away and is also a
     // limit.
     projection: () => {
+      if (noLimits) return null;
       // A window already at its limit says `full` on its own chip. A time
       // beside it would announce, as a forecast, a limit already reached.
       if (typeof fiveHourPct === "number" && fiveHourPct >= 100) return null;
@@ -1090,6 +1136,13 @@ export function renderReadings(
       return { color: "red", text: ` 5h limit ~${hh}:${mm} ` };
     },
     // A4, A5, A6: what the session has spent, in time and in lines.
+    // Copilot's premium requests this session, and whether every tool now runs
+    // without asking. Neither exists in Claude Code's payload.
+    premiumRequests: () => {
+      const n = shows("premiumRequests") ? readings.premiumRequests?.value : null;
+      return n ? { color: "mauve", text: ` ${g.premium} ${n} premium ` } : null;
+    },
+    allowAll: () => (shows("allowAll") && readings.allowAll?.value ? { color: "red", text: ` ${g.allowAll} allow all ` } : null),
     duration: () => {
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       const label = formatDuration(c?.durationMs);

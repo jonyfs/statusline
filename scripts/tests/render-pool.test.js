@@ -24,7 +24,9 @@ const strip = (s) =>
   s.replace(/\x1b\[[0-9;]*m/g, "").replace(/\x1b\]8;;[^\x07]*\x07/g, "");
 
 const readings = () => gather(PAYLOAD, { ...SOURCES }, { now: FIXED_NOW * 1000 });
-const opts = { ...RENDER_OPTIONS, maxWidth: 200, maxHeight: 40 };
+// Wide enough for every segment the fixture draws: this file checks that the
+// pool's text is the bar's text, and a narrower line would drop some of them.
+const opts = { ...RENDER_OPTIONS, maxWidth: 320, maxHeight: 40 };
 
 await test("the pool holds one entry per segment the fixture draws", () => {
   const pool = renderReadings(readings(), PAYLOAD, { ...opts, asPool: true });

@@ -202,6 +202,63 @@ this plugin, so if you've since switched to something else, yours is left
 alone. Any other `PostToolUse` hook you have is untouched. The backups stay
 where they are.
 
+## GitHub Copilot CLI and OpenAI Codex
+
+The same clone also sets up two other coding agents. They differ in what
+they allow, so they get different amounts of this bar.
+
+**GitHub Copilot CLI runs this bar.** Copilot runs a status line command the
+way Claude Code does and hands it its own session data, so the renderer
+itself draws Copilot's footer:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js install --harness copilot
+```
+
+That sets `statusLine` in Copilot's `settings.json` (in `$COPILOT_HOME`,
+`~/.copilot` by default), backs the file up first, and leaves every other key
+alone. Restart Copilot CLI to see it. `uninstall --harness copilot` takes it
+out again.
+
+**OpenAI Codex CLI does not run outside commands in its status line.** It
+draws its own built-in items. What this plugin can do is choose the ones
+closest to its bar:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js install --harness codex
+```
+
+That writes `status_line` under `[tui]` in `~/.codex/config.toml` (or
+`$CODEX_HOME`), changing no other line, after a backup:
+`model-with-reasoning`, `current-dir`, `git-branch`, `context-used`,
+`five-hour-limit`, `weekly-limit`, `fast-mode`, `run-state` and
+`task-progress`. `uninstall --harness codex` removes that line, and only if it
+is still the one this plugin wrote.
+
+What each one shows, measured against Copilot CLI 1.0.80 and Codex CLI 0.158.0:
+
+| | Claude Code | Copilot CLI | Codex CLI |
+|---|---|---|---|
+| Directory, repository, branch, tree state, PR, CI | yes | yes | directory and branch |
+| Lines changed, session duration | yes | yes | no |
+| Model | yes | yes | yes, with reasoning |
+| Effort | yes | no | in the model item |
+| Context % | yes | yes | yes |
+| 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly |
+| Prompt cache | yes | no | no |
+| Skills, working or idle | yes | yes, from Copilot's session log | working state only |
+| Todo | yes | no | task progress |
+| Vim, fast mode | yes | no | fast mode |
+| rtk savings, update notice | yes | yes | no |
+| Premium requests, allow-all | n/a | yes | n/a |
+| Subagent rows | yes | no | no |
+
+Under Copilot the 5-hour and 7-day chips are absent, not `?%`: Copilot has no
+such limits, and `?%` would say a value exists and is unknown. Copilot does
+not tell the command how wide the terminal is, so the bar lays out for 120
+columns and Copilot wraps its own footer. `doctor` lists each agent it finds
+on the machine and whether this plugin is set up there.
+
 ## What it looks like when things are missing
 
 Not every session has a pull request, or a git repo, or active skills.
