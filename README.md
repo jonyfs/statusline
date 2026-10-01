@@ -235,6 +235,16 @@ That writes `status_line` under `[tui]` in `~/.codex/config.toml` (or
 `task-progress`. `uninstall --harness codex` removes that line, and only if it
 is still the one this plugin wrote.
 
+Three things to know before deciding it did not work. The items appear only
+in Codex in a terminal (`codex`), not in the Codex desktop app or the Codex
+extension for VS Code, which have no status line at all. They are Codex's own
+items in Codex's own style, so there are no Powerline segments or icons;
+compared with the default, which shows only the model and the directory, you
+gain the context figure, the limits, the run state, the branch in a git
+repository, and fast mode and task progress while they are active. And a
+Codex session started before the install keeps its old footer until you
+start a new one.
+
 What each one shows, measured against Copilot CLI 1.0.80 and Codex CLI 0.158.0:
 
 | | Claude Code | Copilot CLI | Codex CLI |
