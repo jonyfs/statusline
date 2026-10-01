@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: The statusline in GitHub Copilot CLI and OpenAI Codex
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-01
 
-**Status**: Draft (the declaration above is authoritative)
+**Status**: Completed (the declaration above is authoritative)
 
 **Input**: User description: "revise este projeto para que tb seja possível configurar o status
 line para codex e copilot, fazendo as adaptações necessárias para ter o maior número possível de

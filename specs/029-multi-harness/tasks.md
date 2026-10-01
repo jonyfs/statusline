@@ -10,4 +10,4 @@
 - [X] T008 Composer and preview fixtures stay valid (registry rows need pool entries); regenerate what changes
 - [X] T009 README: feature matrix and install per harness; humanizer
 - [X] T010 Validate for real: the Copilot TUI in a pseudo-terminal with a throwaway `COPILOT_HOME` installed by `install --harness copilot`, and the Codex config written by `install --harness codex` into a throwaway `CODEX_HOME` checked with `codex -c`; record results
-- [ ] T011 Suite, CI, merge, version, update the install
+- [X] T011 Suite, CI, merge, version, update the install
