@@ -83,3 +83,7 @@ README.md, .specify/memory/constitution.md
 - Incident during the investigation: an Enter sent to Codex's TUI accepted its own update
   prompt and started `npm install -g @openai/codex`, which the test harness then killed midway.
   The global package was restored to the version that was there before, 0.158.0, and checked.
+- Skill format, confirmed on a real session (2026-10-01): `copilot -p "/about"` wrote a
+  `skill.invoked` event whose `data` has `name: "about"` (with `path`, `source`, `trigger` and
+  others). `copilotSessionActivity` on that log returned `skills: ["about"]`, and the bar drew
+  `about` and `idle` on line 2 with `Context 31%`, `12m` and `3 premium` on line 3.
