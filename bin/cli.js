@@ -52,6 +52,18 @@ async function updatesSummary() {
   return `${mode} (change with: node "${process.argv[1]}" updates ${other})`;
 }
 
+/** `--harness copilot` or `--harness=codex`, or null for Claude Code. */
+function harnessFlag() {
+  const i = rest.findIndex((a) => a === "--harness" || a.startsWith("--harness="));
+  if (i === -1) return null;
+  const value = rest[i].includes("=") ? rest[i].split("=")[1] : rest[i + 1];
+  if (!["copilot", "codex"].includes(value)) {
+    console.error(`--harness takes copilot or codex, not "${value ?? ""}".`);
+    process.exit(1);
+  }
+  return value;
+}
+
 function installFlags() {
   return {
     registerHook: !rest.includes("--no-hook"),
@@ -71,6 +83,22 @@ async function main() {
   }
   switch (subcommand) {
     case "install": {
+      const harness = harnessFlag();
+      if (harness) {
+        const { installHarness } = await import("../src/install.js");
+        const r = installHarness(harness);
+        if (!r.ok) {
+          console.error(r.reason);
+          process.exit(1);
+        }
+        console.log(`Statusline set up for ${harness}.`);
+        console.log(`  Settings file: ${r.file}`);
+        if (r.backupPath) console.log(`  Backup saved:  ${r.backupPath}`);
+        if (r.command) console.log(`  Command:       ${r.command}`);
+        for (const note of r.notes ?? []) console.log(`  Note:          ${note}`);
+        console.log(`  Restart ${harness === "copilot" ? "Copilot CLI" : "Codex"} to see it.`);
+        break;
+      }
       const { install } = await import("../src/install.js");
       const result = install({
         ...installFlags(),
@@ -143,6 +171,13 @@ async function main() {
       break;
     }
     case "uninstall": {
+      const harness = harnessFlag();
+      if (harness) {
+        const { uninstallHarness } = await import("../src/install.js");
+        const r = uninstallHarness(harness);
+        console.log(r.changed ? `Statusline removed from ${r.file}.` : r.reason);
+        break;
+      }
       const { uninstall } = await import("../src/install.js");
       const result = uninstall();
       if (result.changed) {
@@ -210,7 +245,7 @@ async function main() {
     }
     default:
       console.error(`Unknown command: ${subcommand}`);
-      console.error(`Usage: statusline-plugin <install|update|updates [auto|notify|off]|check-updates|uninstall|render|doctor [--json|--explain]>`);
+      console.error(`Usage: statusline-plugin <install [--harness copilot|codex]|update|updates [auto|notify|off]|check-updates|uninstall [--harness copilot|codex]|render|doctor [--json|--explain]>`);
       process.exit(1);
   }
 }

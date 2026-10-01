@@ -2,7 +2,11 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.0.0 (IX redefined on 2026-09-30: MAJOR, a MUST changed rather than added. IX
+- Version: 7.1.0 (III and IV extended on 2026-10-01: MINOR, a second and third harness added
+  without changing what Claude Code's rules require. Copilot CLI runs this renderer and sends
+  its own payload; Codex CLI runs no command, so the plugin only configures Codex's built-in
+  items. See specs/029-multi-harness/.)
+- Previously, version 7.0.0 (IX redefined on 2026-09-30: MAJOR, a MUST changed rather than added. IX
   required both the interpreter and the script path quoted, and the command install wrote in
   that form was a PowerShell `ParserError`, so on Windows without Git Bash the bar never ran.
   The rule now asks for a command every shell Claude Code uses can parse. See
@@ -303,6 +307,14 @@ above 100 once the limit is exceeded, so the statusline MUST show it as reported
 capping it. A granted allowance the payload does not carry MUST NOT be displayed at all: no
 figure may be derived from spend, message count or elapsed time to stand in for it.
 
+The same rule holds in every harness that runs this renderer: the bar reads the payload that
+harness sends, and nothing invented to stand in for a field it lacks. GitHub Copilot CLI sends
+no rate limits, so under Copilot the 5-hour, 7-day and spend chips are absent rather than `?%`,
+which would claim an unknown value for a limit that does not exist there. Its own fields,
+`cost.total_premium_requests` and `allow_all_enabled`, are read as reported. OpenAI Codex CLI
+runs no external command; there the plugin only chooses Codex's built-in status line items, and
+no figure comes from this code (specs/029-multi-harness).
+
 The prompt cache is shown only while the payload's `prompt_cache` block says caching is
 observed. Its countdown is the payload's `expires_at` minus now, and its token figure is the
 payload's `recache_tokens_if_cold`; the statusline MUST NOT compute either from anything else,
@@ -332,6 +344,12 @@ Install MUST:
   is evicted later, and recording it produces a statusline that works now and silently
   disappears afterwards with no clue why. Failing at install time, naming the command that does
   work, is the kinder failure.
+
+Install MAY also be pointed at another harness with `--harness copilot` or `--harness codex`.
+It then manages only that harness's status line setting (`statusLine` in Copilot's
+`settings.json`, `[tui] status_line` in Codex's `config.toml`), backs the file up first, and
+leaves every other key or line untouched. With no `--harness`, install is Claude Code's, as it
+always was.
 
 Uninstall MUST:
 - Remove the `statusLine` key only when it points at this plugin's own CLI path — matching a
@@ -626,4 +644,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-09-30
+**Version**: 7.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-01

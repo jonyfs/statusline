@@ -157,6 +157,8 @@ export const PRESETS = [
         model: { line: 1, order: 76 },
         effort: { line: 1, order: 78 },
         fastMode: { line: 1, order: 79 },
+        allowAll: { line: 1, order: 79.5 },
+        premiumRequests: { line: 1, order: 88 },
         context: { line: 1, order: 80 },
         fiveHour: { line: 1, order: 82 },
         sevenDay: { line: 1, order: 84 },

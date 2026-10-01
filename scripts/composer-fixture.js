@@ -53,6 +53,9 @@ export const PAYLOAD = {
   // Both modes on, so the composer has their chips to arrange.
   vim: { mode: "NORMAL" },
   fast_mode: true,
+  // Copilot CLI's two fields, so the composer has their chips to arrange
+  // (specs/029-multi-harness). Without `ai_used` this stays a Claude payload.
+  allow_all_enabled: true,
   // Cold, so the composer has the prompt-cache chip to arrange. No miss cause:
   // with one, line 3 outgrows the 200 columns the pool is checked at and the
   // session duration drops off the fixture's bar.
@@ -68,6 +71,7 @@ export const PAYLOAD = {
     total_api_duration_ms: 1000 * 60 * 9,
     total_lines_added: 214,
     total_lines_removed: 87,
+    total_premium_requests: 3,
   },
 };
 

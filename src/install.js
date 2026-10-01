@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
+import { setCodexStatusLine, removeCodexStatusLine, hasCodexStatusLine } from "./codexConfig.js";
 
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
 const PACKAGE_PATH = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -442,4 +443,133 @@ export function uninstall() {
   writeSettings(settings);
 
   return { changed: true, settingsPath: file, hookRemoved };
+}
+
+// --- Other harnesses (specs/029-multi-harness) ------------------------------
+
+const copilotHome = (env) => env.COPILOT_HOME || path.join(os.homedir(), ".copilot");
+const codexHome = (env) => env.CODEX_HOME || path.join(os.homedir(), ".codex");
+
+/** A copy of a file before it is changed, beside the plugin's other backups. */
+function backupFile(file, label) {
+  mkdirSync(backupDir(), { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const to = path.join(backupDir(), `${label}.${stamp}${path.extname(file)}`);
+  writeFileSync(to, readFileSync(file));
+  return to;
+}
+
+function writeAtomic(file, text) {
+  mkdirSync(path.dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.tmp`;
+  try {
+    writeFileSync(tmp, text);
+    renameSync(tmp, file);
+  } catch (err) {
+    try {
+      unlinkSync(tmp);
+    } catch {
+      // nothing to clean up
+    }
+    throw err;
+  }
+}
+
+/**
+ * Copilot's settings, read past line and block comments, which its other
+ * files carry. Returns the object and whether comments were dropped.
+ */
+function readCopilotSettings(file) {
+  if (!existsSync(file)) return { settings: {}, hadComments: false };
+  const raw = readFileSync(file, "utf8");
+  const stripped = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const parsed = JSON.parse(stripped.trim() || "{}");
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(`${file} is not a settings object.`);
+  return { settings: parsed, hadComments: stripped !== raw };
+}
+
+const isOurRenderCommand = (command) =>
+  isOurCommand(command) || (/cli\.js"?\s+render\s*$/.test(String(command || "")) && /statusline/i.test(String(command || "")));
+
+/** Points another harness's status line at this plugin. */
+export function installHarness(harness, { env = process.env } = {}) {
+  const tooOld = unsupportedNode();
+  if (tooOld) return { ok: false, reason: tooOld };
+  if (harness === "copilot") {
+    const file = path.join(copilotHome(env), "settings.json");
+    let read;
+    try {
+      read = readCopilotSettings(file);
+    } catch (err) {
+      return { ok: false, reason: `Could not read ${file}: ${err.message}` };
+    }
+    const backupPath = existsSync(file) ? backupFile(file, "copilot-settings") : null;
+    const command = buildCommand(resolveInterpreter(), CLI_PATH);
+    read.settings.statusLine = { ...(read.settings.statusLine || {}), command, refreshInterval: REFRESH_INTERVAL_SECONDS };
+    writeAtomic(file, JSON.stringify(read.settings, null, 2) + "\n");
+    const notes = read.hadComments ? [`${file} had comments; they are in the backup and not in the rewritten file.`] : [];
+    return { ok: true, harness, file, backupPath, command, notes };
+  }
+  if (harness === "codex") {
+    const dir = codexHome(env);
+    if (!existsSync(dir)) return { ok: false, reason: `Codex is not set up here: ${dir} does not exist. Run Codex once, then install again.` };
+    const file = path.join(dir, "config.toml");
+    const before = existsSync(file) ? readFileSync(file, "utf8") : "";
+    const backupPath = existsSync(file) ? backupFile(file, "codex-config") : null;
+    writeAtomic(file, setCodexStatusLine(before));
+    return {
+      ok: true,
+      harness,
+      file,
+      backupPath,
+      notes: ["Codex draws its own built-in items; this plugin chooses which, and its own bar does not run there."],
+    };
+  }
+  return { ok: false, reason: `Unknown harness "${harness}". Use copilot or codex.` };
+}
+
+/** Removes this plugin from another harness's status line, and nothing else. */
+export function uninstallHarness(harness, { env = process.env } = {}) {
+  if (harness === "copilot") {
+    const file = path.join(copilotHome(env), "settings.json");
+    if (!existsSync(file)) return { changed: false, reason: `${file} does not exist.` };
+    const { settings } = readCopilotSettings(file);
+    if (!isOurRenderCommand(settings.statusLine?.command)) return { changed: false, reason: "Copilot's statusLine is not this plugin's." };
+    backupFile(file, "copilot-settings");
+    delete settings.statusLine;
+    writeAtomic(file, JSON.stringify(settings, null, 2) + "\n");
+    return { changed: true, file };
+  }
+  if (harness === "codex") {
+    const file = path.join(codexHome(env), "config.toml");
+    if (!existsSync(file)) return { changed: false, reason: `${file} does not exist.` };
+    const before = readFileSync(file, "utf8");
+    const after = removeCodexStatusLine(before);
+    if (after === before) return { changed: false, reason: "Codex's status_line is not the one this plugin writes." };
+    backupFile(file, "codex-config");
+    writeAtomic(file, after);
+    return { changed: true, file };
+  }
+  return { changed: false, reason: `Unknown harness "${harness}". Use copilot or codex.` };
+}
+
+/** Each other harness found on this machine, and whether this plugin is set up in it. */
+export function harnessStatus({ env = process.env } = {}) {
+  const out = [];
+  const cHome = copilotHome(env);
+  if (existsSync(cHome)) {
+    let configured = false;
+    try {
+      configured = isOurRenderCommand(readCopilotSettings(path.join(cHome, "settings.json")).settings.statusLine?.command);
+    } catch {
+      configured = false;
+    }
+    out.push({ harness: "copilot", home: cHome, configured });
+  }
+  const xHome = codexHome(env);
+  if (existsSync(xHome)) {
+    const file = path.join(xHome, "config.toml");
+    out.push({ harness: "codex", home: xHome, configured: existsSync(file) && hasCodexStatusLine(readFileSync(file, "utf8")) });
+  }
+  return out;
 }

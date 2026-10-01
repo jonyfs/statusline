@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { gather, renderReadings } from "./render.js";
-import { checkInstall, projectOverrides } from "./install.js";
+import { checkInstall, projectOverrides, harnessStatus } from "./install.js";
 import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
 import { repoKey, readEntry } from "./cache.js";
 import { SEGMENT_ABOUT, SEGMENTS as REGISTRY } from "./segments.js";
@@ -380,7 +380,7 @@ function pad(text, width) {
 
 export function formatReport(report) {
   const header = [
-    pad("segment", 14),
+    pad("segment", 17),
     pad("line", 6),
     pad("pri", 5),
     pad("shown", 6),
@@ -394,7 +394,7 @@ export function formatReport(report) {
   const rows = report.segments.map((row) => {
     const live = row.live === undefined ? "" : `${row.live} (${row.liveTookMs} ms)`;
     return [
-      pad(row.key, 14),
+      pad(row.key, 17),
       pad(`${row.line}${row.arranged ? "*" : ""}`, 6),
       pad(row.priority, 5),
       pad(row.rendered ? "yes" : "no", 6),
@@ -430,6 +430,10 @@ export function formatReport(report) {
   return [
     ...installLines,
     ...overrideLines,
+    ...(report.harnesses ?? []).map(
+      (h) =>
+        `install: ${h.harness === "copilot" ? "Copilot CLI" : "Codex"} found at ${h.home}, ${h.configured ? "set up with this plugin" : `not set up (run install --harness ${h.harness})`}`
+    ),
     ...(report.updates ? [report.updates] : []),
     `working directory: ${report.cwd}`,
     arrangementLine,
@@ -459,6 +463,7 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
   // A project statusLine wins over the user's, so a person in that project
   // sees another bar and this one looks broken (specs/028-cross-platform).
   report.overrides = projectOverrides(payload?.workspace?.project_dir || payload?.cwd || process.cwd());
+  report.harnesses = harnessStatus();
   report.updates = updatesLine(readEntry(repoKey(UPDATE_ROOT), "update")?.value, readBehaviour(), now);
   return json ? JSON.stringify(report, null, 2) : formatReport(report);
 }
