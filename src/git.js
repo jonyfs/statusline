@@ -196,8 +196,8 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
   // What the last attempt cost here. A repository that answers in 30 ms is
   // asked again on every redraw, because a branch switch should show up
   // immediately. One that has already proved it cannot answer inside the
-  // budget is not asked at all while a usable snapshot is on hand: paying
-  // the whole budget on every redraw, only to abandon the call and read the
+  // budget is not asked during a redraw at all, snapshot or not: paying the
+  // whole budget on every redraw, only to abandon the call and read the
   // cache anyway, spends 150 ms to learn nothing.
   //
   // The measurement is refreshed by the detached process, which runs with a
@@ -211,6 +211,11 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
       if (shouldRefresh("git", cached, now)) spawnRefresh(key, "git", cwd, { now });
       return cached.value;
     }
+    // No usable snapshot. Asking git live here is the call this repository
+    // is known to lose: it spends the whole budget and still has nothing to
+    // show. The refresh is what can answer, and its lock keeps it to one.
+    spawnRefresh(key, "git", cwd, { now });
+    return null;
   }
 
   const started = Date.now();
@@ -305,6 +310,10 @@ export function getPrInfo(cwd, { now = Date.now(), branch = null } = {}) {
   // request. The cache is per repository, so this is the only thing standing
   // between a branch switch and a pull request number that belongs elsewhere.
   if (branch && entry.value?.branch && entry.value.branch !== branch) return null;
+  // "This branch has no pull request" is stored as `{ branch }` alone, so the
+  // next branch switch can still be told apart. That is a marker, not a pull
+  // request, and passing it on rendered "PR #undefined".
+  if (typeof entry.value?.number !== "number") return null;
   return entry.value;
 }
 
@@ -425,5 +434,9 @@ export function getCiStatus(cwd, { now = Date.now(), branch = null } = {}) {
   // Same rule as the pull request: a run from another branch says nothing
   // about this one.
   if (branch && entry.value?.branch && entry.value.branch !== branch) return null;
+  // A branch with no run is stored as `{ branch }` alone. With neither a
+  // status nor a conclusion it is not a run, and rendering it as one drew a
+  // red "CI failed" on a branch that had never been built.
+  if (entry.value?.status == null && entry.value?.conclusion == null) return null;
   return entry.value;
 }
