@@ -352,7 +352,7 @@ await test("lsof exiting 1 because one hook already ended still places the live 
 });
 
 await test("lsof missing, timed out or silent while hooks run is a failed probe, not an empty answer", () => {
-  for (const err of [exitedWith(null, undefined, "ENOENT"), exitedWith(null, "p101\nfcwd\nn/fake/wt\n", "ETIMEDOUT"), exitedWith(1, "")]) {
+  for (const err of [exitedWith(null, "p101\nfcwd\nn/fake/wt\n", "ETIMEDOUT"), exitedWith(1, "")]) {
     const result = probe(fakeExec({ lsof: () => { throw err; } }));
     assert.equal(result.state, "failed", `${err.code ?? err.status}: ${JSON.stringify(result)}`);
   }
@@ -360,6 +360,21 @@ await test("lsof missing, timed out or silent while hooks run is a failed probe,
   const quiet = probe(fakeExec({ ps: () => "  1 0 01:00 /sbin/launchd", lsof: () => { throw new Error("not called"); } }));
   assert.equal(quiet.state, "found");
   assert.deepEqual(quiet.value.runs, []);
+});
+
+await test("a machine without lsof or ps still places what it can, instead of failing forever", () => {
+  // No lsof: hooks with an absolute script path are still placed, and the
+  // probe answers rather than failing on every refresh.
+  const noLsof = probe(fakeExec({ lsof: () => { throw exitedWith(null, undefined, "ENOENT"); } }));
+  assert.equal(noLsof.state, "found", JSON.stringify(noLsof));
+  // No ps: the locks alone, as on Windows.
+  const noPs = probeGateRuns("/fake/main", 5_000, {
+    now: NOW,
+    previous: [],
+    exec: fakeExec({ ps: () => { throw exitedWith(null, undefined, "ENOENT"); } }),
+    platform: "darwin",
+  });
+  assert.equal(noPs.state, "found", JSON.stringify(noPs));
 });
 
 await test("ps failing is a failed probe, so the last good answer stays", () => {

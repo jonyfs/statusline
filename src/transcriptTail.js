@@ -370,9 +370,17 @@ const STATUS = /<status>\s*([a-z_]+)\s*<\/status>/;
  * are read. An assistant entry that quotes a notification, in a script or a
  * reply, is the model writing text, not Claude Code reporting an end. A
  * notification without a task id (a goal check-in) names no job, and one
- * whose status is still "running" has not ended it.
+ * whose status is still "running" has not ended it. A TaskStop result ends
+ * the job it names too.
  */
 function notifiedIdsIn(entry) {
+  // A job stopped with the TaskStop tool gets no task-notification. Its end
+  // is the tool's own result, which names the job it stopped; without this a
+  // stopped shell would read as running for the whole max age.
+  const stopped = entry?.type === "user" ? entry.toolUseResult : null;
+  if (stopped && typeof stopped === "object" && typeof stopped.task_id === "string" && stopped.task_id && typeof stopped.task_type === "string") {
+    return [stopped.task_id];
+  }
   const texts = [];
   if (entry?.type === "queue-operation") {
     texts.push(entry.content);

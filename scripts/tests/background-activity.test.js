@@ -120,6 +120,19 @@ await test("a killed or failed shell is no longer pending", () => {
   assert.deepEqual(scanTail(failed, { now: NOW }).background, { shells: 0, agents: 0 });
 });
 
+// TaskStop's tool_result, as Claude Code records it (seen 2026-10-06).
+const stopped = (at, id) => ({
+  type: "user",
+  timestamp: iso(at),
+  message: { role: "user", content: [{ tool_use_id: `toolu_stop_${id}`, type: "tool_result", content: `{"message":"Successfully stopped task: ${id}"}` }] },
+  toolUseResult: { message: `Successfully stopped task: ${id}`, task_id: id, task_type: "local_bash", command: "sleep 600" },
+});
+
+await test("a shell stopped with TaskStop is no longer pending, though no notification came", () => {
+  const file = transcript([shellStarted(NOW - 90_000, "bS"), stopped(NOW - 30_000, "bS"), said(NOW - 20_000)]);
+  assert.deepEqual(scanTail(file, { now: NOW }).background, { shells: 0, agents: 0 });
+});
+
 await test("an async agent with no notification counts as an agent", () => {
   const file = transcript([agentLaunched(NOW - 90_000, "a538228b4b501c891"), said(NOW - 60_000)]);
   assert.deepEqual(scanTail(file, { now: NOW }).background, { shells: 0, agents: 1 });

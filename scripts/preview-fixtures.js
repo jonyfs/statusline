@@ -50,6 +50,9 @@ const noSources = {
   getUpdateNotice: () => null,
   // No git gate runs unless a case shows them (specs/031-git-gate-rows).
   getGateRuns: () => null,
+  // Whether the directory is a repository is the git snapshot's to say here,
+  // never the machine generating the preview.
+  isRepo: () => false,
 };
 
 export const SCENARIOS = [

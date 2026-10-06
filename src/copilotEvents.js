@@ -130,6 +130,17 @@ function closeShell(state, shellId, agent = null) {
 }
 
 /** The text of a tool result, which Copilot writes as `result.content`. */
+/**
+ * Stamps each of an agent's open shells with the first moment the agent went
+ * idle after starting it. The grace a shell gets without a liveness answer
+ * runs from there: measured from the agent's latest idle instead, a shell
+ * from an early turn came back after every later turn and outlived itself.
+ */
+function markIdle(state, agent, at) {
+  if (!agent || at === null) return;
+  for (const shell of state.shells[agent] ?? []) if (shell.idleAt == null) shell.idleAt = at;
+}
+
 function resultText(data) {
   const content = data?.result?.content;
   return typeof content === "string" ? content : "";
@@ -181,6 +192,7 @@ function apply(state, event) {
         if (rec) {
           rec.turnOpen = false;
           rec.turnEndAt = at;
+          if (rec.completedAt !== null) markIdle(state, agent, at);
         }
       }
       break;
@@ -224,6 +236,7 @@ function apply(state, event) {
       if (!rec) break;
       rec.completedAt = at ?? rec.startTime ?? 0;
       rec.turnOpen = false;
+      markIdle(state, rec.agent, rec.completedAt);
       rec.resumedAt = null;
       const finished = state.subagents.filter((r) => r.completedAt !== null);
       if (finished.length > FINISHED_KEPT) {
@@ -480,7 +493,11 @@ function rowState(rec, state, now, shellAlive) {
     } else if (!answers.includes(null)) answer = false;
   }
   if (answer === false) return null;
-  if (answer === null && now - idleSince > IDLE_GRACE_MS) return null;
+  if (answer === null) {
+    const fresh = open.filter((s) => now - (s.idleAt ?? idleSince) <= IDLE_GRACE_MS);
+    if (!fresh.length) return null;
+    shell = fresh[fresh.length - 1];
+  }
   return { status: "background", startTime: shell.since ?? rec.startTime, label: `background: ${shell.command}`, counts: answer === true };
 }
 

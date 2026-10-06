@@ -357,7 +357,12 @@ function workingDirs(pids, timeout, { exec = run, platform = process.platform } 
       // when any one of them ended after `ps` listed it, still printing the
       // live ones. That output is the answer. Missing, timed out or silent
       // is not: a timeout's partial output may stop short of the hook asked about.
-      if (err?.code === "ENOENT" || err?.code === "ETIMEDOUT" || err?.signal) return null;
+      // A machine with no lsof at all never will answer, so that is not a
+      // failure to retry but a platform without working directories: hooks
+      // with an absolute script path and held locks are still placed, as on
+      // Windows (research R5).
+      if (err?.code === "ENOENT") return out;
+      if (err?.code === "ETIMEDOUT" || err?.signal) return null;
       text = typeof err?.stdout === "string" ? err.stdout : "";
       if (!text.trim()) return null;
     }
@@ -408,8 +413,13 @@ export function probeGateRuns(cwd, budgetMs = 5_000, { now = Date.now(), exec = 
   if (platform !== "win32") {
     try {
       procs = parseProcesses(exec("ps", ["-A", "-o", "pid=,ppid=,etime=,command="], undefined, budgetMs));
-    } catch {
-      return { state: "failed", value: null };
+    } catch (err) {
+      // No ps installed (a slim container without procps) never recovers,
+      // so failing every time would hide even the lock-held runs for good.
+      // Read the locks alone, as on Windows. Any other failure keeps the last
+      // good answer.
+      if (err?.code !== "ENOENT") return { state: "failed", value: null };
+      procs = [];
     }
     const byPid = new Map(procs.map((p) => [p.pid, p]));
     const hookPids = procs.filter((p) => hookOf(p, byPid)).map((p) => p.pid);

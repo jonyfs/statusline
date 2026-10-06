@@ -516,3 +516,22 @@ await test("an unreadable sidecar falls back to reading the tail", () => {
     assert.deepEqual(copilotSessionActivity(dir, { now: NOW }).agents.map((a) => a.id), ["agent-1"]);
   }
 });
+
+await test("a background command's grace runs from the agent's first idle after it, not its latest", () => {
+  const T = Date.parse("2026-10-06T16:00:00.000Z");
+  const at = (sec) => new Date(T + sec * 1000).toISOString();
+  const A = "agent-grace";
+  const events = [
+    { type: "subagent.started", agentId: A, timestamp: at(0), data: { toolCallId: "c-grace", agentName: "explore", agentDescription: "Grace check" } },
+    { type: "tool.execution_start", agentId: A, timestamp: at(1), data: { toolCallId: "sh-1", toolName: "bash", arguments: { command: "sleep 20", mode: "async" } } },
+    { type: "tool.execution_complete", agentId: A, timestamp: at(1), data: { toolCallId: "sh-1", success: true, result: { content: "<command started in background with shellId: 0>" } } },
+    { type: "subagent.completed", agentId: A, timestamp: at(2), data: { toolCallId: "c-grace" } },
+    // Resumed much later for a turn of its own, with no new command.
+    { type: "assistant.turn_start", agentId: A, timestamp: at(300), data: {} },
+    { type: "assistant.turn_end", agentId: A, timestamp: at(310), data: {} },
+  ];
+  const later = copilotSessionActivity(eventsDir(events), { now: T + 320_000, sidecar: false });
+  assert.ok(!later.agents.some((a) => a.id === A), "a sleep 20 from the first turn is not still running 5 minutes on");
+  const soon = copilotSessionActivity(eventsDir(events.slice(0, 4)), { now: T + 30_000, sidecar: false });
+  assert.equal(soon.agents.find((a) => a.id === A)?.label, "background: sleep 20", "inside its own grace it still shows");
+});
