@@ -48,6 +48,8 @@ const noSources = {
   // a case asks for one.
   maybeStartUpdateCheck: () => false,
   getUpdateNotice: () => null,
+  // No git gate runs unless a case shows them (specs/031-git-gate-rows).
+  getGateRuns: () => null,
 };
 
 export const SCENARIOS = [
@@ -87,6 +89,23 @@ export const SCENARIOS = [
       getRemoteUrl: () => "https://github.com/jonyfs/statusline",
       getActiveSkills: () => ["code-review"],
       getRtkSavings: () => 81,
+    },
+  },
+  {
+    file: "gate-rows.svg",
+    title: "Git gates running in three worktrees of the repository: a count on line 1, a row each after the bar, one waiting for another run's lock",
+    payload: basePayload,
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "harness/gate-cache", upstream: "origin/harness/gate-cache", ahead: 1, behind: 0, changed: 3, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+      getGateRuns: () => [
+        { pid: 1, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "harness/gate-cache", step: "gates.sh \u203a review-cycle.test.sh", startedAt: FIXED_NOW * 1000 - 184000, state: "running" },
+        { pid: 2, hook: "pre-push", worktree: "statusline-docs", path: "/Users/dev/projects/statusline-docs", branch: "docs/readme-tour", step: "npm run lint \u00b7 npm run typecheck \u00b7 npm test", startedAt: FIXED_NOW * 1000 - 72000, state: "running" },
+        { pid: 3, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "harness/gate-cache", step: null, startedAt: FIXED_NOW * 1000 - 12000, state: "waiting" },
+      ],
     },
   },
   {

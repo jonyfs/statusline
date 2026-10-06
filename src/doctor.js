@@ -10,6 +10,7 @@
  * and the whole point of the command is to show where they differ.
  */
 
+import { readGateRuns, probeGateRuns } from "./gateRuns.js";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -94,7 +95,15 @@ const DESCRIBE = {
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
   dir: ["dir", (v) => v ?? null],
+  // The git gates running in this repository (specs/031-git-gate-rows).
+  gates: ["gates", (v) => describeGates(v)],
 };
+
+/** Each running gate as its row names it: the hook, where, and whether it waits. */
+function describeGates(runs) {
+  if (!Array.isArray(runs) || !runs.length) return null;
+  return runs.map((r) => `${r.hook} in ${r.worktree}${r.state === "waiting" ? " (waiting for gates.lock)" : ""}`).join(", ");
+}
 
 /**
  * The whole prompt-cache block, for the chip that shows only part of it and
@@ -133,6 +142,7 @@ const LIVE_PROBES = {
   worktreeState: (cwd) => probeGitInfo(cwd, REFRESH_BUDGET_MS.git),
   pr: (cwd) => normalizePr(probePrInfo(cwd, REFRESH_BUDGET_MS.gh), "gh"),
   rtk: (cwd) => probeRtkSavings(cwd, REFRESH_BUDGET_MS.rtk),
+  gates: (cwd) => probeGateRuns(cwd, REFRESH_BUDGET_MS.gates).value?.runs ?? null,
 };
 
 /**
@@ -255,6 +265,8 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     // marks a one-time notice as seen.
     maybeStartUpdateCheck: () => false,
     getUpdateNotice: () => peekUpdateNotice(),
+    // The gates the cache holds, without starting a lookup.
+    getGateRuns: (cwd, opts) => readGateRuns(cwd, { ...opts, refresh: false }),
   };
 
   const started = Date.now();

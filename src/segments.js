@@ -61,6 +61,10 @@ export const SEGMENTS = [
   // install, not the session, so it sits with the repository's state. Useful
   // band, after the CI tick, so nothing already on the line moves.
   { key: "update", line: 1, order: 70, priority: 60, colour: "identity", source: "cache" },
+  // The git gates running in this repository's worktrees (specs/031-git-gate-
+  // rows). Normally rows after the bar; this chip stands in for them only when
+  // the window is too short to hold both. Last on the line, so nothing moves.
+  { key: "gates", line: 1, order: 80, priority: 58, colour: "identity", source: "cache" },
 
   // Line 2: what is shaping the work.
   { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
@@ -155,6 +159,7 @@ export const SEGMENT_ABOUT = {
   pr: "The open pull request for this branch, its review state and its labels. Scoped to the branch, so one you just left cannot answer for the one you are on.",
   ci: "The last workflow run for this branch. It disappears rather than going stale: a green tick ten minutes old is worse than none.",
   update: "The statusline's own updates: what the daily check found upstream in improvements and fixes, whether it applied them, or why it could not. An update or a failure shows once; something waiting or blocked stays until it is resolved.",
+  gates: "The git hooks running in this repository's worktrees: which hook, in which worktree and branch, what it is running now and for how long, one row each after the bar. A run waiting for another's gates.lock says so. Only when the window is too short does it shrink to a count on line 1.",
   skills: "The skills shaping this session, newest first, dropped once they fall outside the activity window. A skill a subagent invoked belongs to that subagent's row instead.",
   todo: "The current todo and how far the list has got.",
   activity: "Whether the transcript grew in the last ten seconds, or a subagent of this session is running. Nothing emits \"thinking now\", so this is the honest approximation.",

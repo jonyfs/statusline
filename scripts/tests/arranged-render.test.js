@@ -31,6 +31,9 @@ function draw(arrangement, { width = 200, sources = SOURCES } = {}) {
       samples: SAMPLES,
       maxWidth: width,
       maxHeight: 40,
+      // These cases count the bar's lines; the git gate rows the fixture has
+      // running follow the bar and are not lines of it (specs/031).
+      trailingRows: false,
       layout: arrangement
         ? { arrangement, origin: "test", path: null, error: null }
         : NO_ARRANGEMENT,

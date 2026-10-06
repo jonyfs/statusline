@@ -18,6 +18,9 @@ export const emptySources = {
   // that renders must never do either (specs/026-update-check).
   maybeStartUpdateCheck: () => false,
   getUpdateNotice: () => null,
+  // The git gates come from a cache the detached refresh fills; a test asks
+  // for them explicitly (specs/031-git-gate-rows).
+  getGateRuns: () => null,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */

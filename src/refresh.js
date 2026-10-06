@@ -12,6 +12,7 @@
 import { writeEntry, takeLock } from "./cache.js";
 import { probeGitInfo, probePrResult, probeCiResult } from "./git.js";
 import { probeRtkSavings } from "./rtk.js";
+import { probeGateRuns } from "./gateRuns.js";
 import { REFRESH_BUDGET_MS } from "./freshness.js";
 
 /**
@@ -39,6 +40,9 @@ const PROBES = {
     return pct === null ? { state: "failed", value: null } : { state: "found", value: pct };
   },
   ci: (cwd) => probeCiResult(cwd, REFRESH_BUDGET_MS.gh),
+  // The git hooks running in this repository's worktrees
+  // (specs/031-git-gate-rows). Too slow for a redraw, which reads this.
+  gates: (cwd) => probeGateRuns(cwd, REFRESH_BUDGET_MS.gates),
   // The daily update check (specs/026-update-check). It checks the clone this
   // code runs from, never `cwd`: the working directory is whatever directory
   // the refresh happened to start in, and in `auto` a check pointed at the

@@ -112,6 +112,12 @@ export const SOURCES = {
   // never a real check from a page generator.
   maybeStartUpdateCheck: () => false,
   getUpdateNotice: () => ({ state: "ready", text: "update ready \u00b7 1 fix" }),
+  // Two git gates, one in this worktree, so the composer has the gates chip
+  // to arrange (specs/031-git-gate-rows).
+  getGateRuns: () => [
+    { pid: 101, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "004-statusline-redesign-research", step: "gates.sh \u203a review-cycle.test.sh", startedAt: NOW_MS - 184000, state: "running" },
+    { pid: 102, hook: "pre-push", worktree: "statusline-docs", path: "/Users/dev/projects/statusline-docs", branch: "docs/readme", step: "npm test", startedAt: NOW_MS - 48000, state: "running" },
+  ],
 };
 
 /**
@@ -137,4 +143,7 @@ export const RENDER_OPTIONS = {
   tracking: false,
   now: NOW_MS,
   samples: SAMPLES,
+  // The composer arranges the bar's segments. The rows after it (the git
+  // gates this fixture has running) are not part of any arrangement.
+  trailingRows: false,
 };

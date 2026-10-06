@@ -1,3 +1,4 @@
+import path from "node:path";
 import { PALETTES, renderRow, displayWidth } from "./theme.js";
 import {
   getDirLabel,
@@ -34,6 +35,8 @@ import { getRtkSavings } from "./rtk.js";
 import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
 import { detectHarness } from "./harness.js";
 import { copilotSessionActivity, AGENT_ROW_CAP } from "./copilotEvents.js";
+import { readGateRuns, GATE_ROW_CAP } from "./gateRuns.js";
+import { gateRows, gateChip } from "./gateRows.js";
 
 /**
  * Under Copilot CLI, the transcript probes read its session's `events.jsonl`
@@ -156,6 +159,13 @@ const NF_SPEEDOMETER = "\u{F04C5}";  // nf-md-speedometer: fast mode
 // F0565, listed as a ticket, draws a shield with a tick.
 const NF_COPILOT = "\u{F4B8}";       // nf-oct-copilot: premium requests
 const NF_SHIELD_OFF = "\u{F099E}";   // nf-md-shield_off: allow all
+// The git gates running in this repository (specs/031-git-gate-rows/
+// glyph-evidence.png). A clock reads as "still going"; a lock with a clock as
+// "waiting on a lock". F0299 md-gate draws a fence and F0E86 md-boom_gate a
+// crane at one cell. The same sheet shows F0997, NF_RUNNING above, drawing
+// md-progress_download rather than a clock.
+const NF_GATE_RUNNING = "\u{F0996}"; // nf-md-progress_clock
+const NF_GATE_WAITING = "\u{F097F}"; // nf-md-lock_clock
 
 /**
  * The whole glyph set, and the substitute used when the terminal has no
@@ -208,6 +218,8 @@ export const GLYPHS = {
     fast: NF_SPEEDOMETER,
     premium: NF_COPILOT,
     allowAll: NF_SHIELD_OFF,
+    gateRunning: NF_GATE_RUNNING,
+    gateWaiting: NF_GATE_WAITING,
   },
   /**
    * The set for a terminal with no Nerd Font.
@@ -282,6 +294,8 @@ export const GLYPHS = {
     fast: "\u21F6",       // ⇶ three arrows
     premium: "\u2726",    // ✦
     allowAll: "\u2298",   // ⊘
+    gateRunning: "\u27F3", // ⟳
+    gateWaiting: "\u29D6", // ⧖
   },
 };
 
@@ -476,6 +490,12 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     // The running subagents, which only Copilot's reader returns: Claude Code
     // draws its own rows (specs/030-copilot-agent-rows).
     agents: reading({ value: Array.isArray(activity.value?.agents) ? activity.value.agents : null, at: now, source: activity.source }),
+    // The git gates running in this repository's worktrees, from the cache
+    // the detached refresh fills (specs/031-git-gate-rows). Only in a
+    // repository, so a directory without one starts no lookup.
+    gates: hasRepo && probe.getGateRuns
+      ? timed("cache", () => probe.getGateRuns(cwd, { now }))
+      : missing("cache", "not a repository"),
     ci: hasRepo
       ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
       : missing("gh", "not a repository"),
@@ -577,6 +597,8 @@ export function renderPayload(
     // A fixed sample history, for a caller that has no session state to read
     // one from. A real redraw leaves this alone and uses its own.
     samples = null,
+    // See `renderReadings`: false leaves out the rows after the bar.
+    trailingRows = true,
   } = {}
 ) {
   const probe = {
@@ -592,6 +614,7 @@ export function renderPayload(
     getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
     maybeStartUpdateCheck,
     getUpdateNotice,
+    getGateRuns: readGateRuns,
     ...sources,
   };
 
@@ -609,6 +632,7 @@ export function renderPayload(
     arrangement: found.arrangement,
     arrangementOrigin: found.origin,
     samples,
+    trailingRows,
   });
 }
 
@@ -644,6 +668,10 @@ export function renderReadings(
     arrangement = null,
     // Where that arrangement came from, carried through for the diagnostic.
     arrangementOrigin = "default",
+    // The rows that follow the bar: Copilot's subagents and the git gates. A
+    // caller that composes only the bar's own segments, as the composer page
+    // does, leaves them out; an arrangement can move a segment, not a row.
+    trailingRows = true,
   } = {}
 ) {
   // The segment key decides the maximum age; the reading name says where
@@ -706,6 +734,16 @@ export function renderReadings(
 
   const palette = PALETTES[flavor] || PALETTES.mocha;
   const g = asciiArrows ? GLYPHS.plain : GLYPHS.nerd;
+
+  // The rows that follow the bar: Copilot's subagents (specs/030) and the git
+  // gates (specs/031). Counted here because the gates fall back to a line 1
+  // chip when the bar's three lines and the rows would not fit the window.
+  const isCopilot = readings.harness?.value === "copilot";
+  const agentList = isCopilot && Array.isArray(readings.agents?.value) ? readings.agents.value : [];
+  const gateRuns = shows("gates") && Array.isArray(readings.gates?.value) ? readings.gates.value : [];
+  const gateHere = hereOf(gateRuns, readings.cwd);
+  const gateRowCount = gateRuns.length ? Math.min(gateRuns.length, GATE_ROW_CAP) + (gateRuns.length > GATE_ROW_CAP ? 1 : 0) : 0;
+
   const opts = { asciiArrows };
   // The rows are kept as segment lists until every line exists, because
   // aligning the first column across the bar needs all of them at once.
@@ -902,6 +940,12 @@ export function renderReadings(
   if (update?.text) {
     const icon = update.state === "updated" ? g.updateDone : g.updateReady;
     l1.push({ key: "update", color: "teal", text: ` ${icon} ${update.text} ` });
+  }
+  // The git gates running in this repository (specs/031-git-gate-rows): a
+  // count here, and a row each after the bar when the window has room.
+  if (gateRuns.length) {
+    const chip = gateChip(gateRuns, { now, here: gateHere, glyphs: g });
+    if (chip) l1.push({ key: "gates", ...chip });
   }
   // What every line is built from, before the arrangement decides where any
   // of it goes. Content and placement are two questions, and keeping them
@@ -1253,11 +1297,29 @@ export function renderReadings(
   // bar's lines in the same output. They are not lines of the bar: they never
   // count toward the three, and the per-line view above never sees them
   // (Principle II, specs/030-copilot-agent-rows).
-  const agentRows =
-    readings.harness?.value === "copilot"
-      ? harnessAgentRows(readings.agents?.value, { columns: maxWidth, palette, now, cap: AGENT_ROW_CAP })
+  if (!trailingRows) return drawn.map((entry) => entry.text).join("\n");
+  const agentRows = isCopilot ? harnessAgentRows(agentList, { columns: maxWidth, palette, now, cap: AGENT_ROW_CAP }) : [];
+  // The gates, in Claude Code and Copilot alike, unless the arrangement
+  // switched them off. They are the first thing a short window gives up,
+  // before any of the bar's own lines; the line 1 chip still counts them.
+  const gateRowsFit = gateRowCount > 0 && drawn.length + agentRows.length + gateRowCount <= maxHeight;
+  const gateLines =
+    gateRowsFit && placementFor("gates")?.on !== false
+      ? gateRows(gateRuns, { columns: maxWidth, palette, now, here: gateHere, glyphs: g, cap: GATE_ROW_CAP })
       : [];
-  return [...drawn.map((entry) => entry.text), ...agentRows].join("\n");
+  return [...drawn.map((entry) => entry.text), ...agentRows, ...gateLines].join("\n");
+}
+
+/**
+ * The worktree this session is in, among the ones running a gate: the run
+ * whose worktree path contains the session's directory, longest first.
+ */
+function hereOf(runs, cwd) {
+  if (!cwd || !runs.length) return null;
+  const hits = runs
+    .map((r) => r?.path)
+    .filter((p) => typeof p === "string" && (cwd === p || cwd.startsWith(p.endsWith("/") ? p : `${p}/`) || cwd.startsWith(p + path.sep)));
+  return hits.sort((a, b) => b.length - a.length)[0] ?? null;
 }
 
 /**
