@@ -71,6 +71,8 @@ WANTED = {
                        # database refresh, draws a speaker
     "E62B": 0xE62B,    # nf-custom-vim: the vim mode
     "F4B8": 0xF4B8,    # nf-oct-copilot: Copilot's premium requests
+    "F0996": 0xF0996,  # nf-md-progress_clock: a git gate still running
+    "F097F": 0xF097F,  # nf-md-lock_clock: a git gate waiting for gates.lock
     "F099E": 0xF099E,  # nf-md-shield_off: Copilot's allow-all
     "F04C5": 0xF04C5,  # nf-md-speedometer: fast mode
     "F01DA": 0xF01DA,  # nf-md-download: an update ready, blocked or failed

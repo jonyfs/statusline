@@ -88,6 +88,10 @@ export const MAX_AGE_MS = {
   harness: REDRAW_INTERVAL_MS,
   premiumRequests: REDRAW_INTERVAL_MS,
   allowAll: REDRAW_INTERVAL_MS,
+  // The git gates running in this repository (specs/031-git-gate-rows). As a
+  // cache key this is how long a refresh's lock lasts; the redraw checks every
+  // cached run's pid itself, so the rows never outlive the processes.
+  gates: 10_000,
 };
 
 /**
@@ -113,6 +117,8 @@ export const REFRESH_BUDGET_MS = {
   rtk: 5_000,
   // A fetch, a fast-forward and an install, one after the other.
   update: 120_000,
+  // `git worktree list`, `ps` over every process and, on macOS, one `lsof`.
+  gates: 5_000,
 };
 
 /** The bytes the transcript tail read may consume before it gives up. */

@@ -151,7 +151,9 @@ await test("the page composes the same bar the renderer draws", async () => {
 
   const now = FIXED_NOW * 1000;
   const readings = () => gather(PAYLOAD, { ...SOURCES }, { now });
-  const base = { flavor: "mocha", tracking: false, now, samples: SAMPLES, maxHeight: 40 };
+  // The page composes the bar's segments; the git gate rows the fixture has
+  // running follow the bar and belong to no arrangement (specs/031).
+  const base = { flavor: "mocha", tracking: false, now, samples: SAMPLES, maxHeight: 40, trailingRows: false };
   // The pool is built at the width being composed, because one segment's
   // content depends on it: the agent chip names as many subagents as the line
   // has room for rather than being dropped whole. What this case is for is

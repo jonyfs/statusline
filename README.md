@@ -262,6 +262,7 @@ What each one shows, measured against Copilot CLI 1.0.80 and Codex CLI 0.158.0:
 | rtk savings, update notice | yes | yes | no |
 | Premium requests, allow-all | n/a | yes | n/a |
 | Subagent rows | yes | yes, after the bar | no |
+| Git gates running in other worktrees | yes | yes | no |
 
 Under Copilot the 5-hour and 7-day chips are absent, not `?%`: Copilot has no
 such limits, and `?%` would say a value exists and is unknown. Copilot does
@@ -611,6 +612,44 @@ Line 1 gained two more, both about states that stop you:
   is actually ten minutes old, is worse than no tick. The pull request works
   the same way, and both vanish the moment you switch branches rather than
   describing the branch you left.
+
+### Git gates running in other worktrees
+
+A commit can wait minutes on its `pre-commit` hook, and when a repository has
+several worktrees that wait happens out of sight. When a git hook is running in
+any worktree of the repository you are in, line 1 counts them and each one
+gets a row after the bar:
+
+![Git gates running in three worktrees](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/gate-rows.svg)
+
+A row reads: the hook (`pre-commit`, `pre-push` and the rest), the worktree
+(`*` marks yours, as `git branch` marks the current branch), its branch, the
+step it is on, and how long it has been running. The step is the chain of
+programs under the hook, so `gates.sh › review-cycle.test.sh` is a script
+inside a script, and `npm run lint · npm run typecheck · npm test` is three
+things started side by side. The branch is the first thing a short line gives
+up, and the rows are the first thing a short window gives up, before any line
+of the bar; the count on line 1 stays.
+
+Some repositories guard their gate scripts with a lock so two runs in one
+worktree do not compete for the same cores. When a worktree has a
+`gates.lock` directory in its git dir holding a live process id, a second run
+there shows `waiting for gates.lock` instead of a step. The bar only reads
+that lock; it never creates or removes it.
+
+Finding a hook means listing every process on the machine, which took 350 to
+675 ms in testing, more than a redraw may spend. So the lookup runs in the
+background, like the pull request and CI lookups, at most every 15 seconds,
+and the redraw reads what it found. Each row's process is checked on every
+redraw, so a hook that finished disappears at once rather than when the
+answer ages out. Rows are matched to worktrees by each hook's working
+directory, read from `/proc` on Linux and `lsof` on macOS. Windows has no fast
+way to do either, so there the rows come only from `gates.lock`.
+
+Copilot CLI shows the same rows, after its subagent rows. Codex cannot: its
+status line is a fixed list of its own items. An arrangement (see
+"Arranging the bar yourself") can move the count like any segment, and
+`"gates": { "on": false }` takes the count and the rows off together.
 
 ## Where a number is heading
 
