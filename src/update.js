@@ -61,6 +61,17 @@ function defaultRunInstall(root, flags) {
   return spawnSync(process.execPath, [cli, "install", ...flags], { stdio: "inherit" });
 }
 
+/**
+ * The install flags `update` passes on to the install it runs. The ones that
+ * turn a piece back on matter as much as the `--no-*` ones: a plain install
+ * over an existing one keeps off what was off (audit #17), so naming the
+ * piece is the only way back.
+ */
+const INSTALL_ON_FLAGS = new Set(["--hook", "--refresh-interval", "--task-rows"]);
+export function installFlagArgs(args) {
+  return args.filter((f) => f.startsWith("--no-") || INSTALL_ON_FLAGS.has(f));
+}
+
 const refuse = (reason, extra = {}) => ({ ok: false, reason, exitCode: 1, ...extra });
 
 export function update({ root = REPO_ROOT, flags = [], runInstall = defaultRunInstall, git = runGit } = {}) {
@@ -72,7 +83,12 @@ export function update({ root = REPO_ROOT, flags = [], runInstall = defaultRunIn
     });
   }
 
-  const dirty = git(root, ["status", "--porcelain"]);
+  // Tracked changes only. An untracked file stops `pull --ff-only` only when
+  // an incoming file has its path, and git then refuses by itself, naming it,
+  // with nothing touched; the pull failure below reports that. Counted here,
+  // any stray file refused the update and suggested a `stash` that leaves
+  // untracked files where they are, so the refusal never cleared (audit #18).
+  const dirty = git(root, ["status", "--porcelain", "--untracked-files=no"]);
   if (!dirty.ok) return refuse(`git status failed in ${root}: ${dirty.err}`, { cause: "git failed" });
   if (dirty.out) {
     const files = dirty.out.split("\n").map((l) => `  ${l.slice(3)}`).join("\n");

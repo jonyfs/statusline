@@ -64,13 +64,20 @@ function harnessFlag() {
   return value;
 }
 
+/**
+ * On, off, or undefined when neither flag is given. Undefined lets install
+ * keep what an earlier install chose, which is what `update` relies on.
+ */
 function installFlags() {
+  const pick = (name) => (rest.includes(`--no-${name}`) ? false : rest.includes(`--${name}`) ? true : undefined);
   return {
-    registerHook: !rest.includes("--no-hook"),
-    refreshInterval: !rest.includes("--no-refresh-interval"),
-    taskRows: !rest.includes("--no-task-rows"),
+    registerHook: pick("hook"),
+    refreshInterval: pick("refresh-interval"),
+    taskRows: pick("task-rows"),
   };
 }
+
+const KEPT_OFF_NAMES = { hook: ["skill hook", "--hook"], refreshInterval: ["refresh interval", "--refresh-interval"], taskRows: ["task rows", "--task-rows"] };
 
 async function main() {
   ignoreClosedOutput();
@@ -114,6 +121,11 @@ async function main() {
       console.log(`  Skill hook:    ${result.hookRegistered ? "registered (PostToolUse: Skill)" : "skipped"}`);
       console.log(`  Refresh every: ${result.refreshInterval ? `${result.refreshInterval}s` : "only on events"}`);
       console.log(`  Task rows:     ${result.taskRows ? "styled by this plugin" : "left to Claude Code"}`);
+      if (result.keptOff?.length) {
+        const pieces = result.keptOff.map((k) => KEPT_OFF_NAMES[k]);
+        console.log(`  Kept off:      ${pieces.map(([name]) => name).join(", ")}, as the previous install left them.`);
+        console.log(`                 To turn back on: install ${pieces.map(([, flag]) => flag).join(" ")}`);
+      }
       console.log(`  Updates:       ${await updatesSummary()}`);
       if (result.needsGitBash) {
         console.log(`  Warning:       node is not on this shell's PATH, so a command had to keep a quoted`);
@@ -129,9 +141,8 @@ async function main() {
       break;
     }
     case "update": {
-      const { update } = await import("../src/update.js");
-      const flags = rest.filter((f) => f.startsWith("--no-"));
-      const result = update({ flags });
+      const { update, installFlagArgs } = await import("../src/update.js");
+      const result = update({ flags: installFlagArgs(rest) });
       if (!result.ok) {
         console.error(result.reason);
         process.exit(result.exitCode || 1);

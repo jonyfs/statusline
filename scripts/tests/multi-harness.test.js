@@ -113,6 +113,17 @@ await test("install for Copilot writes only statusLine, keeps the rest, and back
   assert.equal(JSON.parse(readFileSync(path.join(home, "settings.json"), "utf8")).statusLine, undefined);
 });
 
+// Audit #20. Without this guard the install created ~/.copilot itself and
+// reported success, and doctor then said Copilot CLI was found.
+await test("install for Copilot refuses when Copilot is not set up, and creates nothing", () => {
+  const home = path.join(os.tmpdir(), `statusline-no-copilot-here-${process.pid}`);
+  const r = installHarness("copilot", { env: { COPILOT_HOME: home } });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /Copilot CLI is not set up/);
+  assert.equal(existsSync(home), false, "no directory was made for it");
+  assert.deepEqual(harnessStatus({ env: { COPILOT_HOME: home, CODEX_HOME: path.join(os.tmpdir(), "nope-2") } }), []);
+});
+
 await test("uninstall for Copilot leaves another tool's statusLine alone", () => {
   const home = tempDir("statusline-copilot-home-");
   writeFileSync(path.join(home, "settings.json"), JSON.stringify({ statusLine: { command: "other-tool" } }));
