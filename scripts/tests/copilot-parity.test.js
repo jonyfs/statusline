@@ -99,6 +99,11 @@ await test("a Copilot bar is fitted to the terminal it measured, not wrapped fro
   const wide = draw(() => null);
   assert.ok(wide.some((l) => [...l].length > 60), "at the 120 fallback some line is wider than 60, so the case below can tell");
   const fitted = draw(() => ({ columns: 60, rows: 2 }));
+  // Windows has no /dev/tty, so there the bar keeps the 120 fallback by design.
+  if (process.platform === "win32") {
+    assert.deepEqual(fitted, wide);
+    return;
+  }
   assert.ok(fitted.length <= 2, `the measured height reached the renderer: ${fitted.length} lines`);
   for (const line of fitted) assert.ok([...line].length <= 60, `${[...line].length} columns: ${line}`);
 });
@@ -450,7 +455,9 @@ await test("doctor names Copilot's refresh interval and footer, and where the wi
   assert.match(harnessLine({ ...base, refreshInterval: 10, quietFooter: true }), /refreshes every 10s; Copilot's footer quieted/);
   assert.match(harnessLine({ ...base, refreshInterval: 60, quietFooter: false }), /refreshes every 60s; .*--quiet-footer hides that/);
   assert.match(harnessLine({ harness: "codex", home: "/h/.codex", configured: true }), /^install: Codex found at \/h\/\.codex, set up with this plugin$/);
-  const t = terminalReport("copilot", { env: {}, readTty: () => ({ columns: 117, rows: 40 }), settings: { statusLine: { padding: 2 } } });
+  // Pinned to a platform with /dev/tty; Windows has none and keeps the default.
+  const t = terminalReport("copilot", { env: {}, platform: "darwin", readTty: () => ({ columns: 117, rows: 40 }), settings: { statusLine: { padding: 2 } } });
+  assert.equal(terminalReport("copilot", { env: {}, platform: "win32", readTty: () => ({ columns: 117, rows: 40 }) }).columnsSource, "default");
   assert.deepEqual([t.columns, t.rows, t.columnsSource], [115, 40, "tty"]);
   assert.match(terminalLine(t), /115 columns \(read from \/dev\/tty: Copilot CLI sets no COLUMNS; less its padding of 2\), 40 rows/);
 });

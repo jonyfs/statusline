@@ -427,11 +427,11 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
  * has no JSON form, so `--json` turned it into a bare `null` with nothing to
  * say why.
  */
-export function terminalReport(harness = "claude", { readTty, settings = null, env = process.env } = {}) {
+export function terminalReport(harness = "claude", { readTty, settings = null, env = process.env, platform = process.platform } = {}) {
   // The same answer layout.js gives the renderer, so the line says what the
   // bar was fitted to. Under Copilot CLI that is `/dev/tty` less Copilot's
   // padding, since Copilot sets neither variable (specs/033-copilot-parity).
-  const size = terminalFor(harness, { env, settings, ...(readTty ? { readTty } : {}) });
+  const size = terminalFor(harness, { env, settings, platform, ...(readTty ? { readTty } : {}) });
   const rows = Number.isFinite(size.rows) ? size.rows : null;
   return {
     columns: size.columns,
