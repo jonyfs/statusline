@@ -23,48 +23,86 @@ export const CODEX_ITEMS = [
   "task-progress",
 ];
 
-const LINE = `status_line = [${CODEX_ITEMS.map((i) => JSON.stringify(i)).join(", ")}]`;
+export const CODEX_STATUS_LINE = `status_line = [${CODEX_ITEMS.map((i) => JSON.stringify(i)).join(", ")}]`;
 
 const isHeader = (l) => /^\s*\[[^\]]+\]\s*(#.*)?$/.test(l) || /^\s*\[\[[^\]]+\]\]\s*(#.*)?$/.test(l);
-const isTui = (l) => /^\s*\[tui\]\s*(#.*)?$/.test(l);
+// TOML lets a bare key also be written quoted, and allows spaces inside the
+// brackets; Codex reads `["tui"]` and `[ tui ]` as the same table as `[tui]`.
+const isTui = (l) => /^\s*\[\s*(tui|"tui"|'tui')\s*\]\s*(#.*)?$/.test(l);
+const KEY = /^\s*(status_line|"status_line"|'status_line')\s*=\s*/;
+// The root table can also define tui as a dotted key or an inline table. A
+// `[tui]` header after that is a second definition, which Codex will not load.
+const isRootTui = (l) => /^\s*(tui|"tui"|'tui')\s*[.=]/.test(l);
 
-/** Where `[tui]`'s `status_line` sits, as [start, end) line indices, and the table's bounds. */
+/**
+ * The line where the value that starts on `lines[i]` ends. Brackets are
+ * counted outside strings and comments, so an array may close on its last
+ * item's line and an item may hold a `]`. -1 when it never closes before `end`.
+ */
+function valueEnd(lines, i, end) {
+  let depth = 0;
+  for (let j = i; j < end; j++) {
+    const l = lines[j];
+    let quote = null;
+    for (let k = j === i ? l.indexOf("=") + 1 : 0; k < l.length; k++) {
+      const c = l[k];
+      if (quote) {
+        if (quote === '"' && c === "\\") k++;
+        else if (c === quote) quote = null;
+      } else if (c === '"' || c === "'") quote = c;
+      else if (c === "#") break;
+      else if (c === "[") depth++;
+      else if (c === "]") depth--;
+    }
+    if (depth <= 0) return j;
+  }
+  return -1;
+}
+
+/**
+ * Where `[tui]`'s `status_line` sits, as [start, end) line indices, and the
+ * table's bounds. `unsafe` when the file defines tui in a way a line edit
+ * cannot follow, so neither writer touches it.
+ */
 function locate(lines) {
+  const firstHeader = lines.findIndex(isHeader);
+  if (lines.slice(0, firstHeader === -1 ? lines.length : firstHeader).some(isRootTui)) return { unsafe: true };
   const header = lines.findIndex(isTui);
   if (header === -1) return { header: -1 };
   let end = header + 1;
   while (end < lines.length && !isHeader(lines[end])) end++;
   for (let i = header + 1; i < end; i++) {
-    if (!/^\s*status_line\s*=/.test(lines[i])) continue;
-    let j = i;
-    // A multi-line array runs to the line that closes it.
-    if (lines[i].includes("[") && !/\]\s*(#.*)?$/.test(lines[i])) {
-      while (j + 1 < end && !/^\s*\]\s*,?\s*(#.*)?$/.test(lines[j])) j++;
-    }
+    if (!KEY.test(lines[i])) continue;
+    const j = valueEnd(lines, i, end);
+    if (j === -1) return { unsafe: true };
     return { header, key: [i, j + 1] };
   }
   return { header, key: null };
 }
 
-/** The text with our `status_line` set under `[tui]`. */
+/**
+ * The text with our `status_line` set under `[tui]`, or null when the file
+ * defines tui in a form this writer does not edit; the caller leaves it alone.
+ */
 export function setCodexStatusLine(text = "") {
   const lines = text.split("\n");
-  const { header, key } = locate(lines);
+  const { header, key, unsafe } = locate(lines);
+  if (unsafe) return null;
   if (header === -1) {
     const base = text === "" ? "" : text.endsWith("\n") ? text : `${text}\n`;
-    return `${base}${base === "" ? "" : "\n"}[tui]\n${LINE}\n`;
+    return `${base}${base === "" ? "" : "\n"}[tui]\n${CODEX_STATUS_LINE}\n`;
   }
-  if (key) lines.splice(key[0], key[1] - key[0], LINE);
-  else lines.splice(header + 1, 0, LINE);
+  if (key) lines.splice(key[0], key[1] - key[0], CODEX_STATUS_LINE);
+  else lines.splice(header + 1, 0, CODEX_STATUS_LINE);
   return lines.join("\n");
 }
 
 /** The text without our `status_line`; a different list is left alone. */
 export function removeCodexStatusLine(text = "") {
   const lines = text.split("\n");
-  const { header, key } = locate(lines);
-  if (header === -1 || !key) return text;
-  const value = lines.slice(key[0], key[1]).join("\n").replace(/^\s*status_line\s*=\s*/, "");
+  const { header, key, unsafe } = locate(lines);
+  if (unsafe || header === -1 || !key) return text;
+  const value = lines.slice(key[0], key[1]).join("\n").replace(KEY, "");
   let items;
   try {
     items = JSON.parse(value.replace(/,\s*\]/, "]").replace(/#.*$/gm, ""));

@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { setCodexStatusLine, removeCodexStatusLine, hasCodexStatusLine } from "./codexConfig.js";
+import { setCodexStatusLine, removeCodexStatusLine, hasCodexStatusLine, CODEX_STATUS_LINE } from "./codexConfig.js";
 
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
 const PACKAGE_PATH = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -515,8 +515,12 @@ export function installHarness(harness, { env = process.env } = {}) {
     if (!existsSync(dir)) return { ok: false, reason: `Codex is not set up here: ${dir} does not exist. Run Codex once, then install again.` };
     const file = path.join(dir, "config.toml");
     const before = existsSync(file) ? readFileSync(file, "utf8") : "";
+    const after = setCodexStatusLine(before);
+    if (after === null) {
+      return { ok: false, reason: `${file} sets tui in a form this installer does not edit (a dotted key, an inline table, or an unclosed status_line). Add status_line under [tui] by hand: ${CODEX_STATUS_LINE}` };
+    }
     const backupPath = existsSync(file) ? backupFile(file, "codex-config") : null;
-    writeAtomic(file, setCodexStatusLine(before));
+    writeAtomic(file, after);
     return {
       ok: true,
       harness,
