@@ -186,3 +186,69 @@ await test("the real session log draws its explore subagent while it ran, and no
   const after = copilotSessionActivity(upTo("2026-10-06T02:41:45.000Z"), { now: Date.parse("2026-10-06T02:41:45.000Z") });
   assert.deepEqual(after.agents, []);
 });
+
+await test("a row names the model a subagent was dispatched to, not the one it was configured with", () => {
+  // Real Copilot CLI 1.0.91 logs: every subagent was configured as gpt-5.6-luna
+  // at low effort, while each assistant.message and tool.execution_start from
+  // that agentId carried mai-code-1.1-flash, the model the work ran on (audit #12).
+  const configured = [
+    started(1, 125, { model: "gpt-5.6-luna" }),
+    { type: "subagent.configured", agentId: "agent-1", timestamp: at(124), data: { model: "gpt-5.6-luna", reasoningEffort: "low" } },
+  ];
+  const before = copilotSessionActivity(eventsDir(configured), { now: NOW }).agents[0];
+  assert.equal(before.model, "gpt-5.6-luna", "the configured model stands until the first dispatch");
+  assert.equal(before.effort, "low");
+  const events = [
+    ...configured,
+    { type: "assistant.message", agentId: "agent-1", timestamp: at(110), data: { model: "mai-code-1.1-flash" } },
+    { type: "tool.execution_start", agentId: "agent-1", timestamp: at(100), data: { toolCallId: "t1", toolName: "view", toolTitle: "Viewing file", model: "mai-code-1.1-flash" } },
+    // A late configured event does not take the row back to the configured model.
+    { type: "subagent.configured", agentId: "agent-1", timestamp: at(90), data: { model: "gpt-5.6-luna", reasoningEffort: "low" } },
+    // The root's own dispatches say nothing about the subagent.
+    { type: "assistant.message", timestamp: at(80), data: { model: "claude-opus-4.5" } },
+  ];
+  const [agent] = copilotSessionActivity(eventsDir(events), { now: NOW }).agents;
+  assert.equal(agent.model, "mai-code-1.1-flash");
+  assert.equal(agent.effort, null, "the configured effort was set for a model the agent is not running on");
+  const out = render(copilot(events));
+  assert.match(out, /mai-code-1\.1-flash/);
+  assert.doesNotMatch(out, /gpt-5\.6-luna/);
+});
+
+await test("a dispatch to the configured model keeps the configured effort", () => {
+  const events = [
+    started(1, 60, { model: "gpt-5.6-luna" }),
+    { type: "subagent.configured", agentId: "agent-1", timestamp: at(59), data: { model: "gpt-5.6-luna", reasoningEffort: "low" } },
+    { type: "assistant.message", agentId: "agent-1", timestamp: at(50), data: { model: "gpt-5.6-luna" } },
+  ];
+  const [agent] = copilotSessionActivity(eventsDir(events), { now: NOW }).agents;
+  assert.equal(agent.model, "gpt-5.6-luna");
+  assert.equal(agent.effort, "low");
+});
+
+await test("a resumed or restarted session leaves nothing from the last process running (audit #14)", () => {
+  // A crash or a closed terminal writes no session.shutdown; the next
+  // `copilot --resume` writes session.resume into the same log.
+  for (const type of ["session.resume", "session.start"]) {
+    const events = [
+      { type: "session.start", data: {}, timestamp: at(8 * 3600) },
+      { type: "assistant.turn_start", data: {}, timestamp: at(8 * 3600 - 1) },
+      started(1, 8 * 3600 - 2),
+      { type, data: {}, timestamp: at(300) },
+    ];
+    const activity = copilotSessionActivity(eventsDir(events), { now: NOW });
+    assert.deepEqual(activity.agents, [], type);
+    assert.equal(activity.working, false, `${type} closes the old process's turn`);
+    // Work the resumed process starts is still drawn.
+    const resumed = [...events, started(2, 100)];
+    assert.deepEqual(copilotSessionActivity(eventsDir(resumed), { now: NOW }).agents.map((a) => a.id), ["agent-2"], type);
+  }
+});
+
+await test("a shutdown also closes the root's open turn", () => {
+  const events = [
+    { type: "assistant.turn_start", data: {}, timestamp: at(300) },
+    { type: "session.shutdown", data: {}, timestamp: at(200) },
+  ];
+  assert.equal(copilotSessionActivity(eventsDir(events), { now: NOW }).working, false);
+});
