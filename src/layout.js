@@ -3,7 +3,7 @@
  *
  * Two facts drive this module. Claude Code sets `COLUMNS` and `LINES` before
  * running the command, so the real dimensions are knowable rather than
- * assumed at 120 columns and four rows. And with thirty-four segments
+ * assumed at 120 columns and four rows. And with thirty segments
  * competing for those columns, most redraws cannot show everything, so
  * something is always being dropped.
  *

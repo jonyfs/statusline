@@ -44,6 +44,23 @@ function ignoreClosedOutput() {
 
 const UPDATE_COMMAND = `node "${process.argv[1]}" update`;
 
+// One string for both answers: `--help` asked for it, and an unknown command
+// needs it. Two copies is how the install flags went missing from one.
+const INSTALL_FLAGS = "[--no-hook] [--no-refresh-interval] [--no-task-rows]";
+const USAGE = [
+  `Usage: node "${process.argv[1]}" <command>`,
+  "",
+  "  install " + INSTALL_FLAGS,
+  "  install --harness copilot|codex",
+  "  update " + INSTALL_FLAGS,
+  "  updates [auto|notify|off]",
+  "  check-updates",
+  "  uninstall [--harness copilot|codex]",
+  "  render",
+  "  doctor [--json|--explain]",
+  "  help",
+].join("\n");
+
 /** The line `install` and `update` print about updates (specs/026-update-check, FR-014). */
 async function updatesSummary() {
   const { readBehaviour } = await import("../src/updateCheck.js");
@@ -82,6 +99,11 @@ async function main() {
     throw new Error(`Node ${MIN_NODE_MAJOR} or newer is required; this is Node ${process.versions.node}. Nothing was changed.`);
   }
   switch (subcommand) {
+    case "help":
+    case "--help":
+    case "-h":
+      console.log(USAGE);
+      break;
     case "install": {
       const harness = harnessFlag();
       if (harness) {
@@ -245,7 +267,7 @@ async function main() {
     }
     default:
       console.error(`Unknown command: ${subcommand}`);
-      console.error(`Usage: statusline-plugin <install [--harness copilot|codex]|update|updates [auto|notify|off]|check-updates|uninstall [--harness copilot|codex]|render|doctor [--json|--explain]>`);
+      console.error(USAGE);
       process.exit(1);
   }
 }

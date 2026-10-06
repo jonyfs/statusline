@@ -48,9 +48,9 @@ import {
 } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
-import { displayWidth } from "./theme.js";
+import { displayWidth, PALETTES } from "./theme.js";
 import { terminalWidth, terminalHeight } from "./layout.js";
-import { resolveLayout } from "./config.js";
+import { resolveLayout, repoConfig } from "./config.js";
 import { resolveArrangement } from "./arrangement.js";
 
 /**
@@ -357,7 +357,7 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
   return {
     cwd: readings.cwd,
     elapsedMs,
-    terminal: { columns: terminalWidth(), rows: terminalHeight() },
+    terminal: terminalReport(),
     // Which arrangement is in force, where it came from, and every part of
     // it that was refused. A segment missing because somebody switched it
     // off is a different answer from one missing because its source failed,
@@ -381,6 +381,60 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     // the reader matching widths against the wrong content.
     rows: rendered.map((entry, i) => ({ row: i + 1, line: entry.line, width: displayWidth(entry.text) })),
     segments: rows,
+  };
+}
+
+/**
+ * The size the bar was fitted to, and whether it was read or assumed.
+ *
+ * Without the source, an old Claude Code that sets neither variable printed
+ * "120 columns, Infinity rows" as if both had been measured. And `Infinity`
+ * has no JSON form, so `--json` turned it into a bare `null` with nothing to
+ * say why.
+ */
+function terminalReport() {
+  const columns = terminalWidth();
+  const rows = terminalHeight();
+  // Read back the way layout.js reads it: a value it rejects is the same as
+  // no value, because the default is what the bar was fitted to.
+  const raw = Number(process.env.COLUMNS);
+  const set = Number.isFinite(raw) && raw > 0;
+  return {
+    columns,
+    columnsSource: set ? "COLUMNS" : "default",
+    rows: Number.isFinite(rows) ? rows : null,
+    rowsSource: Number.isFinite(rows) ? "LINES" : "unset",
+  };
+}
+
+function terminalLine(t) {
+  const columns =
+    t.columnsSource === "default"
+      ? `${t.columns} columns (COLUMNS not set, using the default)`
+      : `${t.columns} columns`;
+  const rows = t.rows === null ? "rows unknown (LINES not set, every line drawn)" : `${t.rows} rows`;
+  return `terminal: ${columns}, ${rows}`;
+}
+
+/**
+ * The colour flavor a render here would use, and where the name came from.
+ *
+ * The renderer falls back to mocha for a name it does not know, which is the
+ * right thing for a bar but leaves a typo invisible: "dracula" draws mocha
+ * and nothing anywhere says so. This is where it gets said. The lookup order
+ * is resolveSettings's: the variable, then the repository's file.
+ */
+export function flavorStatus(cwd = process.cwd(), env = process.env) {
+  const fromEnv = env.CLAUDE_STATUSLINE_FLAVOR;
+  const fromFile = fromEnv ? undefined : repoConfig(cwd).flavor;
+  const name = fromEnv || fromFile || "mocha";
+  const source = fromEnv ? "from CLAUDE_STATUSLINE_FLAVOR" : fromFile ? "from .statusline.json" : "default";
+  const known = Object.hasOwn(PALETTES, name);
+  return {
+    name,
+    source,
+    known,
+    line: known ? `flavor: ${name} (${source})` : `flavor: unknown "${name}" (${source}), using mocha`,
   };
 }
 
@@ -429,7 +483,9 @@ export function formatReport(report) {
   );
   const installLines = !report.install
     ? []
-    : report.install.length === 0
+    : report.install.error
+      ? [`install: ~/.claude/settings.json could not be read: ${report.install.error}`]
+      : report.install.length === 0
       ? ["install: this plugin is not in settings.json"]
       : report.install.every((c) => c.ok)
         ? [`install: ${report.install.map((c) => c.entry).join(", ")} intact`]
@@ -451,7 +507,8 @@ export function formatReport(report) {
     arrangementLine,
     ...ignoredLines,
     `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,
-    `terminal: ${report.terminal.columns} columns, ${report.terminal.rows} rows`,
+    ...(report.flavor ? [report.flavor.line] : []),
+    terminalLine(report.terminal),
     `history: ${report.samples} samples (a rate needs 5 spanning a minute)`,
     `rendered ${widths}`,
     "",
@@ -472,6 +529,9 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
 
   const report = buildReport(payload, { now });
   report.install = readInstallChecks();
+  // The process directory, not the payload's: the render command resolves
+  // its settings from there, and this line has to name what it used.
+  report.flavor = flavorStatus(process.cwd());
   // A project statusLine wins over the user's, so a person in that project
   // sees another bar and this one looks broken (specs/028-cross-platform).
   report.overrides = projectOverrides(payload?.workspace?.project_dir || payload?.cwd || process.cwd());
@@ -484,13 +544,25 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
  * This plugin's entries in the real settings file, checked for paths that
  * no longer exist. Read here rather than in `buildReport`, which the tests
  * call and which must not depend on the machine running them.
+ *
+ * A missing file and an unreadable one are different answers. No file means
+ * nothing was installed, which is the empty list. A file that will not parse
+ * is reported with the reason, because Claude Code cannot read it either.
+ * Both used to return null, and doctor then printed no install line at all.
  */
 function readInstallChecks() {
+  const file = path.join(os.homedir(), ".claude", "settings.json");
+  let text;
   try {
-    const file = path.join(os.homedir(), ".claude", "settings.json");
-    return checkInstall(JSON.parse(readFileSync(file, "utf8")));
-  } catch {
-    return null;
+    text = readFileSync(file, "utf8");
+  } catch (err) {
+    if (err?.code === "ENOENT") return [];
+    return { error: err?.message || String(err) };
+  }
+  try {
+    return checkInstall(JSON.parse(text));
+  } catch (err) {
+    return { error: err?.message || String(err) };
   }
 }
 
