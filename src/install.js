@@ -16,6 +16,7 @@ import {
   CODEX_THEMES,
 } from "./codexConfig.js";
 import { copilotHome, readCopilotSettings } from "./copilotSettings.js";
+import { installOpencode, uninstallOpencode, opencodeStatus } from "./opencodeConfig.js";
 import { parseHooks, addCodexHook, removeCodexHook, hasCodexHook } from "./codexHooks.js";
 import { findOnPath } from "./codexLaunch.js";
 import { latestPointer } from "./codexSession.js";
@@ -954,7 +955,8 @@ export function installHarness(harness, { env = process.env, quietFooter: quiet,
     return { ok: true, harness, file, backupPath, command, notes, refreshInterval: COPILOT_REFRESH_INTERVAL_SECONDS, footer };
   }
   if (harness === "codex") return installCodex(env, theme, pane);
-  return { ok: false, reason: `Unknown harness "${harness}". Use copilot or codex.` };
+  if (harness === "opencode") return installOpencode({ env, backup: (f) => backupFile(f, "opencode-tui") });
+  return { ok: false, reason: `Unknown harness "${harness}". Use copilot, codex or opencode.` };
 }
 
 /** Removes this plugin from another harness's status line, and nothing else. */
@@ -972,7 +974,8 @@ export function uninstallHarness(harness, { env = process.env } = {}) {
     return { changed: true, file, footerRestored };
   }
   if (harness === "codex") return uninstallCodex(env);
-  return { changed: false, reason: `Unknown harness "${harness}". Use copilot or codex.` };
+  if (harness === "opencode") return uninstallOpencode({ env, backup: (f) => backupFile(f, "opencode-tui") });
+  return { changed: false, reason: `Unknown harness "${harness}". Use copilot, codex or opencode.` };
 }
 
 /** Each other harness found on this machine, and whether this plugin is set up in it. */
@@ -1005,5 +1008,8 @@ export function harnessStatus({ env = process.env } = {}) {
     };
     out.push({ harness: "codex", home: xHome, ...codexStatus(file), pane });
   }
+  // OpenCode's TUI plugin (specs/038-opencode).
+  const oc = opencodeStatus({ env });
+  if (oc) out.push(oc);
   return out;
 }

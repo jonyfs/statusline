@@ -9,9 +9,15 @@
  *
  * Codex CLI sends nothing: the payload a `codex` block marks is one this
  * plugin built from Codex's rollout (src/codexRollout.js, specs/035-codex-pane).
+ * OpenCode sends nothing either: an `opencode` block marks a payload its TUI
+ * plugin built from OpenCode's state (src/opencodePayload.js, specs/038-opencode).
  */
+const block = (payload, key) =>
+  payload && typeof payload === "object" && payload[key] && typeof payload[key] === "object" && !Array.isArray(payload[key]);
+
 export function detectHarness(payload, env = process.env) {
-  if (payload && typeof payload === "object" && payload.codex && typeof payload.codex === "object" && !Array.isArray(payload.codex)) return "codex";
+  if (block(payload, "codex")) return "codex";
+  if (block(payload, "opencode")) return "opencode";
   if (env?.COPILOT_CLI_BINARY_VERSION) return "copilot";
   if (payload && typeof payload === "object" && "ai_used" in payload) return "copilot";
   return "claude";

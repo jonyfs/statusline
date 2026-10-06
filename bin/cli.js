@@ -51,11 +51,11 @@ const USAGE = [
   `Usage: node "${process.argv[1]}" <command>`,
   "",
   "  install " + INSTALL_FLAGS,
-  "  install --harness copilot|codex [--quiet-footer|--no-quiet-footer] [--theme <catppuccin-*>|--no-theme] [--pane|--no-pane]",
+  "  install --harness copilot|codex|opencode [--quiet-footer|--no-quiet-footer] [--theme <catppuccin-*>|--no-theme] [--pane|--no-pane]",
   "  update " + INSTALL_FLAGS,
   "  updates [auto|notify|off]",
   "  check-updates",
-  "  uninstall [--harness copilot|codex]",
+  "  uninstall [--harness copilot|codex|opencode]",
   "  codex [codex arguments]      Codex CLI with the bar in a tmux pane under it",
   "  codex-pane [--cwd <dir>] [--rollout <file>] [--session <id>] [--pid <n>] [--once]",
   "  render",
@@ -71,13 +71,13 @@ async function updatesSummary() {
   return `${mode} (change with: node "${process.argv[1]}" updates ${other})`;
 }
 
-/** `--harness copilot` or `--harness=codex`, or null for Claude Code. */
+/** `--harness copilot`, `--harness=codex` or `--harness opencode`, or null for Claude Code. */
 function harnessFlag() {
   const i = rest.findIndex((a) => a === "--harness" || a.startsWith("--harness="));
   if (i === -1) return null;
   const value = rest[i].includes("=") ? rest[i].split("=")[1] : rest[i + 1];
-  if (!["copilot", "codex"].includes(value)) {
-    console.error(`--harness takes copilot or codex, not "${value ?? ""}".`);
+  if (!["copilot", "codex", "opencode"].includes(value)) {
+    console.error(`--harness takes copilot, codex or opencode, not "${value ?? ""}".`);
     process.exit(1);
   }
   return value;
@@ -196,8 +196,17 @@ async function main() {
             console.log(`  Start Codex:   node "${process.argv[1]}" codex   (the bar in a tmux pane under Codex)`);
           }
         }
+        if (harness === "opencode") {
+          const entry = {
+            added: "added to the plugin list",
+            updated: "now points at this clone (it pointed at another one)",
+            present: "already in the plugin list",
+          }[r.entry];
+          console.log(`  Plugin:        ${r.plugin}`);
+          console.log(`  Entry:         ${entry}`);
+        }
         for (const note of r.notes ?? []) console.log(`  Note:          ${note}`);
-        console.log(`  Restart ${harness === "copilot" ? "Copilot CLI" : "Codex"} to see it.`);
+        console.log(`  Restart ${{ copilot: "Copilot CLI", opencode: "OpenCode" }[harness] ?? "Codex"} to see it.`);
         break;
       }
       const { install } = await import("../src/install.js");
@@ -280,7 +289,7 @@ async function main() {
       if (harness) {
         const { uninstallHarness } = await import("../src/install.js");
         const r = uninstallHarness(harness);
-        console.log(r.changed ? `Statusline removed from ${r.file}.` : r.reason);
+        console.log(r.changed ? (r.removedFile ? `Statusline removed: ${r.file} was created by install and is gone again.` : `Statusline removed from ${r.file}.`) : r.reason);
         if (r.footerRestored) console.log(`Copilot's footer is back to what it was before --quiet-footer.`);
         if (r.themeRestored) console.log(`Codex's theme is back to what it was before --theme.`);
         if (r.hookRemoved) console.log(`SessionStart hook removed from Codex's hooks.json; other hooks were left as they were.`);

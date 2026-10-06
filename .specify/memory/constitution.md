@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.8.0 (III extended on 2026-10-06: MINOR, Codex windows of any length. A Codex usage
+- Version: 7.9.0 (III and IV extended on 2026-10-06: MINOR, the bar inside OpenCode. III names
+  OpenCode's synced TUI state as a data source, with OpenCode's own context formula and no usage
+  windows. IV adds `--harness opencode`, which edits only this plugin's entry in the `plugin` list
+  of OpenCode's `tui.json`, and an uninstall that restores the original bytes when nothing else
+  changed. Templates: no change needed. See specs/038-opencode/.)
+- Previously, version 7.8.0 (III extended on 2026-10-06: MINOR, Codex windows of any length. A Codex usage
   window that is neither 300 nor 10080 minutes, such as the free plan's 30 days, is no longer
   left out: it gets a chip labelled by its length, never the 5-hour or 7-day label. The
   rollout's credit balance may be shown as Codex writes it. Under Claude Code the bar does not
@@ -399,6 +404,16 @@ is absent from the payload and renders as the bar renders any absent field. The 
 Codex's internal format, so a reader MUST degrade to the absent field, never guess, when a
 record changes shape.
 
+Under OpenCode, which runs no status line command, the payload is built by this plugin's
+OpenCode TUI plugin from OpenCode's own synced state (`api.state`, specs/038-opencode): the model
+of the last message and the provider's `name` for it, the message's `variant` as the effort, the
+session's `cost`, `time.created` and `summary` line counts, its status (`busy` or `retry` is
+working) and its todo list. The context share MUST be OpenCode's own figure: the last assistant
+message with output, its input, output, reasoning and cache tokens over the model's
+`limit.context`, and absent without that limit. OpenCode reports no usage windows, so the 5-hour,
+7-day and spend chips are absent there, not `?%`. The renderer runs in a child process with a
+deadline, so it never blocks OpenCode's screen.
+
 Under Copilot the bar MAY also show figures Copilot or GitHub report outside the payload, each
 read as reported and never estimated (specs/033-copilot-parity): the AI credits in the payload's
 `ai_used`, drawn as Copilot formats them, with their share of the session limit only while the
@@ -444,11 +459,18 @@ Install MUST:
   disappears afterwards with no clue why. Failing at install time, naming the command that does
   work, is the kinder failure.
 
-Install MAY also be pointed at another harness with `--harness copilot` or `--harness codex`.
-It then manages only that harness's status line setting (`statusLine` in Copilot's
-`settings.json`, `[tui] status_line` in Codex's `config.toml`), backs the file up first, and
-leaves every other key or line untouched. With no `--harness`, install is Claude Code's, as it
-always was.
+Install MAY also be pointed at another harness with `--harness copilot`, `--harness codex` or
+`--harness opencode`. It then manages only that harness's status line setting (`statusLine` in
+Copilot's `settings.json`, `[tui] status_line` in Codex's `config.toml`, this plugin's entry in
+the `plugin` list of OpenCode's `tui.json`), backs the file up first, and leaves every other key
+or line untouched. With no `--harness`, install is Claude Code's, as it always was.
+
+For OpenCode (specs/038-opencode), the entry is the absolute path of this clone's
+`src/opencode/tui.tsx`. Install MUST create `tui.json` only when it is absent, MUST refuse a file
+that does not parse or whose `plugin` is not a list, MUST replace an entry pointing at another
+clone of this plugin rather than add a second, and MUST record what the file held. Uninstall MUST
+remove only entries that point at this plugin's file, and MUST put back the original bytes, or
+delete the file install created, when nothing else changed since install.
 
 For Codex, install also writes `[tui] status_line_use_colors = true` when that key is absent, and
 records that it did. It MUST keep a value the person set, and uninstall MUST remove the key only
@@ -773,4 +795,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.8.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
+**Version**: 7.9.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
