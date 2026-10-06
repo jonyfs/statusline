@@ -105,3 +105,26 @@ await test("a directory that is not a repository costs nothing extra", async () 
   const plain = mkdtempSync(path.join(os.tmpdir(), "not-a-repo-"));
   assert.equal(getGitInfo(plain), null);
 });
+
+await test("a repository known to be slow is not asked even once its snapshot has expired", async () => {
+  // The known-slow path used to fall through to the live call as soon as the
+  // cached snapshot was older than its five seconds, so every redraw after
+  // that paid the whole budget and, in a repository that really is slow,
+  // still came back with nothing. The detached refresh re-measures the cost,
+  // so a repository that has become fast returns to the live path from there.
+  const { writeEntry, readEntry, repoKey } = await import("../../src/cache.js");
+  const { getGitInfo } = await import("../../src/git.js");
+  const { MAX_AGE_MS } = await import("../../src/freshness.js");
+  process.env.CLAUDE_STATUSLINE_NO_REFRESH = "1";
+  const dir = repoManyChanges({ count: 5 });
+  const key = repoKey(dir);
+  const now = Date.now();
+
+  writeEntry(key, "gitCost", 10_000, { now });
+  writeEntry(key, "git", { branch: "main" }, { now: now - MAX_AGE_MS.git * 4 });
+
+  assert.equal(getGitInfo(dir, { now, budgetMs: SOURCE_BUDGET_MS.git }), null, "an expired snapshot must not render");
+  // A live call would have measured this fixture's real cost and replaced
+  // the recorded one. It staying put is the proof git was never run.
+  assert.equal(readEntry(key, "gitCost").value, 10_000, "the redraw ran git anyway");
+});

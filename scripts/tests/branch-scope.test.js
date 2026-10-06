@@ -76,3 +76,35 @@ await test("credentials in a remote never reach the link", () => {
     "https://github.com/jonyfs/statusline"
   );
 });
+
+await test("a branch with no CI run shows no CI chip, not a failure", async () => {
+  // refresh.js stores `{ branch }` alone when the lookup answers "none", so a
+  // later branch switch can be detected. That placeholder is not a run, and
+  // handing it to the renderer drew a red "CI failed" for a branch that has
+  // never been built.
+  const home = makeHome();
+  await withHome(home, async () => {
+    process.env.CLAUDE_STATUSLINE_NO_REFRESH = "1";
+    const key = repoKey(CWD);
+    await runRefresh("ci", key, CWD, {
+      now: NOW,
+      probes: { ci: () => ({ state: "none", value: null, branch: "feature" }) },
+    });
+    assert.equal(getCiStatus(CWD, { now: Date.now(), branch: "feature" }), null);
+    assert.equal(getCiStatus(CWD, { now: Date.now() }), null);
+  });
+});
+
+await test("a branch with no pull request shows no PR chip, not PR #undefined", async () => {
+  const home = makeHome();
+  await withHome(home, async () => {
+    process.env.CLAUDE_STATUSLINE_NO_REFRESH = "1";
+    const key = repoKey(CWD);
+    await runRefresh("pr", key, CWD, {
+      now: NOW,
+      probes: { pr: () => ({ state: "none", value: null, branch: "feature" }) },
+    });
+    assert.equal(getPrInfo(CWD, { now: Date.now(), branch: "feature" }), null);
+    assert.equal(getPrInfo(CWD, { now: Date.now() }), null);
+  });
+});
