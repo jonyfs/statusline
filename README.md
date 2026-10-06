@@ -502,7 +502,7 @@ is what takes it off a line with no room.
 ## What it knows about the work
 
 Line 2 opens with the skills in play, as one chip carrying the list rather
-than one chip per name: `◈ humanizer, dataviz, mermaid`. A chip each spent a
+than one chip per name: `❖ humanizer, dataviz, mermaid`. A chip each spent a
 separator and two spaces on every name, so three of them gave up a third of
 the line to padding, and they read as three facts when they are one. Five
 names fit; past that the rest are counted (`+2`) rather than dropped
@@ -1032,7 +1032,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-oct-diff_modified` / `nf-oct-diff_added` | `U+F459` / `U+F457` | tracked changes, untracked files |
 | `nf-oct-cloud_upload` / `nf-oct-cloud_download` | `U+F40A` / `U+F409` | commits to push, commits to pull |
 | `nf-oct-alert` | `U+F421` | merge conflicts |
-| `nf-oct-check` / `nf-oct-x` / `nf-md-progress_clock` | `U+F42E` / `U+F467` / `U+F0997` | CI passed, failed, still running |
+| `nf-oct-check` / `nf-oct-x` / `nf-md-progress_clock` | `U+F42E` / `U+F467` / `U+F0996` | CI passed, failed, still running |
 | `nf-oct-calendar` | `U+F455` | the 7-day window |
 | `nf-md-arrow_left` | `U+F004D` | where a directory or a worktree came from |
 | `nf-oct-tasklist` | `U+F4A0` | the todo list |
