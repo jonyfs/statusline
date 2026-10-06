@@ -435,6 +435,7 @@ What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI
 | Colors | Catppuccin, by level | Catppuccin, by level | one per item, from the theme | Catppuccin, by level |
 | Subagent rows | yes | yes, after the bar | no | no |
 | Git gates running in other worktrees | yes | yes | no | yes, when the pane has room |
+| Gate scripts run without a hook | yes, on Linux and macOS | yes, on Linux and macOS | no | yes, when the pane has room |
 
 Under Copilot the 5-hour and 7-day chips are absent, not `?%`: Copilot has no
 such limits, and `?%` would say a value exists and is unknown. What Copilot
@@ -844,21 +845,57 @@ Some repositories guard their gate scripts with a lock so two runs in one
 worktree do not compete for the same cores. When a worktree has a
 `gates.lock` directory in its git dir holding a live process id, a second run
 there shows `waiting for gates.lock` instead of a step. The bar only reads
-that lock; it never creates or removes it.
+that lock; it never creates or removes it. A run that holds the lock keeps the
+row the lock gives it, named after the holder, whether a hook or a person
+started it, and is never listed a second time as a direct run.
 
 Finding a hook means listing every process on the machine, which took 350 to
 675 ms in testing, more than a redraw may spend. So the lookup runs in the
 background, like the pull request and CI lookups, at most every 15 seconds,
 and the redraw reads what it found. Each row's process is checked on every
 redraw, so a hook that finished disappears at once rather than when the
-answer ages out. Rows are matched to worktrees by each hook's working
-directory, read from `/proc` on Linux and `lsof` on macOS. Windows has no fast
-way to do either, so there the rows come only from `gates.lock`.
+answer ages out. Rows are matched to worktrees by each run's working
+directory, read from `/proc` on Linux and `lsof` on macOS. Only the processes
+already known to be a hook or a matching gate script are looked up, so the
+cost follows the runs rather than the number of processes on the machine.
+Windows has no fast way to do either, so there the rows come only from
+`gates.lock`.
 
 Copilot CLI shows the same rows, after its subagent rows. Codex cannot: its
 status line is a fixed list of its own items. An arrangement (see
 "Arranging the bar yourself") can move the count like any segment, and
 `"gates": { "on": false }` takes the count and the rows off together.
+
+#### Gate scripts run without a hook
+
+Agents often run a gate directly, as `python3 .claude/scripts/gate-orcamento.py`
+or `bash .claude/scripts/gates.sh` from Claude's Bash tool, with no commit
+waiting on it. Those runs get a row too. The hook column says `gate`, and the
+rest reads like a hook's row: the worktree, its branch, the step and the age. A
+gate script that runs other gate scripts is one row, so `gates.sh` running
+`gate-links.py` shows the step `gates.sh › gate-links.py`. A gate script inside
+a hook is not counted twice; the hook's row already shows it.
+
+A process is a gate script when its working directory is inside one of the
+repository's worktrees and the script it runs matches the repository's gate
+patterns. The script is the interpreter's script argument (`python3 x.py`,
+`bash x.sh`, `npx tsx x.ts`) or the command itself. By default a script
+matches when its file name starts with `gate` or `gates` followed by `-`, `_`
+or `.` (`gates.sh`, `gate-orcamento.py`, `gate_x.ts`), or when it sits in a
+directory named `gates/`. A repository can name its own in `.statusline.json`:
+
+```json
+{ "gates": { "patterns": ["scripts/check-*.sh", "lint-*.js"] } }
+```
+
+The patterns replace the defaults. They are simple globs: `*` and `?` stay
+inside one directory and `**` crosses directories. A pattern with a `/`
+matches the end of the script's path; one without matches its file name.
+`"patterns": []` turns detection of direct runs off and leaves only the hooks
+and `gates.lock`. This `gates` key sits at the top level of `.statusline.json`
+and says what counts as a gate; the arrangement's `gates` segment says whether
+the rows show. Direct runs are found in the process list, so on Windows a
+direct run shows only while it holds `gates.lock`.
 
 ## Where a number is heading
 
@@ -949,8 +986,10 @@ repository root:
 { "flavor": "gruvbox", "separator": "thin", "skillWindowMin": 60 }
 ```
 
-Five keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin` and
-`layout`. Anything else in the file is ignored. An environment variable always
+Six keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin`,
+`layout` and `gates`. `gates` holds the patterns that name the repository's
+gate scripts (see "Gate scripts run without a hook"). Anything else in the
+file is ignored. An environment variable always
 wins, and a file in your home directory is ignored entirely, because settings
 that live in a repository travel to everyone who clones it.
 

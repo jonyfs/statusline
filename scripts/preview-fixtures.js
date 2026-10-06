@@ -134,7 +134,7 @@ export const SCENARIOS = [
   },
   {
     file: "gate-rows.svg",
-    title: "Git gates running in three worktrees of the repository: a count on line 1, a row each after the bar, one waiting for another run's lock",
+    title: "Git gates running in three worktrees of the repository: a count on line 1, a row each after the bar, one waiting for another run's lock, one gate script run by hand outside any hook",
     payload: basePayload,
     sources: {
       ...noSources,
@@ -146,6 +146,7 @@ export const SCENARIOS = [
         { pid: 1, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "harness/gate-cache", step: "gates.sh \u203a review-cycle.test.sh", startedAt: FIXED_NOW * 1000 - 184000, state: "running" },
         { pid: 2, hook: "pre-push", worktree: "statusline-docs", path: "/Users/dev/projects/statusline-docs", branch: "docs/readme-tour", step: "npm run lint \u00b7 npm run typecheck \u00b7 npm test", startedAt: FIXED_NOW * 1000 - 72000, state: "running" },
         { pid: 3, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "harness/gate-cache", step: null, startedAt: FIXED_NOW * 1000 - 12000, state: "waiting" },
+        { pid: 4, hook: "gate", kind: "direct", worktree: "statusline-ci", path: "/Users/dev/projects/statusline-ci", branch: "ci/matrix", step: "gates.sh › gate-links.py", startedAt: FIXED_NOW * 1000 - 41000, state: "running" },
       ],
     },
   },
