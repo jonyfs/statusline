@@ -261,6 +261,9 @@ await test("the pane exits on its own when the process it watches is gone", asyn
 });
 
 await test("Ctrl-C leaves the pane cleanly: cursor back, no stack trace, exit 0", async () => {
+  // Windows has no SIGINT to deliver: kill() there ends the process outright.
+  // The pane is not supported on Windows anyway (the codex wrapper says so).
+  if (process.platform === "win32") return;
   const home = makeHome();
   const child = spawn(process.execPath, [CLI, "codex-pane", "--rollout", fixture("plus"), "--cwd", os.tmpdir()], {
     env: { ...paneEnv(home), COLUMNS: "120", LINES: "3" },
