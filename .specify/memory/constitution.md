@@ -2,7 +2,11 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.1.0 (III and IV extended on 2026-10-01: MINOR, a second and third harness added
+- Version: 7.2.0 (II extended on 2026-10-05: MINOR, a harness without its own subagent rows may
+  print them after the bar. Copilot CLI has no `subagentStatusLine`, only `statusLine.command`,
+  and its session log names every subagent; the rule for Claude Code is unchanged. See
+  specs/030-copilot-agent-rows/.)
+- Previously, version 7.1.0 (III and IV extended on 2026-10-01: MINOR, a second and third harness added
   without changing what Claude Code's rules require. Copilot CLI runs this renderer and sends
   its own payload; Codex CLI runs no command, so the plugin only configures Codex's built-in
   items. See specs/029-multi-harness/.)
@@ -259,6 +263,10 @@ is a segment whose narrow-terminal behaviour nobody chose.
 **Subagent rows are not statusline lines.** The rows drawn for running subagents come from a
 separate command with its own contract and its own tick. They MUST NOT count toward the three, and
 a row that cannot be rendered MUST leave Claude Code's own rendering in place instead of failing.
+GitHub Copilot CLI has no such command, only the status line, so there the rows follow the bar's
+lines in the same output, one per running subagent read from Copilot's session log, capped with a
+count of the rest. They still MUST NOT count toward the three, and the bar MUST NOT print them in
+Claude Code, which draws its own (specs/030-copilot-agent-rows).
 
 **Three is the shape, not a floor.** A line with nothing to say is already dropped rather than
 rendered empty, and the same reasoning extends to the terminal: on a window too short or too
@@ -644,4 +652,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-01
+**Version**: 7.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-05

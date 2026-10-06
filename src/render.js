@@ -33,13 +33,15 @@ import {
 import { getRtkSavings } from "./rtk.js";
 import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
 import { detectHarness } from "./harness.js";
-import { copilotSessionActivity } from "./copilotEvents.js";
+import { copilotSessionActivity, AGENT_ROW_CAP } from "./copilotEvents.js";
 
 /**
  * Under Copilot CLI, the transcript probes read its session's `events.jsonl`
  * instead of a Claude transcript, and return the same shapes, so nothing
- * downstream changes (specs/029-multi-harness). Subagent rows are Claude
- * Code's alone.
+ * downstream changes (specs/029-multi-harness). Its reader also returns the
+ * running subagents, which the bar prints as rows after its lines
+ * (specs/030-copilot-agent-rows); `subagentActivity`, the Claude Code roster,
+ * has nothing to say here.
  */
 export function harnessProbes(probe, harness) {
   if (harness !== "copilot") return probe;
@@ -51,7 +53,7 @@ export function harnessProbes(probe, harness) {
     subagentActivity: () => [],
   };
 }
-import { elapsed } from "./taskRows.js";
+import { elapsed, harnessAgentRows } from "./taskRows.js";
 import { getOpenTabUrl, pathToFileUrl } from "./openTerminalTab.js";
 import { resetMomentLabel } from "./timeIcons.js";
 import { trackChanges, loadSamples } from "./changeTracker.js";
@@ -471,6 +473,9 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
       : missing("gh", "not a repository"),
     skills: skillsReading(timed, probe, payload, activity.value?.skills, activity.value?.skillsTrueCount),
     activity,
+    // The running subagents, which only Copilot's reader returns: Claude Code
+    // draws its own rows (specs/030-copilot-agent-rows).
+    agents: reading({ value: Array.isArray(activity.value?.agents) ? activity.value.agents : null, at: now, source: activity.source }),
     ci: hasRepo
       ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
       : missing("gh", "not a repository"),
@@ -1243,7 +1248,16 @@ export function renderReadings(
     line: entry.line,
     text: renderRow(palette, aligned[i], opts),
   }));
-  return asRows ? drawn : drawn.map((entry) => entry.text).join("\n");
+  if (asRows) return drawn;
+  // Under Copilot, which has no subagent row setting, the rows follow the
+  // bar's lines in the same output. They are not lines of the bar: they never
+  // count toward the three, and the per-line view above never sees them
+  // (Principle II, specs/030-copilot-agent-rows).
+  const agentRows =
+    readings.harness?.value === "copilot"
+      ? harnessAgentRows(readings.agents?.value, { columns: maxWidth, palette, now, cap: AGENT_ROW_CAP })
+      : [];
+  return [...drawn.map((entry) => entry.text), ...agentRows].join("\n");
 }
 
 /**

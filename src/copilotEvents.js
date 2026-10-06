@@ -6,7 +6,9 @@
  * A real session on 2026-10-01 wrote `assistant.turn_start` and
  * `assistant.turn_end` around each answer; Copilot emits `skill.invoked` with
  * the skill's `name` in `data`. This returns the same shape the Claude
- * transcript reader does, so the rest of the bar does not know the difference.
+ * transcript reader does, so the rest of the bar does not know the difference,
+ * plus the running subagents, which Claude Code draws itself and Copilot does
+ * not (specs/030-copilot-agent-rows).
  */
 
 import { openSync, readSync, fstatSync, closeSync } from "node:fs";
@@ -38,6 +40,24 @@ function readTail(file) {
   }
 }
 
+/**
+ * How many subagent rows the bar prints under Copilot before it says "+N more"
+ * (specs/030-copilot-agent-rows). Copilot's footer sits under its input box,
+ * and more rows than this push the conversation off a laptop screen.
+ */
+export const AGENT_ROW_CAP = 6;
+
+/**
+ * An event from a subagent carries the subagent's instance id at the top
+ * level; the root session's events carry none (a real Copilot CLI 1.0.91
+ * session, 2026-10-05). Turn state and line 2's skills read root events only:
+ * a subagent finishing its own turn is not the session finishing its turn,
+ * and its skills belong to its row (Principle II).
+ */
+function agentOf(event) {
+  return plainText(event?.agentId);
+}
+
 export function copilotSessionActivity(sessionDir, { now = Date.now(), limit = 3 } = {}) {
   if (typeof sessionDir !== "string" || !sessionDir) return null;
   const text = readTail(path.join(sessionDir, "events.jsonl"));
@@ -47,6 +67,15 @@ export function copilotSessionActivity(sessionDir, { now = Date.now(), limit = 3
   const skills = [];
   let lastAt = null;
   let turnOpen = false;
+  // Subagents by the tool call that started them, which is the id their
+  // completion repeats. Insertion order is start order.
+  const subagents = new Map();
+  // What each subagent instance has been doing, by its agentId.
+  const byAgent = new Map();
+  const agentState = (id) => {
+    if (!byAgent.has(id)) byAgent.set(id, { step: null, model: null, effort: null, skills: [] });
+    return byAgent.get(id);
+  };
   for (const line of text.split("\n")) {
     if (!line.trim()) continue;
     let event;
@@ -57,19 +86,75 @@ export function copilotSessionActivity(sessionDir, { now = Date.now(), limit = 3
     }
     const t = Date.parse(event?.timestamp);
     if (Number.isFinite(t)) lastAt = Math.max(lastAt ?? t, t);
-    if (event?.type === "assistant.turn_start") turnOpen = true;
-    else if (event?.type === "assistant.turn_end") turnOpen = false;
-    else if (event?.type === "skill.invoked" && Number.isFinite(t) && now - t <= window) {
-      const name = plainText(event?.data?.name);
-      if (name) skills.push(name);
+    const agent = agentOf(event);
+    const data = event?.data && typeof event.data === "object" ? event.data : {};
+    switch (event?.type) {
+      case "assistant.turn_start":
+        if (!agent) turnOpen = true;
+        break;
+      case "assistant.turn_end":
+        if (!agent) turnOpen = false;
+        break;
+      case "skill.invoked": {
+        if (!Number.isFinite(t) || now - t > window) break;
+        const name = plainText(data.name);
+        if (!name) break;
+        if (agent) agentState(agent).skills.push(name);
+        else skills.push(name);
+        break;
+      }
+      case "subagent.started": {
+        const call = plainText(data.toolCallId);
+        if (!call) break;
+        subagents.set(call, { call, agent, data, startTime: Number.isFinite(t) ? t : null });
+        break;
+      }
+      case "subagent.completed":
+      case "subagent.failed": {
+        const call = plainText(data.toolCallId);
+        if (call) subagents.delete(call);
+        break;
+      }
+      case "session.shutdown":
+        // The session that ran them is gone; nothing it started is running.
+        subagents.clear();
+        break;
+      case "subagent.configured":
+        if (agent) {
+          const state = agentState(agent);
+          state.model = plainText(data.model) ?? state.model;
+          state.effort = plainText(data.reasoningEffort) ?? state.effort;
+        }
+        break;
+      case "tool.execution_start":
+        if (agent) agentState(agent).step = plainText(data.toolTitle) ?? plainText(data.toolName) ?? agentState(agent).step;
+        break;
     }
   }
+
+  const agents = [...subagents.values()].map(({ call, agent, data, startTime }) => {
+    const state = (agent && byAgent.get(agent)) || { step: null, model: null, effort: null, skills: [] };
+    return {
+      id: agent ?? call,
+      name: plainText(data.agentName) ?? plainText(data.agentType),
+      description: plainText(data.agentDescription) ?? plainText(data.agentDisplayName),
+      label: state.step,
+      model: state.model ?? plainText(data.model),
+      effort: state.effort,
+      startTime,
+      skills: [...new Set(state.skills.slice().reverse())],
+    };
+  });
+
   // Newest first, each skill once.
   const unique = [...new Set(skills.reverse())];
   return {
     skills: unique.slice(0, limit),
     skillsTrueCount: unique.length,
     todos: null,
-    working: turnOpen || (lastAt !== null && now - lastAt <= ACTIVE_WITHIN_MS),
+    // A running subagent is work in progress even when the root has gone
+    // quiet, the rule Claude Code's reader follows (specs/012).
+    working: turnOpen || agents.length > 0 || (lastAt !== null && now - lastAt <= ACTIVE_WITHIN_MS),
+    agents,
   };
 }

@@ -261,13 +261,24 @@ What each one shows, measured against Copilot CLI 1.0.80 and Codex CLI 0.158.0:
 | Vim, fast mode | yes | no | fast mode |
 | rtk savings, update notice | yes | yes | no |
 | Premium requests, allow-all | n/a | yes | n/a |
-| Subagent rows | yes | no | no |
+| Subagent rows | yes | yes, after the bar | no |
 
 Under Copilot the 5-hour and 7-day chips are absent, not `?%`: Copilot has no
 such limits, and `?%` would say a value exists and is unknown. Copilot does
 not tell the command how wide the terminal is, so the bar lays out for 120
 columns and Copilot wraps its own footer. `doctor` lists each agent it finds
 on the machine and whether this plugin is set up there.
+
+Copilot has no setting for subagent rows like Claude Code's
+`subagentStatusLine`, but its session log records every subagent it starts
+and ends. Under Copilot the bar reads that log and prints one row per running
+subagent below its own lines, in the same columns as Claude Code's rows: the
+model and effort, the agent type, its skills, its brief, the step it is on
+(Copilot's tool title, such as `Viewing file`) and how long it has been
+running. A Claude model gets the same tier colour it gets in Claude Code; any
+other model is named as Copilot reports it. Each row is cut to the width so
+Copilot does not wrap it. After six rows, one more line says how many agents
+were left out. A skill a subagent used shows on its row, not on line 2.
 
 ## What it looks like when things are missing
 
