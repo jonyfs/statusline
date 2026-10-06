@@ -1,0 +1,37 @@
+{"type": "session.start", "data": {"sessionId": "8dd93b79-6d37-4698-90da-579f15e525fa", "copilotVersion": "1.0.92", "context": {"cwd": "/tmp/project"}}, "timestamp": "2026-10-06T15:15:28.521Z"}
+{"type": "session.model_change", "data": {"source": "startup", "contextTier": null, "newModel": "auto", "reasoningEffort": null}, "timestamp": "2026-10-06T15:15:30.045Z"}
+{"type": "session.auto_mode_resolved", "data": {"chosenModel": "gpt-6-luna", "routingMethod": "auto_v2", "fallback": false}, "timestamp": "2026-10-06T15:15:31.084Z"}
+{"type": "user.message", "data": {"responsesReasoning": {"model": "gpt-6-luna", "initialEffort": "medium", "effort": "medium"}}, "timestamp": "2026-10-06T15:15:31.287Z"}
+{"type": "assistant.turn_start", "data": {"turnId": "0", "interactionId": "f11e3574-7a8a-4f09-88d6-5b39773ec19e"}, "timestamp": "2026-10-06T15:15:31.429Z"}
+{"type": "assistant.message", "data": {"model": "gpt-6-luna"}, "timestamp": "2026-10-06T15:15:36.181Z"}
+{"type": "subagent.started", "data": {"toolCallId": "call_EG7JDgnFmboZUhvyiSAG5iqN", "agentName": "general-purpose", "agentDisplayName": "waker", "agentDescription": "Start background sleep waker", "model": "gpt-6-luna"}, "timestamp": "2026-10-06T15:15:36.374Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "assistant.turn_end", "data": {"turnId": "0"}, "timestamp": "2026-10-06T15:15:36.597Z"}
+{"type": "assistant.turn_start", "data": {"turnId": "1", "interactionId": "f11e3574-7a8a-4f09-88d6-5b39773ec19e"}, "timestamp": "2026-10-06T15:15:36.601Z"}
+{"type": "subagent.configured", "data": {"model": "gpt-6-luna", "multiTurn": true}, "timestamp": "2026-10-06T15:15:36.781Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "user.message", "data": {"source": "agent-8dd93b79-6d37-4698-90da-579f15e525fa"}, "timestamp": "2026-10-06T15:15:37.543Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "assistant.turn_start", "data": {"turnId": "0", "interactionId": "131f6cee-e851-4122-9f83-16d415825dfa", "parentToolCallId": "call_EG7JDgnFmboZUhvyiSAG5iqN"}, "timestamp": "2026-10-06T15:15:37.551Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "assistant.message", "data": {"model": "gpt-6-luna"}, "timestamp": "2026-10-06T15:15:39.256Z"}
+{"type": "subagent.started", "data": {"toolCallId": "call_kYPLGTy6HXLitCfw0kjZJOxM", "agentName": "general-purpose", "agentDisplayName": "timer", "agentDescription": "Run background timer sleep", "model": "gpt-6-luna"}, "timestamp": "2026-10-06T15:15:39.300Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "assistant.turn_end", "data": {"turnId": "1"}, "timestamp": "2026-10-06T15:15:39.336Z"}
+{"type": "assistant.turn_start", "data": {"turnId": "2", "interactionId": "f11e3574-7a8a-4f09-88d6-5b39773ec19e"}, "timestamp": "2026-10-06T15:15:39.338Z"}
+{"type": "subagent.configured", "data": {"model": "gpt-6-luna", "multiTurn": true}, "timestamp": "2026-10-06T15:15:39.493Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "user.message", "data": {"source": "agent-8dd93b79-6d37-4698-90da-579f15e525fa"}, "timestamp": "2026-10-06T15:15:39.956Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "assistant.turn_start", "data": {"turnId": "0", "interactionId": "95c1364b-be39-4b58-baef-2cc75061d938", "parentToolCallId": "call_kYPLGTy6HXLitCfw0kjZJOxM"}, "timestamp": "2026-10-06T15:15:39.970Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "assistant.message", "data": {"model": "mai-code-1.1-flash", "parentToolCallId": "call_EG7JDgnFmboZUhvyiSAG5iqN"}, "timestamp": "2026-10-06T15:15:40.500Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "assistant.turn_end", "data": {"turnId": "0", "parentToolCallId": "call_EG7JDgnFmboZUhvyiSAG5iqN"}, "timestamp": "2026-10-06T15:15:40.739Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "assistant.turn_start", "data": {"turnId": "1", "interactionId": "131f6cee-e851-4122-9f83-16d415825dfa", "parentToolCallId": "call_EG7JDgnFmboZUhvyiSAG5iqN"}, "timestamp": "2026-10-06T15:15:40.741Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "assistant.message", "data": {"model": "mai-code-1.1-flash", "parentToolCallId": "call_EG7JDgnFmboZUhvyiSAG5iqN"}, "timestamp": "2026-10-06T15:15:41.842Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "assistant.turn_end", "data": {"turnId": "1", "parentToolCallId": "call_EG7JDgnFmboZUhvyiSAG5iqN"}, "timestamp": "2026-10-06T15:15:41.845Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "subagent.completed", "data": {"toolCallId": "call_EG7JDgnFmboZUhvyiSAG5iqN", "agentName": "general-purpose", "agentDisplayName": "waker", "model": "gpt-6-luna", "firstDispatchedModel": "mai-code-1.1-flash", "modelSelectionSource": "session_inheritance", "totalToolCalls": 1, "totalTokens": 32377, "durationMs": 5539}, "timestamp": "2026-10-06T15:15:41.889Z", "agentId": "dca8d34c-998a-46f0-8c2a-eda7ba9e1f2b"}
+{"type": "assistant.message", "data": {"model": "gpt-6-luna"}, "timestamp": "2026-10-06T15:15:41.992Z"}
+{"type": "assistant.message", "data": {"model": "mai-code-1.1-flash", "parentToolCallId": "call_kYPLGTy6HXLitCfw0kjZJOxM"}, "timestamp": "2026-10-06T15:15:42.483Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "assistant.turn_end", "data": {"turnId": "0", "parentToolCallId": "call_kYPLGTy6HXLitCfw0kjZJOxM"}, "timestamp": "2026-10-06T15:16:32.669Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "assistant.turn_start", "data": {"turnId": "1", "interactionId": "95c1364b-be39-4b58-baef-2cc75061d938", "parentToolCallId": "call_kYPLGTy6HXLitCfw0kjZJOxM"}, "timestamp": "2026-10-06T15:16:32.673Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "assistant.message", "data": {"model": "mai-code-1.1-flash", "parentToolCallId": "call_kYPLGTy6HXLitCfw0kjZJOxM"}, "timestamp": "2026-10-06T15:16:33.912Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "assistant.turn_end", "data": {"turnId": "1", "parentToolCallId": "call_kYPLGTy6HXLitCfw0kjZJOxM"}, "timestamp": "2026-10-06T15:16:33.918Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "subagent.completed", "data": {"toolCallId": "call_kYPLGTy6HXLitCfw0kjZJOxM", "agentName": "general-purpose", "agentDisplayName": "timer", "model": "gpt-6-luna", "firstDispatchedModel": "mai-code-1.1-flash", "modelSelectionSource": "session_inheritance", "totalToolCalls": 1, "totalTokens": 32375, "durationMs": 54681}, "timestamp": "2026-10-06T15:16:33.977Z", "agentId": "5a8bfc1c-1b69-4332-afc0-c638d1e9f419"}
+{"type": "assistant.turn_end", "data": {"turnId": "2"}, "timestamp": "2026-10-06T15:16:34.085Z"}
+{"type": "assistant.turn_start", "data": {"turnId": "3", "interactionId": "f11e3574-7a8a-4f09-88d6-5b39773ec19e"}, "timestamp": "2026-10-06T15:16:34.086Z"}
+{"type": "assistant.message", "data": {}, "timestamp": "2026-10-06T15:16:34.156Z"}
+{"type": "assistant.message", "data": {"model": "gpt-6-luna"}, "timestamp": "2026-10-06T15:16:39.148Z"}
+{"type": "assistant.turn_end", "data": {"turnId": "3"}, "timestamp": "2026-10-06T15:16:39.154Z"}

@@ -53,9 +53,12 @@ export const PAYLOAD = {
   // Both modes on, so the composer has their chips to arrange.
   vim: { mode: "NORMAL" },
   fast_mode: true,
-  // Copilot CLI's two fields, so the composer has their chips to arrange
-  // (specs/029-multi-harness). Without `ai_used` this stays a Claude payload.
+  // Copilot CLI's fields, so the composer has their chips to arrange
+  // (specs/029-multi-harness). `ai_used` makes this a Copilot payload, which
+  // is what draws the credits and the monthly quota (specs/033-copilot-
+  // parity); the rate limits above still draw, because they are present.
   allow_all_enabled: true,
+  ai_used: { total_nano_aiu: 4_200_000_000, formatted: "4.20" },
   // Cold, so the composer has the prompt-cache chip to arrange. No miss cause:
   // with one, line 3 outgrows the 200 columns the pool is checked at and the
   // session duration drops off the fixture's bar.
@@ -105,6 +108,8 @@ export const SOURCES = {
     skills: ["speckit-implement", "humanizer"],
     todos: { done: 9, total: 24, current: "the composer page" },
     working: true,
+    // A Copilot session limit, so the credits chip shows its share of it.
+    sessionLimit: 20,
   }),
   getRtkSavings: () => 81,
   getDirUrl: () => null,
@@ -114,6 +119,17 @@ export const SOURCES = {
   getUpdateNotice: () => ({ state: "ready", text: "update ready \u00b7 1 fix" }),
   // Two git gates, one in this worktree, so the composer has the gates chip
   // to arrange (specs/031-git-gate-rows).
+  // A paid plan's month, so the composer has both quota chips to arrange,
+  // and never a real `gh` call or terminal read from a page generator.
+  getCopilotQuota: () => ({
+    resetDate: "2026-09-01",
+    quotas: {
+      premium: { usedPct: 41, entitlement: 300, unlimited: false, full: false },
+      chat: { usedPct: 12, entitlement: 200, unlimited: false, full: false },
+    },
+  }),
+  copilotSettings: () => ({}),
+  readTty: () => null,
   getGateRuns: () => [
     { pid: 101, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "004-statusline-redesign-research", step: "gates.sh \u203a review-cycle.test.sh", startedAt: NOW_MS - 184000, state: "running" },
     { pid: 102, hook: "pre-push", worktree: "statusline-docs", path: "/Users/dev/projects/statusline-docs", branch: "docs/readme", step: "npm test", startedAt: NOW_MS - 48000, state: "running" },

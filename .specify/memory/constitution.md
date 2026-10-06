@@ -2,7 +2,16 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.3.0 (II extended on 2026-10-06: MINOR, a second kind of row after the bar. The git
+- Version: 7.4.0 (III and IV extended on 2026-10-06: MINOR, Copilot CLI parity. III names what
+  the bar may show under Copilot beyond its payload: the AI credits Copilot reports and the
+  session limit its log records, the effort and the routed model its log records, the todos in
+  the session's own database, and the account's monthly premium and chat quota as GitHub
+  reports it to `gh`, labelled as a month with its reset date. The month is Copilot's only
+  window, so it is not a fabricated monthly figure, and the 5-hour and 7-day chips stay absent
+  there. IV adds the opt-in `--quiet-footer` for Copilot, which may write the `footer.show*`
+  keys the bar repeats, records what each held, and is undone by uninstall. Templates: no
+  change needed. See specs/033-copilot-parity/.)
+- Previously, version 7.3.0 (II extended on 2026-10-06: MINOR, a second kind of row after the bar. The git
   gates running in the repository's worktrees get a row each, in Claude Code and Copilot, and a
   count on line 1. The rows are the first thing a short window drops. See
   specs/031-git-gate-rows/.)
@@ -333,6 +342,21 @@ which would claim an unknown value for a limit that does not exist there. Its ow
 runs no external command; there the plugin only chooses Codex's built-in status line items, and
 no figure comes from this code (specs/029-multi-harness).
 
+Under Copilot the bar MAY also show figures Copilot or GitHub report outside the payload, each
+read as reported and never estimated (specs/033-copilot-parity): the AI credits in the payload's
+`ai_used`, drawn as Copilot formats them, with their share of the session limit only while the
+session log's latest `session.session_limits_changed` sets one; the effort and the model the
+auto router chose, from the root agent's events in the session log; the todos in the session's
+own `session.db`; and the account's monthly premium and chat quota from GitHub's
+`/copilot_internal/user`, fetched by `gh` in the detached refresh only. The quota is the one
+window Copilot meters, so showing it does not break the rule against a monthly figure above:
+it is GitHub's figure, not one invented to fill a slot. It MUST be labelled as a month and
+carry its reset date, MUST NOT be drawn as a 5-hour or 7-day window, and MUST be absent when
+`gh` cannot answer or the plan has no such allowance. A quota or credits lookup MUST NOT run
+under Claude Code. When the payload's `used_percentage` is null, Copilot's own
+`current_context_used_percentage`, or `current_context_tokens` over `displayed_context_limit`,
+stands in for it; both are Copilot's figures for the same thing.
+
 The prompt cache is shown only while the payload's `prompt_cache` block says caching is
 observed. Its countdown is the payload's `expires_at` minus now, and its token figure is the
 payload's `recache_tokens_if_cold`; the statusline MUST NOT compute either from anything else,
@@ -368,6 +392,15 @@ It then manages only that harness's status line setting (`statusLine` in Copilot
 `settings.json`, `[tui] status_line` in Codex's `config.toml`), backs the file up first, and
 leaves every other key or line untouched. With no `--harness`, install is Claude Code's, as it
 always was.
+
+For Copilot, install MAY also take `--quiet-footer`, which turns off the items of Copilot's own
+footer the bar already shows (`footer.showDirectory`, `showBranch`, `showPullRequest`,
+`showAiUsed`, `showContextWindow`, `showQuota`, `showCodeChanges`, `showCiStatus`,
+`showModelEffort`) and keeps `footer.showCustom` on, since that is the bar. It MUST be opt-in,
+MUST record each key's previous value or absence before changing it, and MUST NOT overwrite that
+record on a repeat install. `--no-quiet-footer` and uninstall MUST restore every recorded key
+whose value is still the one install wrote, and leave one the person changed since. With
+neither flag, a reinstall or update leaves the footer as it is.
 
 Uninstall MUST:
 - Remove the `statusLine` key only when it points at this plugin's own CLI path — matching a
@@ -662,4 +695,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.3.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
+**Version**: 7.4.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06

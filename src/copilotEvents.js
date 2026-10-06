@@ -23,6 +23,7 @@ import os from "node:os";
 import path from "node:path";
 import { windowMs } from "./skills.js";
 import { plainText } from "./text.js";
+import { readCopilotTodos } from "./copilotTodos.js";
 
 /** As much of the log as a redraw reads, from the end, when it has no sidecar. */
 const TAIL_BYTES = 2 * 1024 * 1024;
@@ -53,8 +54,13 @@ const IDLE_GRACE_MS = 120_000;
  */
 const TURN_GAP_MS = 3_000;
 
-/** Bumped whenever the shape of the stored state changes; another one is a miss. */
-const SIDECAR_SCHEMA = 1;
+/**
+ * Bumped whenever the shape of the stored state changes; another one is a miss.
+ * 2 since specs/033-copilot-parity added the root effort, the model the auto
+ * router resolved to and the session limit: a schema 1 state has folded the
+ * log without them, and would never learn them from what is appended later.
+ */
+const SIDECAR_SCHEMA = 2;
 
 /** Bytes compared at each end of the part already read, to notice a rewritten file. */
 const FINGERPRINT_BYTES = 256;
@@ -99,7 +105,22 @@ function freshState() {
     pendingShells: {},
     // Background commands a subagent started and nothing has closed, by agentId.
     shells: {},
+    // The root agent's reasoning effort, newest first: a user message records
+    // the one it was sent at, a model change the one it switched to
+    // (specs/033-copilot-parity). Copilot's payload has no effort field.
+    effort: null,
+    // The model that actually answered at the root, and the one the auto
+    // router chose before any answer, for a payload whose model is `auto`.
+    answeredModel: null,
+    routedModel: null,
+    // `maxAiCredits` while a session limit is in force, else null.
+    sessionLimit: null,
   };
+}
+
+/** A positive, finite number, or null. */
+function positive(v) {
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null;
 }
 
 function agentState(state, id) {
@@ -196,6 +217,10 @@ function apply(state, event) {
         }
       }
       break;
+    // A skill run a second time in a session is written as a receipt that
+    // points at the first one's content, with the same `name` (Copilot CLI
+    // 1.0.91 schema, SkillInvokedRefData). It is an invocation all the same.
+    case "skill.invoked_ref":
     case "skill.invoked": {
       const name = plainText(data.name);
       if (!name || at === null) break;
@@ -263,6 +288,39 @@ function apply(state, event) {
       state.shells = {};
       state.pendingShells = {};
       state.turnOpen = false;
+      // A resume restates the session limit it comes back with.
+      if (event.type === "session.resume" && "sessionLimits" in data) state.sessionLimit = positive(data.sessionLimits?.maxAiCredits);
+      break;
+    // The root session's own model and effort (specs/033-copilot-parity). A
+    // subagent's events carry its agentId, and its model and effort are its
+    // row's, never the session's: real subagents ran mai-code-1.1-flash at
+    // `low` under a root on gpt-6-luna at `medium`.
+    case "user.message": {
+      if (agent) break;
+      const effort = plainText(data.responsesReasoning?.effort);
+      if (effort) state.effort = effort;
+      break;
+    }
+    case "session.model_change": {
+      if (agent) break;
+      const effort = plainText(data.reasoningEffort);
+      if (effort) state.effort = effort;
+      // What answered for the old model says nothing about the new one.
+      state.answeredModel = null;
+      state.routedModel = null;
+      break;
+    }
+    case "session.auto_mode_resolved":
+      if (!agent) state.routedModel = plainText(data.chosenModel) ?? state.routedModel;
+      break;
+    case "assistant.message":
+      // A subagent's messages carry its agentId and the tool call that
+      // started it. One real root message had an empty model, which names
+      // nothing and so changes nothing.
+      if (!agent && !plainText(data.parentToolCallId)) state.answeredModel = plainText(data.model) ?? state.answeredModel;
+      break;
+    case "session.session_limits_changed":
+      if (!agent) state.sessionLimit = positive(data.sessionLimits?.maxAiCredits);
       break;
     case "subagent.configured":
       if (agent) {
@@ -501,7 +559,10 @@ function rowState(rec, state, now, shellAlive) {
   return { status: "background", startTime: shell.since ?? rec.startTime, label: `background: ${shell.command}`, counts: answer === true };
 }
 
-export function copilotSessionActivity(sessionDir, { now = Date.now(), limit = 3, shellAlive = null, sidecar = true } = {}) {
+export function copilotSessionActivity(
+  sessionDir,
+  { now = Date.now(), limit = 3, shellAlive = null, sidecar = true, readTodos = readCopilotTodos } = {}
+) {
   if (typeof sessionDir !== "string" || !sessionDir) return null;
   const file = path.join(sessionDir, "events.jsonl");
   // A sidecar that cannot be used for any reason costs the redraw nothing
@@ -545,7 +606,12 @@ export function copilotSessionActivity(sessionDir, { now = Date.now(), limit = 3
   return {
     skills: unique.slice(0, limit),
     skillsTrueCount: unique.length,
-    todos: null,
+    // From the session's own SQLite file, not the log: Copilot announces a
+    // todo change only as an ephemeral signal that never reaches events.jsonl.
+    todos: readTodos(sessionDir),
+    effort: state.effort ?? null,
+    resolvedModel: state.answeredModel ?? state.routedModel ?? null,
+    sessionLimit: state.sessionLimit ?? null,
     // A running subagent is work in progress even when the root has gone
     // quiet, the rule Claude Code's reader follows (specs/012). An idle one
     // kept only by the grace period is not: nothing says its command runs.

@@ -4,6 +4,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { setCodexStatusLine, removeCodexStatusLine, hasCodexStatusLine, CODEX_STATUS_LINE } from "./codexConfig.js";
+import { copilotHome, readCopilotSettings } from "./copilotSettings.js";
 
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
 const PACKAGE_PATH = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -489,7 +490,6 @@ export function uninstall() {
 
 // --- Other harnesses (specs/029-multi-harness) ------------------------------
 
-const copilotHome = (env) => env.COPILOT_HOME || path.join(os.homedir(), ".copilot");
 const codexHome = (env) => env.CODEX_HOME || path.join(os.homedir(), ".codex");
 
 /** A copy of a file before it is changed, beside the plugin's other backups. */
@@ -518,23 +518,129 @@ function writeAtomic(file, text) {
 }
 
 /**
- * Copilot's settings, read past line and block comments, which its other
- * files carry. Returns the object and whether comments were dropped.
+ * How often Copilot CLI re-runs the command, in seconds (specs/033-copilot-
+ * parity). Not Claude Code's 60.
+ *
+ * Copilot re-runs it only when its own session state changes, and none of
+ * what the bar reads on its own counts as a change there: a resized window,
+ * a todo the agent ticked off, an effort set with `/model`, the monthly quota
+ * the refresh just fetched. Each waits for the next tick. Ten seconds keeps
+ * that wait shorter than the moment it takes to glance down at the bar, at
+ * six redraws a minute of a few tens of milliseconds each. Five would double
+ * the redraws to save five seconds, and the slowest of those sources, the
+ * quota, only changes every five minutes anyway.
  */
-function readCopilotSettings(file) {
-  if (!existsSync(file)) return { settings: {}, hadComments: false };
-  const raw = readFileSync(file, "utf8");
-  const stripped = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-  const parsed = JSON.parse(stripped.trim() || "{}");
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(`${file} is not a settings object.`);
-  return { settings: parsed, hadComments: stripped !== raw };
+export const COPILOT_REFRESH_INTERVAL_SECONDS = 10;
+
+/**
+ * The parts of Copilot CLI's own footer the bar already shows, which
+ * `--quiet-footer` turns off (specs/033-copilot-parity). Read from Copilot
+ * 1.0.91's settings mapper. `showCustom` is not here: it is the bar itself.
+ * Agent, sandbox, schedules, username and allow-all are left alone, because
+ * the bar either does not show them or shows them differently.
+ */
+export const QUIET_FOOTER_KEYS = [
+  "showDirectory",
+  "showBranch",
+  "showPullRequest",
+  "showAiUsed",
+  "showContextWindow",
+  "showQuota",
+  "showCodeChanges",
+  "showCiStatus",
+  "showModelEffort",
+];
+
+/**
+ * What each footer key was before `--quiet-footer` changed it, per Copilot
+ * settings file, so uninstall can put it back. Kept with the plugin's other
+ * state rather than in Copilot's file, where an unknown key is Copilot's to
+ * reject.
+ */
+const footerRecordFile = () => path.join(os.homedir(), ".claude", "statusline", "copilot-footer.json");
+
+function loadFooterRecord() {
+  try {
+    const parsed = JSON.parse(readFileSync(footerRecordFile(), "utf8"));
+    if (parsed?.version === 1 && parsed.files && typeof parsed.files === "object") return parsed;
+  } catch {
+    // none yet, or unreadable: nothing recorded
+  }
+  return { version: 1, files: {} };
+}
+
+function saveFooterRecord(record) {
+  if (Object.keys(record.files).length === 0) {
+    try {
+      unlinkSync(footerRecordFile());
+    } catch {
+      // nothing to remove
+    }
+    return;
+  }
+  writeAtomic(footerRecordFile(), JSON.stringify(record, null, 2) + "\n");
+}
+
+const footerOf = (settings) =>
+  settings.footer && typeof settings.footer === "object" && !Array.isArray(settings.footer) ? settings.footer : null;
+
+/** The value `--quiet-footer` writes for a key. */
+const quietValue = (key) => key === "showCustom";
+
+/**
+ * Turns the repeated footer items off and keeps the bar on, recording what
+ * each key held first. A key already recorded keeps its first record, so a
+ * second install never mistakes its own `false` for the person's choice.
+ */
+function quietFooter(settings, file) {
+  const record = loadFooterRecord();
+  const footer = footerOf(settings) ?? {};
+  const entry = record.files[file] ?? { footerExisted: footerOf(settings) !== null, keys: {} };
+  const remember = (key) => {
+    if (!(key in entry.keys)) entry.keys[key] = Object.hasOwn(footer, key) ? { had: true, value: footer[key] } : { had: false };
+  };
+  for (const key of QUIET_FOOTER_KEYS) {
+    remember(key);
+    footer[key] = false;
+  }
+  // `showCustom: false` hides the bar this install is for.
+  if (footer.showCustom === false) {
+    remember("showCustom");
+    footer.showCustom = true;
+  }
+  settings.footer = footer;
+  record.files[file] = entry;
+  saveFooterRecord(record);
+}
+
+/**
+ * Puts back what `quietFooter` recorded for this file. A key whose value is no
+ * longer the one written was changed since, in Copilot's own picker or by
+ * hand, and that later choice stands. Returns whether anything was recorded.
+ */
+function restoreFooter(settings, file) {
+  const record = loadFooterRecord();
+  const entry = record.files[file];
+  if (!entry) return false;
+  const footer = footerOf(settings);
+  if (footer) {
+    for (const [key, before] of Object.entries(entry.keys ?? {})) {
+      if (footer[key] !== quietValue(key)) continue;
+      if (before?.had) footer[key] = before.value;
+      else delete footer[key];
+    }
+    if (!entry.footerExisted && Object.keys(footer).length === 0) delete settings.footer;
+  }
+  delete record.files[file];
+  saveFooterRecord(record);
+  return true;
 }
 
 const isOurRenderCommand = (command) =>
   isOurCommand(command) || (/cli\.js"?\s+render\s*$/.test(String(command || "")) && /statusline/i.test(String(command || "")));
 
 /** Points another harness's status line at this plugin. */
-export function installHarness(harness, { env = process.env } = {}) {
+export function installHarness(harness, { env = process.env, quietFooter: quiet } = {}) {
   const tooOld = unsupportedNode();
   if (tooOld) return { ok: false, reason: tooOld };
   if (harness === "copilot") {
@@ -552,10 +658,20 @@ export function installHarness(harness, { env = process.env } = {}) {
     }
     const backupPath = existsSync(file) ? backupFile(file, "copilot-settings") : null;
     const command = buildCommand(resolveInterpreter(), CLI_PATH);
-    read.settings.statusLine = { ...(read.settings.statusLine || {}), command, refreshInterval: REFRESH_INTERVAL_SECONDS };
+    read.settings.statusLine = { ...(read.settings.statusLine || {}), command, refreshInterval: COPILOT_REFRESH_INTERVAL_SECONDS };
+    // Opt-in both ways: `--quiet-footer` turns the repeats off, `--no-quiet-
+    // footer` puts them back, and no flag leaves the footer as it is, so a
+    // plain reinstall or update never undoes either choice (Principle IV).
+    let footer = "unchanged";
+    if (quiet === true) {
+      quietFooter(read.settings, file);
+      footer = "quiet";
+    } else if (quiet === false && restoreFooter(read.settings, file)) {
+      footer = "restored";
+    }
     writeAtomic(file, JSON.stringify(read.settings, null, 2) + "\n");
     const notes = read.hadComments ? [`${file} had comments; they are in the backup and not in the rewritten file.`] : [];
-    return { ok: true, harness, file, backupPath, command, notes };
+    return { ok: true, harness, file, backupPath, command, notes, refreshInterval: COPILOT_REFRESH_INTERVAL_SECONDS, footer };
   }
   if (harness === "codex") {
     const dir = codexHome(env);
@@ -588,8 +704,10 @@ export function uninstallHarness(harness, { env = process.env } = {}) {
     if (!isOurRenderCommand(settings.statusLine?.command)) return { changed: false, reason: "Copilot's statusLine is not this plugin's." };
     backupFile(file, "copilot-settings");
     delete settings.statusLine;
+    // The footer `--quiet-footer` changed goes back to what it was.
+    const footerRestored = restoreFooter(settings, file);
     writeAtomic(file, JSON.stringify(settings, null, 2) + "\n");
-    return { changed: true, file };
+    return { changed: true, file, footerRestored };
   }
   if (harness === "codex") {
     const file = path.join(codexHome(env), "config.toml");
@@ -610,12 +728,17 @@ export function harnessStatus({ env = process.env } = {}) {
   const cHome = copilotHome(env);
   if (existsSync(cHome)) {
     let configured = false;
+    let refreshInterval = null;
+    let quietFooterOn = false;
     try {
-      configured = isOurRenderCommand(readCopilotSettings(path.join(cHome, "settings.json")).settings.statusLine?.command);
+      const { settings } = readCopilotSettings(path.join(cHome, "settings.json"));
+      configured = isOurRenderCommand(settings.statusLine?.command);
+      refreshInterval = Number.isInteger(settings.statusLine?.refreshInterval) ? settings.statusLine.refreshInterval : null;
+      quietFooterOn = QUIET_FOOTER_KEYS.every((key) => footerOf(settings)?.[key] === false);
     } catch {
       configured = false;
     }
-    out.push({ harness: "copilot", home: cHome, configured });
+    out.push({ harness: "copilot", home: cHome, configured, refreshInterval, quietFooter: quietFooterOn });
   }
   const xHome = codexHome(env);
   if (existsSync(xHome)) {

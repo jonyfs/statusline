@@ -18,9 +18,29 @@
 
 import { plainText } from "./text.js";
 
+const finiteNumber = (v) => typeof v === "number" && Number.isFinite(v);
+
+/**
+ * The context figure. `used_percentage` first, always: it is the field Claude
+ * Code sends and the one this was written for.
+ *
+ * GitHub Copilot CLI sends it as null until its first model call, and alongside
+ * it two fields of its own that describe the same thing, the current context
+ * against the limit it displays (specs/033-copilot-parity). They are read only
+ * in that gap, so a payload that has `used_percentage` is never second-guessed.
+ * Both are Copilot's figures, not estimates (Principle III); a limit of zero
+ * gives no figure at all.
+ */
 export function getContextPercent(payload) {
-  const pct = payload?.context_window?.used_percentage;
-  return typeof pct === "number" && Number.isFinite(pct) ? Math.round(pct) : null;
+  const cw = payload?.context_window;
+  const pct = cw?.used_percentage;
+  if (finiteNumber(pct)) return Math.round(pct);
+  const current = cw?.current_context_used_percentage;
+  if (finiteNumber(current) && current >= 0) return Math.round(current);
+  const tokens = cw?.current_context_tokens;
+  const limit = cw?.displayed_context_limit;
+  if (finiteNumber(tokens) && tokens >= 0 && finiteNumber(limit) && limit > 0) return Math.round((tokens / limit) * 100);
+  return null;
 }
 
 /** A usable spend figure: finite and not negative. Above 100 is allowed. */
@@ -123,7 +143,14 @@ export function getContextTokens(payload) {
   const cw = payload?.context_window;
   const input = typeof cw?.total_input_tokens === "number" ? cw.total_input_tokens : null;
   const output = typeof cw?.total_output_tokens === "number" ? cw.total_output_tokens : null;
-  const size = typeof cw?.context_window_size === "number" ? cw.context_window_size : null;
+  // Copilot's displayed limit stands in for a window size it has not sent yet
+  // (specs/033-copilot-parity); Claude Code never sends that field.
+  const size =
+    typeof cw?.context_window_size === "number"
+      ? cw.context_window_size
+      : finiteNumber(cw?.displayed_context_limit) && cw.displayed_context_limit > 0
+        ? cw.displayed_context_limit
+        : null;
   const used = input === null && output === null ? null : (input ?? 0) + (output ?? 0);
   return { input, output, used, size, exceeds200k: payload?.exceeds_200k_tokens === true };
 }

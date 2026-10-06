@@ -52,7 +52,11 @@ export function harnessProbes(probe, harness) {
   if (harness !== "copilot") return probe;
   return {
     ...probe,
-    getSessionActivity: (sessionDir, opts) => copilotSessionActivity(sessionDir, opts),
+    // A Copilot payload always names its session directory. One that does not
+    // has no log to read, so the probe it came with answers instead; that is
+    // what lets a fixture with Copilot's fields keep its own session.
+    getSessionActivity: (sessionDir, opts) =>
+      sessionDir ? copilotSessionActivity(sessionDir, opts) : probe.getSessionActivity(sessionDir, opts),
     getActiveSkills: (_path, _limit, { scanned } = {}) => scanned ?? [],
     getActiveSkillsTrueCount: (_path, { scannedTrueCount } = {}) => scannedTrueCount ?? 0,
     subagentActivity: () => [],
@@ -69,7 +73,9 @@ import { resolveLayout } from "./config.js";
 import { bar, rampColour, bandMark } from "./ramp.js";
 import { plainText } from "./text.js";
 import { ratePerHour, projectFull, pushSample } from "./samples.js";
-import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight } from "./layout.js";
+import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight, terminalFor, readTtySize } from "./layout.js";
+import { loadCopilotSettings } from "./copilotSettings.js";
+import { getCopilotQuota, formatQuotaDate } from "./copilotQuota.js";
 
 // Nerd Font glyphs, written as escapes rather than literal private-use
 // characters: pasted literals silently vanished from this file once
@@ -400,7 +406,7 @@ function skillsReading(timed, probe, payload, scanned, scannedTrueCount) {
   };
 }
 
-export function gather(payload, probe, { now = Date.now(), off = null } = {}) {
+export function gather(payload, probe, { now = Date.now(), off = null, copilotSettings = null } = {}) {
   const timed = (source, fn) => {
     const started = Date.now();
     try {
@@ -482,6 +488,26 @@ export function gather(payload, probe, { now = Date.now(), off = null } = {}) {
   const repoId = repoOwner && repoName ? { host: payloadText(rawRepo?.host), owner: repoOwner, name: repoName } : null;
   const payloadRepoUrl = repoUrlFromPayload(repoId);
 
+  // What Copilot CLI's payload does not carry and its session does
+  // (specs/033-copilot-parity). Under Claude Code every one of these is the
+  // payload's own field or nothing, exactly as before.
+  const harness = detectHarness(payload);
+  const isCopilot = harness === "copilot";
+  const settings = isCopilot ? (copilotSettings ?? probe.copilotSettings?.() ?? {}) : null;
+  const payloadEffort = payloadText(payload?.effort?.level);
+  const loggedEffort = isCopilot ? plainText(activity.value?.effort) : null;
+  const settingsEffort = isCopilot ? plainText(settings?.effortLevel) : null;
+  const effortReading = payloadEffort
+    ? reading({ value: payloadEffort, at: now, source: "payload" })
+    : loggedEffort
+      ? reading({ value: loggedEffort, at: now, source: "transcript" })
+      : reading({ value: settingsEffort, at: now, source: settingsEffort ? "settings" : "payload" });
+  // `auto` is the router, not a model. The session log says which model it
+  // routed to, and that is what Claude Code's bar would name.
+  const routedModel =
+    isCopilot && String(payloadText(payload?.model?.id) ?? "").toLowerCase() === "auto" ? plainText(activity.value?.resolvedModel) : null;
+  const modelName = payloadText(payload?.model?.display_name) ?? payloadText(payload?.model?.id) ?? "Claude";
+
   return {
     cwd,
     dir: reading({ value: getDirLabel(cwd), at: now, source: "payload" }),
@@ -530,11 +556,14 @@ export function gather(payload, probe, { now = Date.now(), off = null } = {}) {
       ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
       : missing("gh", "not a repository"),
     model: reading({
-      value: payloadText(payload?.model?.display_name) ?? payloadText(payload?.model?.id) ?? "Claude",
+      value: routedModel ? `${routedModel} (auto)` : modelName,
       at: now,
-      source: "payload",
+      source: routedModel ? "transcript" : "payload",
     }),
-    effort: reading({ value: payloadText(payload?.effort?.level), at: now, source: "payload" }),
+    // The routed model alone, so the chip can give up "(auto)" before it
+    // gives up anything else.
+    modelRouted: reading({ value: routedModel, at: now, source: "transcript" }),
+    effort: effortReading,
     outputStyle: reading({ value: payloadText(payload?.output_style?.name), at: now, source: "payload" }),
     // Everything below arrives on stdin. None of it costs a process, and
     // none of it was on the bar before feature 002.
@@ -573,6 +602,17 @@ export function gather(payload, probe, { now = Date.now(), off = null } = {}) {
       source: "payload",
     }),
     allowAll: reading({ value: payload?.allow_all_enabled === true ? true : null, at: now, source: "payload" }),
+    // The AI credits Copilot reports, and the session limit its log records
+    // (specs/033-copilot-parity). Only once some were used, like the premium
+    // requests beside it.
+    aiCredits: reading({ value: isCopilot ? aiCreditsOf(payload, activity.value?.sessionLimit) : null, at: now, source: "payload" }),
+    // The account's monthly quota, from the cache the detached refresh fills.
+    // Never read under Claude Code: reading it is what starts the lookup.
+    copilotQuota: isCopilot
+      ? probe.getCopilotQuota
+        ? timed("cache", () => probe.getCopilotQuota({ now }))
+        : missing("cache", "no reader")
+      : missing("cache", "Copilot CLI only"),
     rtk: rtkReading,
     samples: reading({ value: sampleHistory, at: now, source: "samples" }),
   };
@@ -603,6 +643,26 @@ function payloadText(value) {
 }
 
 /**
+ * Copilot CLI's AI credits for this session, or null before any were used
+ * (specs/033-copilot-parity). The figure is Copilot's own `formatted` string,
+ * so it reads the way Copilot's footer prints it; nano-AIU over 1e9 is the
+ * unit the session limit is set in, and only used for the share of it.
+ */
+function aiCreditsOf(payload, limit) {
+  const nano = payload?.ai_used?.total_nano_aiu;
+  if (typeof nano !== "number" || !Number.isFinite(nano) || nano <= 0) return null;
+  const used = nano / 1e9;
+  const formatted = plainText(payload?.ai_used?.formatted) ?? used.toFixed(2);
+  const max = typeof limit === "number" && Number.isFinite(limit) && limit > 0 ? limit : null;
+  return { formatted, used, max, pct: max === null ? null : Math.round((used / max) * 100) };
+}
+
+/** A credit count the way a person writes one: `20`, `12.5`. */
+function creditCount(n) {
+  return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)));
+}
+
+/**
  * Renders a payload that's already parsed. `sources` exists so the preview
  * generator can supply fixed git/PR/skill/rtk values instead of probing the
  * real machine — previews must be reproducible, and they'd otherwise show
@@ -617,10 +677,12 @@ export function renderPayload(
     sources = {},
     trackChanges: tracking = true,
     now = Date.now(),
-    // Both default to what the terminal reports. A caller that passes them
-    // is a test or a preview, where the point is a fixed size.
-    maxWidth = terminalWidth(),
-    maxHeight = terminalHeight(),
+    // Both default to what the terminal reports: `COLUMNS` and `LINES` under
+    // Claude Code, `/dev/tty` under Copilot, which sets neither
+    // (specs/033-copilot-parity). A caller that passes them is a test or a
+    // preview, where the point is a fixed size.
+    maxWidth = null,
+    maxHeight = null,
     // A test or a preview passes its own; a real redraw finds the person's
     // file for itself.
     layout = null,
@@ -646,25 +708,38 @@ export function renderPayload(
     maybeStartUpdateCheck,
     getUpdateNotice,
     getGateRuns: readGateRuns,
+    // Copilot CLI only (specs/033-copilot-parity): its terminal, its settings
+    // file and its account's monthly quota. None of them is asked for under
+    // Claude Code.
+    readTty: readTtySize,
+    copilotSettings: loadCopilotSettings,
+    getCopilotQuota,
     ...sources,
   };
 
   const cwd = payload?.workspace?.current_dir || payload?.cwd || process.cwd();
   const found = layout ?? resolveLayout(cwd);
+  const harness = detectHarness(payload);
+  // Read once: the padding sizes the bar and the effort level is a fallback.
+  const copilotSettings = harness === "copilot" ? (probe.copilotSettings?.() ?? {}) : null;
+  const size =
+    maxWidth === null || maxHeight === null
+      ? terminalFor(harness, { readTty: probe.readTty, settings: copilotSettings })
+      : null;
 
   // What the arrangement switched off, so gather can skip a source whose
   // only reader is a segment nobody will see.
   const off = new Set(
     resolveArrangement(SEGMENTS, found.arrangement, found.origin).placements.filter((p) => p.on === false).map((p) => p.key)
   );
-  const readings = gather(payload, harnessProbes(probe, detectHarness(payload)), { now, off });
+  const readings = gather(payload, harnessProbes(probe, harness), { now, off, copilotSettings });
   return renderReadings(readings, payload, {
     asciiArrows,
     flavor,
     tracking,
     now,
-    maxWidth,
-    maxHeight,
+    maxWidth: maxWidth ?? size.columns,
+    maxHeight: maxHeight ?? size.rows,
     arrangement: found.arrangement,
     arrangementOrigin: found.origin,
     samples,
@@ -1096,11 +1171,53 @@ export function renderReadings(
   // not exist (Principle III, specs/029-multi-harness).
   const noLimits = readings.harness?.value === "copilot" && !payload?.rate_limits;
 
+  // Copilot CLI's monthly quota, one chip per allowance the plan meters
+  // (specs/033-copilot-parity). Labelled `month` the way the windows are
+  // labelled `5h` and `7d`, with the date the month resets: it is the only
+  // window Copilot has, and calling it anything shorter would invent one.
+  const copilotQuota = shows("premiumQuota", "copilotQuota") ? readings.copilotQuota?.value : null;
+  const quotaChip = (name, colour) => {
+    const q = copilotQuota?.quotas?.[name];
+    if (!q) return null;
+    const full = q.full || q.usedPct >= 100 ? " full" : "";
+    const level = ` ${g.calendar} month ${name} ${q.usedPct}%${bandMark(q.usedPct)}${full}`;
+    const date = formatQuotaDate(copilotQuota.resetDate);
+    return date
+      ? { color: rampColour(q.usedPct, colour), text: `${level} · ${date} `, variants: [`${level} `] }
+      : { color: rampColour(q.usedPct, colour), text: `${level} ` };
+  };
+
   const line3Content = {
-    model: () => ({
-      color: changes.colourFor("model", "red", palette),
-      text: ` ${g.model} ${modelName} `,
-    }),
+    model: () => {
+      // Under Copilot's auto router the chip names the model that answered,
+      // and "(auto)" is the first thing it gives up for width.
+      const routed = shows("model", "modelRouted") ? readings.modelRouted.value : null;
+      return {
+        color: changes.colourFor("model", "red", palette),
+        text: ` ${g.model} ${modelName} `,
+        ...(routed ? { variants: [` ${g.model} ${routed} `] } : {}),
+      };
+    },
+    premiumQuota: () => quotaChip("premium", "green"),
+    chatQuota: () => quotaChip("chat", "sapphire"),
+    // Copilot CLI's AI credits. The ramp colour has a level to show only once
+    // a session limit is set; until then it keeps its own.
+    aiCredits: () => {
+      const c = shows("aiCredits") ? readings.aiCredits?.value : null;
+      if (!c) return null;
+      // Copilot's figure is a bare number today; anything with words in it is
+      // drawn as sent rather than given a second unit.
+      const bare = /^[\d.,]+$/.test(c.formatted);
+      const amount = bare ? `${c.formatted} AIC` : c.formatted;
+      if (c.pct === null) return { color: "teal", text: ` ${g.spend} ${amount} ` };
+      const level = `${c.pct}%${bandMark(c.pct)}${fullMark(c.pct)}`;
+      const against = bare ? `${c.formatted}/${creditCount(c.max)} AIC` : `${c.formatted} of ${creditCount(c.max)}`;
+      return {
+        color: rampColour(c.pct, "teal"),
+        text: ` ${g.spend} ${against} · ${level} `,
+        variants: [` ${g.spend} ${amount} · ${level} `],
+      };
+    },
     effort: () => (effort ? { color: "peach", text: ` ${g.effort} ${effort} ` } : null),
     // Fast mode spends faster, so it sits with the model and effort that say
     // what is spending. Drawn only when on (specs/027-bar-polish).
