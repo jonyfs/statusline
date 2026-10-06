@@ -19,7 +19,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { PALETTES, displayWidth } from "./theme.js";
+import { PALETTES, displayWidth, colourEnabled } from "./theme.js";
 import { bar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
@@ -27,7 +27,13 @@ import { readSkillsByAgent } from "./skillEvents.js";
 
 const RESET = "\x1b[0m";
 
+// NO_COLOR turns colour off on these rows as it does on the bar
+// (src/theme.js): a reader who set it gets plain text, not escapes the
+// terminal was told not to expect.
+const reset = () => (colourEnabled() ? RESET : "");
+
 function fg(hex) {
+  if (!colourEnabled() || !hex) return "";
   const n = parseInt(hex.slice(1), 16);
   return `\x1b[38;2;${(n >> 16) & 255};${(n >> 8) & 255};${n & 255}m`;
 }
@@ -159,7 +165,7 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   // that both were dispatched the same way.
   const typeIdentifies = !nameIsShared && !GENERIC_TASK_NAMES.has(name);
 
-  const cell = (plain, colour) => (plain ? { plain, text: `${fg(colour)}${plain}${RESET}` } : { plain: "", text: "" });
+  const cell = (plain, colour) => (plain ? { plain, text: `${fg(colour)}${plain}${reset()}` } : { plain: "", text: "" });
 
   // Both numbers have to be real and non-negative for the ratio to mean
   // anything. A negative `tokenCount` used to render as `-10%` beside an
@@ -226,7 +232,7 @@ function joinCells(cells, widths, palette) {
     if (i === lastFilled) break;
     const target = Math.min(widths?.[i] ?? displayWidth(cells[i].plain), MAX_COLUMN);
     out += " ".repeat(Math.max(0, target - displayWidth(cells[i].plain)));
-    out += cells[i].plain ? `${fg(palette.surface1)}${SEP}${RESET}` : " ".repeat(SEP.length);
+    out += cells[i].plain ? `${fg(palette.surface1)}${SEP}${reset()}` : " ".repeat(SEP.length);
   }
   return out;
 }
@@ -572,23 +578,62 @@ export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, n
  */
 export function clipAnsi(text, columns) {
   if (displayWidth(text.replace(/\x1b\[[0-9;]*m/g, "")) <= columns) return text;
+  // The ellipsis is measured rather than counted as one column: U+2026 is
+  // East Asian Ambiguous, and the width table decides how wide it draws.
+  const room = columns - displayWidth(ELLIPSIS);
   let out = "";
   let used = 0;
-  for (let i = 0; i < text.length; ) {
-    const escape = /^\x1b\[[0-9;]*m/.exec(text.slice(i));
-    if (escape) {
-      out += escape[0];
-      i += escape[0].length;
+  let coloured = false;
+  for (const part of text.split(/(\x1b\[[0-9;]*m)/)) {
+    if (part.startsWith("\x1b[")) {
+      out += part;
+      coloured = true;
       continue;
     }
-    const char = String.fromCodePoint(text.codePointAt(i));
-    const width = displayWidth(char);
-    if (used + width > columns - 1) break;
-    out += char;
-    used += width;
-    i += char.length;
+    for (const cluster of graphemes(part)) {
+      const width = displayWidth(cluster);
+      if (used + width > room) return closeCut(out, coloured);
+      out += cluster;
+      used += width;
+    }
   }
-  return `${out}\u2026${RESET}`;
+  return closeCut(out, coloured);
+}
+
+const ELLIPSIS = "\u2026";
+
+// A colour opened in the kept part has to be closed after the ellipsis, or it
+// bleeds into whatever the terminal draws next. With colour off and no escape
+// in the text there is nothing to close.
+const closeCut = (out, coloured) => `${out}${ELLIPSIS}${coloured || colourEnabled() ? RESET : ""}`;
+
+/**
+ * `text` cut to `max` columns, the ellipsis inside them, for a cell with no
+ * colour codes in it.
+ */
+export function cutToWidth(text, max) {
+  if (displayWidth(text) <= max) return text;
+  const room = max - displayWidth(ELLIPSIS);
+  let out = "";
+  let used = 0;
+  for (const cluster of graphemes(text)) {
+    const width = displayWidth(cluster);
+    if (used + width > room) break;
+    out += cluster;
+    used += width;
+  }
+  return `${out}${ELLIPSIS}`;
+}
+
+// A cut walks grapheme clusters, what a reader sees as one character: ⚠️ is a
+// sign plus a variation selector, 1️⃣ three code points, a family emoji several
+// joined by U+200D. Measured one code point at a time, the selector's second
+// column was missed and a cut could fall inside a joined sequence, leaving a
+// joiner glued to the ellipsis. Intl.Segmenter ships in every Node from 16;
+// the fallback is the code-point walk this replaced.
+const segmenter = typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+function graphemes(text) {
+  return segmenter ? Array.from(segmenter.segment(text), (s) => s.segment) : [...text];
 }
 
 /**
@@ -608,6 +653,6 @@ export function harnessAgentRows(agents, { columns = 120, palette = PALETTES.moc
   });
   const skillsByAgent = new Map(shown.map((agent) => [agent.id, Array.isArray(agent.skills) ? agent.skills : []]));
   const rows = alignTaskRows(shown, { columns, palette, now, skillsByAgent }).map((row) => clipAnsi(row.content, columns));
-  if (agents.length > cap) rows.push(`${fg(palette.surface2)}+${agents.length - cap} more${RESET}`);
+  if (agents.length > cap) rows.push(`${fg(palette.surface2)}+${agents.length - cap} more${reset()}`);
   return rows;
 }
