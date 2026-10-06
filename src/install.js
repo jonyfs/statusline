@@ -294,11 +294,33 @@ function removeHook(settings) {
   return true;
 }
 
-export function install({
-  registerHook: wantHook = true,
-  refreshInterval: wantInterval = true,
-  taskRows: wantTaskRows = true,
-} = {}) {
+/**
+ * Which optional pieces an install of this plugin already in the settings
+ * has. Read before anything is written, so it describes what the previous
+ * install left.
+ */
+function installedPieces(settings) {
+  return {
+    hook: (settings?.hooks?.PostToolUse || []).some((group) =>
+      (group?.hooks || []).some((h) => isOurCommand(h?.command) || isOurSkillHookAnywhere(h?.command))
+    ),
+    refreshInterval: settings?.statusLine?.refreshInterval !== undefined,
+    taskRows: isOurCommand(settings?.subagentStatusLine?.command),
+  };
+}
+
+/**
+ * Each option is true (a flag turned it on), false (a `--no-*` flag turned
+ * it off) or undefined (no flag). Undefined means on for a first install.
+ *
+ * Over this plugin's own install it means "as before" instead. `update` and
+ * the automatic update run a plain install, and when undefined meant on,
+ * every update quietly put back the hook, the interval and the task rows
+ * someone had turned off (audit #17). A missing piece is the only record of
+ * that choice, so it is read back from the settings rather than from a file
+ * of its own that could disagree with them.
+ */
+export function install({ registerHook: hookFlag, refreshInterval: intervalFlag, taskRows: taskRowsFlag } = {}) {
   assertNotRunningFromNpxCache();
   const tooOld = unsupportedNode();
   if (tooOld) throw new Error(tooOld);
@@ -308,6 +330,22 @@ export function install({
 
   const command = buildCommand(resolveInterpreter(), CLI_PATH);
   const alreadyInstalled = settings.statusLine?.command === command;
+  // Matched on the clone's path rather than the whole command, so a change
+  // of interpreter (a bare `node` found on the PATH since) still counts.
+  const upgrading = isOurCommand(settings.statusLine?.command);
+  const before = installedPieces(settings);
+  const keptOff = [];
+  const choose = (flag, piece) => {
+    if (flag !== undefined) return Boolean(flag);
+    if (upgrading && !before[piece]) {
+      keptOff.push(piece);
+      return false;
+    }
+    return true;
+  };
+  const wantHook = choose(hookFlag, "hook");
+  const wantInterval = choose(intervalFlag, "refreshInterval");
+  const wantTaskRows = choose(taskRowsFlag, "taskRows");
 
   settings.statusLine = { type: "command", command };
   if (wantInterval) settings.statusLine.refreshInterval = REFRESH_INTERVAL_SECONDS;
@@ -339,6 +377,7 @@ export function install({
     hookCommand,
     refreshInterval: wantInterval ? REFRESH_INTERVAL_SECONDS : null,
     taskRows: Boolean(wantTaskRows),
+    keptOff,
     alreadyInstalled,
     // Only Git Bash can run a command whose interpreter had to stay quoted.
     needsGitBash: process.platform === "win32" && [command, hookCommand, settings.subagentStatusLine?.command].some((c) => typeof c === "string" && c.startsWith('"')),
@@ -496,7 +535,12 @@ export function installHarness(harness, { env = process.env } = {}) {
   const tooOld = unsupportedNode();
   if (tooOld) return { ok: false, reason: tooOld };
   if (harness === "copilot") {
-    const file = path.join(copilotHome(env), "settings.json");
+    // The same guard as Codex. Without it the write below made the directory
+    // itself, the install reported success for a harness that is not there,
+    // and doctor then counted the directory as Copilot CLI found (audit #20).
+    const dir = copilotHome(env);
+    if (!existsSync(dir)) return { ok: false, reason: `Copilot CLI is not set up here: ${dir} does not exist. Run copilot once, then install again.` };
+    const file = path.join(dir, "settings.json");
     let read;
     try {
       read = readCopilotSettings(file);

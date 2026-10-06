@@ -211,3 +211,83 @@ await test("an ordinary settings object is still installed into, keys intact", a
     assert.ok(settings.statusLine?.command, "and the statusline is actually there");
   });
 });
+
+// An install over this plugin's own install is what `update` and the
+// automatic update run, with no flags. It used to put back every piece the
+// person had turned off with --no-hook, --no-refresh-interval or
+// --no-task-rows, so the opt-outs lasted until the next update. A piece that
+// is missing from an install of ours now stays off unless a flag asks for it.
+await test("a plain re-install keeps each opt-out the previous install left off", async () => {
+  const home = makeHome({});
+  await withHome(home, () => {
+    install({ registerHook: false, refreshInterval: false, taskRows: false });
+    const result = install();
+    const written = home.read();
+    assert.equal(written.hooks, undefined, "the hook stays off");
+    assert.equal(written.statusLine.refreshInterval, undefined, "the interval stays off");
+    assert.equal(written.subagentStatusLine, undefined, "the task rows stay off");
+    assert.equal(result.hookRegistered, false);
+    assert.equal(result.refreshInterval, null);
+    assert.equal(result.taskRows, false);
+    assert.deepEqual(result.keptOff, ["hook", "refreshInterval", "taskRows"]);
+  });
+});
+
+await test("a re-install keeps the pieces that were on, and keeps one opt-out without the others", async () => {
+  const home = makeHome({});
+  await withHome(home, () => {
+    install({ registerHook: false });
+    const result = install();
+    const written = home.read();
+    assert.equal(written.hooks, undefined, "the hook stays off");
+    assert.equal(written.statusLine.refreshInterval, 60);
+    assert.match(written.subagentStatusLine.command, /task-rows$/);
+    assert.deepEqual(result.keptOff, ["hook"]);
+  });
+});
+
+await test("an explicit flag turns a kept-off piece back on, and --no-* still turns one off", async () => {
+  const home = makeHome({});
+  await withHome(home, () => {
+    install({ registerHook: false, refreshInterval: false, taskRows: false });
+    const result = install({ registerHook: true, taskRows: true });
+    const written = home.read();
+    assert.ok(written.hooks.PostToolUse.some((g) => g.matcher === "Skill"), "--hook puts it back");
+    assert.match(written.subagentStatusLine.command, /task-rows$/, "--task-rows puts them back");
+    assert.equal(written.statusLine.refreshInterval, undefined, "the one not named stays off");
+    assert.deepEqual(result.keptOff, ["refreshInterval"]);
+
+    install({ registerHook: false });
+    assert.equal(home.read().hooks, undefined, "--no-hook still removes it");
+  });
+});
+
+await test("a first install over another tool's statusline keeps today's defaults", async () => {
+  const home = makeHome({ statusLine: { type: "command", command: "/usr/local/bin/other-bar" } });
+  await withHome(home, () => {
+    const result = install();
+    const written = home.read();
+    assert.equal(written.statusLine.refreshInterval, 60);
+    assert.match(written.subagentStatusLine.command, /task-rows$/);
+    assert.ok(written.hooks.PostToolUse.some((g) => g.matcher === "Skill"));
+    assert.deepEqual(result.keptOff, []);
+  });
+});
+
+await test("the CLI's update and install pass the flags that turn a piece back on", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const cli = fileURLToPath(new URL("../../bin/cli.js", import.meta.url));
+  const home = makeHome({});
+  const env = { ...process.env, HOME: home.dir, USERPROFILE: home.dir, CLAUDE_STATUSLINE_UPDATES: "off" };
+  const run = (...args) => spawnSync(process.execPath, [cli, ...args], { env, encoding: "utf8" });
+  run("install", "--no-hook", "--no-task-rows");
+  const again = run("install");
+  assert.equal(again.status, 0, again.stderr);
+  assert.equal(home.read().hooks, undefined);
+  assert.match(again.stdout, /Kept off:/);
+  const on = run("install", "--hook", "--task-rows");
+  assert.equal(on.status, 0, on.stderr);
+  assert.ok(home.read().hooks.PostToolUse.some((g) => g.matcher === "Skill"));
+  assert.match(home.read().subagentStatusLine.command, /task-rows$/);
+});

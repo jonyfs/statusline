@@ -202,3 +202,43 @@ await test("doctor's install check passes a sound install", () => {
   assert.equal(checks.length, 3);
   assert.ok(checks.every((c) => c.ok), JSON.stringify(checks));
 });
+
+// Audit #18. Untracked files never stop `pull --ff-only` unless one collides
+// with an incoming path, and git refuses that case on its own. Counting them
+// as local changes refused the update and suggested a `stash` that leaves
+// untracked files where they are, so the person stayed stuck.
+await test("an untracked file does not block the update", () => {
+  const r = repos();
+  const target = r.commit("two");
+  writeFileSync(path.join(r.clone, "notes.txt"), "mine\n");
+  let installs = 0;
+  const result = update({ root: r.clone, runInstall: () => (installs++, { status: 0 }) });
+  assert.equal(result.ok, true, result.reason);
+  assert.equal(r.head(r.clone), target);
+  assert.equal(readFileSync(path.join(r.clone, "notes.txt"), "utf8"), "mine\n", "the untracked file is left alone");
+  assert.equal(installs, 1);
+});
+
+await test("an untracked file in the way of an incoming one is refused, and kept", () => {
+  const r = repos();
+  writeFileSync(path.join(r.origin, "incoming.txt"), "theirs\n");
+  git(r.origin, "add", ".");
+  git(r.origin, "commit", "-q", "-m", "incoming");
+  writeFileSync(path.join(r.clone, "incoming.txt"), "mine\n");
+  const before = r.head(r.clone);
+  const result = update({ root: r.clone, runInstall: noInstall });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /incoming\.txt/);
+  assert.equal(r.head(r.clone), before);
+  assert.equal(readFileSync(path.join(r.clone, "incoming.txt"), "utf8"), "mine\n");
+});
+
+// Audit #17. `update` hands its flags to the install it runs, and the ones
+// that turn a kept-off piece back on have to get there as well.
+await test("update passes the install flags that turn pieces on as well as off", async () => {
+  const { installFlagArgs } = await import("../../src/update.js");
+  assert.deepEqual(
+    installFlagArgs(["--no-hook", "--task-rows", "--refresh-interval", "--hook", "--verbose", "x"]),
+    ["--no-hook", "--task-rows", "--refresh-interval", "--hook"]
+  );
+});
