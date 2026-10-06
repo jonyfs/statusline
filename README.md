@@ -502,7 +502,7 @@ is what takes it off a line with no room.
 ## What it knows about the work
 
 Line 2 opens with the skills in play, as one chip carrying the list rather
-than one chip per name: `◈ humanizer, dataviz, mermaid`. A chip each spent a
+than one chip per name: `❖ humanizer, dataviz, mermaid`. A chip each spent a
 separator and two spaces on every name, so three of them gave up a third of
 the line to padding, and they read as three facts when they are one. Five
 names fit; past that the rest are counted (`+2`) rather than dropped
@@ -720,7 +720,7 @@ can also carry its own settings in a file, which is the next section.
 
 | Variable | What it does |
 |---|---|
-| `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato` or `latte` |
+| `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato`, `latte`, `nord` or `gruvbox`. An unknown name draws `mocha`, and `doctor` says so on its `flavor:` line |
 | `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
@@ -747,9 +747,10 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts twenty-two segments on three lines, and it is a default
-rather than a verdict. If you want the burn rate first, the pull request last
-and the savings figure gone, say so in an arrangement:
+The default puts thirty segments on three lines, and it is a default
+rather than a verdict. `doctor --explain` lists every segment key. If you
+want the burn rate first, the pull request last and the savings figure gone,
+say so in an arrangement:
 
 ```json
 {
@@ -894,7 +895,10 @@ it. Every segment that isn't on the line says why not.
 The header answers the two questions people actually ask. `terminal: 96
 columns, 24 rows` explains a segment that is missing because there was no
 room for it, and `history: 3 samples` explains why the burn rate has not
-appeared yet. The widths beside it are named by line — `rendered line 1: 51
+appeared yet. When Claude Code sets neither `COLUMNS` nor `LINES`, the
+terminal line says the size was assumed: `terminal: 120 columns (COLUMNS not
+set, using the default), rows unknown (LINES not set, every line drawn)`. The
+widths beside it are named by line — `rendered line 1: 51
 columns, line 3: 104 columns` — so with the skills line
 absent you are still reading each width against the content that produced
 it.
@@ -1032,7 +1036,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-oct-diff_modified` / `nf-oct-diff_added` | `U+F459` / `U+F457` | tracked changes, untracked files |
 | `nf-oct-cloud_upload` / `nf-oct-cloud_download` | `U+F40A` / `U+F409` | commits to push, commits to pull |
 | `nf-oct-alert` | `U+F421` | merge conflicts |
-| `nf-oct-check` / `nf-oct-x` / `nf-md-progress_clock` | `U+F42E` / `U+F467` / `U+F0997` | CI passed, failed, still running |
+| `nf-oct-check` / `nf-oct-x` / `nf-md-progress_clock` | `U+F42E` / `U+F467` / `U+F0996` | CI passed, failed, still running |
 | `nf-oct-calendar` | `U+F455` | the 7-day window |
 | `nf-md-arrow_left` | `U+F004D` | where a directory or a worktree came from |
 | `nf-oct-tasklist` | `U+F4A0` | the todo list |

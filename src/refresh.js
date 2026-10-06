@@ -4,16 +4,17 @@
  * Nobody is waiting on this process. The redraw that started it has
  * already printed its lines and gone, so the budgets here are generous
  * where the redraw's are tight. What matters instead is that it cannot
- * make things worse: a failed lookup releases the lock and leaves the
- * previous good value untouched, so one unreachable network call does not
- * make a segment disappear for a minute.
+ * make things worse: a failed lookup leaves the previous good value
+ * untouched, so one unreachable network call does not make a segment
+ * disappear for a minute, and it keeps the lock for a short back-off, so a
+ * lookup that keeps failing is not retried on every redraw.
  */
 
 import { writeEntry, takeLock } from "./cache.js";
 import { probeGitInfo, probePrResult, probeCiResult } from "./git.js";
 import { probeRtkSavings } from "./rtk.js";
 import { probeGateRuns } from "./gateRuns.js";
-import { REFRESH_BUDGET_MS } from "./freshness.js";
+import { REFRESH_BUDGET_MS, MAX_AGE_MS } from "./freshness.js";
 
 /**
  * Each probe answers with a state as well as a value.
@@ -80,7 +81,15 @@ export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PR
       value = { branch: result.branch };
     }
     writeEntry(key, name, value, { now: Date.now() });
+    takeLock(key, name, { now, release: true });
+    return result.state === "found";
   }
-  takeLock(key, name, { now, release: true });
-  return result.state === "found";
+
+  // Releasing the lock here let the very next redraw spawn another process
+  // for a lookup that had just failed, so an unauthenticated `gh` or a
+  // missing `rtk` cost one node process every few seconds. A quarter of the
+  // maximum age instead: a refresh starts at half of it, so one retry still
+  // lands before the value this one left in place expires.
+  takeLock(key, name, { now: Date.now(), holdFor: (MAX_AGE_MS[name] ?? 60_000) / 4 });
+  return false;
 }

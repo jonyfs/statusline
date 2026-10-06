@@ -113,6 +113,17 @@ await test("install for Copilot writes only statusLine, keeps the rest, and back
   assert.equal(JSON.parse(readFileSync(path.join(home, "settings.json"), "utf8")).statusLine, undefined);
 });
 
+// Audit #20. Without this guard the install created ~/.copilot itself and
+// reported success, and doctor then said Copilot CLI was found.
+await test("install for Copilot refuses when Copilot is not set up, and creates nothing", () => {
+  const home = path.join(os.tmpdir(), `statusline-no-copilot-here-${process.pid}`);
+  const r = installHarness("copilot", { env: { COPILOT_HOME: home } });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /Copilot CLI is not set up/);
+  assert.equal(existsSync(home), false, "no directory was made for it");
+  assert.deepEqual(harnessStatus({ env: { COPILOT_HOME: home, CODEX_HOME: path.join(os.tmpdir(), "nope-2") } }), []);
+});
+
 await test("uninstall for Copilot leaves another tool's statusLine alone", () => {
   const home = tempDir("statusline-copilot-home-");
   writeFileSync(path.join(home, "settings.json"), JSON.stringify({ statusLine: { command: "other-tool" } }));
@@ -147,6 +158,61 @@ await test("the Codex writer replaces a status_line inside [tui] and nowhere els
   assert.equal(setCodexStatusLine(multi), `[tui]\n${OURS}\ntheme = "dark"\n`);
   const noKey = '[tui] # mine\ntheme = "dark"\n';
   assert.equal(setCodexStatusLine(noKey), `[tui] # mine\n${OURS}\ntheme = "dark"\n`);
+});
+
+// Finding #15: TOML spells the table and the key more than one way. A writer
+// that only knew `[tui]` and a bare key appended a second table or a second
+// key, and Codex 0.160.1 then refused to load the file ("duplicate key").
+await test("the Codex writer edits a quoted or spaced [tui] header and a quoted key in place", () => {
+  assert.equal(setCodexStatusLine('["tui"]\ntheme = "dark"\n'), `["tui"]\n${OURS}\ntheme = "dark"\n`);
+  assert.equal(setCodexStatusLine("[ 'tui' ] # x\ntheme = \"dark\"\n"), `[ 'tui' ] # x\n${OURS}\ntheme = "dark"\n`);
+  assert.equal(setCodexStatusLine('[ tui ]\ntheme = "dark"\n'), `[ tui ]\n${OURS}\ntheme = "dark"\n`);
+  assert.equal(setCodexStatusLine('[tui]\n"status_line" = ["model"]\ntheme = "dark"\n'), `[tui]\n${OURS}\ntheme = "dark"\n`);
+  const quoted = `[tui]\n"status_line" = ${OURS.slice(OURS.indexOf("["))}\n`;
+  assert.equal(removeCodexStatusLine(quoted), "", "our list under a quoted key is still ours");
+});
+
+await test("the Codex writer refuses, rather than append, when the root table defines tui", () => {
+  for (const text of [
+    'tui.status_line = ["model"]\n',
+    'model = "o3"\ntui = { theme = "dark" }\n\n[projects."/x"]\ntrust_level = "trusted"\n',
+    '"tui".theme = "dark"\n',
+    "'tui' = { theme = \"dark\" }\n",
+  ]) {
+    assert.equal(setCodexStatusLine(text), null, text);
+    assert.equal(removeCodexStatusLine(text), text, text);
+  }
+  // Under another table the same spelling is that table's key, not the root's.
+  const nested = '[profiles.x]\ntui.theme = "dark"\n';
+  assert.equal(setCodexStatusLine(nested), `${nested}\n[tui]\n${OURS}\n`);
+});
+
+await test("install for Codex leaves a config it cannot edit untouched and says why", () => {
+  const codexHome = tempDir("statusline-codex-home-");
+  const text = 'tui = { theme = "dark" }\n';
+  writeFileSync(path.join(codexHome, "config.toml"), text);
+  const r = installHarness("codex", { env: { CODEX_HOME: codexHome } });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /does not edit.*by hand: status_line = \[/);
+  assert.equal(readFileSync(path.join(codexHome, "config.toml"), "utf8"), text);
+  assert.deepEqual(readdirSync(codexHome), ["config.toml"], "no backup for a file left alone");
+});
+
+// Finding #16: a multi-line array may close on its last item's line, and a
+// `]` may sit inside a quoted item. The array ends where its brackets balance.
+await test("the Codex writer finds a multi-line status_line's end by its brackets", () => {
+  const closesOnItem = '[tui]\nstatus_line = [\n  "model",\n  "git-branch"]\ntheme = "dark"\nanimations = false\n\n[profiles.x]\nmodel = "o3"\n';
+  assert.equal(setCodexStatusLine(closesOnItem), `[tui]\n${OURS}\ntheme = "dark"\nanimations = false\n\n[profiles.x]\nmodel = "o3"\n`);
+  const bracketInString = '[tui]\nstatus_line = ["a]b",\n "c"] # mine\ntheme = "dark"\n';
+  assert.equal(setCodexStatusLine(bracketInString), `[tui]\n${OURS}\ntheme = "dark"\n`);
+  const commented = '[tui]\nstatus_line = [ # pick\n  "a", # ] not this\n  \'b]\',\n  "c\\"]",\n]\ntheme = "dark"\n';
+  assert.equal(setCodexStatusLine(commented), `[tui]\n${OURS}\ntheme = "dark"\n`);
+  const ours = `[tui]\nstatus_line = [\n${CODEX_ITEMS.map((i) => `  "${i}"`).join(",\n")}]\ntheme = "dark"\n`;
+  assert.equal(removeCodexStatusLine(ours), '[tui]\ntheme = "dark"\n');
+  // An array that never closes is not this writer's to guess at.
+  const open = '[tui]\nstatus_line = [\n  "a",\ntheme = "dark"\n';
+  assert.equal(setCodexStatusLine(open), null);
+  assert.equal(removeCodexStatusLine(open), open);
 });
 
 await test("removing Codex's status_line touches only ours", () => {
