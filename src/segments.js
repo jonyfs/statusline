@@ -94,6 +94,12 @@ export const SEGMENTS = [
   { key: "burnRate", line: 3, order: 42, priority: 66, colour: "ramp", source: "samples" },
   { key: "projection", line: 3, order: 44, priority: 64, colour: "identity", source: "samples" },
   { key: "sevenDay", line: 3, order: 50, priority: 90, colour: "ramp", source: "payload" },
+  // Codex only (specs/037-codex-windows). A window that is neither 5 hours nor
+  // 7 days, such as the free plan's 30 days, stands beside the 7-day slot it
+  // takes the place of. Ranked with the windows: on the free plan it is the
+  // only usage figure there is. The credit balance sits with the spend limit.
+  { key: "codexWindow", line: 3, order: 49, priority: 89, colour: "ramp", source: "payload" },
+  { key: "codexCredits", line: 3, order: 53, priority: 67, colour: "identity", source: "payload" },
   // Copilot CLI only (specs/033-copilot-parity). GitHub meters Copilot by the
   // month, so these stand where the 5-hour and 7-day chips stand under Claude
   // Code, which are absent under Copilot: the two never share a line. Two
@@ -188,6 +194,8 @@ export const SEGMENT_ABOUT = {
   fiveHour: "The five-hour usage window and when it comes back. It counts down, because inside a day a reset is something you wait out.",
   burnRate: "How fast the five-hour window is being spent, measured across recent samples. A percentage says where you are; a rate says whether you arrive before the reset.",
   projection: "When the five-hour window would run out, shown only when that lands before it resets — which is the only case where it changes what you do.",
+  codexWindow: "Codex CLI only: a usage window that is neither five hours nor seven days, named by its length, such as the free plan's `30d`, with its reset. Absent when Codex reports no such window.",
+  codexCredits: "Codex CLI only: the credit balance Codex reports. Absent when the account has no credits, or unlimited ones.",
   sevenDay: "The seven-day usage window and when it comes back. It names the day, because beyond a day a reset is something you plan around.",
   promptCache: "The prompt cache, shown only when it matters: warm with minutes left once it is close to expiring, or cold with the tokens the next request writes again and the likely reason it was lost. Silent while there is time to spare.",
   spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",

@@ -83,21 +83,26 @@ await test("a Plus rollout maps to the Claude payload: model, effort, context an
   assert.equal(p.codex.cli_version, "0.142.3");
 });
 
-await test("the free plan's 30-day window is not drawn as a 5-hour or 7-day one", () => {
+await test("the free plan's 30-day window is kept under its own label, not as a 5-hour or 7-day one", () => {
   const p = payloadOf(fixture("free"));
-  assert.equal(p.rate_limits, undefined, "a 43200-minute window has no slot on the bar");
+  assert.equal(p.rate_limits.five_hour, undefined);
+  assert.equal(p.rate_limits.seven_day, undefined);
+  assert.deepEqual(p.rate_limits.other_windows, [{ label: "30d", window_minutes: 43200, used_percentage: 15, resets_at: 1791048881 }]);
   assert.equal(Math.round(p.context_window.used_percentage), 34);
   assert.deepEqual(p.effort, { level: "high" });
 });
 
-await test("only 300 and 10080 minute windows map, whichever of primary or secondary carries them", () => {
+await test("only 300 and 10080 minute windows map to the chips, whichever of primary or secondary carries them", () => {
   const dir = scratch();
   const file = path.join(dir, "rollout.jsonl");
   const limits = (primary, secondary) =>
     JSON.stringify({ timestamp: "2026-10-06T11:00:00Z", type: "event_msg", payload: { type: "token_count", info: null, rate_limits: { primary, secondary } } });
   writeFileSync(file, limits({ used_percent: 40, window_minutes: 10080, resets_at: 1791900000 }, { used_percent: 9, window_minutes: 1440, resets_at: 1791800000 }) + "\n");
   const p = payloadOf(file);
-  assert.deepEqual(p.rate_limits, { seven_day: { used_percentage: 40, resets_at: 1791900000 } });
+  assert.deepEqual(p.rate_limits, {
+    seven_day: { used_percentage: 40, resets_at: 1791900000 },
+    other_windows: [{ label: "1d", window_minutes: 1440, used_percentage: 9, resets_at: 1791800000 }],
+  });
 });
 
 await test("a 0.160 rollout with info null has the window size but no invented percentage", () => {

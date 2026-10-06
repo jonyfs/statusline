@@ -103,6 +103,18 @@ const DESCRIBE = {
   // Copilot CLI's credits and monthly quota (specs/033-copilot-parity).
   aiCredits: ["aiCredits", (v) => (v ? `${v.formatted} AI credits${v.max ? `, ${v.pct}% of a ${v.max} credit session limit` : ""}` : null)],
   premiumQuota: ["copilotQuota", (v) => describeQuota(v, "premium")],
+  // Codex's other windows and credits (specs/037-codex-windows). The chip
+  // draws the first window; the row names every one.
+  codexWindow: [
+    "codexWindow",
+    (v, now) =>
+      v?.length
+        ? v
+            .map((w) => `${w.label} ${describeWindow(Math.round(w.used_percentage), w.resets_at, now, { maxMs: w.window_minutes * 60_000 + 24 * 3600 * 1000 })}`)
+            .join(", ")
+        : null,
+  ],
+  codexCredits: ["codexCredits", (v) => (v ? `${v.balance} credits (rollout)` : null)],
   chatQuota: ["copilotQuota", (v) => describeQuota(v, "chat")],
 };
 
@@ -115,6 +127,9 @@ function describeQuota(value, name) {
 
 /** The segments only Copilot CLI's payload or account can fill. */
 const COPILOT_ONLY = new Set(["allowAll", "premiumRequests", "aiCredits", "premiumQuota", "chatQuota"]);
+
+/** The segments only a Codex rollout can fill (specs/037-codex-windows). */
+const CODEX_ONLY = new Set(["codexWindow", "codexCredits"]);
 
 /** Each running gate as its row names it: the hook, where, and whether it waits. */
 function describeGates(runs) {
@@ -169,6 +184,9 @@ const LIVE_PROBES = {
  */
 function absenceReason(segment, reading, readings, now) {
   if (COPILOT_ONLY.has(segment.key) && readings?.harness?.value !== "copilot") return "Copilot CLI only";
+  if (CODEX_ONLY.has(segment.key) && reading?.value == null && readings?.harness?.value !== "codex") return "Codex CLI only";
+  if (segment.key === "codexWindow" && reading?.value == null) return "Codex reports no window other than 5 hours and 7 days";
+  if (segment.key === "codexCredits" && reading?.value == null) return "no credit balance in the rollout, or the credits are unlimited";
   if (!reading) return "no reading";
   if ((segment.key === "premiumQuota" || segment.key === "chatQuota") && !reading.error && !reading.value?.quotas?.[segment.key === "premiumQuota" ? "premium" : "chat"]) {
     return reading.value

@@ -67,7 +67,10 @@ await test("a segment switched off leaves whatever its priority", () => {
 });
 
 await test("a segment moved to another line renders there", () => {
-  const after = lines(draw({ version: 1, segments: { skills: { line: 3, order: 5 } } }));
+  // 240 columns: the fixture's line 3 carries every allowance chip of every
+  // harness (Codex's 30-day window and credits joined it in specs/037), and
+  // at 200 the moved skills chip is the one the width drops.
+  const after = lines(draw({ version: 1, segments: { skills: { line: 3, order: 5 } } }, { width: 240 }));
   assert(after.some((l) => /Opus 5/.test(l) && /speckit-implement/.test(l)), "skills did not land beside the model");
   assert(!after.some((l) => /speckit-implement/.test(l) && /working/.test(l)), "skills is still on its old line");
 });
