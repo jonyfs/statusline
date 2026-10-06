@@ -206,3 +206,13 @@ await test("a real sh gate-demo.sh in a linked worktree is found by the probe", 
     }
   }
 });
+
+await test("test files of the gates are not gates, and runner flags with values are skipped", () => {
+  const m = gateMatcher();
+  for (const f of ["scripts/tests/gate-rows.test.js", "gate_x_test.py", "gate.spec.ts", "gates/test_gate.py"]) assert.equal(m(f), false, f);
+  assert.equal(m("gate-orcamento.py"), true);
+  assert.equal(scriptOf("node -r ./gate-setup.js app.js"), "app.js");
+  assert.equal(scriptOf("node --require ./hook.js gate.js"), "gate.js");
+  assert.equal(scriptOf("python3 -W ignore gate-x.py"), "gate-x.py");
+  assert.equal(scriptOf("node --import=tsx gate.ts"), "gate.ts", "the --flag=value form is one token");
+});

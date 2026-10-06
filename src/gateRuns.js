@@ -220,6 +220,21 @@ const isRunner = (name) => RUNNERS.has(name) || /^(python|pypy)\d*(\.\d+)*$/.tes
  * command itself. Null for a command given inline (`bash -c`, `python -m`),
  * whose children are what runs, and for a process caught mid-exec.
  */
+/**
+ * Runner flags that take the next token as their value. Without these,
+ * `node -r ./setup.js app.js` read `./setup.js` as the script and
+ * `python3 -W ignore gate-x.py` read `ignore`.
+ */
+const FLAGS_WITH_VALUE = {
+  node: ["-r", "--require", "--import", "--loader", "--experimental-loader", "-C", "--conditions"],
+  python: ["-W", "-X", "-Q"],
+  python3: ["-W", "-X", "-Q"],
+  ruby: ["-I", "-r"],
+  perl: ["-I", "-M"],
+  deno: ["--config", "-c", "--import-map"],
+  bun: ["--preload", "-r", "--config"],
+};
+
 export function scriptOf(command) {
   const text = String(command ?? "").trim();
   if (!text || /^\(.*\)$/.test(text)) return null;
@@ -232,6 +247,10 @@ export function scriptOf(command) {
     if ((prog === "deno" || prog === "bun") && tokens[i] === "run") i++;
     for (; i < tokens.length && tokens[i].startsWith("-"); i++) {
       const flag = tokens[i];
+      if ((FLAGS_WITH_VALUE[prog] ?? []).includes(flag)) {
+        i++;
+        continue;
+      }
       if (/^-[A-Za-z]*c[A-Za-z]*$/.test(flag) || flag === "-m") return null;
       if (["-e", "--eval", "-p", "--print"].includes(flag) && !["bash", "sh", "zsh", "dash", "ksh"].includes(prog)) return null;
     }
@@ -273,7 +292,12 @@ export function gateMatcher(patterns = null) {
     return (script) => {
       if (!script) return false;
       const p = String(script).replace(/\\/g, "/");
-      return /^gates?[-_.]/i.test(p.split("/").pop()) || /(^|\/)gates\/[^/]+$/.test(p);
+      const name = p.split("/").pop();
+      // A test of the gates is not a gate: gate-rows.test.js, gate_x_test.py
+      // and gate.spec.ts are what a test runner runs. A pattern in
+      // .statusline.json can still name them on purpose.
+      if (/[._-](test|spec)\.[^.]+$|^test_|_test\.[^.]+$/i.test(name)) return false;
+      return /^gates?[-_.]/i.test(name) || /(^|\/)gates\/[^/]+$/.test(p);
     };
   }
   const res = patterns.map((g) => ({ re: globToRegExp(g), whole: /[\\/]/.test(g) }));
