@@ -51,7 +51,7 @@ const USAGE = [
   `Usage: node "${process.argv[1]}" <command>`,
   "",
   "  install " + INSTALL_FLAGS,
-  "  install --harness copilot|codex [--quiet-footer|--no-quiet-footer]",
+  "  install --harness copilot|codex [--quiet-footer|--no-quiet-footer] [--theme <catppuccin-*>|--no-theme]",
   "  update " + INSTALL_FLAGS,
   "  updates [auto|notify|off]",
   "  check-updates",
@@ -122,7 +122,18 @@ async function main() {
           console.error(`--quiet-footer is for Copilot CLI's footer; ${harness} has none to quiet.`);
           process.exit(1);
         }
-        const r = installHarness(harness, { quietFooter });
+        // Codex only (specs/034-codex-items): a Catppuccin name sets the
+        // theme, --no-theme puts back the one it replaced, and no flag leaves
+        // it alone.
+        const themeAt = rest.findIndex((a) => a === "--theme" || a.startsWith("--theme="));
+        let theme;
+        if (rest.includes("--no-theme")) theme = false;
+        else if (themeAt !== -1) theme = rest[themeAt].includes("=") ? rest[themeAt].split("=")[1] : (rest[themeAt + 1] ?? "");
+        if (theme !== undefined && harness !== "codex") {
+          console.error(`--theme is for Codex's own theme; ${harness} has none to set.`);
+          process.exit(1);
+        }
+        const r = installHarness(harness, { quietFooter, theme });
         if (!r.ok) {
           console.error(r.reason);
           process.exit(1);
@@ -139,6 +150,28 @@ async function main() {
             unchanged: "Copilot's own, unchanged (--quiet-footer hides what the bar repeats)",
           }[r.footer];
           console.log(`  Footer:        ${footer}`);
+        }
+        if (harness === "codex") {
+          const items = {
+            written: "written, in the Claude bar's order",
+            upgraded: "upgraded from the list an earlier version wrote",
+            unchanged: "already this plugin's list",
+            kept: "your own list, kept",
+          }[r.items];
+          const colors = {
+            added: "on (status_line_use_colors, added by this plugin)",
+            ours: "on (status_line_use_colors, added by this plugin)",
+            "yours-on": "on (your own setting)",
+            "yours-off": "off (your own setting, kept)",
+          }[r.colors];
+          const theme = {
+            set: `${r.themeName} (--no-theme or uninstall puts yours back)`,
+            restored: "back to what it was before --theme",
+            unchanged: "Codex's own, unchanged (--theme catppuccin-mocha sets one)",
+          }[r.theme];
+          console.log(`  Items:         ${items}`);
+          console.log(`  Colors:        ${colors}`);
+          console.log(`  Theme:         ${theme}`);
         }
         for (const note of r.notes ?? []) console.log(`  Note:          ${note}`);
         console.log(`  Restart ${harness === "copilot" ? "Copilot CLI" : "Codex"} to see it.`);
@@ -226,6 +259,7 @@ async function main() {
         const r = uninstallHarness(harness);
         console.log(r.changed ? `Statusline removed from ${r.file}.` : r.reason);
         if (r.footerRestored) console.log(`Copilot's footer is back to what it was before --quiet-footer.`);
+        if (r.themeRestored) console.log(`Codex's theme is back to what it was before --theme.`);
         break;
       }
       const { uninstall } = await import("../src/install.js");

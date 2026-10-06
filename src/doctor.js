@@ -446,8 +446,11 @@ export function terminalReport(harness = "claude", { readTty, settings = null, e
  * One harness found on the machine. For Copilot CLI it also says how often
  * Copilot re-runs the bar and whether its own footer still repeats it
  * (specs/033-copilot-parity), since both decide how the bar reads there.
+ * For Codex it names whose item list is in place, and the colors and theme
+ * (specs/034-codex-items).
  */
 export function harnessLine(h) {
+  if (h.harness === "codex" && h.items !== undefined) return codexLine(h);
   const name = h.harness === "copilot" ? "Copilot CLI" : "Codex";
   const base = `install: ${name} found at ${h.home}, ${h.configured ? "set up with this plugin" : `not set up (run install --harness ${h.harness})`}`;
   if (h.harness !== "copilot" || !h.configured) return base;
@@ -456,6 +459,31 @@ export function harnessLine(h) {
     ? "Copilot's footer quieted (install --harness copilot --no-quiet-footer restores it)"
     : "Copilot's footer repeats some of the bar (install --harness copilot --quiet-footer hides that)";
   return `${base}; ${interval}; ${footer}`;
+}
+
+const CODEX_ITEMS_TEXT = {
+  current: "items: this plugin's 12, in the Claude bar's order",
+  older: "items: an older list this plugin wrote (install --harness codex upgrades it)",
+  user: "items: your own status_line, which install keeps",
+  absent: null,
+  unsafe: "items: config.toml defines tui in a form install does not edit",
+};
+const CODEX_COLORS_TEXT = {
+  ours: "colors on (set by this plugin)",
+  "yours-on": "colors on (your setting)",
+  "yours-off": "colors off (your setting)",
+  unset: "colors not set (install --harness codex turns them on)",
+};
+
+function codexLine(h) {
+  const where = `install: Codex found at ${h.home}`;
+  const parts = [];
+  if (h.items === "absent") parts.push(`${where}, not set up (run install --harness codex)`);
+  else if (h.configured) parts.push(`${where}, set up with this plugin`, CODEX_ITEMS_TEXT[h.items]);
+  else parts.push(`${where}, ${CODEX_ITEMS_TEXT[h.items] ?? "not set up"}`);
+  if (CODEX_COLORS_TEXT[h.colors]) parts.push(CODEX_COLORS_TEXT[h.colors]);
+  if (h.theme) parts.push(`theme ${h.theme} (set by this plugin; install --harness codex --no-theme restores yours)`);
+  return parts.join("; ");
 }
 
 export function terminalLine(t) {

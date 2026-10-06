@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current feature's
-plan at specs/033-copilot-parity/plan.md
+spec at specs/034-codex-items/spec.md
 <!-- SPECKIT END -->
 
 ## Skill routing

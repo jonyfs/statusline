@@ -3,7 +3,18 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { setCodexStatusLine, removeCodexStatusLine, hasCodexStatusLine, CODEX_STATUS_LINE } from "./codexConfig.js";
+import {
+  applyCodexItems,
+  removeCodexStatusLine,
+  codexItemsState,
+  readTuiValue,
+  readTuiLines,
+  setTuiLines,
+  removeTuiKey,
+  CODEX_STATUS_LINE,
+  CODEX_COLORS_LINE,
+  CODEX_THEMES,
+} from "./codexConfig.js";
 import { copilotHome, readCopilotSettings } from "./copilotSettings.js";
 
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
@@ -639,8 +650,159 @@ function restoreFooter(settings, file) {
 const isOurRenderCommand = (command) =>
   isOurCommand(command) || (/cli\.js"?\s+render\s*$/.test(String(command || "")) && /statusline/i.test(String(command || "")));
 
+// --- Codex (specs/034-codex-items) ------------------------------------------
+
+/**
+ * What this plugin added to each Codex config file beyond its items, so
+ * uninstall removes only that: `colors` when it wrote status_line_use_colors,
+ * and `theme` with the source lines of the theme `--theme` replaced (null
+ * when there was none) and the name it wrote. Kept with the plugin's other
+ * state rather than in Codex's file.
+ */
+const codexRecordFile = () => path.join(os.homedir(), ".claude", "statusline", "codex-config.json");
+
+function loadCodexRecord() {
+  try {
+    const parsed = JSON.parse(readFileSync(codexRecordFile(), "utf8"));
+    if (parsed?.version === 1 && parsed.files && typeof parsed.files === "object") return parsed;
+  } catch {
+    // none yet, or unreadable: nothing recorded
+  }
+  return { version: 1, files: {} };
+}
+
+function saveCodexRecord(record) {
+  for (const [file, entry] of Object.entries(record.files)) if (!entry.colors && !entry.theme) delete record.files[file];
+  if (Object.keys(record.files).length === 0) {
+    try {
+      unlinkSync(codexRecordFile());
+    } catch {
+      // nothing to remove
+    }
+    return;
+  }
+  writeAtomic(codexRecordFile(), JSON.stringify(record, null, 2) + "\n");
+}
+
+/** Whose status_line_use_colors this is: `ours`, `yours-on`, `yours-off` or `unset`. */
+function codexColorsState(text, entry) {
+  const value = readTuiValue(text, "status_line_use_colors");
+  if (value === null || value === undefined) return "unset";
+  if (value !== "true") return "yours-off";
+  return entry?.colors ? "ours" : "yours-on";
+}
+
+/** The theme `--theme` set, while it is still the one in the file, else null. */
+function codexOurTheme(text, entry) {
+  if (!entry?.theme) return null;
+  return readTuiValue(text, "theme") === JSON.stringify(entry.theme.wrote) ? entry.theme.wrote : null;
+}
+
+/** Puts back the theme `--theme` replaced, unless it was changed since, and drops the record. */
+function restoreCodexTheme(text, entry) {
+  if (!entry?.theme) return text;
+  const ours = codexOurTheme(text, entry);
+  const before = entry.theme.before;
+  delete entry.theme;
+  if (!ours) return text;
+  return before ? (setTuiLines(text, "theme", before) ?? text) : removeTuiKey(text, "theme");
+}
+
+function codexStatus(file) {
+  const text = existsSync(file) ? readFileSync(file, "utf8") : "";
+  const entry = loadCodexRecord().files[file];
+  const items = codexItemsState(text);
+  return {
+    configured: items === "current" || items === "older",
+    items,
+    colors: codexColorsState(text, entry),
+    theme: codexOurTheme(text, entry),
+  };
+}
+
+/**
+ * Codex's built-in items, in the Claude bar's order, and its colors. A list
+ * this plugin wrote before is upgraded and any other list is kept. The theme
+ * changes only with `theme`: a Catppuccin name sets it, false puts back the
+ * one it replaced, undefined leaves it alone.
+ */
+function installCodex(env, theme) {
+  const dir = codexHome(env);
+  if (!existsSync(dir)) return { ok: false, reason: `Codex is not set up here: ${dir} does not exist. Run Codex once, then install again.` };
+  if (typeof theme === "string" && !CODEX_THEMES.includes(theme)) {
+    return { ok: false, reason: `--theme takes one of ${CODEX_THEMES.join(", ")}, not "${theme}".` };
+  }
+  const file = path.join(dir, "config.toml");
+  const before = existsSync(file) ? readFileSync(file, "utf8") : "";
+  const applied = applyCodexItems(before);
+  if (applied.text === null) {
+    return {
+      ok: false,
+      reason: `${file} sets tui in a form this installer does not edit (a dotted key, an inline table, or an unclosed status_line). Add status_line under [tui] by hand: ${CODEX_STATUS_LINE}`,
+    };
+  }
+  let text = applied.text;
+  const record = loadCodexRecord();
+  const entry = record.files[file] ?? {};
+
+  // Colors are written only where the person has not set them.
+  let colors = codexColorsState(text, entry);
+  if (colors === "unset") {
+    text = setTuiLines(text, "status_line_use_colors", CODEX_COLORS_LINE, { after: "status_line" });
+    entry.colors = true;
+    colors = "added";
+  } else if (colors !== "ours") {
+    delete entry.colors;
+  }
+
+  let themeResult = "unchanged";
+  if (typeof theme === "string") {
+    // A second --theme keeps the first record, so uninstall brings back the
+    // person's own theme, not the Catppuccin one an earlier install wrote.
+    if (codexOurTheme(text, entry)) entry.theme.wrote = theme;
+    else entry.theme = { before: readTuiLines(text, "theme"), wrote: theme };
+    text = setTuiLines(text, "theme", `theme = ${JSON.stringify(theme)}`, { after: "status_line_use_colors" });
+    themeResult = "set";
+  } else if (theme === false && entry.theme) {
+    const restored = restoreCodexTheme(text, entry);
+    themeResult = restored === text ? "unchanged" : "restored";
+    text = restored;
+  }
+
+  record.files[file] = entry;
+  const backupPath = text !== before && existsSync(file) ? backupFile(file, "codex-config") : null;
+  if (text !== before) writeAtomic(file, text);
+  saveCodexRecord(record);
+  const notes = ["Codex draws its own built-in items; this plugin chooses which, and its own bar does not run there."];
+  if (applied.items === "kept") {
+    notes.push(`[tui] status_line is a list you chose, so it was kept. For this plugin's list, delete that line and install again, or write: ${CODEX_STATUS_LINE}`);
+  }
+  if (themeResult === "set") notes.push("The theme also restyles code blocks and diffs everywhere in Codex; --no-theme or uninstall puts yours back.");
+  return { ok: true, harness: "codex", file, backupPath, items: applied.items, colors, theme: themeResult, themeName: codexOurTheme(text, entry), notes };
+}
+
+/** Removes the items, colors and theme this plugin wrote, and nothing the person set. */
+function uninstallCodex(env) {
+  const file = path.join(codexHome(env), "config.toml");
+  if (!existsSync(file)) return { changed: false, reason: `${file} does not exist.` };
+  const before = readFileSync(file, "utf8");
+  const record = loadCodexRecord();
+  const entry = record.files[file] ?? {};
+  let text = restoreCodexTheme(before, entry);
+  const themeRestored = text !== before;
+  text = removeCodexStatusLine(text);
+  if (entry.colors && readTuiValue(text, "status_line_use_colors") === "true") text = removeTuiKey(text, "status_line_use_colors");
+  delete entry.colors;
+  record.files[file] = entry;
+  saveCodexRecord(record);
+  if (text === before) return { changed: false, reason: "Codex's config holds nothing this plugin wrote." };
+  backupFile(file, "codex-config");
+  writeAtomic(file, text);
+  return { changed: true, file, themeRestored };
+}
+
 /** Points another harness's status line at this plugin. */
-export function installHarness(harness, { env = process.env, quietFooter: quiet } = {}) {
+export function installHarness(harness, { env = process.env, quietFooter: quiet, theme } = {}) {
   const tooOld = unsupportedNode();
   if (tooOld) return { ok: false, reason: tooOld };
   if (harness === "copilot") {
@@ -673,25 +835,7 @@ export function installHarness(harness, { env = process.env, quietFooter: quiet 
     const notes = read.hadComments ? [`${file} had comments; they are in the backup and not in the rewritten file.`] : [];
     return { ok: true, harness, file, backupPath, command, notes, refreshInterval: COPILOT_REFRESH_INTERVAL_SECONDS, footer };
   }
-  if (harness === "codex") {
-    const dir = codexHome(env);
-    if (!existsSync(dir)) return { ok: false, reason: `Codex is not set up here: ${dir} does not exist. Run Codex once, then install again.` };
-    const file = path.join(dir, "config.toml");
-    const before = existsSync(file) ? readFileSync(file, "utf8") : "";
-    const after = setCodexStatusLine(before);
-    if (after === null) {
-      return { ok: false, reason: `${file} sets tui in a form this installer does not edit (a dotted key, an inline table, or an unclosed status_line). Add status_line under [tui] by hand: ${CODEX_STATUS_LINE}` };
-    }
-    const backupPath = existsSync(file) ? backupFile(file, "codex-config") : null;
-    writeAtomic(file, after);
-    return {
-      ok: true,
-      harness,
-      file,
-      backupPath,
-      notes: ["Codex draws its own built-in items; this plugin chooses which, and its own bar does not run there."],
-    };
-  }
+  if (harness === "codex") return installCodex(env, theme);
   return { ok: false, reason: `Unknown harness "${harness}". Use copilot or codex.` };
 }
 
@@ -709,16 +853,7 @@ export function uninstallHarness(harness, { env = process.env } = {}) {
     writeAtomic(file, JSON.stringify(settings, null, 2) + "\n");
     return { changed: true, file, footerRestored };
   }
-  if (harness === "codex") {
-    const file = path.join(codexHome(env), "config.toml");
-    if (!existsSync(file)) return { changed: false, reason: `${file} does not exist.` };
-    const before = readFileSync(file, "utf8");
-    const after = removeCodexStatusLine(before);
-    if (after === before) return { changed: false, reason: "Codex's status_line is not the one this plugin writes." };
-    backupFile(file, "codex-config");
-    writeAtomic(file, after);
-    return { changed: true, file };
-  }
+  if (harness === "codex") return uninstallCodex(env);
   return { changed: false, reason: `Unknown harness "${harness}". Use copilot or codex.` };
 }
 
@@ -743,7 +878,7 @@ export function harnessStatus({ env = process.env } = {}) {
   const xHome = codexHome(env);
   if (existsSync(xHome)) {
     const file = path.join(xHome, "config.toml");
-    out.push({ harness: "codex", home: xHome, configured: existsSync(file) && hasCodexStatusLine(readFileSync(file, "utf8")) });
+    out.push({ harness: "codex", home: xHome, ...codexStatus(file) });
   }
   return out;
 }

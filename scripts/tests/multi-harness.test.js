@@ -135,10 +135,13 @@ await test("uninstall for Copilot leaves another tool's statusLine alone", () =>
 
 const OURS = `status_line = [${CODEX_ITEMS.map((i) => JSON.stringify(i)).join(", ")}]`;
 
-await test("Codex items are the ones Codex 0.158 draws, in bar order", () => {
+// specs/034-codex-items reordered and extended the list; its own test file
+// pins it item by item.
+await test("Codex items are the ones Codex 0.160.1 draws, in the Claude bar's order", () => {
   assert.deepEqual(CODEX_ITEMS, [
-    "model-with-reasoning", "current-dir", "git-branch", "context-used",
-    "five-hour-limit", "weekly-limit", "fast-mode", "run-state", "task-progress",
+    "project-name", "git-branch", "branch-changes", "pull-request-number",
+    "task-progress", "run-state", "model-with-reasoning", "fast-mode", "permissions",
+    "context-used", "five-hour-limit", "weekly-limit",
   ]);
 });
 

@@ -2,7 +2,13 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.4.0 (III and IV extended on 2026-10-06: MINOR, Copilot CLI parity. III names what
+- Version: 7.5.0 (IV extended on 2026-10-06: MINOR, Codex items. Under `--harness codex`,
+  install may also write `[tui] status_line_use_colors` when it is absent, records that, and
+  uninstall removes only that recorded `true`. A `status_line` is replaced only when it matches a
+  list this plugin has written, so a reinstall upgrades an older list and keeps one the person
+  chose. `theme` changes only through the opt-in `--theme`, with the previous value recorded and
+  restored by `--no-theme` or uninstall. Templates: no change needed. See specs/034-codex-items/.)
+- Previously, version 7.4.0 (III and IV extended on 2026-10-06: MINOR, Copilot CLI parity. III names what
   the bar may show under Copilot beyond its payload: the AI credits Copilot reports and the
   session limit its log records, the effort and the routed model its log records, the todos in
   the session's own database, and the account's monthly premium and chat quota as GitHub
@@ -393,6 +399,14 @@ It then manages only that harness's status line setting (`statusLine` in Copilot
 leaves every other key or line untouched. With no `--harness`, install is Claude Code's, as it
 always was.
 
+For Codex, install also writes `[tui] status_line_use_colors = true` when that key is absent, and
+records that it did. It MUST keep a value the person set, and uninstall MUST remove the key only
+when it was recorded and still reads `true`. Install MUST replace a `status_line` only when it
+matches a list this plugin has written (current or older) and MUST keep any other list. Codex's
+`theme` MAY change only through the opt-in `--theme`, limited to Codex's bundled Catppuccin themes,
+which records the value it replaces; `--no-theme` and uninstall MUST restore it unless the theme
+was changed since. Install does not write `terminal_title`.
+
 For Copilot, install MAY also take `--quiet-footer`, which turns off the items of Copilot's own
 footer the bar already shows (`footer.showDirectory`, `showBranch`, `showPullRequest`,
 `showAiUsed`, `showContextWindow`, `showQuota`, `showCodeChanges`, `showCiStatus`,
@@ -695,4 +709,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.4.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
+**Version**: 7.5.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
