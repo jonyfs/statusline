@@ -80,11 +80,11 @@ const DRIVERS = {
       }
     }
   },
-  cli(file, { platform }) {
+  cli(file, { platform, timeout = CLI_TIMEOUT_MS }) {
     if (platform === "win32") return undefined;
     try {
       const out = execFileSync("sqlite3", ["-readonly", "-json", file, QUERY], {
-        timeout: CLI_TIMEOUT_MS,
+        timeout,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
         windowsHide: true,
@@ -111,12 +111,12 @@ export function summarizeTodoRows(rows) {
 }
 
 /** The session's todo progress, or null when there is no list to show. */
-export function readCopilotTodos(sessionDir, { drivers = ["node", "cli"], platform = process.platform } = {}) {
+export function readCopilotTodos(sessionDir, { drivers = ["node", "cli"], platform = process.platform, timeout } = {}) {
   if (typeof sessionDir !== "string" || !sessionDir) return null;
   const file = path.join(sessionDir, "session.db");
   if (!existsSync(file)) return null;
   for (const name of drivers) {
-    const rows = DRIVERS[name]?.(file, { platform });
+    const rows = DRIVERS[name]?.(file, { platform, ...(timeout ? { timeout } : {}) });
     if (rows === undefined) continue;
     return summarizeTodoRows(rows);
   }

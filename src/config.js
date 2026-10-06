@@ -16,8 +16,12 @@ import os from "node:os";
 
 const FILENAME = ".statusline.json";
 
-/** Only these keys are read. Anything else in the file is ignored. */
-const KNOWN = ["flavor", "ascii", "separator", "skillWindowMin", "layout"];
+/**
+ * Only these keys are read. Anything else in the file is ignored. `gates`
+ * holds the patterns that name this repository's gate scripts
+ * (specs/036-direct-gates); `gateRuns.js` reads it in the detached refresh.
+ */
+const KNOWN = ["flavor", "ascii", "separator", "skillWindowMin", "layout", "gates"];
 
 /** Where a person's own arrangement lives, when they have one. */
 const USER_LAYOUT = ["\u002eclaude", "statusline", "layout.json"];

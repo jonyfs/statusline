@@ -237,7 +237,9 @@ await test("a session.db is read read-only, by node:sqlite or the sqlite3 CLI, a
   const before = readFileSync(file);
   const expected = { done: 1, total: 3, current: "Implement the reader" };
   if (nodeSqlite()) assert.deepEqual(readCopilotTodos(dir, { drivers: ["node"] }), expected);
-  if (hasSqliteCli()) assert.deepEqual(readCopilotTodos(dir, { drivers: ["cli"] }), expected);
+  // A generous timeout here: the redraw's 100 ms is about the bar's budget,
+  // and a loaded CI machine can take longer just to start sqlite3.
+  if (hasSqliteCli()) assert.deepEqual(readCopilotTodos(dir, { drivers: ["cli"], timeout: 5_000 }), expected);
   assert.equal(readCopilotTodos(dir, { drivers: ["cli"], platform: "win32" }), null, "no sqlite3 CLI on Windows");
   assert.deepEqual(readFileSync(file), before, "nothing was written");
   const out = render(copilot({ transcript_path: dir }));

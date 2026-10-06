@@ -22,6 +22,7 @@ import { existsSync, readFileSync, readlinkSync, realpathSync, statSync } from "
 import path from "node:path";
 import { repoKey, readEntry, spawnRefresh } from "./cache.js";
 import { plainText } from "./text.js";
+import { repoConfig } from "./config.js";
 
 /** Client-side hooks from githooks(5). Server-side ones never run in a worktree. */
 export const HOOK_NAMES = new Set([
@@ -202,6 +203,154 @@ function subtree(rootPid, procs) {
   return out;
 }
 
+// Gate scripts run directly (specs/036-direct-gates) ----------------------------
+
+/**
+ * Programs that run a script named in their arguments. `env`, `npx`, `deno`
+ * and `bun` hand over to another runner, so the walk carries on past them.
+ */
+const RUNNERS = new Set([...INTERPRETERS, "fish", "nodejs", "ts-node", "deno", "bun", "env", "npx"]);
+
+const progName = (token) => base(token).toLowerCase().replace(/\.exe$/, "");
+// `python3.12`, and macOS framework builds, which ps lists as `.../Python`.
+const isRunner = (name) => RUNNERS.has(name) || /^(python|pypy)\d*(\.\d+)*$/.test(name);
+
+/**
+ * The script a process runs: the interpreter's script argument, or the
+ * command itself. Null for a command given inline (`bash -c`, `python -m`),
+ * whose children are what runs, and for a process caught mid-exec.
+ */
+/**
+ * Runner flags that take the next token as their value. Without these,
+ * `node -r ./setup.js app.js` read `./setup.js` as the script and
+ * `python3 -W ignore gate-x.py` read `ignore`.
+ */
+const FLAGS_WITH_VALUE = {
+  node: ["-r", "--require", "--import", "--loader", "--experimental-loader", "-C", "--conditions"],
+  python: ["-W", "-X", "-Q"],
+  python3: ["-W", "-X", "-Q"],
+  ruby: ["-I", "-r"],
+  perl: ["-I", "-M"],
+  deno: ["--config", "-c", "--import-map"],
+  bun: ["--preload", "-r", "--config"],
+};
+
+export function scriptOf(command) {
+  const text = String(command ?? "").trim();
+  if (!text || /^\(.*\)$/.test(text)) return null;
+  const tokens = text.split(/\s+/);
+  if (!isRunner(progName(tokens[0]))) return tokens[0];
+  let i = 0;
+  while (i < tokens.length && isRunner(progName(tokens[i]))) {
+    const prog = progName(tokens[i]);
+    i++;
+    if ((prog === "deno" || prog === "bun") && tokens[i] === "run") i++;
+    for (; i < tokens.length && tokens[i].startsWith("-"); i++) {
+      const flag = tokens[i];
+      if ((FLAGS_WITH_VALUE[prog] ?? []).includes(flag)) {
+        i++;
+        continue;
+      }
+      if (/^-[A-Za-z]*c[A-Za-z]*$/.test(flag) || flag === "-m") return null;
+      if (["-e", "--eval", "-p", "--print"].includes(flag) && !["bash", "sh", "zsh", "dash", "ksh"].includes(prog)) return null;
+    }
+    // `env NAME=value prog`
+    while (prog === "env" && i < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i])) i++;
+  }
+  return tokens[i] ?? null;
+}
+
+/** A simple glob as a regular expression: `*` and `?` stay in one directory, `**` crosses them. */
+function globToRegExp(glob) {
+  let out = "";
+  const g = glob.replace(/\\/g, "/").replace(/^\.\//, "");
+  for (let i = 0; i < g.length; i++) {
+    const c = g[i];
+    if (c === "*" && g[i + 1] === "*") {
+      i++;
+      if (g[i + 1] === "/") {
+        i++;
+        out += "(?:.*/)?";
+      } else out += ".*";
+    } else if (c === "*") out += "[^/]*";
+    else if (c === "?") out += "[^/]";
+    else out += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  }
+  // With a slash it names a path and matches the end of one; without, a
+  // basename, which the matcher hands it.
+  return new RegExp(g.includes("/") ? `(?:^|/)${out}$` : `^${out}$`);
+}
+
+/**
+ * Whether a script is a gate. `patterns` null means the defaults: a basename
+ * that starts with `gate` or `gates` and then `-`, `_` or `.`, or a file whose
+ * own directory is named `gates`. A list replaces the defaults, and an empty
+ * list matches nothing.
+ */
+export function gateMatcher(patterns = null) {
+  if (!Array.isArray(patterns)) {
+    return (script) => {
+      if (!script) return false;
+      const p = String(script).replace(/\\/g, "/");
+      const name = p.split("/").pop();
+      // A test of the gates is not a gate: gate-rows.test.js, gate_x_test.py
+      // and gate.spec.ts are what a test runner runs. A pattern in
+      // .statusline.json can still name them on purpose.
+      if (/[._-](test|spec)\.[^.]+$|^test_|_test\.[^.]+$/i.test(name)) return false;
+      return /^gates?[-_.]/i.test(name) || /(^|\/)gates\/[^/]+$/.test(p);
+    };
+  }
+  const res = patterns.map((g) => ({ re: globToRegExp(g), whole: /[\\/]/.test(g) }));
+  return (script) => {
+    if (!script) return false;
+    const p = String(script).replace(/\\/g, "/");
+    const name = p.split("/").pop();
+    return res.some(({ re, whole }) => re.test(whole ? p : name));
+  };
+}
+
+/**
+ * The `gates` key of `.statusline.json` as patterns: null for the defaults,
+ * a list (possibly empty, which turns direct detection off) otherwise.
+ */
+export function gatePatternsFrom(setting) {
+  if (!setting || typeof setting !== "object" || !Array.isArray(setting.patterns)) return null;
+  if (!setting.patterns.length) return [];
+  const usable = setting.patterns.filter((p) => typeof p === "string" && p.trim()).map((p) => p.trim());
+  return usable.length ? usable : null;
+}
+
+/**
+ * The processes that are a direct run's root: a matching script with no
+ * matching script above it (`gates.sh` running `gate-x.py` is one run) and no
+ * git hook above it (the hook's row already shows it).
+ */
+export function directRoots(procs, matches) {
+  const byPid = new Map(procs.map((p) => [p.pid, p]));
+  const out = [];
+  for (const proc of procs) {
+    if (!matches(scriptOf(proc.command)) || hookOf(proc, byPid)) continue;
+    let covered = false;
+    const seen = new Set([proc.pid]);
+    for (let up = byPid.get(proc.ppid); up && !seen.has(up.pid); up = byPid.get(up.ppid)) {
+      seen.add(up.pid);
+      if (hookOf(up, byPid) || matches(scriptOf(up.command))) {
+        covered = true;
+        break;
+      }
+    }
+    if (!covered) out.push(proc);
+  }
+  return out;
+}
+
+/** Every ancestor pid of a process. */
+function ancestorsOf(proc, byPid) {
+  const out = new Set();
+  for (let up = byPid.get(proc.ppid); up && !out.has(up.pid) && up.pid !== proc.pid; up = byPid.get(up.ppid)) out.add(up.pid);
+  return out;
+}
+
 /** The worktree a directory belongs to: the longest path that contains it. */
 export function worktreeFor(dir, worktrees) {
   if (!dir) return null;
@@ -235,7 +384,7 @@ export function alive(pid) {
  * `cwdOf(pid)` answers a hook's working directory; `lockOf(worktree)` answers
  * `{ pid, mtimeMs }` for a held `gates.lock`, or null.
  */
-export function collectRuns({ worktrees, procs, cwdOf = () => null, lockOf = () => null, placedBefore = () => null, isAlive = alive, now = Date.now() }) {
+export function collectRuns({ worktrees, procs, cwdOf = () => null, lockOf = () => null, placedBefore = () => null, isAlive = alive, now = Date.now(), gatePatterns = null }) {
   const byPid = new Map(procs.map((p) => [p.pid, p]));
   const runs = [];
   const shownTrees = new Map();
@@ -264,6 +413,33 @@ export function collectRuns({ worktrees, procs, cwdOf = () => null, lockOf = () 
     }));
     if (!shownTrees.has(tree.path)) shownTrees.set(tree.path, []);
     shownTrees.get(tree.path).push(under);
+  }
+  // Gate scripts run without a hook: an agent's `bash .claude/scripts/gates.sh`
+  // or `python3 gate-x.py` (specs/036-direct-gates).
+  for (const proc of directRoots(procs, gateMatcher(gatePatterns))) {
+    let tree = worktreeFor(cwdOf(proc.pid), worktrees);
+    const script = scriptOf(proc.command);
+    if (!tree && script && path.isAbsolute(script)) tree = worktreeFor(script, worktrees);
+    if (!tree) tree = placedBefore(proc);
+    if (!tree) continue;
+    const under = subtree(proc.pid, procs);
+    const lock = lockOf(tree);
+    const holder = lock && isAlive(lock.pid) ? lock.pid : null;
+    // A run holding the lock, or run by its holder, is the lock's row below,
+    // as it was before direct runs were read.
+    if (holder !== null && (under.has(holder) || ancestorsOf(proc, byPid).has(holder))) continue;
+    const runsGates = [...under].some((pid) => /(^|[\\/\s])gates\.sh(\s|$)/.test(byPid.get(pid)?.command ?? ""));
+    const waiting = holder !== null && runsGates;
+    const label = plainText(base(script ?? "")) ?? labelOf(proc.command) ?? "gate";
+    const below = waiting ? null : stepOf(proc.pid, procs);
+    runs.push(runFor(tree, {
+      pid: proc.pid,
+      hook: "gate",
+      kind: "direct",
+      step: waiting ? null : below ? `${label} › ${below}` : label,
+      startedAt: proc.etime === null ? null : now - proc.etime * 1000,
+      state: waiting ? "waiting" : "running",
+    }));
   }
   // A held lock no hook accounts for: `gates.sh` run by hand, or any run on a
   // platform where the process list is not read.
@@ -399,7 +575,8 @@ function placedBefore(proc, previous, worktrees, now) {
  * installed interval. Failing keeps the last answer, which the redraw still
  * trims by pid.
  */
-export function probeGateRuns(cwd, budgetMs = 5_000, { now = Date.now(), exec = run, platform = process.platform, previous } = {}) {
+export function probeGateRuns(cwd, budgetMs = 5_000, { now = Date.now(), exec = run, platform = process.platform, previous, gatePatterns } = {}) {
+  if (gatePatterns === undefined) gatePatterns = gatePatternsFrom(repoConfig(cwd).gates);
   let worktrees;
   try {
     worktrees = parseWorktrees(exec("git", ["worktree", "list", "--porcelain"], cwd, budgetMs)).map((w) => ({ ...w, real: real(w.path) }));
@@ -423,7 +600,10 @@ export function probeGateRuns(cwd, budgetMs = 5_000, { now = Date.now(), exec = 
     }
     const byPid = new Map(procs.map((p) => [p.pid, p]));
     const hookPids = procs.filter((p) => hookOf(p, byPid)).map((p) => p.pid);
-    cwds = workingDirs(hookPids, budgetMs, { exec, platform });
+    // Only processes already known to be a hook or a matching script are
+    // looked up, so the cost follows the runs, not the machine.
+    const directPids = directRoots(procs, gateMatcher(gatePatterns)).map((p) => p.pid);
+    cwds = workingDirs([...hookPids, ...directPids], budgetMs, { exec, platform });
     if (!cwds) return { state: "failed", value: null };
   }
   if (previous === undefined) {
@@ -437,6 +617,7 @@ export function probeGateRuns(cwd, budgetMs = 5_000, { now = Date.now(), exec = 
     lockOf: readLock,
     placedBefore: (proc) => placedBefore(proc, previous, worktrees, now),
     now,
+    gatePatterns,
   });
   return { state: "found", value: { runs } };
 }

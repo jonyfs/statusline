@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.6.1 (IX clarified on 2026-10-06: PATCH. The bare `node` exception the status line
+- Version: 7.7.0 (II extended on 2026-10-06: MINOR, gate scripts run without a hook. A script
+  matching the repository's gate patterns (defaults, or the `gates` key of `.statusline.json`)
+  whose working directory is in one of the repository's worktrees gets a row like a hook's, one
+  per outermost script, never duplicating a hook's row or a held `gates.lock`'s. Templates: no
+  change needed. See specs/036-direct-gates/.)
+- Previously, version 7.6.1 (IX clarified on 2026-10-06: PATCH. The bare `node` exception the status line
   command has now also covers Codex's SessionStart hook, so IV's rule that the hook keep the same
   command text across updates holds through a Node upgrade. A version-pinned `process.execPath`
   would make the hook fail after the upgrade and change the text Codex trusted. Templates: no
@@ -302,7 +307,8 @@ Claude Code, which draws its own (specs/030-copilot-agent-rows).
 
 **Git gate rows follow the bar too.** The git hooks running in the repository's worktrees get one
 row each after the bar (after the subagent rows, in Copilot), with a count as a registered line 1
-segment. Like subagent rows, they MUST NOT count toward the three. They MUST be the first thing a
+segment. So does a gate script run without a hook, one row per outermost script, never a second
+row for a run a hook or a held `gates.lock` already shows (specs/036-direct-gates). Like subagent rows, they MUST NOT count toward the three. They MUST be the first thing a
 short window gives up, before any of the bar's own lines, and MUST return as soon as there is
 room; the count on line 1 stays (specs/031-git-gate-rows).
 
@@ -754,4 +760,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.6.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
+**Version**: 7.7.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
