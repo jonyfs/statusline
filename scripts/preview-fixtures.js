@@ -7,9 +7,42 @@
  * checked out when they were generated.
  */
 
+import { readFileSync } from "node:fs";
+import { foldRollout, rolloutPayload, rolloutActivity } from "../src/codexRollout.js";
+
 // Fixed instant so countdown labels don't churn on every regeneration.
 // 2026-08-24T12:00:00Z.
 export const FIXED_NOW = 1787572800;
+
+/**
+ * A real Codex CLI rollout (0.122, Plus plan, stripped of every prompt and
+ * answer: scripts/tests/fixtures/codex-rollout-preview.jsonl), moved in time
+ * so it ends 30 seconds before FIXED_NOW. Every instant in it moves by the
+ * same amount, so the resets and the session length read as they did when the
+ * session ran. Then it goes through the same adapter the `codex-pane` command
+ * uses (specs/035-codex-pane).
+ */
+function codexPreviewState() {
+  const text = readFileSync(new URL("./tests/fixtures/codex-rollout-preview.jsonl", import.meta.url), "utf8");
+  const records = text.trim().split("\n").map((l) => JSON.parse(l));
+  const lastAt = Date.parse(records[records.length - 1].timestamp) / 1000;
+  const shift = FIXED_NOW - 30 - lastAt;
+  const iso = (s) => new Date(Date.parse(s) + shift * 1000).toISOString();
+  const secs = (o, key) => {
+    if (o && typeof o[key] === "number") o[key] = Math.round(o[key] + shift);
+  };
+  for (const r of records) {
+    r.timestamp = iso(r.timestamp);
+    const p = r.payload ?? {};
+    if (r.type === "session_meta") p.timestamp = iso(p.timestamp);
+    secs(p, "started_at");
+    secs(p, "completed_at");
+    secs(p.rate_limits?.primary, "resets_at");
+    secs(p.rate_limits?.secondary, "resets_at");
+  }
+  return foldRollout(records.map((r) => JSON.stringify(r)).join("\n"));
+}
+const codexState = codexPreviewState();
 
 const basePayload = {
   session_id: "preview",
@@ -156,6 +189,20 @@ export const SCENARIOS = [
           chat: { usedPct: 3, entitlement: 200, unlimited: false, full: false },
         },
       }),
+    },
+  },
+  {
+    file: "codex-pane.svg",
+    title: "In a 3-line pane under OpenAI Codex CLI: a real Codex rollout through the adapter, drawn by the same renderer",
+    // The pane's size: three rows, as `statusline codex` opens it.
+    height: 3,
+    payload: rolloutPayload(codexState, { now: FIXED_NOW * 1000 }),
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "feat/codex-pane", upstream: "origin/feat/codex-pane", ahead: 2, behind: 0, changed: 4, untracked: 1 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getSessionActivity: () => rolloutActivity(codexState),
+      getRtkSavings: () => 74,
     },
   },
   {

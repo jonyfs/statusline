@@ -49,6 +49,17 @@ import { gateRows, gateChip } from "./gateRows.js";
  * has nothing to say here.
  */
 export function harnessProbes(probe, harness) {
+  // Codex writes no Claude transcript and no skill events, and its subagents
+  // are not Claude Code's (specs/035-codex-pane). The working state comes from
+  // the rollout, which the pane passes in as its own getSessionActivity.
+  if (harness === "codex") {
+    return {
+      ...probe,
+      getActiveSkills: (_path, _limit, { scanned } = {}) => scanned ?? [],
+      getActiveSkillsTrueCount: (_path, { scannedTrueCount } = {}) => scannedTrueCount ?? 0,
+      subagentActivity: () => [],
+    };
+  }
   if (harness !== "copilot") return probe;
   return {
     ...probe,
@@ -506,7 +517,10 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   // routed to, and that is what Claude Code's bar would name.
   const routedModel =
     isCopilot && String(payloadText(payload?.model?.id) ?? "").toLowerCase() === "auto" ? plainText(activity.value?.resolvedModel) : null;
-  const modelName = payloadText(payload?.model?.display_name) ?? payloadText(payload?.model?.id) ?? "Claude";
+  // Before Codex's first turn its rollout names no model yet, and the name of
+  // another vendor's model family would be wrong there (specs/035-codex-pane).
+  const modelName =
+    payloadText(payload?.model?.display_name) ?? payloadText(payload?.model?.id) ?? (harness === "codex" ? "Codex" : "Claude");
 
   return {
     cwd,
@@ -1170,6 +1184,12 @@ export function renderReadings(
   // rather than `?%`, which would claim an unknown figure for a limit that does
   // not exist (Principle III, specs/029-multi-harness).
   const noLimits = readings.harness?.value === "copilot" && !payload?.rate_limits;
+  // Codex reports the windows its plan has, by length. One the plan does not
+  // have, such as the 5-hour window on the free plan, is absent rather than
+  // `?%`, for the same reason (specs/035-codex-pane).
+  const isCodex = readings.harness?.value === "codex";
+  const noFiveHour = noLimits || (isCodex && !payload?.rate_limits?.five_hour);
+  const noSevenDay = noLimits || (isCodex && !payload?.rate_limits?.seven_day);
 
   // Copilot CLI's monthly quota, one chip per allowance the plan meters
   // (specs/033-copilot-parity). Labelled `month` the way the windows are
@@ -1247,7 +1267,7 @@ export function renderReadings(
     // between them — and the slash read as a fraction beside `1h04m`, which
     // really is one thing over another. One subject, one chip.
     fiveHour: () => {
-      if (noLimits) return null;
+      if (noFiveHour) return null;
       // `?` rather than nothing when the payload carried no reset: with the
       // countdown simply absent, a reader cannot tell "the harness did not
       // say" from "a narrow terminal shed it", and the first is a fact about
@@ -1260,7 +1280,7 @@ export function renderReadings(
       return { color: rampColour(fiveHourPct, "green"), text: `${level} \u00b7 ${resets} `, variants: [`${level} `] };
     },
     sevenDay: () => {
-      if (noLimits) return null;
+      if (noSevenDay) return null;
       // Near and far are told differently, and that is the rule rather than an
       // inconsistency: a window resetting in hours is something you wait out,
       // so it counts down; one resetting on Thursday is a date you plan

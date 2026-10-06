@@ -332,28 +332,109 @@ before the install keeps its old footer until you start a new one.
 wrote, or yours), whether the colors are on and who turned them on, and the
 theme when `--theme` set it.
 
-What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI 0.160.1:
+### Codex with the full bar
 
-| | Claude Code | Copilot CLI | Codex CLI |
-|---|---|---|---|
-| Directory, repository, branch, tree state, PR, CI | yes | yes | project, branch and pull request |
-| Lines changed, session duration | yes | yes | committed changes on the branch |
-| Model | yes | yes, and the model `Auto` routed to | yes, with reasoning |
-| Effort | yes | yes, from Copilot's session log or settings | in the model item |
-| Context % | yes | yes, from the first frame | yes |
-| Fits the terminal's width | yes, from `COLUMNS` | yes, read from the terminal | no, the end of the line is cut |
-| 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly |
-| Monthly premium and chat quota | n/a | yes, through `gh` | no |
-| AI credits, and the session limit | n/a | yes | no |
-| Prompt cache | yes | no | no |
-| Skills, working or idle | yes | yes, from Copilot's session log | working state only |
-| Todo | yes | yes, from the session's database | task progress |
-| Vim, fast mode | yes | no | fast mode |
-| rtk savings, update notice | yes | yes | no |
-| Premium requests, allow-all | n/a | yes | the permission profile |
-| Colors | Catppuccin, by level | Catppuccin, by level | one per item, from the theme |
-| Subagent rows | yes | yes, after the bar | no |
-| Git gates running in other worktrees | yes | yes | no |
+Codex's footer only takes its own items, but the bar itself can run next to
+Codex, in a small tmux pane under it. Start Codex through this plugin instead
+of directly:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js codex
+```
+
+Everything after `codex` goes to Codex unchanged, so
+`... cli.js codex resume --last` resumes your last session. An alias saves
+typing: `alias cx='node ~/.claude/statusline-plugin/bin/cli.js codex'`.
+
+![In a pane under OpenAI Codex CLI](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/codex-pane.svg)
+
+What happens:
+
+- Inside tmux, a 3-line pane opens under the one you are in and Codex runs
+  in your pane. When Codex exits, the pane closes.
+- Outside tmux, it starts a tmux session with the two panes and attaches to
+  it. The session ends with Codex.
+- Without tmux, it prints how to install it (`brew install tmux` on macOS,
+  `sudo apt install tmux` on Debian and Ubuntu, `sudo dnf install tmux` on
+  Fedora) and starts Codex alone.
+- On Windows it says tmux does not run there natively and starts nothing.
+  Run Codex and this command inside WSL to get the pane.
+
+The pane is the same bar Claude Code shows, drawn by the same renderer:
+Powerline segments, icons, links, the git line, the gate rows when the pane
+is tall enough, and the same shedding when it is narrow. It redraws in place
+when Codex writes something new, when you resize the pane, and every few
+seconds for git and the countdowns. Make the pane taller with tmux's own
+resize keys and the rows after the bar come back.
+
+The figures come from the session file Codex writes as it works
+(`~/.codex/sessions/.../rollout-*.jsonl`, or under `$CODEX_HOME`). The model
+and effort come from the turn settings Codex records, the context share is
+the last turn's tokens over the window Codex reports, and "working" means a
+turn has started and not ended. The 5-hour and 7-day chips appear only when
+Codex reports a window of that length. On the free plan Codex reports one
+30-day window, which has no chip on the bar, so both chips are left out. The
+bar never draws them as `?%` or puts that window under another label. Until
+Codex sends token counts, the context chip reads `?%`. The file is Codex's
+internal format, so a field Codex renames drops out of the bar rather than
+being guessed. Codex's own `context-used` item may differ from the pane by a
+point or two, since Codex subtracts a baseline of its own.
+
+**Which session is yours.** With no help, the pane shows the newest Codex
+session started in its directory, preferring one that started after the pane
+did, and it stays on that session until a newer one starts there (as `/new`
+does). That is right unless you start two Codex sessions in the same
+directory at once. For an exact match, register a small
+Codex hook:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js install --harness codex --pane
+```
+
+That adds one `SessionStart` hook to `~/.codex/hooks.json`, after any hooks
+you or other tools already have there, and backs the file up first. When a
+session starts, the hook writes the session's id, its file and its tmux pane
+to `~/.claude/statusline/codex/`, and prints nothing. Codex asks you once to
+trust a new hook before it runs it. Approve it when Codex lists it. Until
+then the pane falls back to the directory match. The hook runs through the
+`node` on your PATH, like the status line, so its command stays the same
+across updates and Node upgrades and you approve it once. (Only when no shell
+finds a bare `node` does install write the full path of the Node running it,
+and that path changes when Node is upgraded.) A plain reinstall keeps the
+hook. `--no-pane` takes it out, and so does `uninstall --harness codex`,
+which leaves every other hook in the file as it was.
+
+`doctor` adds the pane to its Codex line: whether tmux is on the PATH,
+whether the hook is registered, and the last session the hook reported.
+
+To run the pane yourself, next to a Codex you started some other way, open
+a pane in the same directory and run
+`node ~/.claude/statusline-plugin/bin/cli.js codex-pane`. Ctrl-C closes it.
+
+What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI
+0.160.1. "Codex footer" is Codex's own items, from `install --harness codex`.
+"Codex pane" is the bar under Codex, from `cli.js codex`:
+
+| | Claude Code | Copilot CLI | Codex footer | Codex pane |
+|---|---|---|---|---|
+| Directory, repository, branch, tree state, PR, CI | yes | yes | project, branch and pull request | yes |
+| Lines changed, session duration | yes | yes | committed changes on the branch | session duration |
+| Model | yes | yes, and the model `Auto` routed to | yes, with reasoning | yes |
+| Effort | yes | yes, from Copilot's session log or settings | in the model item | yes, from the session file |
+| Context % | yes | yes, from the first frame | yes | yes, once Codex sends token counts |
+| Fits the terminal's width | yes, from `COLUMNS` | yes, read from the terminal | no, the end of the line is cut | yes, the pane's width |
+| 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly | the 5-hour and 7-day windows your plan has, with burn rate |
+| Monthly premium and chat quota | n/a | yes, through `gh` | no | n/a |
+| AI credits, and the session limit | n/a | yes | no | no |
+| Prompt cache | yes | no | no | no |
+| Skills, working or idle | yes | yes, from Copilot's session log | working state only | working state only |
+| Todo | yes | yes, from the session's database | task progress | no |
+| Vim, fast mode | yes | no | fast mode | no |
+| rtk savings, update notice | yes | yes | no | yes |
+| Premium requests, allow-all | n/a | yes | the permission profile | no |
+| Colors | Catppuccin, by level | Catppuccin, by level | one per item, from the theme | Catppuccin, by level |
+| Subagent rows | yes | yes, after the bar | no | no |
+| Git gates running in other worktrees | yes | yes | no | yes, when the pane has room |
 
 Under Copilot the 5-hour and 7-day chips are absent, not `?%`: Copilot has no
 such limits, and `?%` would say a value exists and is unknown. What Copilot
@@ -955,7 +1036,7 @@ throwaway profile and runs the commands install wrote the way Claude Code
 does: through `sh` and `bash` on Linux and macOS, and through Git Bash,
 PowerShell 7 and Windows PowerShell on Windows.
 
-One feature is genuinely platform-limited:
+Two features are platform-limited:
 
 | | Linux | macOS | Windows |
 |---|---|---|---|
@@ -965,6 +1046,10 @@ One feature is genuinely platform-limited:
 | Install and uninstall | yes | yes | yes |
 | Clicking branch or PR opens GitHub | yes | yes | yes |
 | Clicking the directory opens a new terminal tab | file manager instead | iTerm2, Terminal.app | file manager instead |
+| The bar in a pane under Codex (needs tmux) | yes | yes | inside WSL only |
+
+The Codex pane needs tmux, which does not run natively on Windows. There,
+`cli.js codex` says so and starts nothing.
 
 Opening a terminal tab from a click needs an OS automation hook, and only
 macOS offers one without making you install a custom URL-scheme handler.

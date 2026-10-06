@@ -2,7 +2,20 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.5.0 (IV extended on 2026-10-06: MINOR, Codex items. Under `--harness codex`,
+- Version: 7.6.1 (IX clarified on 2026-10-06: PATCH. The bare `node` exception the status line
+  command has now also covers Codex's SessionStart hook, so IV's rule that the hook keep the same
+  command text across updates holds through a Node upgrade. A version-pinned `process.execPath`
+  would make the hook fail after the upgrade and change the text Codex trusted. Templates: no
+  change needed. See specs/035-codex-pane/.)
+- Previously, version 7.6.0 (II, III and IV extended on 2026-10-06: MINOR, the bar in a pane under Codex.
+  III names Codex's session rollout as a data source: the pane reads only what the rollout
+  records, and a usage window maps to the 5-hour or 7-day chip only by its length, so the free
+  plan's 30-day window has no chip. IV adds the opt-in `--pane`, which appends one SessionStart
+  hook to Codex's `hooks.json` after every existing group, backs the file up first, and is
+  removed alone by `--no-pane` or uninstall. II notes that the pane is the bar itself, three
+  lines drawn by the same renderer, not rows added to it. Templates: no change needed. See
+  specs/035-codex-pane/.)
+- Previously, version 7.5.0 (IV extended on 2026-10-06: MINOR, Codex items. Under `--harness codex`,
   install may also write `[tui] status_line_use_colors` when it is absent, records that, and
   uninstall removes only that recorded `true`. A `status_line` is replaced only when it matches a
   list this plugin has written, so a reinstall upgrades an older list and keeps one the person
@@ -293,6 +306,12 @@ segment. Like subagent rows, they MUST NOT count toward the three. They MUST be 
 short window gives up, before any of the bar's own lines, and MUST return as soon as there is
 room; the count on line 1 stays (specs/031-git-gate-rows).
 
+**The pane under Codex is the bar itself.** Codex CLI cannot run the bar in its footer, so
+`codex-pane` draws it in a tmux pane next to Codex (specs/035-codex-pane). That pane MUST be
+drawn by the same renderer with the same three lines, order, shedding and gate rows, at the
+pane's own size. It is not extra rows added to Codex's footer or to the bar, and it MUST NOT
+grow a layout of its own.
+
 **Three is the shape, not a floor.** A line with nothing to say is already dropped rather than
 rendered empty, and the same reasoning extends to the terminal: on a window too short or too
 narrow to hold three lines, the statusline MUST shed lines rather than wrap, because a wrapped
@@ -345,8 +364,21 @@ harness sends, and nothing invented to stand in for a field it lacks. GitHub Cop
 no rate limits, so under Copilot the 5-hour, 7-day and spend chips are absent rather than `?%`,
 which would claim an unknown value for a limit that does not exist there. Its own fields,
 `cost.total_premium_requests` and `allow_all_enabled`, are read as reported. OpenAI Codex CLI
-runs no external command; there the plugin only chooses Codex's built-in status line items, and
-no figure comes from this code (specs/029-multi-harness).
+runs no external command; in its own footer the plugin only chooses Codex's built-in status line
+items, and no figure comes from this code (specs/029-multi-harness).
+
+Next to Codex, in the pane `codex-pane` draws (specs/035-codex-pane), the payload is built from
+Codex's session rollout (`$CODEX_HOME/sessions/**/rollout-*.jsonl`), which is a data source in
+its own right: the model and effort from `turn_context`, the window size from `task_started` or
+`token_count`, the context share as the last turn's `total_tokens` over that window, the usage
+windows from `token_count.rate_limits`, and working while a `task_started` has no later
+`task_complete` or `turn_aborted`. A window MUST map to the 5-hour chip only when Codex says it
+is 300 minutes long and to the 7-day chip only at 10080 minutes; any other window, such as the
+free plan's 30 days, MUST be left out rather than drawn under a label it does not have, and a
+chip whose window the plan lacks is absent rather than `?%`. A field the rollout does not carry
+is absent from the payload and renders as the bar renders any absent field. The rollout is
+Codex's internal format, so a reader MUST degrade to the absent field, never guess, when a
+record changes shape.
 
 Under Copilot the bar MAY also show figures Copilot or GitHub report outside the payload, each
 read as reported and never estimated (specs/033-copilot-parity): the AI credits in the payload's
@@ -406,6 +438,16 @@ matches a list this plugin has written (current or older) and MUST keep any othe
 `theme` MAY change only through the opt-in `--theme`, limited to Codex's bundled Catppuccin themes,
 which records the value it replaces; `--no-theme` and uninstall MUST restore it unless the theme
 was changed since. Install does not write `terminal_title`.
+
+For Codex, install MAY also take `--pane`, which registers one SessionStart hook running this
+plugin's `codex-hook` in Codex's `hooks.json` (specs/035-codex-pane). The file is shared with
+other tools and Codex trusts each hook by its position and its command, so the hook MUST be
+appended after every existing SessionStart group, MUST keep the same command text across
+updates, and the file MUST be backed up before it changes. Install MUST refuse `--pane`, before
+writing anything, when `hooks.json` does not parse. It MUST tell the person that Codex asks once
+to trust the hook. `--no-pane` and uninstall MUST remove only hooks whose command is this
+plugin's `codex-hook`, and MAY delete `hooks.json` only when install created it and nothing else
+is left in it. With neither flag, a reinstall or update leaves the hook as it is.
 
 For Copilot, install MAY also take `--quiet-footer`, which turns off the items of Copilot's own
 footer the bar already shows (`footer.showDirectory`, `showBranch`, `showPullRequest`,
@@ -506,7 +548,10 @@ cloned by whoever runs Claude Code, and Claude Code runs on all three.
   `process.execPath` rather than a bare `node`, which may not be on the PATH of the shell
   Claude Code spawns, except on Windows when that path contains whitespace, where a bare
   `node` that the installing shell can run is used instead. The status line's bare `node`
-  remains the documented exception it was.
+  remains the documented exception it was, and Codex's SessionStart hook (`codex-hook`, IV)
+  shares it: Codex trusts that hook by its command text, which IV requires to stay the same
+  across updates, and a version-pinned `process.execPath` would break the hook and change that
+  text on the next Node upgrade. Both fall back to `process.execPath` when no bare `node` runs.
 - **Shell command strings**: values derived from the payload or the environment MUST NOT be
   interpolated into a shell command string. Working directory travels as the `cwd` option;
   command strings stay constant. A directory named with shell metacharacters would otherwise
@@ -709,4 +754,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.5.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
+**Version**: 7.6.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
