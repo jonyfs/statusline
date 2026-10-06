@@ -90,6 +90,9 @@ await test("the step follows the newest child down, skipping a subshell, or list
   const chain = parseProcesses(["1 0 01:00 git commit", "2 1 01:00 bash .git/hooks/pre-commit", "3 2 01:00 bash gates.sh", "4 3 00:30 bash review-cycle.test.sh", "5 4 00:30 bash review-cycle.test.sh"].join("\n"));
   assert.equal(stepOf(2, chain), "gates.sh › review-cycle.test.sh");
   assert.equal(stepOf(5, chain), null, "nothing under it");
+  const midExec = parseProcesses(["1 0 01:00 git commit", "2 1 01:00 bash .git/hooks/pre-commit", "3 2 01:00 bash gates.sh", "4 3 00:01 (Python)"].join("\n"));
+  assert.equal(stepOf(2, midExec), "gates.sh", "a process caught mid-exec has no name yet");
+  assert.equal(labelOf("(Python)"), null);
 });
 
 // Attribution, waiting and locks ------------------------------------------------

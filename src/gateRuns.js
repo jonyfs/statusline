@@ -116,6 +116,9 @@ export function hookOf(proc, byPid) {
 
 /** What a process is, in a few words (research R7). */
 export function labelOf(command) {
+  // macOS lists a process caught between fork and exec as `(Python)`, its
+  // image name in parentheses: not yet the program it is about to be.
+  if (/^\(.*\)$/.test(String(command ?? "").trim())) return null;
   const tokens = String(command ?? "").split(/\s+/).filter(Boolean);
   if (!tokens.length) return null;
   const prog = base(tokens[0]);
@@ -166,13 +169,16 @@ export function stepOf(rootPid, procs) {
   }
   const first = labelOf(kids[0].command);
   let cur = kids[0];
+  // The deepest process with a name; one caught mid-exec has none yet, and
+  // the step stays what its parent was doing.
+  let deepest = null;
   for (let depth = 0; depth < 8; depth++) {
     const next = kidsOf(cur.pid);
     if (!next.length) break;
     // The newest child: the one with the least elapsed time.
     cur = next.reduce((a, b) => ((b.etime ?? Infinity) < (a.etime ?? Infinity) ? b : a));
+    deepest = labelOf(cur.command) ?? deepest;
   }
-  const deepest = cur === kids[0] ? null : labelOf(cur.command);
   return deepest && deepest !== first ? `${first} › ${deepest}` : first;
 }
 
