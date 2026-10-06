@@ -48,6 +48,28 @@ import { gateRows, gateChip } from "./gateRows.js";
  * (specs/030-copilot-agent-rows); `subagentActivity`, the Claude Code roster,
  * has nothing to say here.
  */
+/** The rollout's windows that have no chip of their own, as the payload carries them. */
+function codexWindowsOf(payload) {
+  const list = payload?.rate_limits?.other_windows;
+  if (!Array.isArray(list)) return null;
+  const ok = list.filter(
+    (w) =>
+      w &&
+      typeof w.label === "string" &&
+      Number.isInteger(w.window_minutes) &&
+      w.window_minutes > 0 &&
+      typeof w.used_percentage === "number" &&
+      Number.isFinite(w.used_percentage)
+  );
+  return ok.length ? ok : null;
+}
+
+/** The rollout's credit balance, as text, or null. */
+function codexCreditsOf(payload) {
+  const balance = payload?.rate_limits?.credits?.balance;
+  return typeof balance === "string" && balance.length ? { balance } : null;
+}
+
 export function harnessProbes(probe, harness) {
   // Codex writes no Claude transcript and no skill events, and its subagents
   // are not Claude Code's (specs/035-codex-pane). The working state comes from
@@ -627,6 +649,12 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
         ? timed("cache", () => probe.getCopilotQuota({ now }))
         : missing("cache", "no reader")
       : missing("cache", "Copilot CLI only"),
+    // A Codex window with no chip of its own, such as the free plan's 30 days,
+    // and the credit balance, both from the rollout (specs/037-codex-windows).
+    // Shown whenever the fields are present, like Copilot's own; Claude Code
+    // and Copilot send neither, so under them both are absent.
+    codexWindow: reading({ value: codexWindowsOf(payload), at: now, source: "payload" }),
+    codexCredits: reading({ value: codexCreditsOf(payload), at: now, source: "payload" }),
     rtk: rtkReading,
     samples: reading({ value: sampleHistory, at: now, source: "samples" }),
   };
@@ -1295,6 +1323,26 @@ export function renderReadings(
     // limit. It is drawn as reported, past 100% included, because that is how
     // the payload says the limit has been exceeded; capping it would hide the
     // one figure still moving. Its reset is shed with the 7-day one.
+    // A Codex window that is neither 5 hours nor 7 days, under the label its
+    // length gives it (specs/037-codex-windows). It follows the 7-day rule for
+    // its reset: a date beyond a day, a countdown inside one, and `?` past the
+    // window's own length, which is a timestamp in the wrong unit.
+    codexWindow: () => {
+      const w = shows("codexWindow") ? readings.codexWindow?.value?.[0] : null;
+      if (!w) return null;
+      const pct = Math.round(w.used_percentage);
+      const bound = { maxMs: w.window_minutes * 60_000 + ONE_DAY_MS };
+      const at = typeof w.resets_at === "number" ? w.resets_at : null;
+      const counts = formatResetCountdown(at, now, bound) !== null;
+      const moment = !counts ? "?" : at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
+      const level = ` ${g.calendar} ${w.label} ${pct}%${bandMark(pct)}${fullMark(pct)}`;
+      return { color: rampColour(pct, "sapphire"), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
+    },
+    // Codex's credit balance, drawn as Codex writes it.
+    codexCredits: () => {
+      const c = shows("codexCredits") ? readings.codexCredits?.value : null;
+      return c ? { color: "teal", text: ` ${g.spend} credits ${c.balance} ` } : null;
+    },
     spendLimit: () => {
       if (noLimits) return null;
       if (spendLimitPct === null) return null;

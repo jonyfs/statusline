@@ -372,9 +372,14 @@ The figures come from the session file Codex writes as it works
 and effort come from the turn settings Codex records, the context share is
 the last turn's tokens over the window Codex reports, and "working" means a
 turn has started and not ended. The 5-hour and 7-day chips appear only when
-Codex reports a window of that length. On the free plan Codex reports one
-30-day window, which has no chip on the bar, so both chips are left out. The
-bar never draws them as `?%` or puts that window under another label. Until
+Codex reports a window of that length. A window of any other length gets a
+chip named by its length instead. On the free plan Codex reports one 30-day
+window, so the pane shows `30d 8% · 05/11 13:46` where the 5-hour and 7-day
+chips would be, and leaves those two out. The bar never draws a missing
+window as `?%` or puts a window under a label it does not have. A reset more
+than a day away names the date, and one further out than the window itself
+is shown as `?`. When the account has a credit balance that is not
+unlimited, a `credits 12.5` chip shows it as Codex writes it. Until
 Codex sends token counts, the context chip reads `?%`. The file is Codex's
 internal format, so a field Codex renames drops out of the bar rather than
 being guessed. Codex's own `context-used` item may differ from the pane by a
@@ -423,9 +428,10 @@ What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI
 | Effort | yes | yes, from Copilot's session log or settings | in the model item | yes, from the session file |
 | Context % | yes | yes, from the first frame | yes | yes, once Codex sends token counts |
 | Fits the terminal's width | yes, from `COLUMNS` | yes, read from the terminal | no, the end of the line is cut | yes, the pane's width |
-| 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly | the 5-hour and 7-day windows your plan has, with burn rate |
+| 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly | the windows your plan has, by length (`5h`, `7d`, `30d`), with burn rate on the 5-hour one |
 | Monthly premium and chat quota | n/a | yes, through `gh` | no | n/a |
 | AI credits, and the session limit | n/a | yes | no | no |
+| Codex credit balance | n/a | n/a | no | yes, when the account has one |
 | Prompt cache | yes | no | no | no |
 | Skills, working or idle | yes | yes, from Copilot's session log | working state only | working state only |
 | Todo | yes | yes, from the session's database | task progress | no |
@@ -532,6 +538,12 @@ the bar shows `full` and nothing more. It will not work out a remaining
 balance from what you have spent, how many messages you sent, or how long you
 have been working. `statusline-plugin doctor` tells you which case you are in:
 its `spendLimit` row is either on with its figure, or off with the reason.
+
+`/usage` in Claude Code also shows a Sonnet-only week, an Opus-only week and
+extra usage. Claude Code does not send those to the status line, and fetching
+them would mean reading its login token, so the bar does not show them. The
+5-hour and 7-day chips are the same figures `/usage` calls the current session
+and the current week.
 
 To see what your own Claude Code sends, start it with `CLAUDE_STATUSLINE_DEBUG=1`
 in its environment. Every redraw then writes the raw payload to
@@ -995,7 +1007,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts thirty-three segments on three lines, and it is a default
+The default puts thirty-five segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:

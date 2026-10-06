@@ -13,7 +13,8 @@
  *   event_msg task_started    model_context_window, and a turn is running
  *   event_msg token_count     info.{last,total}_token_usage, model_context_window,
  *                             rate_limits.{primary,secondary}.{used_percent,
- *                             window_minutes,resets_at}, rate_limits.plan_type
+ *                             window_minutes,resets_at}, rate_limits.plan_type,
+ *                             rate_limits.credits.{has_credits,unlimited,balance}
  *   event_msg task_complete   the turn ended (turn_aborted when interrupted)
  *
  * The format is Codex's own and undocumented, so a field that is missing or
@@ -21,7 +22,11 @@
  * shows for any absent field (Principle III). Nothing is estimated: the
  * context share is the last turn's tokens over the window Codex reports, and
  * a usage window maps to the bar's 5-hour or 7-day chip only when Codex says
- * it is 300 or 10080 minutes long. The free plan's 30-day window has no chip.
+ * it is 300 or 10080 minutes long. A window of any other length, such as the
+ * free plan's 30 days, goes in `rate_limits.other_windows` under a label made
+ * from its length, `30d`, and gets a chip of its own; the credit balance goes
+ * in `rate_limits.credits` (specs/037-codex-windows). Claude Code sends
+ * neither key, so both chips are Codex's alone.
  *
  * Reading is bounded like the other readers. The first line comes from the
  * head (it carries Codex's base instructions, so it can be long), the rest
@@ -292,6 +297,45 @@ function windowOf(w) {
   return slot;
 }
 
+/** `43200` as `30d`, `120` as `2h`, `45` as `45m`: the window named by its length alone. */
+export function windowLabel(minutes) {
+  if (minutes % 1440 === 0) return `${minutes / 1440}d`;
+  if (minutes % 60 === 0) return `${minutes / 60}h`;
+  return `${minutes}m`;
+}
+
+const isWindowLength = (m) => typeof m === "number" && Number.isInteger(m) && m > 0;
+
+/**
+ * The windows that have no chip of their own, primary first, each with the
+ * label its length gives it. Codex reports at most two.
+ */
+function otherWindowsOf(limits) {
+  if (!isObject(limits)) return [];
+  const out = [];
+  for (const w of [limits.primary, limits.secondary]) {
+    if (!isObject(w) || !isWindowLength(w.window_minutes)) continue;
+    if (w.window_minutes === FIVE_HOUR_MINUTES || w.window_minutes === SEVEN_DAY_MINUTES) continue;
+    const slot = windowOf(w);
+    if (!slot) continue;
+    out.push({ label: windowLabel(w.window_minutes), window_minutes: w.window_minutes, ...slot });
+  }
+  return out;
+}
+
+/**
+ * The credit balance, as Codex writes it, when there is one to draw: an
+ * account with credits that are not unlimited, and a balance that reads as a
+ * number. Anything else is no figure, rather than a guessed one.
+ */
+function creditsOf(limits) {
+  const c = isObject(limits) ? limits.credits : null;
+  if (!isObject(c) || c.has_credits !== true || c.unlimited === true) return null;
+  const balance = typeof c.balance === "string" ? c.balance.trim() : null;
+  if (!balance || !/^-?\d+(\.\d+)?$/.test(balance)) return null;
+  return { balance };
+}
+
 function rateLimitsOf(limits) {
   if (!isObject(limits)) return undefined;
   const out = {};
@@ -335,6 +379,7 @@ export function rolloutPayload(state, { now = Date.now() } = {}) {
       rollout: state?.file ?? null,
     },
   };
+
   if (meta?.id) payload.session_id = `codex-${meta.id}`;
   if (cwd) {
     payload.cwd = cwd;
@@ -346,8 +391,12 @@ export function rolloutPayload(state, { now = Date.now() } = {}) {
   if (meta?.cliVersion) payload.version = meta.cliVersion;
   const cw = state ? contextOf(state) : undefined;
   if (cw) payload.context_window = cw;
-  const rl = rateLimitsOf(state?.limits);
-  if (rl) payload.rate_limits = rl;
+  const rl = rateLimitsOf(state?.limits) ?? {};
+  const windows = otherWindowsOf(state?.limits);
+  if (windows.length) rl.other_windows = windows;
+  const credits = creditsOf(state?.limits);
+  if (credits) rl.credits = credits;
+  if (Object.keys(rl).length) payload.rate_limits = rl;
   const started = Date.parse(meta?.timestamp ?? "");
   if (Number.isFinite(started) && now >= started) payload.cost = { total_duration_ms: now - started };
   return payload;

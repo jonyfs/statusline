@@ -26,7 +26,7 @@ const strip = (s) =>
 const readings = () => gather(PAYLOAD, { ...SOURCES }, { now: FIXED_NOW * 1000 });
 // Wide enough for every segment the fixture draws: this file checks that the
 // pool's text is the bar's text, and a narrower line would drop some of them.
-const opts = { ...RENDER_OPTIONS, maxWidth: 320, maxHeight: 40 };
+const opts = { ...RENDER_OPTIONS, maxWidth: 360, maxHeight: 40 };
 
 await test("the pool holds one entry per segment the fixture draws", () => {
   const pool = renderReadings(readings(), PAYLOAD, { ...opts, asPool: true });

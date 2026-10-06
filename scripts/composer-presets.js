@@ -169,6 +169,9 @@ export const PRESETS = [
         premiumQuota: { line: 1, order: 82.5 },
         chatQuota: { line: 1, order: 84.5 },
         aiCredits: { line: 1, order: 88.5 },
+        // Codex's other window and credits (specs/037-codex-windows).
+        codexWindow: { line: 1, order: 83.5 },
+        codexCredits: { line: 1, order: 88.7 },
         burnRate: { on: false },
         projection: { on: false },
         duration: { on: false },

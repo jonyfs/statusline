@@ -101,6 +101,10 @@ export const MAX_AGE_MS = {
   chatQuota: 10 * 60 * 1000,
   // The AI credits Copilot reports with this very payload.
   aiCredits: REDRAW_INTERVAL_MS,
+  // Codex's other window and credit balance, read from the rollout with the
+  // payload they arrive in (specs/037-codex-windows).
+  codexWindow: REDRAW_INTERVAL_MS,
+  codexCredits: REDRAW_INTERVAL_MS,
 };
 
 /**

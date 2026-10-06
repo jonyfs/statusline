@@ -2,7 +2,13 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.7.0 (II extended on 2026-10-06: MINOR, gate scripts run without a hook. A script
+- Version: 7.8.0 (III extended on 2026-10-06: MINOR, Codex windows of any length. A Codex usage
+  window that is neither 300 nor 10080 minutes, such as the free plan's 30 days, is no longer
+  left out: it gets a chip labelled by its length, never the 5-hour or 7-day label. The
+  rollout's credit balance may be shown as Codex writes it. Under Claude Code the bar does not
+  read the OAuth credentials for the per-model weeks `/usage` shows. Templates: no change
+  needed. See specs/037-codex-windows/.)
+- Previously, version 7.7.0 (II extended on 2026-10-06: MINOR, gate scripts run without a hook. A script
   matching the repository's gate patterns (defaults, or the `gates` key of `.statusline.json`)
   whose working directory is in one of the repository's worktrees gets a row like a hook's, one
   per outermost script, never duplicating a hook's row or a held `gates.lock`'s. Templates: no
@@ -379,9 +385,16 @@ its own right: the model and effort from `turn_context`, the window size from `t
 `token_count`, the context share as the last turn's `total_tokens` over that window, the usage
 windows from `token_count.rate_limits`, and working while a `task_started` has no later
 `task_complete` or `turn_aborted`. A window MUST map to the 5-hour chip only when Codex says it
-is 300 minutes long and to the 7-day chip only at 10080 minutes; any other window, such as the
-free plan's 30 days, MUST be left out rather than drawn under a label it does not have, and a
-chip whose window the plan lacks is absent rather than `?%`. A field the rollout does not carry
+is 300 minutes long and to the 7-day chip only at 10080 minutes, and a chip whose window the
+plan lacks is absent rather than `?%`. Any other window, such as the free plan's 30 days, MUST
+NOT be drawn under a label it does not have: it gets a chip of its own, labelled by its
+`window_minutes` alone (`30d`, `1d`, `2h`, `45m`), with its reset bounded by that length plus a
+day (specs/037-codex-windows). That window is Codex's own figure, the one its `/status` shows,
+so it is not the invented monthly figure this principle forbids for Anthropic's plans. The
+rollout's `credits.balance` MAY be shown as Codex writes it, only when `has_credits` is true,
+the credits are not unlimited, and the balance reads as a number. Under Claude Code the bar
+MUST NOT read Claude Code's OAuth credentials to fetch figures the payload lacks, such as the
+per-model weekly windows `/usage` shows: the payload is the source. A field the rollout does not carry
 is absent from the payload and renders as the bar renders any absent field. The rollout is
 Codex's internal format, so a reader MUST degrade to the absent field, never guess, when a
 record changes shape.
@@ -760,4 +773,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.7.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
+**Version**: 7.8.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06

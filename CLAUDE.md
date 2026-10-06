@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current feature's
-spec at specs/036-direct-gates/spec.md
+spec at specs/037-codex-windows/spec.md
 <!-- SPECKIT END -->
 
 ## Skill routing
