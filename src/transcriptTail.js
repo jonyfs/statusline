@@ -228,6 +228,15 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
   // redraw finding nothing. Bytes are the thing actually being spent.
   const BYTES_PAST_WINDOW = 512 * 1024;
   let bytesAtFirstOld = null;
+  // Background work the session started and has not been told is over. The
+  // walk is newest-first and a notification always follows its start, so by
+  // the time a start is reached its notification, if any, is already in
+  // `notified`. Starts beyond the bytes this walk reads are simply not seen,
+  // which errs towards "idle", the answer the bar gave before.
+  const notified = new Set();
+  const pendingShells = new Set();
+  const pendingAgents = new Set();
+  const backgroundCutoff = now - BACKGROUND_MAX_AGE_MS;
 
   const { truncated, bytesRead } = readTailLines(file, {
     byteCap,
@@ -258,6 +267,14 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
         }
       } else {
         consecutiveOld = 0;
+      }
+
+      for (const id of notifiedIdsIn(entry)) notified.add(id);
+      const started = backgroundStartIn(entry);
+      // A start with no usable stamp is not counted: with nothing to age it
+      // by, it could keep "working" up for a shell that died hours ago.
+      if (started && !notified.has(started.id) && Number.isFinite(stamp) && stamp >= backgroundCutoff && stamp <= now) {
+        (started.kind === "shell" ? pendingShells : pendingAgents).add(started.id);
       }
 
       const blocks = entry?.message?.content;
@@ -297,7 +314,88 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
     },
   });
 
-  return { skills: skills.slice(0, limit), skillsTrueCount: skills.length, todos, lastAt, truncated, bytesRead };
+  return {
+    skills: skills.slice(0, limit),
+    skillsTrueCount: skills.length,
+    todos,
+    lastAt,
+    background: { shells: pendingShells.size, agents: pendingAgents.size },
+    truncated,
+    bytesRead,
+  };
+}
+
+/**
+ * How long a background start with no notification is still believed.
+ *
+ * Background shells and async agents die with the Claude Code process, and
+ * a session that was closed and resumed later never gets their
+ * notifications. Without a limit, one such start would hold "working" on
+ * for the rest of the session. Two hours covers a long e2e run or a slow
+ * gate; anything older is more likely an orphan than a live job.
+ */
+const BACKGROUND_MAX_AGE_MS = 2 * 3600_000;
+
+/**
+ * The background job an entry started, if it started one: the tool_result
+ * of a Bash call made with `run_in_background` carries
+ * `toolUseResult.backgroundTaskId`, and an async Agent or workflow carries
+ * `status: "async_launched"` with its `agentId` or `taskId`. Those ids are
+ * the ones the job's task-notification later names.
+ */
+function backgroundStartIn(entry) {
+  if (entry?.type !== "user") return null;
+  const result = entry.toolUseResult;
+  if (!result || typeof result !== "object") return null;
+  if (typeof result.backgroundTaskId === "string" && result.backgroundTaskId) {
+    return { id: result.backgroundTaskId, kind: "shell" };
+  }
+  if (result.status === "async_launched") {
+    const id = result.agentId ?? result.taskId;
+    if (typeof id === "string" && id) return { id, kind: "agent" };
+  }
+  return null;
+}
+
+const NOTIFICATION = /<task-notification>([\s\S]*?)<\/task-notification>/g;
+const TASK_ID = /<task-id>\s*([^<\s]+)\s*<\/task-id>/;
+const STATUS = /<status>\s*([a-z_]+)\s*<\/status>/;
+
+/**
+ * Ids of the background jobs an entry reports as finished.
+ *
+ * Claude Code writes a notification in three places, often all of them for
+ * the same job: a queue-operation record (enqueue and remove), a
+ * queued_command attachment, and the user turn that delivers it. Only those
+ * are read. An assistant entry that quotes a notification, in a script or a
+ * reply, is the model writing text, not Claude Code reporting an end. A
+ * notification without a task id (a goal check-in) names no job, and one
+ * whose status is still "running" has not ended it.
+ */
+function notifiedIdsIn(entry) {
+  const texts = [];
+  if (entry?.type === "queue-operation") {
+    texts.push(entry.content);
+  } else if (entry?.type === "attachment") {
+    texts.push(entry.attachment?.prompt, entry.attachment?.content);
+  } else if (entry?.type === "user") {
+    const content = entry.message?.content;
+    if (typeof content === "string") texts.push(content);
+    else if (Array.isArray(content)) {
+      for (const block of content) if (block?.type === "text") texts.push(block.text);
+    }
+  }
+
+  const ids = [];
+  for (const text of texts) {
+    if (typeof text !== "string" || !text.includes("<task-notification>")) continue;
+    for (const match of text.matchAll(NOTIFICATION)) {
+      const id = TASK_ID.exec(match[1])?.[1];
+      const status = STATUS.exec(match[1])?.[1];
+      if (id && status && status !== "running" && status !== "pending") ids.push(id);
+    }
+  }
+  return ids;
 }
 
 /**
