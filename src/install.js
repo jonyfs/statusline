@@ -16,6 +16,9 @@ import {
   CODEX_THEMES,
 } from "./codexConfig.js";
 import { copilotHome, readCopilotSettings } from "./copilotSettings.js";
+import { parseHooks, addCodexHook, removeCodexHook, hasCodexHook } from "./codexHooks.js";
+import { findOnPath } from "./codexLaunch.js";
+import { latestPointer } from "./codexSession.js";
 
 const CLI_PATH = fileURLToPath(new URL("../bin/cli.js", import.meta.url));
 const PACKAGE_PATH = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -726,11 +729,21 @@ function codexStatus(file) {
  * changes only with `theme`: a Catppuccin name sets it, false puts back the
  * one it replaced, undefined leaves it alone.
  */
-function installCodex(env, theme) {
+function installCodex(env, theme, pane) {
   const dir = codexHome(env);
   if (!existsSync(dir)) return { ok: false, reason: `Codex is not set up here: ${dir} does not exist. Run Codex once, then install again.` };
   if (typeof theme === "string" && !CODEX_THEMES.includes(theme)) {
     return { ok: false, reason: `--theme takes one of ${CODEX_THEMES.join(", ")}, not "${theme}".` };
+  }
+  // The hooks file is checked before anything is written, so a file this
+  // installer cannot edit leaves config.toml untouched too.
+  const hooksPath = path.join(dir, "hooks.json");
+  if (pane !== undefined && existsSync(hooksPath)) {
+    try {
+      parseHooks(readFileSync(hooksPath, "utf8"));
+    } catch (err) {
+      return { ok: false, reason: `${hooksPath} could not be read as Codex hooks (${err.message}). Fix it, or install without --pane.` };
+    }
   }
   const file = path.join(dir, "config.toml");
   const before = existsSync(file) ? readFileSync(file, "utf8") : "";
@@ -781,13 +794,109 @@ function installCodex(env, theme) {
     notes.push(`[tui] status_line is a list you chose, so it was kept. For this plugin's list, delete that line and install again, or write: ${CODEX_STATUS_LINE}`);
   }
   if (themeResult === "set") notes.push("The theme also restyles code blocks and diffs everywhere in Codex; --no-theme or uninstall puts yours back.");
-  return { ok: true, harness: "codex", file, backupPath, items: applied.items, colors, theme: themeResult, themeName: codexOurTheme(text, entry), notes };
+  const paneResult = applyCodexPane(hooksPath, pane);
+  if (paneResult.hook === "added" || paneResult.hook === "updated") {
+    notes.push(
+      "Codex asks once to trust a new hook before it runs it: approve this plugin's SessionStart hook when Codex lists it. Until then the pane finds the session by its directory."
+    );
+  }
+  return { ok: true, harness: "codex", file, backupPath, items: applied.items, colors, theme: themeResult, themeName: codexOurTheme(text, entry), notes, pane: paneResult };
+}
+
+// --- Codex pane hook (specs/035-codex-pane) -----------------------------------
+
+/** The SessionStart hook's command. Kept stable: Codex's trust is tied to its text. */
+export function buildCodexHookCommand() {
+  return buildCommand(process.execPath, CLI_PATH, "codex-hook");
+}
+
+/** hooks.json files this plugin created, so uninstall can remove one it emptied. */
+const codexHooksRecordFile = () => path.join(os.homedir(), ".claude", "statusline", "codex-hooks.json");
+
+function loadCodexHooksRecord() {
+  try {
+    const parsed = JSON.parse(readFileSync(codexHooksRecordFile(), "utf8"));
+    if (parsed?.version === 1 && Array.isArray(parsed.created)) return parsed;
+  } catch {
+    // none yet
+  }
+  return { version: 1, created: [] };
+}
+
+function saveCodexHooksRecord(record) {
+  if (record.created.length === 0) {
+    try {
+      unlinkSync(codexHooksRecordFile());
+    } catch {
+      // nothing to remove
+    }
+    return;
+  }
+  writeAtomic(codexHooksRecordFile(), JSON.stringify(record, null, 2) + "\n");
+}
+
+/** Takes the hook out of `file`. Removes the file when this plugin created it and nothing else is left. */
+function removeCodexPaneHook(file) {
+  if (!existsSync(file)) return { removed: false };
+  let result;
+  try {
+    result = removeCodexHook(readFileSync(file, "utf8"));
+  } catch {
+    return { removed: false };
+  }
+  if (!result.removed) return { removed: false };
+  const record = loadCodexHooksRecord();
+  const created = record.created.includes(file);
+  const backupPath = backupFile(file, "codex-hooks");
+  if (result.empty && created) unlinkSync(file);
+  else writeAtomic(file, result.text);
+  record.created = record.created.filter((f) => f !== file);
+  saveCodexHooksRecord(record);
+  return { removed: true, backupPath };
+}
+
+/**
+ * `pane` true registers the hook, false removes it, undefined leaves it as it
+ * is, so a plain reinstall or update keeps the person's choice.
+ */
+function applyCodexPane(file, pane) {
+  if (pane === undefined) {
+    const text = existsSync(file) ? readFileSync(file, "utf8") : "";
+    return { hook: hasCodexHook(text) ? "kept" : "absent", file };
+  }
+  if (pane === false) {
+    const r = removeCodexPaneHook(file);
+    return { hook: r.removed ? "removed" : "absent", file, backupPath: r.backupPath ?? null };
+  }
+  const existed = existsSync(file);
+  const before = existed ? readFileSync(file, "utf8") : "";
+  const added = addCodexHook(before, buildCodexHookCommand());
+  let backupPath = null;
+  if (added.state !== "present") {
+    if (existed) backupPath = backupFile(file, "codex-hooks");
+    writeAtomic(file, added.text);
+    if (!existed) {
+      const record = loadCodexHooksRecord();
+      if (!record.created.includes(file)) record.created.push(file);
+      saveCodexHooksRecord(record);
+    }
+  }
+  return { hook: added.state, file, backupPath };
 }
 
 /** Removes the items, colors and theme this plugin wrote, and nothing the person set. */
 function uninstallCodex(env) {
+  const hooks = removeCodexPaneHook(path.join(codexHome(env), "hooks.json"));
   const file = path.join(codexHome(env), "config.toml");
-  if (!existsSync(file)) return { changed: false, reason: `${file} does not exist.` };
+  if (!existsSync(file)) {
+    return hooks.removed ? { changed: true, file, hookRemoved: true } : { changed: false, reason: `${file} does not exist.` };
+  }
+  const result = uninstallCodexConfig(file);
+  if (!hooks.removed) return result;
+  return { ...result, changed: true, file, hookRemoved: true };
+}
+
+function uninstallCodexConfig(file) {
   const before = readFileSync(file, "utf8");
   const record = loadCodexRecord();
   const entry = record.files[file] ?? {};
@@ -805,7 +914,7 @@ function uninstallCodex(env) {
 }
 
 /** Points another harness's status line at this plugin. */
-export function installHarness(harness, { env = process.env, quietFooter: quiet, theme } = {}) {
+export function installHarness(harness, { env = process.env, quietFooter: quiet, theme, pane } = {}) {
   const tooOld = unsupportedNode();
   if (tooOld) return { ok: false, reason: tooOld };
   if (harness === "copilot") {
@@ -838,7 +947,7 @@ export function installHarness(harness, { env = process.env, quietFooter: quiet,
     const notes = read.hadComments ? [`${file} had comments; they are in the backup and not in the rewritten file.`] : [];
     return { ok: true, harness, file, backupPath, command, notes, refreshInterval: COPILOT_REFRESH_INTERVAL_SECONDS, footer };
   }
-  if (harness === "codex") return installCodex(env, theme);
+  if (harness === "codex") return installCodex(env, theme, pane);
   return { ok: false, reason: `Unknown harness "${harness}". Use copilot or codex.` };
 }
 
@@ -881,7 +990,14 @@ export function harnessStatus({ env = process.env } = {}) {
   const xHome = codexHome(env);
   if (existsSync(xHome)) {
     const file = path.join(xHome, "config.toml");
-    out.push({ harness: "codex", home: xHome, ...codexStatus(file) });
+    const hooksPath = path.join(xHome, "hooks.json");
+    // What the bar pane under Codex needs (specs/035-codex-pane).
+    const pane = {
+      hook: existsSync(hooksPath) && hasCodexHook(readFileSync(hooksPath, "utf8")),
+      tmux: process.platform === "win32" ? null : findOnPath("tmux", env),
+      latest: latestPointer(),
+    };
+    out.push({ harness: "codex", home: xHome, ...codexStatus(file), pane });
   }
   return out;
 }

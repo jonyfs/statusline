@@ -483,7 +483,28 @@ function codexLine(h) {
   else parts.push(`${where}, ${CODEX_ITEMS_TEXT[h.items] ?? "not set up"}`);
   if (CODEX_COLORS_TEXT[h.colors]) parts.push(CODEX_COLORS_TEXT[h.colors]);
   if (h.theme) parts.push(`theme ${h.theme} (set by this plugin; install --harness codex --no-theme restores yours)`);
+  if (h.pane) parts.push(codexPaneText(h.pane));
   return parts.join("; ");
+}
+
+/** `2m`, `3h`, `5d`: how long ago, for a pointer's age. */
+function ago(ms) {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 48 * 3600) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}
+
+/** Whether the bar pane under Codex can run, and the last session a hook reported (specs/035-codex-pane). */
+function codexPaneText(pane) {
+  if (pane.tmux && pane.hook) {
+    const last = pane.latest ? `last session ${pane.latest.session_id} ${ago(pane.latest.ageMs)} ago` : "no session reported yet";
+    return `pane: ready (tmux ${pane.tmux}, SessionStart hook registered, ${last})`;
+  }
+  const tmux = pane.tmux ? `tmux ${pane.tmux}` : "tmux not found";
+  const hook = pane.hook ? "SessionStart hook registered" : "hook not registered (install --harness codex --pane)";
+  return `pane: ${tmux}; ${hook}`;
 }
 
 export function terminalLine(t) {

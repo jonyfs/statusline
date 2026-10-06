@@ -51,11 +51,13 @@ const USAGE = [
   `Usage: node "${process.argv[1]}" <command>`,
   "",
   "  install " + INSTALL_FLAGS,
-  "  install --harness copilot|codex [--quiet-footer|--no-quiet-footer] [--theme <catppuccin-*>|--no-theme]",
+  "  install --harness copilot|codex [--quiet-footer|--no-quiet-footer] [--theme <catppuccin-*>|--no-theme] [--pane|--no-pane]",
   "  update " + INSTALL_FLAGS,
   "  updates [auto|notify|off]",
   "  check-updates",
   "  uninstall [--harness copilot|codex]",
+  "  codex [codex arguments]      Codex CLI with the bar in a tmux pane under it",
+  "  codex-pane [--cwd <dir>] [--rollout <file>] [--session <id>] [--pid <n>] [--once]",
   "  render",
   "  doctor [--json|--explain]",
   "  help",
@@ -133,7 +135,15 @@ async function main() {
           console.error(`--theme is for Codex's own theme; ${harness} has none to set.`);
           process.exit(1);
         }
-        const r = installHarness(harness, { quietFooter, theme });
+        // Codex only (specs/035-codex-pane): --pane registers the SessionStart
+        // hook that tells the bar pane which session is whose, --no-pane takes
+        // it out, and no flag leaves it as it is.
+        const pane = rest.includes("--no-pane") ? false : rest.includes("--pane") ? true : undefined;
+        if (pane !== undefined && harness !== "codex") {
+          console.error(`--pane is for Codex, which cannot run the bar itself; ${harness} runs it in its own footer.`);
+          process.exit(1);
+        }
+        const r = installHarness(harness, { quietFooter, theme, pane });
         if (!r.ok) {
           console.error(r.reason);
           process.exit(1);
@@ -173,6 +183,18 @@ async function main() {
           console.log(`  Items:         ${items}`);
           console.log(`  Colors:        ${colors}`);
           console.log(`  Theme:         ${theme}`);
+          const paneText = {
+            added: `SessionStart hook added to ${r.pane?.file}`,
+            updated: `SessionStart hook in ${r.pane?.file} now points at this clone`,
+            present: "SessionStart hook already registered",
+            kept: "SessionStart hook kept (--no-pane removes it)",
+            removed: `SessionStart hook removed from ${r.pane?.file}`,
+          }[r.pane?.hook];
+          if (paneText) console.log(`  Pane:          ${paneText}`);
+          if (r.pane?.backupPath) console.log(`  Hooks backup:  ${r.pane.backupPath}`);
+          if (["added", "updated", "present", "kept"].includes(r.pane?.hook)) {
+            console.log(`  Start Codex:   node "${process.argv[1]}" codex   (the bar in a tmux pane under Codex)`);
+          }
         }
         for (const note of r.notes ?? []) console.log(`  Note:          ${note}`);
         console.log(`  Restart ${harness === "copilot" ? "Copilot CLI" : "Codex"} to see it.`);
@@ -261,6 +283,7 @@ async function main() {
         console.log(r.changed ? `Statusline removed from ${r.file}.` : r.reason);
         if (r.footerRestored) console.log(`Copilot's footer is back to what it was before --quiet-footer.`);
         if (r.themeRestored) console.log(`Codex's theme is back to what it was before --theme.`);
+        if (r.hookRemoved) console.log(`SessionStart hook removed from Codex's hooks.json; other hooks were left as they were.`);
         break;
       }
       const { uninstall } = await import("../src/install.js");
@@ -296,6 +319,35 @@ async function main() {
       const { runTaskRows } = await import("../src/taskRows.js");
       const out = await runTaskRows();
       if (out) process.stdout.write(out + "\n");
+      break;
+    }
+    case "codex-hook": {
+      // Codex's SessionStart hook (specs/035-codex-pane). It prints nothing,
+      // since Codex may read a hook's output, and it never fails Codex.
+      const raw = await new Promise((resolve) => {
+        let data = "";
+        if (process.stdin.isTTY) return resolve("");
+        process.stdin.setEncoding("utf8");
+        process.stdin.on("data", (chunk) => (data += chunk));
+        process.stdin.on("end", () => resolve(data));
+        process.stdin.on("error", () => resolve(data));
+      });
+      try {
+        const { runCodexHook } = await import("../src/codexSession.js");
+        runCodexHook(raw);
+      } catch {
+        // a pointer that could not be written leaves the pane to the cwd scan
+      }
+      break;
+    }
+    case "codex-pane": {
+      const { runCodexPane } = await import("../src/codexPane.js");
+      process.exitCode = await runCodexPane(rest);
+      break;
+    }
+    case "codex": {
+      const { runCodexWrapper } = await import("../src/codexLaunch.js");
+      process.exitCode = runCodexWrapper(rest, { cliPath: process.argv[1] });
       break;
     }
     case "note-skill": {
