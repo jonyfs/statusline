@@ -174,7 +174,11 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
       : null;
   const pct = counted !== null && windowSize !== null ? (counted / windowSize) * 100 : null;
 
-  const tierLabel = tier ? (tier.effort ? `${tier.model}\u00b7${tier.effort}` : tier.model) : null;
+  // A model outside Claude's families has no tier to colour, and Copilot runs
+  // plenty of them. Its rows name the model as reported instead, in the
+  // neutral colour (specs/030-copilot-agent-rows); Claude Code's rows never
+  // carry `modelLabel`, so for them nothing changes.
+  const tierLabel = tier ? (tier.effort ? `${tier.model}\u00b7${tier.effort}` : tier.model) : plainText(task.modelLabel);
   // The bar keeps its number. Nine cells put 5% and 0% in the same picture,
   // and the figure is what separates them.
   // `bar` clamps to 0-100; the figure beside it has to agree, or a task over
@@ -556,4 +560,54 @@ export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, n
       }
     })
     .filter(Boolean);
+}
+
+/**
+ * A row cut to `columns`, colour codes kept intact, with an ellipsis where it
+ * was cut.
+ *
+ * Claude Code cuts an overflowing row itself. Copilot wraps one instead, and
+ * a wrapped row is two rows, the second starting mid-word under the bar, so
+ * under Copilot the cut has to happen here.
+ */
+export function clipAnsi(text, columns) {
+  if (displayWidth(text.replace(/\x1b\[[0-9;]*m/g, "")) <= columns) return text;
+  let out = "";
+  let used = 0;
+  for (let i = 0; i < text.length; ) {
+    const escape = /^\x1b\[[0-9;]*m/.exec(text.slice(i));
+    if (escape) {
+      out += escape[0];
+      i += escape[0].length;
+      continue;
+    }
+    const char = String.fromCodePoint(text.codePointAt(i));
+    const width = displayWidth(char);
+    if (used + width > columns - 1) break;
+    out += char;
+    used += width;
+    i += char.length;
+  }
+  return `${out}\u2026${RESET}`;
+}
+
+/**
+ * The subagent rows for a harness that has no row setting of its own, which
+ * today is GitHub Copilot CLI (specs/030-copilot-agent-rows). Its session log
+ * gives the agents already in the task shape; they go through the same cells,
+ * alignment and shedding as Claude Code's rows, then are cut to the width,
+ * and past `cap` one more row says how many were left out.
+ */
+export function harnessAgentRows(agents, { columns = 120, palette = PALETTES.mocha, now = Date.now(), cap = 6 } = {}) {
+  if (!Array.isArray(agents) || !agents.length) return [];
+  const shown = agents.slice(0, cap).map((agent) => {
+    if (taskTier(agent)) return agent;
+    const model = plainText(agent.model);
+    const effort = plainText(agent.effort);
+    return { ...agent, modelLabel: model ? (effort ? `${model}\u00b7${effort}` : model) : null };
+  });
+  const skillsByAgent = new Map(shown.map((agent) => [agent.id, Array.isArray(agent.skills) ? agent.skills : []]));
+  const rows = alignTaskRows(shown, { columns, palette, now, skillsByAgent }).map((row) => clipAnsi(row.content, columns));
+  if (agents.length > cap) rows.push(`${fg(palette.surface2)}+${agents.length - cap} more${RESET}`);
+  return rows;
 }
