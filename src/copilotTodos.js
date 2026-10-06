@@ -12,7 +12,7 @@
  *
  * Read-only, always: Copilot owns the file and may be writing it. Two ways to
  * read it, so no dependency is added (Principle IV): Node's own `node:sqlite`
- * when the running Node has it (22.5 and newer), else the `sqlite3` program
+ * when the running Node has it (22.13 and newer, 23.4 on the 23 line; older ones gate it behind a flag), else the `sqlite3` program
  * outside Windows, where it is usually present on macOS and Linux and usually
  * absent on Windows. With neither, the chip is absent.
  */

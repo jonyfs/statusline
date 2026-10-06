@@ -16,7 +16,7 @@ every 10 seconds and can quiet Copilot's own footer.
 
 **Language/Version**: JavaScript ES modules, Node 18+
 
-**Primary Dependencies**: none at runtime. `node:sqlite` when the running Node has it (22.5+),
+**Primary Dependencies**: none at runtime. `node:sqlite` when the running Node has it (22.13+, 23.4+; earlier versions need --experimental-sqlite),
 else the `sqlite3` CLI outside Windows; `gh` for the quota, only in the detached refresh.
 
 **Storage**: the Copilot events sidecar (schema 2), one global cache entry `copilotQuota`, and

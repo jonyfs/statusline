@@ -90,19 +90,17 @@ await test("COLUMNS wins, and Windows or a missing terminal falls back to 120", 
   assert.deepEqual(terminalFor("copilot", { env: {}, platform: "linux", readTty: () => null }).source, "default");
 });
 
-await test("a Copilot bar in a 100-column terminal is fitted to 100 columns, not wrapped from 120", () => {
-  const out = withoutSize(() =>
-    stripAnsi(
-      renderPayload(copilot({ cost: { ...fixture.cost, total_premium_requests: 3, total_lines_added: 1200 } }), {
-        sources: { ...emptySources, readTty: () => ({ columns: 100, rows: 40 }), getRtkSavings: () => 81 },
-        trackChanges: false,
-        now: NOW,
-      })
-    )
-  );
-  for (const line of out.split("\n")) {
-    assert.ok([...line].length <= 100, `${[...line].length} columns: ${line}`);
-  }
+await test("a Copilot bar is fitted to the terminal it measured, not wrapped from 120", () => {
+  const payload = copilot({ cost: { ...fixture.cost, total_premium_requests: 3, total_lines_added: 1200 } });
+  const draw = (readTty) =>
+    withoutSize(() =>
+      stripAnsi(renderPayload(payload, { sources: { ...emptySources, readTty, getRtkSavings: () => 81 }, trackChanges: false, now: NOW }))
+    ).split("\n");
+  const wide = draw(() => null);
+  assert.ok(wide.some((l) => [...l].length > 60), "at the 120 fallback some line is wider than 60, so the case below can tell");
+  const fitted = draw(() => ({ columns: 60, rows: 2 }));
+  assert.ok(fitted.length <= 2, `the measured height reached the renderer: ${fitted.length} lines`);
+  for (const line of fitted) assert.ok([...line].length <= 60, `${[...line].length} columns: ${line}`);
 });
 
 // Item 2: the context figure before the first model call -----------------------

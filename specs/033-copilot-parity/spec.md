@@ -157,7 +157,7 @@ uninstall puts back exactly what was there. `doctor` reports both.
 ### Edge Cases
 
 - `/dev/tty` exists but has no controlling terminal: `ENXIO`, so the width is 120.
-- `node:sqlite` missing (Node before 22.5): the `sqlite3` CLI is used on macOS and Linux when it
+- `node:sqlite` missing (Node before 22.13, or 23.0 to 23.3): the `sqlite3` CLI is used on macOS and Linux when it
   is installed; otherwise the todo chip is absent. Node's experimental warning is not printed.
 - A `session.db` with no `todos` table: no chip.
 - A quota snapshot with `unlimited: true`: no chip for it. `has_quota: false` with an

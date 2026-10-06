@@ -325,7 +325,7 @@ settings before the first message.
 
 Copilot keeps an agent's todo list in a SQLite file in the session directory,
 `session.db`. The bar opens it read-only, with Node's built-in SQLite on Node
-22.5 and newer, or the `sqlite3` program on macOS and Linux. With neither
+22.13 and newer (23.4 on the 23 line; older versions need a flag), or the `sqlite3` program on macOS and Linux. With neither
 there is no todo chip.
 
 The credits chip shows what the session used as Copilot formats it,
