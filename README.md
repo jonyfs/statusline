@@ -248,39 +248,100 @@ set, because no setting moves them.
 
 **OpenAI Codex CLI does not run outside commands in its status line.** It
 draws its own built-in items. What this plugin can do is choose the ones
-closest to its bar:
+closest to its bar, in the bar's order, and turn on Codex's colors:
 
 ```bash
 node ~/.claude/statusline-plugin/bin/cli.js install --harness codex
 ```
 
-That writes `status_line` under `[tui]` in `~/.codex/config.toml` (or
-`$CODEX_HOME`), changing no other line, after a backup:
-`model-with-reasoning`, `current-dir`, `git-branch`, `context-used`,
-`five-hour-limit`, `weekly-limit`, `fast-mode`, `run-state` and
-`task-progress`. `uninstall --harness codex` removes that line, and only if it
-is still the one this plugin wrote.
+That writes two keys under `[tui]` in `~/.codex/config.toml` (or
+`$CODEX_HOME`), changing no other line, after a backup. The first is
+`status_line`, twelve items that read the way the Claude bar reads, from
+where you are to what the model is spending:
+
+| Codex item | Stands for the bar's | Shows |
+|---|---|---|
+| `project-name` | directory | the project, or the folder name |
+| `git-branch` | branch | the branch, in a git repository |
+| `branch-changes` | lines changed | committed changes against the default branch, `+12 -3` |
+| `pull-request-number` | pull request | `PR #123`, when the branch has one |
+| `task-progress` | todo | `Tasks 2/5` from Codex's plan |
+| `run-state` | working or idle | Ready, Working or Thinking |
+| `model-with-reasoning` | model and effort | `gpt-5.5 high` |
+| `fast-mode` | fast | Fast on or off |
+| `permissions` | allow-all | the permission profile, such as `Workspace` |
+| `context-used` | context | `Context 34% used` |
+| `five-hour-limit` | 5-hour window | the primary usage window |
+| `weekly-limit` | 7-day window | the secondary usage window |
+
+An item with nothing to show is left out by Codex, so outside a repository
+there is no branch, and without a pull request there is no `PR #`. The
+directory item is the project name rather than the full path, which would
+push everything after it off the line.
+
+Codex has one line and cuts it at the right edge with `…`. The bar drops its
+least important segments first; Codex cannot, so on a narrow terminal the
+context and limit items, which come last in reading order, are the first to
+go.
+
+The second key is `status_line_use_colors = true`, which gives each item a
+color from Codex's theme. Install adds it only when the key is not there.
+If you already set it, to `true` or `false`, your value stays.
+
+Install only replaces a `status_line` this plugin wrote. Running it again
+after an update upgrades the list an earlier version wrote (the nine items
+from `model-with-reasoning` to `task-progress`) to this one. A list you chose
+yourself, in Codex's `/statusline` picker or by hand, is kept, and install
+says so and prints the line to use if you want this plugin's list instead.
+
+`uninstall --harness codex` removes the list, if it is one this plugin wrote,
+and the colors key, if this plugin added it and it is still `true`. Every
+other line of the file comes back as it was, byte for byte.
+
+**A Catppuccin theme, if you want one.** Codex's `theme` sets the palette its
+colors come from. Install leaves it alone unless you ask:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js install --harness codex --theme catppuccin-mocha
+```
+
+It takes `catppuccin-mocha`, `catppuccin-macchiato`, `catppuccin-frappe` or
+`catppuccin-latte` (the light one), the four Catppuccin themes Codex ships.
+`theme` changes more than the status line. It also restyles syntax
+highlighting in code blocks and diffs everywhere in Codex, and it replaces a
+theme you picked with `/theme`. Install records the theme it replaced, in
+`~/.claude/statusline/codex-config.json`. `--no-theme` or uninstall puts that
+one back, unless you changed the theme since, in which case your later choice
+stays.
+
+**The terminal title is left alone.** Codex can also put items in the
+terminal's title (`[tui] terminal_title`). This plugin does not set it. A
+title is plain text in the system font, often cut short in a tab, and the
+items would only repeat the footer, while Codex already sets a title of its
+own. To put the project and branch there yourself, add
+`terminal_title = ["project-name", "git-branch"]` under `[tui]`.
 
 Three things to know before deciding it did not work. The items appear only
 in Codex in a terminal (`codex`), not in the Codex desktop app or the Codex
 extension for VS Code, which have no status line at all. They are Codex's own
-items in Codex's own style, so there are no Powerline segments or icons;
-compared with the default, which shows only the model and the directory, you
-gain the context figure, the limits, the run state, the branch in a git
-repository, and fast mode and task progress while they are active. And a
-Codex session started before the install keeps its old footer until you
-start a new one.
+items in Codex's own style: one foreground color each, separated by ` · `,
+with no Powerline segments, backgrounds or icons. And a Codex session started
+before the install keeps its old footer until you start a new one.
 
-What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI 0.158.0:
+`doctor` says whose item list Codex has (this plugin's, an older one it
+wrote, or yours), whether the colors are on and who turned them on, and the
+theme when `--theme` set it.
+
+What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI 0.160.1:
 
 | | Claude Code | Copilot CLI | Codex CLI |
 |---|---|---|---|
-| Directory, repository, branch, tree state, PR, CI | yes | yes | directory and branch |
-| Lines changed, session duration | yes | yes | no |
+| Directory, repository, branch, tree state, PR, CI | yes | yes | project, branch and pull request |
+| Lines changed, session duration | yes | yes | committed changes on the branch |
 | Model | yes | yes, and the model `Auto` routed to | yes, with reasoning |
 | Effort | yes | yes, from Copilot's session log or settings | in the model item |
 | Context % | yes | yes, from the first frame | yes |
-| Fits the terminal's width | yes, from `COLUMNS` | yes, read from the terminal | n/a |
+| Fits the terminal's width | yes, from `COLUMNS` | yes, read from the terminal | no, the end of the line is cut |
 | 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly |
 | Monthly premium and chat quota | n/a | yes, through `gh` | no |
 | AI credits, and the session limit | n/a | yes | no |
@@ -289,7 +350,8 @@ What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI 0.158.0:
 | Todo | yes | yes, from the session's database | task progress |
 | Vim, fast mode | yes | no | fast mode |
 | rtk savings, update notice | yes | yes | no |
-| Premium requests, allow-all | n/a | yes | n/a |
+| Premium requests, allow-all | n/a | yes | the permission profile |
+| Colors | Catppuccin, by level | Catppuccin, by level | one per item, from the theme |
 | Subagent rows | yes | yes, after the bar | no |
 | Git gates running in other worktrees | yes | yes | no |
 
