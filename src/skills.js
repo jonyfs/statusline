@@ -188,11 +188,18 @@ export function getSessionActivity(transcriptPath, { now = Date.now(), limit = 3
   // unobserved.
   if (!transcriptPath) return null;
   const scan = scanTail(transcriptPath, { limit, windowMs: windowMs(), now });
+  const background = scan.background ?? { shells: 0, agents: 0 };
+  const recent = scan.lastAt !== null && now - scan.lastAt <= ACTIVE_WITHIN_MS;
   return {
     skills: scan.skills,
     skillsTrueCount: scan.skillsTrueCount,
     todos: scan.todos,
-    working: scan.lastAt !== null && now - scan.lastAt <= ACTIVE_WITHIN_MS,
+    // A background shell or async agent the session started writes nothing
+    // to the transcript until it is notified as finished, so a session
+    // waiting on a gate or a build looks quiet. It is still working: the
+    // transcript says the job started and has not said it ended.
+    working: recent || background.shells + background.agents > 0,
+    background,
   };
 }
 

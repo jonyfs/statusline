@@ -996,10 +996,15 @@ export function renderReadings(
     if (vimMode) row.push({ key: "vim", color: "lavender", text: ` ${g.vim} ${vimMode} ` });
     if (activity) {
       const mark = activity.working ? g.working : g.idle;
+      // How many background jobs the session is waiting on, said whenever
+      // there are any: "working" alone would not tell a quiet session
+      // waiting on a gate from one producing output.
+      const bg = (activity.background?.shells ?? 0) + (activity.background?.agents ?? 0);
+      const waiting = activity.working && bg > 0 ? ` · ${bg} bg` : "";
       row.push({
         key: "activity",
         color: activity.working ? "green" : "surface2",
-        text: activity.working ? ` ${mark} working ` : ` ${mark} idle `,
+        text: activity.working ? ` ${mark} working${waiting} ` : ` ${mark} idle `,
       });
     }
   }
