@@ -320,7 +320,7 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
   const copilotSettings = harness === "copilot" ? (probes.copilotSettings?.() ?? {}) : null;
   // Through the same harness switch the renderer uses, so a Copilot payload is
   // read from Copilot's session log here too.
-  const readings = gather(payload, harnessProbes(probes, harness), { now, copilotSettings });
+  const readings = gather(payload, harnessProbes(probes, harness, payload), { now, copilotSettings });
   // The arrangement in force, so every line and order below describes the
   // bar this machine draws rather than the one the registry would draw.
   const layout = resolveLayout(readings.cwd);
@@ -469,7 +469,7 @@ export function terminalReport(harness = "claude", { readTty, settings = null, e
  */
 export function harnessLine(h) {
   if (h.harness === "codex" && h.items !== undefined) return codexLine(h);
-  const name = h.harness === "copilot" ? "Copilot CLI" : "Codex";
+  const name = { copilot: "Copilot CLI", opencode: "OpenCode" }[h.harness] ?? "Codex";
   const base = `install: ${name} found at ${h.home}, ${h.configured ? "set up with this plugin" : `not set up (run install --harness ${h.harness})`}`;
   if (h.harness !== "copilot" || !h.configured) return base;
   const interval = h.refreshInterval ? `refreshes every ${h.refreshInterval}s` : "refreshes only on Copilot's own events";

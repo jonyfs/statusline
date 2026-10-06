@@ -202,9 +202,9 @@ this plugin, so if you've since switched to something else, yours is left
 alone. Any other `PostToolUse` hook you have is untouched. The backups stay
 where they are.
 
-## GitHub Copilot CLI and OpenAI Codex
+## GitHub Copilot CLI, OpenAI Codex and OpenCode
 
-The same clone also sets up two other coding agents. They differ in what
+The same clone also sets up three other coding agents. They differ in what
 they allow, so they get different amounts of this bar.
 
 **GitHub Copilot CLI runs this bar.** Copilot runs a status line command the
@@ -416,32 +416,71 @@ To run the pane yourself, next to a Codex you started some other way, open
 a pane in the same directory and run
 `node ~/.claude/statusline-plugin/bin/cli.js codex-pane`. Ctrl-C closes it.
 
-What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI
-0.160.1. "Codex footer" is Codex's own items, from `install --harness codex`.
-"Codex pane" is the bar under Codex, from `cli.js codex`:
+### OpenCode
 
-| | Claude Code | Copilot CLI | Codex footer | Codex pane |
-|---|---|---|---|---|
-| Directory, repository, branch, tree state, PR, CI | yes | yes | project, branch and pull request | yes |
-| Lines changed, session duration | yes | yes | committed changes on the branch | session duration |
-| Model | yes | yes, and the model `Auto` routed to | yes, with reasoning | yes |
-| Effort | yes | yes, from Copilot's session log or settings | in the model item | yes, from the session file |
-| Context % | yes | yes, from the first frame | yes | yes, once Codex sends token counts |
-| Fits the terminal's width | yes, from `COLUMNS` | yes, read from the terminal | no, the end of the line is cut | yes, the pane's width |
-| 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly | the windows your plan has, by length (`5h`, `7d`, `30d`), with burn rate on the 5-hour one |
-| Monthly premium and chat quota | n/a | yes, through `gh` | no | n/a |
-| AI credits, and the session limit | n/a | yes | no | no |
-| Codex credit balance | n/a | n/a | no | yes, when the account has one |
-| Prompt cache | yes | no | no | no |
-| Skills, working or idle | yes | yes, from Copilot's session log | working state only | working state only |
-| Todo | yes | yes, from the session's database | task progress | no |
-| Vim, fast mode | yes | no | fast mode | no |
-| rtk savings, update notice | yes | yes | no | yes |
-| Premium requests, allow-all | n/a | yes | the permission profile | no |
-| Colors | Catppuccin, by level | Catppuccin, by level | one per item, from the theme | Catppuccin, by level |
-| Subagent rows | yes | yes, after the bar | no | no |
-| Git gates running in other worktrees | yes | yes | no | yes, when the pane has room |
-| Gate scripts run without a hook | yes, on Linux and macOS | yes, on Linux and macOS | no | yes, when the pane has room |
+OpenCode runs no status line command, but it loads plugins into its own
+screen, and one of its slots sits right under the prompt. The bar goes
+there:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js install --harness opencode
+```
+
+That adds one entry to the `plugin` list in OpenCode's `tui.json` (in
+`$XDG_CONFIG_HOME/opencode`, `~/.config/opencode` by default), pointing at
+`src/opencode/tui.tsx` in this clone. It creates the file when there is none,
+backs it up when there is one, and keeps every other key and plugin. Restart
+OpenCode to see the bar. `uninstall --harness opencode` removes the entry,
+and when nothing else in the file changed since install, it puts back the
+exact file you had, or removes the one install created.
+
+The plugin reads what OpenCode already knows about the session: the model it
+last answered with, under the name the provider gives it, the effort you
+picked, the todo list, whether it is working, the lines changed and when the
+session started. The context share is OpenCode's own figure, the last
+answer's tokens over the model's context limit, so it matches the number in
+OpenCode's sidebar. OpenCode reports no usage windows, so the 5-hour and
+7-day chips are absent, not `?%`. On the home screen, before a session, the
+bar shows the directory and git lines.
+
+The bar is drawn by the same renderer as in Claude Code, run by `node` in a
+separate process, so a slow git or `gh` call never freezes OpenCode. It
+redraws after OpenCode's own events (a message, a status change, a todo),
+every ten seconds for git and the clock, and when the window is resized. If a
+redraw fails or takes more than four seconds, the last bar stays on screen.
+The plugin needs `node` on the PATH OpenCode starts with. To use another one,
+give its path as the plugin's option in `tui.json`:
+`["/path/to/src/opencode/tui.tsx", { "node": "/opt/node/bin/node" }]`.
+
+`doctor` lists OpenCode with the others and says whether the plugin is in its
+`tui.json`.
+
+What each one shows, measured against Copilot CLI 1.0.91, Codex CLI 0.160.1
+and OpenCode 1.18.35. "Codex footer" is Codex's own items, from `install
+--harness codex`. "Codex pane" is the bar under Codex, from `cli.js codex`:
+
+| | Claude Code | Copilot CLI | Codex footer | Codex pane | OpenCode |
+|---|---|---|---|---|---|
+| Directory, repository, branch, tree state, PR, CI | yes | yes | project, branch and pull request | yes | yes |
+| Lines changed, session duration | yes | yes | committed changes on the branch | session duration | yes, from the session |
+| Model | yes | yes, and the model `Auto` routed to | yes, with reasoning | yes | yes, under the provider's name for it |
+| Effort | yes | yes, from Copilot's session log or settings | in the model item | yes, from the session file | the variant you picked, when there is one |
+| Context % | yes | yes, from the first frame | yes | yes, once Codex sends token counts | yes, OpenCode's own figure |
+| Fits the terminal's width | yes, from `COLUMNS` | yes, read from the terminal | no, the end of the line is cut | yes, the pane's width | yes, OpenCode's width |
+| 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly | the windows your plan has, by length (`5h`, `7d`, `30d`), with burn rate on the 5-hour one | none exist |
+| Monthly premium and chat quota | n/a | yes, through `gh` | no | n/a | n/a |
+| AI credits, and the session limit | n/a | yes | no | no | n/a |
+| Codex credit balance | n/a | n/a | no | yes, when the account has one | n/a |
+| Prompt cache | yes | no | no | no | no |
+| Skills, working or idle | yes | yes, from Copilot's session log | working state only | working state only | working state only |
+| Todo | yes | yes, from the session's database | task progress | no | yes, from the session |
+| Vim, fast mode | yes | no | fast mode | no | no |
+| rtk savings, update notice | yes | yes | no | yes | yes |
+| Premium requests, allow-all | n/a | yes | the permission profile | no | n/a |
+| Colors | Catppuccin, by level | Catppuccin, by level | one per item, from the theme | Catppuccin, by level | Catppuccin, by level |
+| Subagent rows | yes | yes, after the bar | no | no | no |
+| Git gates running in other worktrees | yes | yes | no | yes, when the pane has room | yes |
+| Gate scripts run without a hook | yes, on Linux and macOS | yes, on Linux and macOS | no | yes, when the pane has room | yes, on Linux and macOS |
 
 Under Copilot the 5-hour and 7-day chips are absent, not `?%`: Copilot has no
 such limits, and `?%` would say a value exists and is unknown. What Copilot

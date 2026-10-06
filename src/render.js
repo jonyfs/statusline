@@ -70,7 +70,18 @@ function codexCreditsOf(payload) {
   return typeof balance === "string" && balance.length ? { balance } : null;
 }
 
-export function harnessProbes(probe, harness) {
+export function harnessProbes(probe, harness, payload = null) {
+  // OpenCode keeps no transcript either. Its plugin puts the working state and
+  // the todo list in the payload it builds (specs/038-opencode).
+  if (harness === "opencode") {
+    return {
+      ...probe,
+      getSessionActivity: () => payload?.opencode?.activity ?? null,
+      getActiveSkills: (_path, _limit, { scanned } = {}) => scanned ?? [],
+      getActiveSkillsTrueCount: (_path, { scannedTrueCount } = {}) => scannedTrueCount ?? 0,
+      subagentActivity: () => [],
+    };
+  }
   // Codex writes no Claude transcript and no skill events, and its subagents
   // are not Claude Code's (specs/035-codex-pane). The working state comes from
   // the rollout, which the pane passes in as its own getSessionActivity.
@@ -542,7 +553,7 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   // Before Codex's first turn its rollout names no model yet, and the name of
   // another vendor's model family would be wrong there (specs/035-codex-pane).
   const modelName =
-    payloadText(payload?.model?.display_name) ?? payloadText(payload?.model?.id) ?? (harness === "codex" ? "Codex" : "Claude");
+    payloadText(payload?.model?.display_name) ?? payloadText(payload?.model?.id) ?? ({ codex: "Codex", opencode: "OpenCode" }[harness] ?? "Claude");
 
   return {
     cwd,
@@ -774,7 +785,7 @@ export function renderPayload(
   const off = new Set(
     resolveArrangement(SEGMENTS, found.arrangement, found.origin).placements.filter((p) => p.on === false).map((p) => p.key)
   );
-  const readings = gather(payload, harnessProbes(probe, harness), { now, off, copilotSettings });
+  const readings = gather(payload, harnessProbes(probe, harness, payload), { now, off, copilotSettings });
   return renderReadings(readings, payload, {
     asciiArrows,
     flavor,
@@ -1211,7 +1222,8 @@ export function renderReadings(
   // Copilot CLI reports no rate limits at all, so their chips are absent there
   // rather than `?%`, which would claim an unknown figure for a limit that does
   // not exist (Principle III, specs/029-multi-harness).
-  const noLimits = readings.harness?.value === "copilot" && !payload?.rate_limits;
+  // OpenCode reports no usage windows either (specs/038-opencode).
+  const noLimits = ["copilot", "opencode"].includes(readings.harness?.value) && !payload?.rate_limits;
   // Codex reports the windows its plan has, by length. One the plan does not
   // have, such as the 5-hour window on the free plan, is absent rather than
   // `?%`, for the same reason (specs/035-codex-pane).
