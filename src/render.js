@@ -1,4 +1,5 @@
 import path from "node:path";
+import { realpathSync } from "node:fs";
 import { PALETTES, renderRow, displayWidth } from "./theme.js";
 import {
   getDirLabel,
@@ -109,7 +110,10 @@ const NF_FROM = "\u{F004D}";     // nf-md-arrow_left: what this came from
 const NF_ALERT = "\u{F421}";     // nf-oct-alert: unmerged paths
 const NF_CHECK = "\u{F42E}";     // nf-oct-check: the run passed
 const NF_X = "\u{F467}";         // nf-oct-x: the run failed
-const NF_RUNNING = "\u{F0997}";  // nf-md-progress_clock: still going
+// F0997 was here until 2026-10-06, under the name progress_clock, and it
+// draws md-progress_download: a CI run still going read as a download
+// (specs/031-git-gate-rows/glyph-evidence.png shows both side by side).
+const NF_RUNNING = "\u{F0996}";  // nf-md-progress_clock: still going
 
 // Lines 2, 3 and 4. These carried emoji until 2026-09-01, and emoji cost
 // two columns each where a private-use glyph costs one: eight of them were
@@ -162,9 +166,9 @@ const NF_SHIELD_OFF = "\u{F099E}";   // nf-md-shield_off: allow all
 // The git gates running in this repository (specs/031-git-gate-rows/
 // glyph-evidence.png). A clock reads as "still going"; a lock with a clock as
 // "waiting on a lock". F0299 md-gate draws a fence and F0E86 md-boom_gate a
-// crane at one cell. The same sheet shows F0997, NF_RUNNING above, drawing
-// md-progress_download rather than a clock.
-const NF_GATE_RUNNING = "\u{F0996}"; // nf-md-progress_clock
+// crane at one cell. A gate still running and a CI run still going are the
+// same fact, so they share the clock.
+const NF_GATE_RUNNING = NF_RUNNING;  // nf-md-progress_clock
 const NF_GATE_WAITING = "\u{F097F}"; // nf-md-lock_clock
 
 /**
@@ -236,9 +240,12 @@ export const GLYPHS = {
    * avoid. These are Geometric Shapes, Arrows and Miscellaneous Technical —
    * present in ordinary system fonts, and one column wide.
    *
-   * Every codepoint below is checked to measure one column both normally and
-   * under `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE`, so a terminal configured for
-   * East Asian text draws the same widths as one that is not. `U+25CB` (the
+   * Every codepoint below is East Asian Narrow by the Unicode table itself,
+   * so a terminal configured for East Asian text draws the same widths as one
+   * that is not. Checking them with `displayWidth` was not enough: it only
+   * knows the Ambiguous characters someone listed, and five of these passed
+   * while being Ambiguous until 2026-10-06 (specs/032-audit-fixes, whose
+   * plain-glyph-evidence.png shows each replacement rendered). `U+25CB` (the
    * obvious hollow circle for idle) is Ambiguous and was rejected for that
    * reason in favour of the dotted `U+25CC`, which also reads better: a
    * broken outline for an agent that is not doing anything.
@@ -251,7 +258,7 @@ export const GLYPHS = {
     // width on every terminal.
     commit: "\u25AA",     // ▪
     pr: "\u21C4",         // ⇄ two directions, which is what a pull request is
-    calendar: "\u25A4",   // ▤ a ruled sheet
+    calendar: "\u25F0",   // ◰ a page with one cell marked. Was ▤, Ambiguous
     modified: "\u25C9",   // ◉
     added: "+",
     // The plain arrows were `U+2191`/`U+2193`/`U+2190`, all three East Asian
@@ -268,12 +275,12 @@ export const GLYPHS = {
     // Filled against broken: the same distinction the Nerd set draws with a
     // hammer and a coffee cup, and the one CircleCI's own columnar glyph set
     // makes with a filled and a hollow circle.
-    working: "\u25CE",    // ◎
+    working: "\u29BF",    // ⦿ was ◎, Ambiguous
     idle: "\u25CC",       // ◌
-    skills: "\u25C8",     // ◈
-    model: "\u25C7",      // ◇
+    skills: "\u2756",     // ❖ was ◈, Ambiguous
+    model: "\u25CA",      // ◊ was ◇, Ambiguous
     effort: "\u21AF",     // ↯
-    context: "\u25A6",    // ▦
+    context: "\u229E",    // ⊞ a grid, as ▦ was before it; that one is Ambiguous
     timer: "\u25F7",      // ◷
     duration: "\u25D4",   // ◔
     // Not `U+25B4`: that is the gauge's own critical band mark, and one glyph
@@ -392,7 +399,7 @@ function skillsReading(timed, probe, payload, scanned, scannedTrueCount) {
   };
 }
 
-export function gather(payload, probe, { now = Date.now() } = {}) {
+export function gather(payload, probe, { now = Date.now(), off = null } = {}) {
   const timed = (source, fn) => {
     const started = Date.now();
     try {
@@ -456,7 +463,14 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     activity.value.working = activity.value.working || subagent.length > 0;
   }
   const payloadPr = normalizePr(payload?.pr, "payload");
-  const payloadRepoUrl = repoUrlFromPayload(payload?.workspace?.repo);
+  // Cleaned once, here, so the text on line 1 and the link built from it are
+  // the same identity. Raw, an object owner drew `[object Object]` and a
+  // newline in a name added lines to the bar.
+  const rawRepo = payload?.workspace?.repo;
+  const repoOwner = payloadText(rawRepo?.owner);
+  const repoName = payloadText(rawRepo?.name);
+  const repoId = repoOwner && repoName ? { host: payloadText(rawRepo?.host), owner: repoOwner, name: repoName } : null;
+  const payloadRepoUrl = repoUrlFromPayload(repoId);
 
   return {
     cwd,
@@ -474,7 +488,7 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
         : timed("git", () => probe.getRemoteUrl(cwd))
       : missing("git", "not a repository"),
     repo: hasRepo
-      ? reading({ value: payload?.workspace?.repo ?? null, at: now, source: "payload" })
+      ? reading({ value: repoId, at: now, source: "payload" })
       : missing("payload", "not a repository"),
     // Both `gh` lookups are cached per repository and answer about whichever
     // branch was checked out when they ran, so the branch travels with the
@@ -492,10 +506,16 @@ export function gather(payload, probe, { now = Date.now() } = {}) {
     agents: reading({ value: Array.isArray(activity.value?.agents) ? activity.value.agents : null, at: now, source: activity.source }),
     // The git gates running in this repository's worktrees, from the cache
     // the detached refresh fills (specs/031-git-gate-rows). Only in a
-    // repository, so a directory without one starts no lookup.
-    gates: hasRepo && probe.getGateRuns
-      ? timed("cache", () => probe.getGateRuns(cwd, { now }))
-      : missing("cache", "not a repository"),
+    // repository, so a directory without one starts no lookup, and only when
+    // the arrangement has the segment on: reading the cache is what starts the
+    // refresh, and that refresh is a `ps -A` and an `lsof` every 15 s.
+    gates: !hasRepo
+      ? missing("cache", "not a repository")
+      : off?.has("gates")
+        ? missing("cache", "switched off")
+        : probe.getGateRuns
+          ? timed("cache", () => probe.getGateRuns(cwd, { now }))
+          : missing("cache", "no reader"),
     ci: hasRepo
       ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
       : missing("gh", "not a repository"),
@@ -621,7 +641,12 @@ export function renderPayload(
   const cwd = payload?.workspace?.current_dir || payload?.cwd || process.cwd();
   const found = layout ?? resolveLayout(cwd);
 
-  const readings = gather(payload, harnessProbes(probe, detectHarness(payload)), { now });
+  // What the arrangement switched off, so gather can skip a source whose
+  // only reader is a segment nobody will see.
+  const off = new Set(
+    resolveArrangement(SEGMENTS, found.arrangement, found.origin).placements.filter((p) => p.on === false).map((p) => p.key)
+  );
+  const readings = gather(payload, harnessProbes(probe, detectHarness(payload)), { now, off });
   return renderReadings(readings, payload, {
     asciiArrows,
     flavor,
@@ -833,7 +858,10 @@ export function renderReadings(
     const label = detached ? git.oid?.slice(0, 7) || "detached" : git.branch;
     // A detached HEAD is a commit, not a branch. Linking it to a tree view
     // and drawing a branch icon beside it would say otherwise.
-    const branchUrl = !detached && remoteUrl ? `${remoteUrl}/tree/${git.branch}` : null;
+    // Encoded a path segment at a time: a `#` or a `%` in a branch name is
+    // part of the name, and the slashes are the tree view's own.
+    const branchUrl =
+      !detached && remoteUrl ? `${remoteUrl}/tree/${git.branch.split("/").map(encodeURIComponent).join("/")}` : null;
     l1.push({
       key: "branch",
       color: changes.colourFor("branch", "lavender", palette),
@@ -1020,8 +1048,13 @@ export function renderReadings(
   // content, not layout.
   const sevenDayMoment = resetMomentLabel(sevenDayResetsAt, new Date(now));
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  // Bounded the way the countdown is: a reset past any window it could
+  // describe is a unit mismatch, and naming a day for it would state a wrong
+  // date with confidence. It falls through to `?` instead.
   const farOutMoment =
-    typeof sevenDayResetsAt === "number" && sevenDayResetsAt * 1000 - now > ONE_DAY_MS
+    typeof sevenDayResetsAt === "number" &&
+    sevenDayResetsAt * 1000 - now > ONE_DAY_MS &&
+    formatResetCountdown(sevenDayResetsAt, now) !== null
       ? sevenDayMoment
       : null;
 
@@ -1224,6 +1257,31 @@ export function renderReadings(
    * own priority, so what a narrow terminal sheds is still a decision taken
    * in the registry.
    */
+  // The directory label's own trim step: shortened from the left, because
+  // the end of a path identifies it and the start rarely does. It runs before
+  // the row is fitted, not after: fitting always returns a row that fits, so a
+  // trim that waited for an overflow never ran, and the path kept its full
+  // length while the pull request, the CI result and finally the directory
+  // itself were shed around it. Nothing else on that line should go to make
+  // room for the start of a path.
+  //
+  // Down to a floor, so the label stays recognisable; what still overflows
+  // after that is shed by priority like anything else. Columns, not
+  // characters: an emoji or a CJK name occupies two columns per character,
+  // and counting them as one cut too little to fit.
+  const MIN_DIR_COLUMNS = 12;
+  const trimDir = (row, floor) => {
+    const at = row.findIndex((seg) => seg.key === "dir");
+    if (at === -1) return row;
+    const over = rowWidth(row) - maxWidth;
+    if (over <= 0) return row;
+    const shortened = trimFromLeft(dirLabel, Math.max(floor, displayWidth(dirLabel) - over));
+    if (shortened === null) return row;
+    const out = [...row];
+    out[at] = { ...row[at], text: dirSegment(shortened).text };
+    return out;
+  };
+
   const assemble = () => {
     const built = [...content, ...buildLine3()];
     collect(built);
@@ -1240,33 +1298,16 @@ export function renderReadings(
       // they were built in, and the skill chips keep theirs.
       const row = byLineNumber.get(line).sort((a, b) => a.order - b.order);
       if (!row.length) continue;
-      out.push(fitRow(row));
+      // Past the floor only when the directory is all that is left and it
+      // still does not fit: a cut label beats a wrapped line.
+      const fitted = fitRow(trimDir(row, MIN_DIR_COLUMNS));
+      out.push(fitted.length === 1 ? trimDir(fitted, 0) : fitted);
       lines.push(line);
     }
     return { rows: out, lines };
   };
 
-  let assembled = assemble();
-
-  // Line 1's own trim step: the directory label, shortened from the left,
-  // because the end of a path identifies it and the start rarely does.
-  // Nothing else on that line is dropped — a branch, a count of uncommitted
-  // work and a pull request are all things the reader asked for.
-  //
-  // Columns, not characters: an emoji or a CJK name occupies two columns per
-  // character, and counting them as one cut too little to fit.
-  const dirIndex = content.findIndex((seg) => seg.key === "dir");
-  if (dirIndex !== -1) {
-    const dirLine = assembled.rows.find((row) => row.some((seg) => seg.key === "dir"));
-    if (dirLine && rowWidth(dirLine) > maxWidth) {
-      const over = rowWidth(dirLine) - maxWidth;
-      const shortened = trimFromLeft(dirLabel, displayWidth(dirLabel) - over - 1);
-      if (shortened !== null) {
-        content[dirIndex] = dirSegment(shortened);
-        assembled = assemble();
-      }
-    }
-  }
+  const assembled = assemble();
 
 
   rows.push(...assembled.rows);
@@ -1314,12 +1355,32 @@ export function renderReadings(
  * The worktree this session is in, among the ones running a gate: the run
  * whose worktree path contains the session's directory, longest first.
  */
-function hereOf(runs, cwd) {
+export function hereOf(runs, cwd, { platform = process.platform } = {}) {
   if (!cwd || !runs.length) return null;
+  // Both sides are compared resolved and in one spelling. git prints a
+  // worktree's real path while the payload's cwd can come through a symlink
+  // (macOS's /tmp is /private/tmp), and on Windows git writes `C:/x` where the
+  // payload writes `C:\x`, with the drive letter in either case. Returned as
+  // the run stored it, because the rows match on that.
+  const p = platform === "win32" ? path.win32 : path.posix;
+  const key = (s) => {
+    let resolved;
+    try {
+      resolved = realpathSync(s);
+    } catch {
+      resolved = s;
+    }
+    resolved = p.resolve(resolved);
+    return platform === "win32" ? resolved.toLowerCase() : resolved;
+  };
+  const here = key(cwd);
+  const inside = (root) => here === root || here.startsWith(root.endsWith(p.sep) ? root : root + p.sep);
   const hits = runs
     .map((r) => r?.path)
-    .filter((p) => typeof p === "string" && (cwd === p || cwd.startsWith(p.endsWith("/") ? p : `${p}/`) || cwd.startsWith(p + path.sep)));
-  return hits.sort((a, b) => b.length - a.length)[0] ?? null;
+    .filter((q) => typeof q === "string" && q)
+    .map((q) => ({ q, root: key(q) }))
+    .filter(({ root }) => inside(root));
+  return hits.sort((a, b) => b.root.length - a.root.length)[0]?.q ?? null;
 }
 
 /**
@@ -1332,12 +1393,15 @@ function hereOf(runs, cwd) {
 function trimFromLeft(label, columns) {
   const target = Math.max(3, columns);
   if (displayWidth(label) <= target) return null;
+  // The ellipsis is Ambiguous, so it is two columns where Ambiguous is drawn
+  // wide; reserving a fixed one let a cut label overflow by a column there.
+  const tail = displayWidth("…");
   const chars = [...label];
   let kept = [];
   let width = 0;
   for (let i = chars.length - 1; i >= 0; i--) {
     const next = width + displayWidth(chars[i]);
-    if (next > target - 1) break;
+    if (next > target - tail) break;
     kept.unshift(chars[i]);
     width = next;
   }

@@ -284,7 +284,9 @@ function runFor(tree, fields) {
   return {
     ...fields,
     worktree: plainText(base(tree.path)) ?? tree.path,
-    path: tree.path,
+    // Resolved, so the redraw compares like with like: `realpathSync` gives
+    // native separators on Windows, where git prints `C:/x`.
+    path: tree.real ?? tree.path,
     branch: plainText(tree.branch) ?? (tree.head ? tree.head.slice(0, 7) : null),
   };
 }
