@@ -22,6 +22,9 @@ await test("a skill invoked in the last entry is on the next render", () => {
         trackChanges: false,
         sources: {
           getGitInfo: () => null,
+          // Not a repository, whatever directory the suite runs in: the real
+          // check would find this checkout and start CI and gate lookups.
+          isRepo: () => false,
           getPrInfo: () => null,
           getRemoteUrl: () => null,
           getRtkSavings: () => null,

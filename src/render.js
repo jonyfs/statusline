@@ -5,6 +5,7 @@ import {
   getDirLabel,
   getDirUrl,
   getGitInfo,
+  isRepository,
   getPrInfo,
   getRemoteUrl,
   getCiStatus,
@@ -435,7 +436,16 @@ export function gather(payload, probe, { now = Date.now(), off = null } = {}) {
   const updateReading = timed("update", () => probe.getUpdateNotice?.(payload?.session_id ?? null, { now }) ?? null);
 
   const git = timed("git", () => probe.getGitInfo(cwd));
-  const hasRepo = git.value !== null;
+  // Two questions, kept apart. Line 1's own git segments need the snapshot,
+  // so they follow `git.value`. Whether this is a repository at all is asked
+  // of the file system: `git status` has a 150 ms budget and a 5 s cached
+  // fallback, and the load a running gate puts on the machine is exactly what
+  // pushes it past both. Deciding "not a repository" from that null switched
+  // the gate rows, the pull request and CI off on every idle redraw while the
+  // hook was still running. The walk is a few stat calls, and only runs when
+  // git had no answer.
+  const hasRepo = git.value !== null || (probe.isRepo ?? isRepository)(cwd) === true;
+  const hasSnapshot = git.value !== null;
   // A detached HEAD has no branch name to scope a lookup by, and the short
   // commit id is not one: matching it against a stored branch would refuse
   // every cached answer instead of the wrong ones.
@@ -482,12 +492,12 @@ export function gather(payload, probe, { now = Date.now(), off = null } = {}) {
     // network, and its whole timeout when it cannot reach GitHub. The probes
     // stay as fallbacks, for a Claude Code too old to send the fields or a
     // pull request it has not found yet.
-    remote: hasRepo
+    remote: hasSnapshot
       ? payloadRepoUrl
         ? reading({ value: payloadRepoUrl, at: now, source: "payload" })
         : timed("git", () => probe.getRemoteUrl(cwd))
       : missing("git", "not a repository"),
-    repo: hasRepo
+    repo: hasSnapshot
       ? reading({ value: repoId, at: now, source: "payload" })
       : missing("payload", "not a repository"),
     // Both `gh` lookups are cached per repository and answer about whichever
@@ -623,6 +633,7 @@ export function renderPayload(
 ) {
   const probe = {
     getGitInfo,
+    isRepo: isRepository,
     getPrInfo,
     getRemoteUrl,
     getActiveSkills,
@@ -996,10 +1007,15 @@ export function renderReadings(
     if (vimMode) row.push({ key: "vim", color: "lavender", text: ` ${g.vim} ${vimMode} ` });
     if (activity) {
       const mark = activity.working ? g.working : g.idle;
+      // How many background jobs the session is waiting on, said whenever
+      // there are any: "working" alone would not tell a quiet session
+      // waiting on a gate from one producing output.
+      const bg = (activity.background?.shells ?? 0) + (activity.background?.agents ?? 0);
+      const waiting = activity.working && bg > 0 ? ` · ${bg} bg` : "";
       row.push({
         key: "activity",
         color: activity.working ? "green" : "surface2",
-        text: activity.working ? ` ${mark} working ` : ` ${mark} idle `,
+        text: activity.working ? ` ${mark} working${waiting} ` : ` ${mark} idle `,
       });
     }
   }
