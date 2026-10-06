@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { statSync } from "node:fs";
 import { plainText } from "./text.js";
 import path from "node:path";
 import { pathToFileUrl } from "./openTerminalTab.js";
@@ -251,6 +252,34 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
   spawnRefresh(key, "git", cwd, { now });
   if (entry && now - entry.at <= MAX_AGE_MS.git) return entry.value;
   return null;
+}
+
+/**
+ * Whether `cwd` sits inside a git repository, from the file system alone.
+ *
+ * getGitInfo answering null does not mean "not a repository": it also means
+ * `git status` ran past its budget and the snapshot had expired, which is
+ * exactly what happens while a pre-commit gate is compiling and testing. The
+ * readings that only need to know a repository is here (the gates, the pull
+ * request, CI) ask this instead, so they do not switch off on an idle redraw
+ * under load. A `.git` directory, or the `.git` file a linked worktree or a
+ * submodule has, in `cwd` or any directory above it is the same thing git
+ * itself looks for first. A handful of stat calls, no process.
+ */
+export function isRepository(cwd) {
+  if (typeof cwd !== "string" || cwd === "") return false;
+  let dir = path.resolve(cwd);
+  for (;;) {
+    try {
+      const found = statSync(path.join(dir, ".git"), { throwIfNoEntry: false });
+      if (found && (found.isDirectory() || found.isFile())) return true;
+    } catch {
+      // An unreadable directory says nothing either way; keep walking up.
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return false;
+    dir = parent;
+  }
 }
 
 /**

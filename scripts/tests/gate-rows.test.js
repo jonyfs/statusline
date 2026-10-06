@@ -10,6 +10,7 @@ import {
 } from "../../src/gateRuns.js";
 import { gateRows } from "../../src/gateRows.js";
 import { renderPayload, GLYPHS } from "../../src/render.js";
+import { isRepository } from "../../src/git.js";
 import { repoKey, writeEntry } from "../../src/cache.js";
 import { displayWidth } from "../../src/theme.js";
 import { emptySources, gitSources, fullPayload } from "./fixtures/sources.js";
@@ -211,6 +212,56 @@ await test(`past ${GATE_ROW_CAP} runs the rows stop and say how many more`, () =
   const lines = render(runs).split("\n");
   assert.equal(lines.filter((l) => /pre-commit/.test(l)).length, GATE_ROW_CAP);
   assert.match(lines.at(-1), /\+2 more/);
+});
+
+// A repository whose `git status` ran past its budget is still a repository.
+// Gate load (tsc, tests, bundling) is what pushes git over 150 ms, and once
+// the cached snapshot is older than its 5 s window getGitInfo answers null;
+// the gate rows must not vanish on that idle redraw while the hook still runs.
+const timedOut = (runs, over = {}, cwd = HERE) => stripAnsi(renderPayload(
+  { ...fullPayload({ now: NOW }), cwd, workspace: { current_dir: cwd } },
+  { sources: { ...emptySources, getCiStatus: () => null, getGateRuns: () => runs, ...over }, trackChanges: false, now: NOW, maxWidth: 160, maxHeight: 40 }
+));
+
+await test("a git status that timed out keeps the gate count and rows in a repository", () => {
+  const out = timedOut([run()], { isRepo: () => true });
+  assert.match(out.split("\n")[0], /1 gate · here 3m/);
+  assert.match(out.split("\n").at(-1), /pre-commit .*\* barbershop-dev/);
+});
+
+await test("a directory with no .git above it still starts no gate lookup", () => {
+  let asked = false;
+  const out = timedOut(null, { isRepo: () => false, getGateRuns: () => { asked = true; return [run()]; } });
+  assert.equal(asked, false);
+  assert.doesNotMatch(out, /gate|pre-commit/);
+});
+
+await test("the repository check walks up for a .git directory or file, without running git", () => {
+  const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), "statusline-isrepo-")));
+  const repo = path.join(root, "repo");
+  const deep = path.join(repo, "src", "deep");
+  mkdirSync(path.join(repo, ".git"), { recursive: true });
+  mkdirSync(deep, { recursive: true });
+  const linked = path.join(root, "linked");
+  mkdirSync(linked);
+  // A linked worktree's .git is a file pointing at the main repository.
+  writeFileSync(path.join(linked, ".git"), "gitdir: /elsewhere/.git/worktrees/linked\n");
+  const plain = path.join(root, "plain");
+  mkdirSync(plain);
+  assert.equal(isRepository(repo), true);
+  assert.equal(isRepository(deep), true);
+  assert.equal(isRepository(linked), true);
+  assert.equal(isRepository(path.join(root, "missing")), false);
+  // The temp dir could itself sit inside a repository on some machine.
+  if (!isRepository(root)) assert.equal(isRepository(plain), false);
+  // And the redraw uses it when no stub stands in: git timed out, .git is there.
+  const { isRepo: _stub, ...unstubbed } = emptySources;
+  const out = stripAnsi(renderPayload(
+    { ...fullPayload({ now: NOW }), cwd: deep, workspace: { current_dir: deep } },
+    { sources: { ...unstubbed, getCiStatus: () => null, getGateRuns: () => [run()] }, trackChanges: false, now: NOW, maxWidth: 160, maxHeight: 40 }
+  ));
+  assert.match(out, /1 gate/);
+  assert.match(out.split("\n").at(-1), /pre-commit/);
 });
 
 await test("the arrangement switching gates off takes the count and the rows", () => {

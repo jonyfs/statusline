@@ -7,6 +7,10 @@
  */
 export const emptySources = {
   getGitInfo: () => null,
+  // Whether cwd is a repository at all, answered from the file system rather
+  // than the time-boxed `git status`: the test decides, not the checkout it
+  // happens to run in.
+  isRepo: () => false,
   getPrInfo: () => null,
   getRemoteUrl: () => null,
   getActiveSkills: () => [],
