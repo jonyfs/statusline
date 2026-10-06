@@ -235,7 +235,7 @@ export function alive(pid) {
  * `cwdOf(pid)` answers a hook's working directory; `lockOf(worktree)` answers
  * `{ pid, mtimeMs }` for a held `gates.lock`, or null.
  */
-export function collectRuns({ worktrees, procs, cwdOf = () => null, lockOf = () => null, isAlive = alive, now = Date.now() }) {
+export function collectRuns({ worktrees, procs, cwdOf = () => null, lockOf = () => null, placedBefore = () => null, isAlive = alive, now = Date.now() }) {
   const byPid = new Map(procs.map((p) => [p.pid, p]));
   const runs = [];
   const shownTrees = new Map();
@@ -244,6 +244,9 @@ export function collectRuns({ worktrees, procs, cwdOf = () => null, lockOf = () 
     if (!hook) continue;
     let tree = worktreeFor(cwdOf(proc.pid), worktrees);
     if (!tree && path.isAbsolute(hook.script)) tree = worktreeFor(hook.script, worktrees);
+    // Last, where the previous probe placed this same process: a hook this
+    // probe could not place is still running, and dropping it would hide it.
+    if (!tree) tree = placedBefore(proc);
     if (!tree) continue;
     const under = subtree(proc.pid, procs);
     const lock = lockOf(tree);
@@ -330,11 +333,14 @@ function readLock(tree) {
   }
 }
 
-/** The working directories of `pids`, by pid. */
-function workingDirs(pids, timeout) {
+/**
+ * The working directories of `pids`, by pid; null when the lookup itself
+ * failed, so the caller can tell "no directory" from "could not ask".
+ */
+function workingDirs(pids, timeout, { exec = run, platform = process.platform } = {}) {
   const out = new Map();
   if (!pids.length) return out;
-  if (process.platform === "linux") {
+  if (platform === "linux") {
     for (const pid of pids) {
       try {
         out.set(pid, readlinkSync(`/proc/${pid}/cwd`));
@@ -342,29 +348,56 @@ function workingDirs(pids, timeout) {
         // gone, or not ours
       }
     }
-  } else if (process.platform === "darwin") {
+  } else if (platform === "darwin") {
+    let text;
     try {
-      const text = run("lsof", ["-a", "-d", "cwd", "-p", pids.join(","), "-Fpn"], undefined, timeout);
-      let pid = null;
-      for (const line of text.split("\n")) {
-        if (line.startsWith("p")) pid = Number(line.slice(1));
-        else if (line.startsWith("n") && pid !== null) out.set(pid, line.slice(1));
-      }
-    } catch {
-      // lsof missing or refused: the hook path is the fallback
+      text = exec("lsof", ["-a", "-d", "cwd", "-p", pids.join(","), "-Fpn"], undefined, timeout);
+    } catch (err) {
+      // The pids come from every repository on the machine, and lsof exits 1
+      // when any one of them ended after `ps` listed it, still printing the
+      // live ones. That output is the answer. Missing, timed out or silent
+      // is not: a timeout's partial output may stop short of the hook asked about.
+      if (err?.code === "ENOENT" || err?.code === "ETIMEDOUT" || err?.signal) return null;
+      text = typeof err?.stdout === "string" ? err.stdout : "";
+      if (!text.trim()) return null;
+    }
+    let pid = null;
+    for (const line of String(text).split("\n")) {
+      if (line.startsWith("p")) pid = Number(line.slice(1));
+      else if (line.startsWith("n") && pid !== null) out.set(pid, line.slice(1));
     }
   }
   return out;
 }
 
 /**
+ * The run the previous probe gave a hook this one could not place: same pid,
+ * started at the same moment (so not another process that reuses the pid),
+ * in a worktree that still exists. Its place is kept; everything else about
+ * it is measured again.
+ */
+function placedBefore(proc, previous, worktrees, now) {
+  if (proc.etime === null) return null;
+  const startedAt = now - proc.etime * 1000;
+  const prev = previous.find((r) => r?.pid === proc.pid && typeof r.startedAt === "number" && Math.abs(r.startedAt - startedAt) <= 2_000);
+  if (!prev) return null;
+  return worktrees.find((w) => (w.real ?? w.path) === prev.path) ?? null;
+}
+
+/**
  * The lookup the detached refresh runs. Answers in the refresh contract:
  * `found` with the runs (an empty list is an answer too), or `failed`.
+ *
+ * `failed` whenever the process list or the hooks' directories could not be
+ * read: an empty or shorter list written over the last good one would hide a
+ * gate that is still running until the next refresh, a minute away under the
+ * installed interval. Failing keeps the last answer, which the redraw still
+ * trims by pid.
  */
-export function probeGateRuns(cwd, budgetMs = 5_000, { now = Date.now() } = {}) {
+export function probeGateRuns(cwd, budgetMs = 5_000, { now = Date.now(), exec = run, platform = process.platform, previous } = {}) {
   let worktrees;
   try {
-    worktrees = parseWorktrees(run("git", ["worktree", "list", "--porcelain"], cwd, budgetMs)).map((w) => ({ ...w, real: real(w.path) }));
+    worktrees = parseWorktrees(exec("git", ["worktree", "list", "--porcelain"], cwd, budgetMs)).map((w) => ({ ...w, real: real(w.path) }));
   } catch {
     return { state: "failed", value: null };
   }
@@ -372,21 +405,27 @@ export function probeGateRuns(cwd, budgetMs = 5_000, { now = Date.now() } = {}) 
   let cwds = new Map();
   // Windows has no `ps`, and nothing quick that reports a working directory,
   // so there the locks are all the bar reads (Principle IX, research R5).
-  if (process.platform !== "win32") {
+  if (platform !== "win32") {
     try {
-      procs = parseProcesses(run("ps", ["-A", "-o", "pid=,ppid=,etime=,command="], undefined, budgetMs));
+      procs = parseProcesses(exec("ps", ["-A", "-o", "pid=,ppid=,etime=,command="], undefined, budgetMs));
     } catch {
-      procs = [];
+      return { state: "failed", value: null };
     }
     const byPid = new Map(procs.map((p) => [p.pid, p]));
     const hookPids = procs.filter((p) => hookOf(p, byPid)).map((p) => p.pid);
-    cwds = workingDirs(hookPids, budgetMs);
+    cwds = workingDirs(hookPids, budgetMs, { exec, platform });
+    if (!cwds) return { state: "failed", value: null };
+  }
+  if (previous === undefined) {
+    const prior = readEntry(repoKey(cwd), "gates")?.value?.runs;
+    previous = Array.isArray(prior) ? prior : [];
   }
   const runs = collectRuns({
     worktrees,
     procs,
     cwdOf: (pid) => (cwds.has(pid) ? real(cwds.get(pid)) : null),
     lockOf: readLock,
+    placedBefore: (proc) => placedBefore(proc, previous, worktrees, now),
     now,
   });
   return { state: "found", value: { runs } };

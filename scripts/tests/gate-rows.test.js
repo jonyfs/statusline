@@ -266,3 +266,111 @@ await test("a real pre-commit in a linked worktree is found, placed and named", 
   }
   assert.ok(existsSync(main));
 });
+
+// The probe when lsof or ps answers badly -----------------------------------------
+//
+// A machine runs hooks from every repository at once, and lsof exits 1 when any
+// pid it was asked about has ended, still printing the live ones. Reading that
+// as no answer dropped every running gate whose hook path is relative.
+
+const FAKE_TREES = "worktree /fake/main\nHEAD 1111111\nbranch refs/heads/main\n\nworktree /fake/wt\nHEAD 2222222\nbranch refs/heads/side\n";
+const FAKE_PS = [
+  "  100     1   05:00 git commit -m x",
+  "  101   100   04:59 /bin/sh .git/hooks/pre-commit",
+  "  102   101   04:58 sleep 30",
+  "  200     1   00:01 git checkout b",
+  "  201   200   00:01 /bin/sh .git/hooks/post-checkout",
+].join("\n");
+const fakeExec = ({ lsof, ps = () => FAKE_PS } = {}) => (cmd, args) => {
+  if (cmd === "git") return FAKE_TREES;
+  if (cmd === "ps") return ps(args);
+  if (cmd === "lsof") return lsof(args);
+  throw new Error(`unexpected ${cmd}`);
+};
+const exitedWith = (status, stdout, code) => Object.assign(new Error("Command failed"), { status, stdout, code });
+const probe = (exec, extra = {}) => probeGateRuns("/fake/main", 5_000, { now: NOW, exec, platform: "darwin", previous: [], ...extra });
+
+await test("lsof exiting 1 because one hook already ended still places the live ones", () => {
+  const result = probe(fakeExec({ lsof: () => { throw exitedWith(1, "p101\nfcwd\nn/fake/wt\n"); } }));
+  assert.equal(result.state, "found");
+  const runs = result.value.runs;
+  assert.equal(runs.length, 1, JSON.stringify(runs));
+  assert.equal(runs[0].pid, 101);
+  assert.equal(runs[0].worktree, "wt");
+  assert.equal(runs[0].step, "sleep 30");
+});
+
+await test("lsof missing, timed out or silent while hooks run is a failed probe, not an empty answer", () => {
+  for (const err of [exitedWith(null, undefined, "ENOENT"), exitedWith(null, "p101\nfcwd\nn/fake/wt\n", "ETIMEDOUT"), exitedWith(1, "")]) {
+    const result = probe(fakeExec({ lsof: () => { throw err; } }));
+    assert.equal(result.state, "failed", `${err.code ?? err.status}: ${JSON.stringify(result)}`);
+  }
+  // With no hook running there is nothing to place, and nothing to ask lsof.
+  const quiet = probe(fakeExec({ ps: () => "  1 0 01:00 /sbin/launchd", lsof: () => { throw new Error("not called"); } }));
+  assert.equal(quiet.state, "found");
+  assert.deepEqual(quiet.value.runs, []);
+});
+
+await test("ps failing is a failed probe, so the last good answer stays", () => {
+  const result = probe(fakeExec({ ps: () => { throw exitedWith(1, ""); }, lsof: () => "" }));
+  assert.equal(result.state, "failed");
+});
+
+await test("a hook still running that this probe could not place keeps the place the last one gave it", () => {
+  const previous = [run({ pid: 101, worktree: "wt", path: "/fake/wt", branch: "side", step: "old step", startedAt: NOW - 299_000 })];
+  // lsof answers, but not for 101: the hook is in ps and has no directory.
+  const exec = fakeExec({ lsof: () => "p201\nfcwd\nn/fake/main\n" });
+  const runs = probe(exec, { previous }).value.runs;
+  const kept = runs.find((r) => r.pid === 101);
+  assert.ok(kept, JSON.stringify(runs));
+  assert.equal(kept.worktree, "wt");
+  assert.equal(kept.step, "sleep 30", "the step is this probe's, not the old one");
+  // A different process that reuses the pid is not the same run.
+  const reused = probe(exec, { previous: [{ ...previous[0], startedAt: NOW - 60_000 }] }).value.runs;
+  assert.ok(!reused.some((r) => r.pid === 101), JSON.stringify(reused));
+  // And a run is never invented: no previous run, no row.
+  assert.ok(!probe(exec).value.runs.some((r) => r.pid === 101));
+});
+
+await test("a real pre-commit with a relative hooks path survives an lsof that exits 1", async () => {
+  if (process.platform !== "darwin") return; // only macOS asks lsof for directories
+  const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), "statusline-gates-lsof1-")));
+  const main = path.join(root, "main");
+  const wt = path.join(root, "wt");
+  const bin = path.join(root, "bin");
+  const git = (args, cwd) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...args], { cwd, stdio: "ignore" });
+  mkdirSync(main);
+  mkdirSync(bin);
+  git(["init", "-q"], main);
+  mkdirSync(path.join(main, ".githooks"));
+  const hook = path.join(main, ".githooks", "pre-commit");
+  writeFileSync(hook, "#!/bin/sh\nsleep 30\n");
+  chmodSync(hook, 0o755);
+  git(["add", ".githooks"], main);
+  git(["commit", "-q", "--no-verify", "-m", "init"], main);
+  git(["config", "core.hooksPath", ".githooks"], main);
+  git(["worktree", "add", "-q", wt, "-b", "side"], main);
+  // The real lsof, then the status it gives when one listed pid has ended.
+  writeFileSync(path.join(bin, "lsof"), "#!/bin/sh\n/usr/sbin/lsof \"$@\"\nexit 1\n");
+  chmodSync(path.join(bin, "lsof"), 0o755);
+  const commit = spawn("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "--allow-empty", "-m", "x"], { cwd: wt, detached: true, stdio: "ignore" });
+  const savedPath = process.env.PATH;
+  process.env.PATH = `${bin}${path.delimiter}${savedPath}`;
+  try {
+    let runs = [];
+    for (let i = 0; i < 40 && !runs[0]?.step; i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      runs = probeGateRuns(main, 5_000, { previous: [] }).value?.runs ?? [];
+    }
+    assert.equal(runs.length, 1, JSON.stringify(runs));
+    assert.equal(runs[0].hook, "pre-commit");
+    assert.equal(runs[0].worktree, "wt");
+  } finally {
+    process.env.PATH = savedPath;
+    try {
+      process.kill(-commit.pid, "SIGKILL");
+    } catch {
+      // already gone
+    }
+  }
+});
