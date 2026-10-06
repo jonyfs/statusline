@@ -106,3 +106,4 @@ None.
 - Planning changed one decision in the spec: the line 1 count is always shown when gates run,
   not only in a short window, because it had to be a registered segment the composer can
   arrange (FR-006, User Story 4).
+- CI run 37409296612 passed on Linux, macOS and Windows (Node 18, 20, 22), with the install, preview and composer jobs; on Linux the real-hook test found its worktree through `/proc`.

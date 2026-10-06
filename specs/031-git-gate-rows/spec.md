@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Rows for git gates running in this repository's worktrees
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-06
 
-**Status**: Active (the declaration above is authoritative)
+**Status**: Completed (the declaration above is authoritative)
 
 **Input**: User description: "verifique se é possível colocar linhas de gates do git que possam
 estar em execuçao e em quais worktrees, analise o contexto atual e abra um design no chrome para

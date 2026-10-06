@@ -31,4 +31,4 @@
 
 - [X] T010 [P] A generated README preview of the rows (`scripts/generate-previews.js`, `docs/previews/gate-rows.svg`)
 - [X] T011 Validate for real with the quickstart on this machine and, if one runs, a barbershop gate; record results in `plan.md`
-- [ ] T012 Suite, CI, merge, version, update the installs
+- [X] T012 Suite, CI, merge, version, update the installs
