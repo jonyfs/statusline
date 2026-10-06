@@ -35,3 +35,19 @@ it.
 The CI "running" mark (#25) moved from `U+F0997` to `U+F0996`. The evidence
 for that is `specs/031-git-gate-rows/glyph-evidence.png`, which shows F0997
 drawing md-progress_download and F0996 drawing a clock.
+
+## Integration
+
+The seven groups were written in separate worktrees and merged on
+`fix/audit-integration`. Two review findings were closed there:
+
+- #27: `U+2026` (the ellipsis every cut row and label ends with) joined the
+  Ambiguous set in `src/theme.js`. Without it, the ellipsis was measured as one
+  column on a terminal that draws it as two, so a cut row still overflowed,
+  and the tests in `scripts/tests/row-clipping.test.js` could not fail.
+  With the entry in place, the "ambiguous wide=1" case fails against the old
+  `columns - 1` reservation.
+- #17: the opt-out inference counted only `subagentStatusLine` as the task
+  rows being on. An install from before fix 018 still holds them under
+  `statusLine.taskCommand`, and the next update would have turned them off.
+  The old key now counts as on, and `install-hook.test.js` pins it.

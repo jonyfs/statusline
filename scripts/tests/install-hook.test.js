@@ -291,3 +291,21 @@ await test("the CLI's update and install pass the flags that turn a piece back o
   assert.ok(home.read().hooks.PostToolUse.some((g) => g.matcher === "Skill"));
   assert.match(home.read().subagentStatusLine.command, /task-rows$/);
 });
+
+await test("an install that kept its task rows under the old statusLine.taskCommand key is migrated, not turned off", async () => {
+  // Fix 018 (2026-09-06) moved the rows to `subagentStatusLine`. The opt-out
+  // inference added for the audit (finding #17) must count the old key as on.
+  const home = makeHome({});
+  await withHome(home, () => {
+    install();
+    const s = home.read();
+    const legacy = { ...s, statusLine: { ...s.statusLine, taskCommand: s.subagentStatusLine.command } };
+    delete legacy.subagentStatusLine;
+    home.write(legacy);
+    const result = install();
+    const after = home.read();
+    assert.match(after.subagentStatusLine?.command ?? "", /task-rows$/);
+    assert.equal(after.statusLine.taskCommand, undefined);
+    assert.ok(!(result.keptOff ?? []).includes("taskRows"), JSON.stringify(result.keptOff));
+  });
+});

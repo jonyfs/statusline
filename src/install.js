@@ -305,7 +305,10 @@ function installedPieces(settings) {
       (group?.hooks || []).some((h) => isOurCommand(h?.command) || isOurSkillHookAnywhere(h?.command))
     ),
     refreshInterval: settings?.statusLine?.refreshInterval !== undefined,
-    taskRows: isOurCommand(settings?.subagentStatusLine?.command),
+    // Installs from before 2026-09-06 (fix 018) kept the task rows under
+    // `statusLine.taskCommand`; install still migrates that key, so it counts
+    // as the rows being on rather than as an opt-out.
+    taskRows: isOurCommand(settings?.subagentStatusLine?.command) || isOurCommand(settings?.statusLine?.taskCommand),
   };
 }
 

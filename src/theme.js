@@ -208,6 +208,7 @@ const AMBIGUOUS = new Set([
   0x00b7, // · middle dot, the separator between a row's columns
   0x2500, // ─ the empty cell of a gauge
   0x2588, 0x2592, 0x2593, // █ ▒ ▓ its fills
+  0x2026, // … ellipsis, where a clipped row or label is cut
   // Not drawn today, and listed anyway. These are Ambiguous per Unicode
   // whether or not this bar uses them, and every one of them was on the bar
   // at some point: the arrows and the four circles were the substitute glyph
