@@ -10,7 +10,7 @@
  */
 
 import { PALETTES, displayWidth, colourEnabled } from "./theme.js";
-import { clipAnsi, elapsed } from "./taskRows.js";
+import { clipAnsi, cutToWidth, elapsed } from "./taskRows.js";
 import { plainText } from "./text.js";
 
 const RESET = "\x1b[0m";
@@ -25,10 +25,10 @@ function fg(hex) {
 /** The most a column is padded to; past it the cell keeps its own width. */
 const MAX_COLUMN = { hook: 14, worktree: 28, branch: 30, step: 44 };
 
-function cut(text, max) {
-  const chars = [...text];
-  return chars.length > max ? `${chars.slice(0, max - 1).join("")}…` : text;
-}
+// The limits are columns, so the cut is by columns: a worktree named in CJK is
+// two columns a character, and the ellipsis is as wide as the width table
+// says, not one character by assumption.
+const cut = cutToWidth;
 
 function cellsFor(run, { here, glyphs, now }) {
   const waiting = run.state === "waiting";

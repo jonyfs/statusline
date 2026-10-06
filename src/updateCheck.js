@@ -20,6 +20,7 @@ import { readFileSync, writeFileSync, mkdirSync, renameSync, unlinkSync } from "
 import path from "node:path";
 import os from "node:os";
 import { plainText } from "./text.js";
+import { cutToWidth } from "./taskRows.js";
 import { repoKey, readEntry, writeEntry, spawnRefresh } from "./cache.js";
 import { update, REPO_ROOT_PATH } from "./update.js";
 
@@ -100,7 +101,9 @@ function runGit(root, args, timeout) {
 
 function cleanSubject(subject) {
   const text = plainText(subject) ?? "";
-  return text.length > SUBJECT_MAX ? `${text.slice(0, SUBJECT_MAX - 1)}…` : text;
+  // By columns, with the ellipsis measured: a UTF-16 slice could split an
+  // emoji's surrogate pair, and it counted the ellipsis as one column.
+  return cutToWidth(text, SUBJECT_MAX);
 }
 
 /**
