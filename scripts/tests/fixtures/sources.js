@@ -25,6 +25,11 @@ export const emptySources = {
   // The git gates come from a cache the detached refresh fills; a test asks
   // for them explicitly (specs/031-git-gate-rows).
   getGateRuns: () => null,
+  // Copilot CLI's terminal, settings file and monthly quota
+  // (specs/033-copilot-parity): the machine's own must not decide a case.
+  readTty: () => null,
+  copilotSettings: () => ({}),
+  getCopilotQuota: () => null,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */

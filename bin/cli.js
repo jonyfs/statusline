@@ -51,7 +51,7 @@ const USAGE = [
   `Usage: node "${process.argv[1]}" <command>`,
   "",
   "  install " + INSTALL_FLAGS,
-  "  install --harness copilot|codex",
+  "  install --harness copilot|codex [--quiet-footer|--no-quiet-footer]",
   "  update " + INSTALL_FLAGS,
   "  updates [auto|notify|off]",
   "  check-updates",
@@ -115,7 +115,14 @@ async function main() {
       const harness = harnessFlag();
       if (harness) {
         const { installHarness } = await import("../src/install.js");
-        const r = installHarness(harness);
+        // Copilot only (specs/033-copilot-parity): undefined leaves its own
+        // footer as it is, so a plain reinstall never undoes either choice.
+        const quietFooter = rest.includes("--no-quiet-footer") ? false : rest.includes("--quiet-footer") ? true : undefined;
+        if (quietFooter !== undefined && harness !== "copilot") {
+          console.error(`--quiet-footer is for Copilot CLI's footer; ${harness} has none to quiet.`);
+          process.exit(1);
+        }
+        const r = installHarness(harness, { quietFooter });
         if (!r.ok) {
           console.error(r.reason);
           process.exit(1);
@@ -124,6 +131,15 @@ async function main() {
         console.log(`  Settings file: ${r.file}`);
         if (r.backupPath) console.log(`  Backup saved:  ${r.backupPath}`);
         if (r.command) console.log(`  Command:       ${r.command}`);
+        if (r.refreshInterval) console.log(`  Refresh every: ${r.refreshInterval}s`);
+        if (harness === "copilot") {
+          const footer = {
+            quiet: "the items the bar already shows are off; uninstall puts them back",
+            restored: "back to what it was before --quiet-footer",
+            unchanged: "Copilot's own, unchanged (--quiet-footer hides what the bar repeats)",
+          }[r.footer];
+          console.log(`  Footer:        ${footer}`);
+        }
         for (const note of r.notes ?? []) console.log(`  Note:          ${note}`);
         console.log(`  Restart ${harness === "copilot" ? "Copilot CLI" : "Codex"} to see it.`);
         break;
@@ -209,6 +225,7 @@ async function main() {
         const { uninstallHarness } = await import("../src/install.js");
         const r = uninstallHarness(harness);
         console.log(r.changed ? `Statusline removed from ${r.file}.` : r.reason);
+        if (r.footerRestored) console.log(`Copilot's footer is back to what it was before --quiet-footer.`);
         break;
       }
       const { uninstall } = await import("../src/install.js");

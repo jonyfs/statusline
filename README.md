@@ -220,6 +220,32 @@ That sets `statusLine` in Copilot's `settings.json` (in `$COPILOT_HOME`,
 alone. Restart Copilot CLI to see it. `uninstall --harness copilot` takes it
 out again.
 
+The install asks Copilot to re-run the bar every 10 seconds. Claude Code gets
+60. Copilot only redraws the bar when its own session state changes. A
+resized window, a todo the agent ticked off, an effort picked with `/model`
+and a new quota figure don't count as changes there, so each of them waits
+for the next tick. Ten seconds keeps that wait short at six redraws a minute.
+
+Copilot also draws a footer row of its own above the prompt, and it repeats
+the directory, branch, pull request and AI credits the bar already shows. To
+turn those items off:
+
+```bash
+node ~/.claude/statusline-plugin/bin/cli.js install --harness copilot --quiet-footer
+```
+
+That sets `footer.showDirectory`, `showBranch`, `showPullRequest`,
+`showAiUsed`, `showContextWindow`, `showQuota`, `showCodeChanges`,
+`showCiStatus` and `showModelEffort` to false and keeps `footer.showCustom`
+on, because that one is the bar. It records what each key held first, in
+`~/.claude/statusline/copilot-footer.json`. `--no-quiet-footer` or
+`uninstall --harness copilot` puts each one back, unless you changed it in
+Copilot's `/statusline` picker since. A plain install leaves the footer as it
+is. Copilot's hint row and its model label sit above the bar whatever you
+set, because no setting moves them.
+
+![Under GitHub Copilot CLI](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/copilot.svg)
+
 **OpenAI Codex CLI does not run outside commands in its status line.** It
 draws its own built-in items. What this plugin can do is choose the ones
 closest to its bar:
@@ -245,19 +271,22 @@ repository, and fast mode and task progress while they are active. And a
 Codex session started before the install keeps its old footer until you
 start a new one.
 
-What each one shows, measured against Copilot CLI 1.0.80 and Codex CLI 0.158.0:
+What each one shows, measured against Copilot CLI 1.0.91 and Codex CLI 0.158.0:
 
 | | Claude Code | Copilot CLI | Codex CLI |
 |---|---|---|---|
 | Directory, repository, branch, tree state, PR, CI | yes | yes | directory and branch |
 | Lines changed, session duration | yes | yes | no |
-| Model | yes | yes | yes, with reasoning |
-| Effort | yes | no | in the model item |
-| Context % | yes | yes | yes |
+| Model | yes | yes, and the model `Auto` routed to | yes, with reasoning |
+| Effort | yes | yes, from Copilot's session log or settings | in the model item |
+| Context % | yes | yes, from the first frame | yes |
+| Fits the terminal's width | yes, from `COLUMNS` | yes, read from the terminal | n/a |
 | 5-hour, 7-day, spend limit, burn rate | yes | none exist | 5-hour and weekly |
+| Monthly premium and chat quota | n/a | yes, through `gh` | no |
+| AI credits, and the session limit | n/a | yes | no |
 | Prompt cache | yes | no | no |
 | Skills, working or idle | yes | yes, from Copilot's session log | working state only |
-| Todo | yes | no | task progress |
+| Todo | yes | yes, from the session's database | task progress |
 | Vim, fast mode | yes | no | fast mode |
 | rtk savings, update notice | yes | yes | no |
 | Premium requests, allow-all | n/a | yes | n/a |
@@ -265,10 +294,46 @@ What each one shows, measured against Copilot CLI 1.0.80 and Codex CLI 0.158.0:
 | Git gates running in other worktrees | yes | yes | no |
 
 Under Copilot the 5-hour and 7-day chips are absent, not `?%`: Copilot has no
-such limits, and `?%` would say a value exists and is unknown. Copilot does
-not tell the command how wide the terminal is, so the bar lays out for 120
-columns and Copilot wraps its own footer. `doctor` lists each agent it finds
-on the machine and whether this plugin is set up there.
+such limits, and `?%` would say a value exists and is unknown. What Copilot
+does meter is a month, so the bar shows that instead, where those two chips
+would be: `month premium 24% · Sep 1` and `month chat 3% · Sep 1`, the share
+of this month's allowance used and the day it resets. The figures come from
+GitHub's `/copilot_internal/user`, which `gh` asks with the login it already
+has. The lookup runs in the background every five minutes and only under
+Copilot. With `gh` missing or signed out there is no chip, and a quota the
+plan does not have or does not limit gets none either. The endpoint is
+GitHub's own and undocumented, so a change on GitHub's side can make the
+chips disappear until this plugin catches up.
+
+The rest of Copilot's figures come from Copilot itself.
+
+Copilot does not tell the command how wide the terminal is, so the bar reads
+the size from `/dev/tty` and takes off Copilot's `statusLine.padding`. It then
+drops segments by priority the way it does under Claude Code, so Copilot's
+wrapping never cuts a segment in two. On Windows, or without a terminal, it
+falls back to 120 columns. Copilot does not redraw on a resize, so the new
+width shows on the next tick.
+
+Before the first model call Copilot sends no `used_percentage`, so the bar
+uses Copilot's own current-context figure and shows a number from the first
+frame.
+
+With the default `Auto` model the chip names the model that answered, such as
+`gpt-6-luna (auto)`, from the session log. A subagent's model never counts.
+The effort comes from the same log, or from `effortLevel` in Copilot's
+settings before the first message.
+
+Copilot keeps an agent's todo list in a SQLite file in the session directory,
+`session.db`. The bar opens it read-only, with Node's built-in SQLite on Node
+22.5 and newer, or the `sqlite3` program on macOS and Linux. With neither
+there is no todo chip.
+
+The credits chip shows what the session used as Copilot formats it,
+`0.64 AIC`. Once you set a session limit with `/limits`, it also shows the
+share of that limit, `4.20/20 AIC · 21%`, coloured by how close it is.
+
+`doctor` lists each agent it finds on the machine, whether this plugin is set
+up there, how often Copilot re-runs it, and whether Copilot's footer is quiet.
 
 Copilot has no setting for subagent rows like Claude Code's
 `subagentStatusLine`, but its session log records every subagent it starts
@@ -356,7 +421,8 @@ show `?%` and `reset time unknown`. Nothing gets estimated to fill the gap:
 ## It fits the terminal, whatever size that is
 
 Claude Code tells the script the terminal's width and height before running
-it, so the bar knows what it has to work with instead of assuming.
+it, so the bar knows what it has to work with instead of assuming. Copilot
+CLI does not, so under Copilot the bar reads them from the terminal itself.
 
 **Too narrow.** Every segment carries a priority, and a line is filled from
 the most important down until the next one would not fit. What you lose is
@@ -747,7 +813,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts thirty segments on three lines, and it is a default
+The default puts thirty-three segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:
@@ -897,7 +963,9 @@ columns, 24 rows` explains a segment that is missing because there was no
 room for it, and `history: 3 samples` explains why the burn rate has not
 appeared yet. When Claude Code sets neither `COLUMNS` nor `LINES`, the
 terminal line says the size was assumed: `terminal: 120 columns (COLUMNS not
-set, using the default), rows unknown (LINES not set, every line drawn)`. The
+set, using the default), rows unknown (LINES not set, every line drawn)`.
+Under Copilot it says the size was read from `/dev/tty` instead, and how much
+Copilot's padding took off it. The
 widths beside it are named by line — `rendered line 1: 51
 columns, line 3: 104 columns` — so with the skills line
 absent you are still reading each width against the content that produced

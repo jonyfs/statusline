@@ -53,6 +53,11 @@ const noSources = {
   // Whether the directory is a repository is the git snapshot's to say here,
   // never the machine generating the preview.
   isRepo: () => false,
+  // Copilot CLI's terminal, settings and monthly quota, never the machine's
+  // (specs/033-copilot-parity).
+  readTty: () => null,
+  copilotSettings: () => ({}),
+  getCopilotQuota: () => null,
 };
 
 export const SCENARIOS = [
@@ -109,6 +114,48 @@ export const SCENARIOS = [
         { pid: 2, hook: "pre-push", worktree: "statusline-docs", path: "/Users/dev/projects/statusline-docs", branch: "docs/readme-tour", step: "npm run lint \u00b7 npm run typecheck \u00b7 npm test", startedAt: FIXED_NOW * 1000 - 72000, state: "running" },
         { pid: 3, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "harness/gate-cache", step: null, startedAt: FIXED_NOW * 1000 - 12000, state: "waiting" },
       ],
+    },
+  },
+  {
+    file: "copilot.svg",
+    title: "Under GitHub Copilot CLI: the model Auto routed to, its effort, the account's monthly quota and the session's AI credits",
+    // The shape Copilot CLI 1.0.91 sends (specs/033-copilot-parity): no rate
+    // limits, no effort, `auto` for the model, and its own two fields.
+    payload: {
+      session_id: "preview-copilot",
+      cwd: "/Users/dev/projects/statusline",
+      model: { id: "auto", display_name: "Auto", auto_tier: null, pending_auto_tier: null },
+      workspace: { current_dir: "/Users/dev/projects/statusline" },
+      version: "1.0.91",
+      cost: { total_duration_ms: 1000 * 60 * 23, total_lines_added: 42, total_lines_removed: 7, total_premium_requests: 0 },
+      context_window: { used_percentage: 18, current_context_used_percentage: 18, displayed_context_limit: 200000 },
+      ai_used: { total_nano_aiu: 641_049_000, formatted: "0.64" },
+      allow_all_enabled: false,
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "feat/copilot-parity", upstream: "origin/feat/copilot-parity", ahead: 1, behind: 0, changed: 3, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      // What Copilot's session log and session.db answer: the effort and the
+      // routed model from the log, the todos from the database.
+      getSessionActivity: () => ({
+        skills: ["code-review"],
+        skillsTrueCount: 1,
+        todos: { done: 2, total: 5, current: "Read the session database" },
+        working: true,
+        effort: "medium",
+        resolvedModel: "gpt-6-luna",
+        sessionLimit: null,
+        agents: [],
+      }),
+      getRtkSavings: () => 81,
+      getCopilotQuota: () => ({
+        resetDate: "2026-09-01",
+        quotas: {
+          premium: { usedPct: 24, entitlement: 300, unlimited: false, full: false },
+          chat: { usedPct: 3, entitlement: 200, unlimited: false, full: false },
+        },
+      }),
     },
   },
   {

@@ -104,7 +104,7 @@ await test("the rendered lines follow the registry's order", async () => {
 
 await test("the colour channels name real segments", async () => {
   const { inChannel } = await import("../../src/segments.js");
-  assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "burnRate", "sevenDay", "spendLimit", "promptCache"]);
+  assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "burnRate", "sevenDay", "premiumQuota", "chatQuota", "spendLimit", "promptCache", "aiCredits"]);
   assert.deepEqual(inChannel("change"), ["branch", "pr", "skills", "model"]);
 });
 

@@ -18,8 +18,11 @@
  * things are.
  */
 
+import { openSync, closeSync } from "node:fs";
+import tty from "node:tty";
 import { displayWidth } from "./theme.js";
 import { PRIORITY_BANDS } from "./segments.js";
+import { copilotPadding } from "./copilotSettings.js";
 
 /** What to assume when Claude Code is too old to set `COLUMNS`. */
 export const DEFAULT_WIDTH = 120;
@@ -45,6 +48,78 @@ export function terminalWidth() {
  */
 export function terminalHeight() {
   return positiveInt(process.env.LINES) ?? Infinity;
+}
+
+/**
+ * The size of the controlling terminal, read from `/dev/tty`, or null.
+ *
+ * GitHub Copilot CLI runs the command with all three streams piped and sets
+ * neither `COLUMNS` nor `LINES`, but it does not detach it, so the command
+ * still shares Copilot's terminal (specs/033-copilot-parity: `stty size
+ * </dev/tty` printed `40 117` from inside Copilot 1.0.91). With no controlling
+ * terminal the open fails with ENXIO, which the caller turns into the default.
+ */
+export function readTtySize() {
+  let fd;
+  let stream;
+  try {
+    fd = openSync("/dev/tty", "r+");
+    stream = new tty.WriteStream(fd);
+    const columns = positiveInt(stream.columns);
+    const rows = positiveInt(stream.rows);
+    return columns ? { columns, rows } : null;
+  } catch {
+    return null;
+  } finally {
+    // The stream owns the descriptor once it exists; before that, nothing does.
+    if (stream) stream.destroy();
+    else if (fd !== undefined) {
+      try {
+        closeSync(fd);
+      } catch {
+        // already closed
+      }
+    }
+  }
+}
+
+/**
+ * Copilot's terminal, less the padding Copilot puts before every line, or null
+ * when it cannot be read. Windows has no `/dev/tty`, so it is not tried there
+ * (Principle IX).
+ */
+export function copilotTerminal({ platform = process.platform, readTty = readTtySize, settings = null } = {}) {
+  if (platform === "win32") return null;
+  let size;
+  try {
+    size = readTty();
+  } catch {
+    return null;
+  }
+  const columns = positiveInt(size?.columns);
+  if (!columns) return null;
+  // Never below the floor a single segment needs; a padding as wide as the
+  // window is Copilot's problem to draw, not a reason to fit to nothing.
+  const usable = Math.max(20, columns - copilotPadding(settings));
+  return { columns: usable, rows: positiveInt(size?.rows) ?? Infinity, source: "tty" };
+}
+
+/**
+ * The size a redraw fits to, and where it came from.
+ *
+ * `COLUMNS` is authoritative whenever it is set: Claude Code sets it with its
+ * own layout already taken into account, and `/dev/tty` is never opened then.
+ * Only Copilot, which sets nothing, is measured from the terminal. Anything
+ * else keeps the old answer: 120 columns and every line.
+ */
+export function terminalFor(harness, { env = process.env, platform = process.platform, readTty = readTtySize, settings = null } = {}) {
+  const columns = positiveInt(env?.COLUMNS);
+  if (columns) return { columns, rows: positiveInt(env?.LINES) ?? Infinity, source: "COLUMNS" };
+  if (harness === "copilot") {
+    const measured = copilotTerminal({ platform, readTty, settings: typeof settings === "function" ? settings() : settings });
+    if (measured) return measured;
+  }
+  return { columns: DEFAULT_WIDTH, rows: positiveInt(env?.LINES) ?? Infinity, source: "default" };
 }
 
 /** What a row of segments costs in columns, separators included. */

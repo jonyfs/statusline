@@ -104,7 +104,7 @@ await test("install for Copilot writes only statusLine, keeps the rest, and back
   const written = JSON.parse(readFileSync(path.join(home, "settings.json"), "utf8"));
   assert.equal(written.theme, "dark");
   assert.match(written.statusLine.command, /^\S+ "[^"]+cli\.js" render$/, "the specs/028 form");
-  assert.equal(written.statusLine.refreshInterval, 60);
+  assert.equal(written.statusLine.refreshInterval, 10, "Copilot redraws on its own events only (specs/033)");
   assert.ok(r.backupPath && existsSync(r.backupPath));
   assert.match(r.notes.join(" "), /comments/);
 

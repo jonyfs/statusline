@@ -92,6 +92,15 @@ export const MAX_AGE_MS = {
   // cache key this is how long a refresh's lock lasts; the redraw checks every
   // cached run's pid itself, so the rows never outlive the processes.
   gates: 10_000,
+  // Copilot CLI's monthly quota, from `gh api /copilot_internal/user`
+  // (specs/033-copilot-parity). A refresh starts at half of this, so the
+  // figure is about five minutes old at most in steady use; a month's meter
+  // does not move faster than that matters.
+  copilotQuota: 10 * 60 * 1000,
+  premiumQuota: 10 * 60 * 1000,
+  chatQuota: 10 * 60 * 1000,
+  // The AI credits Copilot reports with this very payload.
+  aiCredits: REDRAW_INTERVAL_MS,
 };
 
 /**
@@ -119,6 +128,8 @@ export const REFRESH_BUDGET_MS = {
   update: 120_000,
   // `git worktree list`, `ps` over every process and, on macOS, one `lsof`.
   gates: 5_000,
+  // One `gh api` call.
+  copilotQuota: 5_000,
 };
 
 /** The bytes the transcript tail read may consume before it gives up. */

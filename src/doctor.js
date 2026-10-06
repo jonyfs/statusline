@@ -14,7 +14,10 @@ import { readGateRuns, probeGateRuns } from "./gateRuns.js";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { gather, renderReadings } from "./render.js";
+import { gather, renderReadings, harnessProbes } from "./render.js";
+import { detectHarness } from "./harness.js";
+import { getCopilotQuota } from "./copilotQuota.js";
+import { loadCopilotSettings, copilotPadding } from "./copilotSettings.js";
 import { checkInstall, projectOverrides, harnessStatus } from "./install.js";
 import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
 import { repoKey, readEntry } from "./cache.js";
@@ -49,7 +52,7 @@ import {
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
 import { displayWidth, PALETTES } from "./theme.js";
-import { terminalWidth, terminalHeight } from "./layout.js";
+import { terminalFor } from "./layout.js";
 import { resolveLayout, repoConfig } from "./config.js";
 import { resolveArrangement } from "./arrangement.js";
 
@@ -97,7 +100,21 @@ const DESCRIBE = {
   dir: ["dir", (v) => v ?? null],
   // The git gates running in this repository (specs/031-git-gate-rows).
   gates: ["gates", (v) => describeGates(v)],
+  // Copilot CLI's credits and monthly quota (specs/033-copilot-parity).
+  aiCredits: ["aiCredits", (v) => (v ? `${v.formatted} AI credits${v.max ? `, ${v.pct}% of a ${v.max} credit session limit` : ""}` : null)],
+  premiumQuota: ["copilotQuota", (v) => describeQuota(v, "premium")],
+  chatQuota: ["copilotQuota", (v) => describeQuota(v, "chat")],
 };
+
+/** One monthly quota as its chip draws it, with where the figure came from. */
+function describeQuota(value, name) {
+  const q = value?.quotas?.[name];
+  if (!q) return null;
+  return `${q.usedPct}% of ${q.entitlement} this month${q.full ? ", full" : ""}, resets ${value.resetDate ?? "on an unknown date"} (gh api /copilot_internal/user)`;
+}
+
+/** The segments only Copilot CLI's payload or account can fill. */
+const COPILOT_ONLY = new Set(["allowAll", "premiumRequests", "aiCredits", "premiumQuota", "chatQuota"]);
 
 /** Each running gate as its row names it: the hook, where, and whether it waits. */
 function describeGates(runs) {
@@ -151,7 +168,14 @@ const LIVE_PROBES = {
  * a blank line cannot express (FR-017).
  */
 function absenceReason(segment, reading, readings, now) {
+  if (COPILOT_ONLY.has(segment.key) && readings?.harness?.value !== "copilot") return "Copilot CLI only";
   if (!reading) return "no reading";
+  if ((segment.key === "premiumQuota" || segment.key === "chatQuota") && !reading.error && !reading.value?.quotas?.[segment.key === "premiumQuota" ? "premium" : "chat"]) {
+    return reading.value
+      ? "the plan has no such monthly allowance, or it is unlimited"
+      : "nothing cached yet, or gh is missing or signed out (the refresh runs every 5 minutes under Copilot)";
+  }
+  if (segment.key === "aiCredits" && reading.value == null) return "no AI credits used this session yet";
   if (reading.error) return `source failed: ${reading.error}`;
   if (segment.key === "promptCache") {
     const pc = reading.value;
@@ -267,18 +291,29 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     getUpdateNotice: () => peekUpdateNotice(),
     // The gates the cache holds, without starting a lookup.
     getGateRuns: (cwd, opts) => readGateRuns(cwd, { ...opts, refresh: false }),
+    // Copilot CLI's settings and its cached quota, again without a lookup
+    // (specs/033-copilot-parity).
+    copilotSettings: loadCopilotSettings,
+    getCopilotQuota: (opts) => getCopilotQuota({ ...opts, refresh: false }),
   };
 
   const started = Date.now();
-  const readings = gather(payload, probes, { now });
+  const harness = detectHarness(payload);
+  const copilotSettings = harness === "copilot" ? (probes.copilotSettings?.() ?? {}) : null;
+  // Through the same harness switch the renderer uses, so a Copilot payload is
+  // read from Copilot's session log here too.
+  const readings = gather(payload, harnessProbes(probes, harness), { now, copilotSettings });
   // The arrangement in force, so every line and order below describes the
   // bar this machine draws rather than the one the registry would draw.
   const layout = resolveLayout(readings.cwd);
   const resolved = resolveArrangement(REGISTRY, layout.arrangement, layout.origin);
   const placements = new Map(resolved.placements.map((p) => [p.key, p]));
+  const terminal = terminalReport(harness, { settings: copilotSettings, ...(probes.readTty ? { readTty: probes.readTty } : {}) });
   const rendered = renderReadings(readings, payload, {
     tracking: false,
     now,
+    maxWidth: terminal.columns,
+    maxHeight: terminal.rows ?? Infinity,
     asRows: true,
     arrangement: layout.arrangement,
     arrangementOrigin: layout.origin,
@@ -357,7 +392,7 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
   return {
     cwd: readings.cwd,
     elapsedMs,
-    terminal: terminalReport(),
+    terminal,
     // Which arrangement is in force, where it came from, and every part of
     // it that was refused. A segment missing because somebody switched it
     // off is a different answer from one missing because its source failed,
@@ -392,26 +427,44 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
  * has no JSON form, so `--json` turned it into a bare `null` with nothing to
  * say why.
  */
-function terminalReport() {
-  const columns = terminalWidth();
-  const rows = terminalHeight();
-  // Read back the way layout.js reads it: a value it rejects is the same as
-  // no value, because the default is what the bar was fitted to.
-  const raw = Number(process.env.COLUMNS);
-  const set = Number.isFinite(raw) && raw > 0;
+export function terminalReport(harness = "claude", { readTty, settings = null, env = process.env } = {}) {
+  // The same answer layout.js gives the renderer, so the line says what the
+  // bar was fitted to. Under Copilot CLI that is `/dev/tty` less Copilot's
+  // padding, since Copilot sets neither variable (specs/033-copilot-parity).
+  const size = terminalFor(harness, { env, settings, ...(readTty ? { readTty } : {}) });
+  const rows = Number.isFinite(size.rows) ? size.rows : null;
   return {
-    columns,
-    columnsSource: set ? "COLUMNS" : "default",
-    rows: Number.isFinite(rows) ? rows : null,
-    rowsSource: Number.isFinite(rows) ? "LINES" : "unset",
+    columns: size.columns,
+    columnsSource: size.source,
+    padding: size.source === "tty" ? copilotPadding(settings) : 0,
+    rows,
+    rowsSource: rows === null ? "unset" : size.source === "tty" ? "tty" : "LINES",
   };
 }
 
-function terminalLine(t) {
+/**
+ * One harness found on the machine. For Copilot CLI it also says how often
+ * Copilot re-runs the bar and whether its own footer still repeats it
+ * (specs/033-copilot-parity), since both decide how the bar reads there.
+ */
+export function harnessLine(h) {
+  const name = h.harness === "copilot" ? "Copilot CLI" : "Codex";
+  const base = `install: ${name} found at ${h.home}, ${h.configured ? "set up with this plugin" : `not set up (run install --harness ${h.harness})`}`;
+  if (h.harness !== "copilot" || !h.configured) return base;
+  const interval = h.refreshInterval ? `refreshes every ${h.refreshInterval}s` : "refreshes only on Copilot's own events";
+  const footer = h.quietFooter
+    ? "Copilot's footer quieted (install --harness copilot --no-quiet-footer restores it)"
+    : "Copilot's footer repeats some of the bar (install --harness copilot --quiet-footer hides that)";
+  return `${base}; ${interval}; ${footer}`;
+}
+
+export function terminalLine(t) {
   const columns =
     t.columnsSource === "default"
       ? `${t.columns} columns (COLUMNS not set, using the default)`
-      : `${t.columns} columns`;
+      : t.columnsSource === "tty"
+        ? `${t.columns} columns (read from /dev/tty: Copilot CLI sets no COLUMNS${t.padding ? `; less its padding of ${t.padding}` : ""})`
+        : `${t.columns} columns`;
   const rows = t.rows === null ? "rows unknown (LINES not set, every line drawn)" : `${t.rows} rows`;
   return `terminal: ${columns}, ${rows}`;
 }
@@ -498,10 +551,7 @@ export function formatReport(report) {
   return [
     ...installLines,
     ...overrideLines,
-    ...(report.harnesses ?? []).map(
-      (h) =>
-        `install: ${h.harness === "copilot" ? "Copilot CLI" : "Codex"} found at ${h.home}, ${h.configured ? "set up with this plugin" : `not set up (run install --harness ${h.harness})`}`
-    ),
+    ...(report.harnesses ?? []).map((h) => harnessLine(h)),
     ...(report.updates ? [report.updates] : []),
     `working directory: ${report.cwd}`,
     arrangementLine,

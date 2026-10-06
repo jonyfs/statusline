@@ -94,6 +94,14 @@ export const SEGMENTS = [
   { key: "burnRate", line: 3, order: 42, priority: 66, colour: "ramp", source: "samples" },
   { key: "projection", line: 3, order: 44, priority: 64, colour: "identity", source: "samples" },
   { key: "sevenDay", line: 3, order: 50, priority: 90, colour: "ramp", source: "payload" },
+  // Copilot CLI only (specs/033-copilot-parity). GitHub meters Copilot by the
+  // month, so these stand where the 5-hour and 7-day chips stand under Claude
+  // Code, which are absent under Copilot: the two never share a line. Two
+  // bands below the windows and just under the savings figure the owner
+  // ranked to survive, since a month's meter rarely decides the next ten
+  // minutes; their date goes first, through the chip's shorter form.
+  { key: "premiumQuota", line: 3, order: 41, priority: 71, colour: "ramp", source: "cache" },
+  { key: "chatQuota", line: 3, order: 51, priority: 69, colour: "ramp", source: "cache" },
   // Present only behind a Claude gateway with spend limits, where it is the
   // allowance that decides whether work can continue once a window is used
   // up, so it outranks both windows. Placed after them so neither moves
@@ -105,6 +113,10 @@ export const SEGMENTS = [
   // burn rate. Order 54 moves nothing that was already on the line.
   { key: "promptCache", line: 3, order: 54, priority: 80, colour: "ramp", source: "payload" },
   { key: "duration", line: 3, order: 55, priority: 50, colour: "identity", source: "payload" },
+  // Copilot CLI only: the AI credits this session used, and the share of its
+  // session limit when one is set (specs/033-copilot-parity). Beside the
+  // premium requests, the other thing Copilot bills a session by.
+  { key: "aiCredits", line: 3, order: 56, priority: 61, colour: "ramp", source: "payload" },
   // Raised from 40, the lowest on the bar, at the owner's decision: the
   // savings figure is to survive the merge rather than be the first thing the
   // narrower line gives up. What goes first instead is the session duration,
@@ -168,6 +180,9 @@ export const SEGMENT_ABOUT = {
   fastMode: "Fast mode, shown only while it is on, because it spends the limits faster.",
   allowAll: "Copilot CLI only: allow-all is on, so every tool runs without asking.",
   premiumRequests: "Copilot CLI only: the premium requests this session has used.",
+  aiCredits: "Copilot CLI only: the AI credits this session has used, as Copilot formats them, and how much of the session limit that is when one is set with /limits.",
+  premiumQuota: "Copilot CLI only: how much of this month's premium request allowance the account has used, and the date it resets. GitHub reports it to `gh`; absent when `gh` is missing or signed out, or the plan has no such allowance.",
+  chatQuota: "Copilot CLI only: how much of this month's chat allowance the account has used, and the date it resets. From the same GitHub lookup as the premium quota.",
   vim: "The editor's vim mode, shown only while vim mode is on.",
   context: "How full the context window is. The one figure that carries its level in colour alone, at the owner's decision.",
   fiveHour: "The five-hour usage window and when it comes back. It counts down, because inside a day a reset is something you wait out.",

@@ -1,0 +1,49 @@
+{
+  "cwd": "/tmp/project",
+  "session_id": "52dd591d-082b-47a6-8a31-cc6f156a5695",
+  "session_name": null,
+  "transcript_path": "__EVENTS_DIR__",
+  "model": {
+    "id": "auto",
+    "display_name": "Auto",
+    "auto_tier": null,
+    "pending_auto_tier": null
+  },
+  "workspace": {
+    "current_dir": "/tmp/project"
+  },
+  "username": null,
+  "remote": {
+    "connected": false
+  },
+  "version": "1.0.91",
+  "cost": {
+    "total_api_duration_ms": 0,
+    "total_lines_added": 0,
+    "total_lines_removed": 0,
+    "total_duration_ms": 810619,
+    "total_premium_requests": 0
+  },
+  "context_window": {
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_cache_read_tokens": 0,
+    "total_cache_write_tokens": 0,
+    "total_reasoning_tokens": 0,
+    "total_tokens": 0,
+    "context_window_size": null,
+    "used_percentage": null,
+    "remaining_percentage": null,
+    "remaining_tokens": null,
+    "last_call_input_tokens": 0,
+    "last_call_output_tokens": 0,
+    "current_context_tokens": 0,
+    "displayed_context_limit": 200000,
+    "current_context_used_percentage": 0
+  },
+  "ai_used": {
+    "total_nano_aiu": 0,
+    "formatted": "0"
+  },
+  "allow_all_enabled": false
+}

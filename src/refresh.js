@@ -44,6 +44,12 @@ const PROBES = {
   // The git hooks running in this repository's worktrees
   // (specs/031-git-gate-rows). Too slow for a redraw, which reads this.
   gates: (cwd) => probeGateRuns(cwd, REFRESH_BUDGET_MS.gates),
+  // Copilot CLI's monthly quota (specs/033-copilot-parity). Started only by a
+  // redraw under Copilot; `gh` missing or signed out fails and caches nothing.
+  copilotQuota: async () => {
+    const { probeCopilotQuota } = await import("./copilotQuota.js");
+    return probeCopilotQuota();
+  },
   // The daily update check (specs/026-update-check). It checks the clone this
   // code runs from, never `cwd`: the working directory is whatever directory
   // the refresh happened to start in, and in `auto` a check pointed at the
