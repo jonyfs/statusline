@@ -73,3 +73,4 @@ README.md, .specify/memory/constitution.md, CLAUDE.md, .specify/feature.json
   which did not affect the rows.
 - Flush timing, measured on the same kind of run: a `subagent.started` stamped `46.455` was in
   `events.jsonl` by a poll at `46.791`, so a row can appear on the next refresh.
+- CI run 37406294067 passed on Linux, macOS and Windows (Node 18, 20, 22), with the install, preview and composer jobs.

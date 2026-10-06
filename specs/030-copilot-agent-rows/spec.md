@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Subagent rows in GitHub Copilot CLI
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-05
 
-**Status**: Active (the declaration above is authoritative)
+**Status**: Completed (the declaration above is authoritative)
 
 **Input**: User description: "se é possível mostrar os agentes em inumeras linhas no copilot assim
 como é feito no claude code", followed, after the investigation below, by "implemente toda a

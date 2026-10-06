@@ -7,4 +7,4 @@
 - [X] T005 [US1] `src/taskRows.js` `modelLabel` fallback; `src/render.js` agents reading and appended rows
 - [X] T006 README: feature matrix row and a paragraph on the rows; humanizer
 - [X] T007 Validate for real: a live Copilot session dispatching subagents, rendered by `bin/cli.js render` against its session directory; record results
-- [ ] T008 Suite, CI, merge, version, update the installs
+- [X] T008 Suite, CI, merge, version, update the installs
