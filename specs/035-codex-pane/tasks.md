@@ -32,3 +32,11 @@
 - [X] T013 The `codex-pane.svg` scenario in `scripts/preview-fixtures.js`, from the preview fixture through the adapter; `npm run previews`
 - [X] T014 README: "Codex with the full bar" and the feature matrix
 - [X] T015 Suite green, spec `done`, commit on `feat/codex-pane`
+
+## Phase 7: Review fixes
+
+- [X] T016 The cwd scan prefers a session that started after the pane, and the pane keeps a scanned session unless a pointer or a later-started session replaces it; test with two same-cwd rollouts whose mtimes alternate
+- [X] T017 Tests for the running loop: append turns working into idle (spawned, piped stdout); the tick alone repaints and a resize refits (in process, fs.watch taken away); resize in a throwaway `tmux -L` server when tmux is present; a new pointer is picked up within one lookup
+- [X] T018 A `rate_limits` snapshot whose `limit_id` is not `codex` leaves the 5h and 7d chips alone
+- [X] T019 A tail read that starts on a line boundary keeps its first line
+- [X] T020 The SessionStart hook runs through a bare `node` when a shell resolves one, like the status line command

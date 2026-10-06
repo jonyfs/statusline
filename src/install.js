@@ -805,9 +805,15 @@ function installCodex(env, theme, pane) {
 
 // --- Codex pane hook (specs/035-codex-pane) -----------------------------------
 
-/** The SessionStart hook's command. Kept stable: Codex's trust is tied to its text. */
+/**
+ * The SessionStart hook's command. Kept stable: Codex's trust is tied to its
+ * text. So it takes the status line's interpreter, a bare `node` whenever a
+ * shell resolves one, and not `process.execPath`: a version-pinned path
+ * vanishes on the next Node upgrade, the hook then fails on every session
+ * start, and the reinstall that repairs it changes the text Codex trusted.
+ */
 export function buildCodexHookCommand() {
-  return buildCommand(process.execPath, CLI_PATH, "codex-hook");
+  return buildCommand(resolveInterpreter(), CLI_PATH, "codex-hook");
 }
 
 /** hooks.json files this plugin created, so uninstall can remove one it emptied. */

@@ -200,14 +200,35 @@ export function recentRollouts({ codexHome = codexHomeOf(), days = SCAN_DAYS, fi
   return found.sort((a, b) => b.mtimeMs - a.mtimeMs).slice(0, files);
 }
 
-/** The newest rollout whose session started in `cwd`, written to since `since`, or null. */
+/** How far before `since` a session may have started and still count as the pane's. */
+export const SINCE_SLACK_MS = 5000;
+
+/** When a rollout's session started, from its session_meta, in ms; NaN when it does not say. */
+export function rolloutStartedAt(file) {
+  return Date.parse(readRolloutHead(file)?.timestamp ?? "");
+}
+
+/**
+ * The newest rollout whose session started in `cwd`, written to since `since`, or null.
+ *
+ * Written to is not started: another Codex in the same directory that began
+ * before the pane is still written to after it. So with `since`, a session
+ * that started at or after it (less SINCE_SLACK_MS) comes first, and the
+ * newest written one stands in only when none did. Otherwise two live
+ * sessions would trade places as each one wrote.
+ */
 export function newestRolloutFor(cwd, { codexHome = codexHomeOf(), since = null } = {}) {
+  let fallback = null;
   for (const { file, mtimeMs } of recentRollouts({ codexHome })) {
-    if (since !== null && mtimeMs < since) return null;
+    if (since !== null && mtimeMs < since) break;
     const head = readRolloutHead(file);
-    if (head && samePlace(head.cwd, cwd)) return file;
+    if (!head || !samePlace(head.cwd, cwd)) continue;
+    if (since === null) return file;
+    const started = Date.parse(head.timestamp ?? "");
+    if (Number.isFinite(started) && started >= since - SINCE_SLACK_MS) return file;
+    fallback ??= file;
   }
-  return null;
+  return fallback;
 }
 
 /** The rollout for a session id, by Codex's file name `rollout-<time>-<id>.jsonl`. */

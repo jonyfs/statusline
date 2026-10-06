@@ -381,8 +381,10 @@ being guessed. Codex's own `context-used` item may differ from the pane by a
 point or two, since Codex subtracts a baseline of its own.
 
 **Which session is yours.** With no help, the pane shows the newest Codex
-session started in its directory. That is right unless you run two Codex
-sessions in the same directory at once. For an exact match, register a small
+session started in its directory, preferring one that started after the pane
+did, and it stays on that session until a newer one starts there (as `/new`
+does). That is right unless you start two Codex sessions in the same
+directory at once. For an exact match, register a small
 Codex hook:
 
 ```bash
@@ -394,8 +396,11 @@ you or other tools already have there, and backs the file up first. When a
 session starts, the hook writes the session's id, its file and its tmux pane
 to `~/.claude/statusline/codex/`, and prints nothing. Codex asks you once to
 trust a new hook before it runs it. Approve it when Codex lists it. Until
-then the pane falls back to the directory match. The hook's command stays the
-same across updates, so you approve it once. A plain reinstall keeps the
+then the pane falls back to the directory match. The hook runs through the
+`node` on your PATH, like the status line, so its command stays the same
+across updates and Node upgrades and you approve it once. (Only when no shell
+finds a bare `node` does install write the full path of the Node running it,
+and that path changes when Node is upgraded.) A plain reinstall keeps the
 hook. `--no-pane` takes it out, and so does `uninstall --harness codex`,
 which leaves every other hook in the file as it was.
 

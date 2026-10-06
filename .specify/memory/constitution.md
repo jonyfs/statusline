@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.6.0 (II, III and IV extended on 2026-10-06: MINOR, the bar in a pane under Codex.
+- Version: 7.6.1 (IX clarified on 2026-10-06: PATCH. The bare `node` exception the status line
+  command has now also covers Codex's SessionStart hook, so IV's rule that the hook keep the same
+  command text across updates holds through a Node upgrade. A version-pinned `process.execPath`
+  would make the hook fail after the upgrade and change the text Codex trusted. Templates: no
+  change needed. See specs/035-codex-pane/.)
+- Previously, version 7.6.0 (II, III and IV extended on 2026-10-06: MINOR, the bar in a pane under Codex.
   III names Codex's session rollout as a data source: the pane reads only what the rollout
   records, and a usage window maps to the 5-hour or 7-day chip only by its length, so the free
   plan's 30-day window has no chip. IV adds the opt-in `--pane`, which appends one SessionStart
@@ -543,7 +548,10 @@ cloned by whoever runs Claude Code, and Claude Code runs on all three.
   `process.execPath` rather than a bare `node`, which may not be on the PATH of the shell
   Claude Code spawns, except on Windows when that path contains whitespace, where a bare
   `node` that the installing shell can run is used instead. The status line's bare `node`
-  remains the documented exception it was.
+  remains the documented exception it was, and Codex's SessionStart hook (`codex-hook`, IV)
+  shares it: Codex trusts that hook by its command text, which IV requires to stay the same
+  across updates, and a version-pinned `process.execPath` would break the hook and change that
+  text on the next Node upgrade. Both fall back to `process.execPath` when no bare `node` runs.
 - **Shell command strings**: values derived from the payload or the environment MUST NOT be
   interpolated into a shell command string. Working directory travels as the `cwd` option;
   command strings stay constant. A directory named with shell metacharacters would otherwise
@@ -746,4 +754,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.6.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
+**Version**: 7.6.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06

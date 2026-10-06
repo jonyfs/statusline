@@ -44,6 +44,9 @@ const MAX_INCREMENT_BYTES = 32 * 1024 * 1024;
 const FIVE_HOUR_MINUTES = 300;
 const SEVEN_DAY_MINUTES = 10080;
 
+/** The limit the 5h and 7d chips show. Older rollouts write no limit_id at all. */
+const MAIN_LIMIT_ID = "codex";
+
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const text = (v) => (typeof v === "string" && v.length > 0 ? v : null);
 const count = (v) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
@@ -177,7 +180,13 @@ export function foldRecord(state, record) {
           total: isObject(p.info.total_token_usage) ? p.info.total_token_usage : null,
         };
       }
-      if (isObject(p.rate_limits)) state.limits = p.rate_limits;
+      // Codex keeps more than one limit (`limit_id`, with an
+      // x-codex-active-limit header behind it). The 5h and 7d chips are the
+      // main "codex" one's; another bucket's figures under those labels
+      // would name one limit's usage as another's (Principle III).
+      if (isObject(p.rate_limits) && (p.rate_limits.limit_id === undefined || p.rate_limits.limit_id === null || p.rate_limits.limit_id === MAIN_LIMIT_ID)) {
+        state.limits = p.rate_limits;
+      }
       break;
     default:
       break;
@@ -243,8 +252,10 @@ export function readRollout(
     }
     const buf = readRange(fd, start, size - start);
     state.bytesRead += buf.length;
-    // A tail that does not start the file starts mid-line.
-    const consumed = foldBuffer(state, buf, { skipFirst: start > 0 });
+    // A tail that does not start the file starts mid-line, unless the byte
+    // before it ends a line: then its first line is whole and is a record.
+    const midLine = start > 0 && readRange(fd, start - 1, 1)[0] !== 0x0a;
+    const consumed = foldBuffer(state, buf, { skipFirst: midLine });
     state.offset = start + consumed;
     if (previous?.meta && !state.meta && previous.file === file) state.meta = previous.meta;
     return state;

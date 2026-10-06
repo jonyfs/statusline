@@ -50,7 +50,7 @@ and Copilot output unchanged.
 | IV. Install | `--pane` is opt-in, appends after existing hooks, backs the file up, and uninstall removes only this plugin's hook. IV is amended (7.6.0). |
 | VI. English | Code, output and docs in English. |
 | VIII. Generated docs | `codex-pane.svg` is rendered from a rollout fixture through the adapter by `npm run previews`. |
-| IX. Three platforms | Paths through `node:path` and `node:os`; tmux and Codex started from argument vectors; tmux found on the PATH without a shell; Windows degrades with a message. |
+| IX. Three platforms | Paths through `node:path` and `node:os`; tmux and Codex started from argument vectors; tmux found on the PATH without a shell; Windows degrades with a message. The hook command takes the status line's bare `node` exception, so a Node upgrade keeps it working and unchanged (7.6.1). |
 | XII. Declared track | `track: full`. |
 
 ## Design decisions
@@ -73,7 +73,11 @@ and Copilot output unchanged.
    the id has other characters), tmp file then rename. Resolution order: `--rollout`,
    `--session`, the pointer whose `tmux_pane` is Codex's pane, the newest pointer for the
    directory, the newest rollout under `$CODEX_HOME/sessions` whose `session_meta.cwd` matches
-   (14 day directories, 40 files at most). `--since` drops anything older than the pane.
+   (14 day directories, 40 files at most). `--since` drops anything older than the pane. Among
+   the scan's matches it prefers one whose `session_meta.timestamp` is at or after `--since`
+   (5 s of slack), because another live session in the directory is also written to after the
+   pane started. The pane keeps a scanned session until a pointer names another or the scan
+   finds one that started later (`nextPaneSession`).
 6. **Pane** (`src/codexPane.js`). One process for the pane's life, so Node starts once. A 1 s
    tick stats the rollout, checks `--pid`, and looks the session up again every 5 s;
    `fs.watch` is the fast path. A frame is cursor home, each line followed by erase to end of
@@ -88,7 +92,9 @@ and Copilot output unchanged.
    `{hooks: [{type: "command", command, timeout: 10}]}` to `SessionStart`, write back with
    two-space JSON (the form Codex and the other tools here write; the owner's file round-trips
    byte for byte). An existing hook of ours with another path is updated in place. The command
-   is `"<node>" "<cli>" codex-hook`, stable across `git pull`.
+   is `node "<cli>" codex-hook` when the installing shell resolves a bare `node` (the status
+   line's interpreter, Principle IX), and `"<execPath>" "<cli>" codex-hook` only when it does
+   not. It stays the same across `git pull` and Node upgrades, so Codex's trust holds.
 
 ## Project Structure
 

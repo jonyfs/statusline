@@ -193,6 +193,57 @@ await test("a second read with the state reads only what was appended, and waits
   assert.equal(rolloutPayload(second, { now: NOW }).model.id, "gpt-5.5", "what was folded before is kept");
 });
 
+await test("a tail that starts exactly on a line boundary keeps that first line", () => {
+  // A tail read starts from an empty state, so a whole first line dropped as
+  // if it were half of one loses its record: here the turn's model, and a
+  // task_complete or token_count the same way.
+  const dir = scratch();
+  const file = path.join(dir, "rollout.jsonl");
+  const body = readFileSync(fixture("plus"), "utf8");
+  const turn = JSON.stringify({ timestamp: "2026-10-06T11:00:00Z", type: "turn_context", payload: { model: "gpt-tail", effort: "high", cwd: "/w" } });
+  const started = JSON.stringify({ timestamp: "2026-10-06T11:00:01Z", type: "event_msg", payload: { type: "task_started", model_context_window: 1000 } });
+  const tail = `${turn}\n${started}\n`;
+  writeFileSync(file, body + tail);
+  const state = readRollout(file, null, { tailBytes: Buffer.byteLength(tail) });
+  assert.ok(state.size > Buffer.byteLength(tail), "the read is a tail, not the whole file");
+  assert.equal(rolloutPayload(state, { now: NOW }).model?.id, "gpt-tail", "the line at the tail's first byte is folded");
+  assert.equal(rolloutActivity(state).working, true);
+  // A tail that starts mid-line still drops the partial line.
+  const mid = readRollout(file, null, { tailBytes: Buffer.byteLength(tail) - 5 });
+  assert.equal(rolloutPayload(mid, { now: NOW }).model, undefined);
+  assert.equal(mid.running, true);
+  assert.equal(mid.offset, mid.size);
+});
+
+await test("a rate-limit snapshot for another Codex limit does not replace the main windows", () => {
+  const dir = scratch();
+  const file = path.join(dir, "rollout.jsonl");
+  copyFileSync(fixture("plus"), file);
+  const other = {
+    timestamp: "2026-06-25T03:00:00Z",
+    type: "event_msg",
+    payload: {
+      type: "token_count",
+      info: null,
+      rate_limits: {
+        limit_id: "codex_other",
+        limit_name: "a model-specific limit",
+        primary: { used_percent: 77, window_minutes: 300, resets_at: 1782599999 },
+        secondary: { used_percent: 66, window_minutes: 10080, resets_at: 1783199999 },
+      },
+    },
+  };
+  appendFileSync(file, JSON.stringify(other) + "\n");
+  const p = payloadOf(file);
+  assert.deepEqual(p.rate_limits.five_hour, { used_percentage: 11, resets_at: 1782592693 });
+  assert.equal(p.rate_limits.seven_day.used_percentage, 2);
+  // A snapshot with no limit_id, as older CLIs write, is still the main one.
+  const plain = structuredClone(other);
+  delete plain.payload.rate_limits.limit_id;
+  appendFileSync(file, JSON.stringify(plain) + "\n");
+  assert.equal(payloadOf(file).rate_limits.five_hour.used_percentage, 77);
+});
+
 await test("a rollout that shrank is read again from scratch", () => {
   const dir = scratch();
   const file = path.join(dir, "rollout.jsonl");

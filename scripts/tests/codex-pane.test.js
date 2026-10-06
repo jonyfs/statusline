@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, copyFileSync, utimesSync, chmodSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, readFileSync, readdirSync, existsSync, copyFileSync, utimesSync, chmodSync } from "node:fs";
+import { EventEmitter } from "node:events";
 import { spawnSync, spawn } from "node:child_process";
 import path from "node:path";
 import os from "node:os";
@@ -15,10 +16,10 @@ import {
   newestRolloutFor,
   resolveCodexSession,
 } from "../../src/codexSession.js";
-import { paneFrame, parsePaneArgs, PANE_RESOLVE_EVERY_MS } from "../../src/codexPane.js";
+import { paneFrame, parsePaneArgs, nextPaneSession, runCodexPane, PANE_RESOLVE_EVERY_MS, PANE_TICK_MS } from "../../src/codexPane.js";
 import { planCodexLaunch, findOnPath, TMUX_INSTALL_HINT } from "../../src/codexLaunch.js";
 import { addCodexHook, removeCodexHook, hasCodexHook, isOurHookCommand } from "../../src/codexHooks.js";
-import { installHarness, uninstallHarness, harnessStatus } from "../../src/install.js";
+import { installHarness, uninstallHarness, harnessStatus, buildCodexHookCommand } from "../../src/install.js";
 import { harnessLine } from "../../src/doctor.js";
 
 // specs/035-codex-pane: the bar in a tmux pane under Codex CLI.
@@ -117,6 +118,57 @@ await test("without a pointer, the newest rollout whose cwd matches is the sessi
   assert.match(found, /rollout-b-bbb\.jsonl$/);
   assert.equal(newestRolloutFor("/nowhere", { codexHome }), null);
   assert.equal(newestRolloutFor(PROJECT, { codexHome, since: t - 20_000 }), null, "older than the pane is not this session");
+});
+
+/** A rollout whose session_meta says when it started, at the given mtime. */
+function startedRollout(codexHome, id, startedAt, mtime, cwd = PROJECT) {
+  const dir = path.join(codexHome, "sessions", "2026", "10", "06");
+  mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `rollout-2026-10-06T00-00-00-${id}.jsonl`);
+  const iso = new Date(startedAt).toISOString();
+  const meta = { timestamp: iso, type: "session_meta", payload: { id, timestamp: iso, cwd, cli_version: "0.160.1" } };
+  const turn = { timestamp: iso, type: "turn_context", payload: { model: `gpt-${id}`, effort: "low", cwd } };
+  writeFileSync(file, JSON.stringify(meta) + "\n" + JSON.stringify(turn) + "\n");
+  utimesSync(file, mtime / 1000, mtime / 1000);
+  return file;
+}
+
+await test("two live sessions in one directory: the scan takes the one that started after the pane, whichever was written last", async () => {
+  const home = makeHome();
+  await withHome(home, () => {
+    const codexHome = scratch("codex");
+    const since = Date.parse("2026-10-06T09:00:00Z");
+    const t = Date.now();
+    // aaaa started before the pane and is still being written; bbbb is the pane's.
+    const older = startedRollout(codexHome, "aaaa", Date.parse("2026-10-06T08:00:00Z"), t - 1000);
+    const mine = startedRollout(codexHome, "bbbb", Date.parse("2026-10-06T10:00:00Z"), t - 5000);
+    const env = { CODEX_HOME: codexHome };
+    assert.equal(resolveCodexSession({ cwd: PROJECT, since, env })?.rollout, mine, "aaaa has the newer mtime and is still not this pane's");
+    utimesSync(mine, (t + 1000) / 1000, (t + 1000) / 1000);
+    assert.equal(resolveCodexSession({ cwd: PROJECT, since, env })?.rollout, mine);
+    utimesSync(older, (t + 2000) / 1000, (t + 2000) / 1000);
+    assert.equal(resolveCodexSession({ cwd: PROJECT, since, env })?.rollout, mine, "no switching back when aaaa writes again");
+    // With nothing started after the pane, the newest written one stands in.
+    const only = scratch("codex");
+    const lone = startedRollout(only, "cccc", Date.parse("2026-10-06T08:00:00Z"), t);
+    assert.equal(newestRolloutFor(PROJECT, { codexHome: only, since }), lone);
+  });
+});
+
+await test("the pane keeps a session it found by scanning unless the scan finds one that started later", () => {
+  const codexHome = scratch("codex");
+  const t = Date.now();
+  const a = startedRollout(codexHome, "aaaa", Date.parse("2026-10-06T10:00:00Z"), t);
+  const b = startedRollout(codexHome, "bbbb", Date.parse("2026-10-06T08:00:00Z"), t);
+  const c = startedRollout(codexHome, "cccc", Date.parse("2026-10-06T11:00:00Z"), t);
+  const scan = (rollout) => ({ rollout, source: "scan", sessionId: null });
+  assert.equal(nextPaneSession(scan(a), scan(b)).rollout, a, "a session that started earlier is someone else's");
+  assert.equal(nextPaneSession(scan(a), scan(a)).rollout, a);
+  assert.equal(nextPaneSession(scan(a), scan(c)).rollout, c, "Codex's /new starts a later session in the same pane");
+  assert.equal(nextPaneSession(scan(a), { rollout: b, source: "pointer", sessionId: "bbbb" }).rollout, b, "a pointer is exact and always wins");
+  assert.equal(nextPaneSession(scan(path.join(codexHome, "gone.jsonl")), scan(b)).rollout, b, "a rollout that is gone is not kept");
+  assert.equal(nextPaneSession(null, scan(b)).rollout, b);
+  assert.equal(nextPaneSession(scan(a), null).rollout, a, "nothing found keeps what is on screen");
 });
 
 await test("resolution prefers the flag, then the pointer for Codex's tmux pane, then the cwd", async () => {
@@ -237,6 +289,166 @@ await test("Ctrl-C leaves the pane cleanly: cursor back, no stack trace, exit 0"
   assert.match(out, /\x1b\[\?25h/);
 });
 
+// Item 3: the running loop ----------------------------------------------------------
+//
+// FR-008 and SC-001: an append repaints (working turns idle), a resize
+// refits, and a new session is picked up. Each case waits on output with a
+// deadline, never a fixed sleep. Skipped on Windows, where the pane is not
+// offered. The re-resolve case waits up to PANE_RESOLVE_EVERY_MS, so it runs
+// alongside the others rather than after them.
+
+const LOOP = process.platform !== "win32";
+const until = async (check, ms, every = 25) => {
+  const t0 = Date.now();
+  for (;;) {
+    const v = await check();
+    if (v) return Date.now() - t0;
+    if (Date.now() - t0 > ms) return null;
+    await new Promise((r) => setTimeout(r, every));
+  }
+};
+
+/** A spawned pane with piped stdout, read as it goes. */
+function startPane(args, env) {
+  const child = spawn(process.execPath, [CLI, "codex-pane", ...args], { env, stdio: ["ignore", "pipe", "pipe"] });
+  const pane = { child, out: "", err: "" };
+  child.stdout.on("data", (d) => (pane.out += d));
+  child.stderr.on("data", (d) => (pane.err += d));
+  /** Ms until `re` matches output written after byte `from`, or null past `ms`. */
+  pane.waitFor = (re, from, ms) => until(() => re.test(stripAnsi(pane.out.slice(from))), ms);
+  pane.stop = () =>
+    new Promise((resolve) => {
+      if (child.exitCode !== null || child.signalCode !== null) return resolve();
+      child.once("exit", resolve);
+      child.kill("SIGTERM");
+    });
+  return pane;
+}
+
+/** The plus fixture cut just after its last task_started: a turn is running. */
+function workingRollout() {
+  const file = path.join(scratch("loop"), "rollout.jsonl");
+  const lines = readFileSync(fixture("plus"), "utf8").trim().split("\n");
+  const lastStart = lines.map((l) => JSON.parse(l)).findLastIndex((r) => r.payload?.type === "task_started");
+  writeFileSync(file, lines.slice(0, lastStart + 3).join("\n") + "\n");
+  return file;
+}
+const TASK_COMPLETE = JSON.stringify({ timestamp: "2026-10-06T11:00:00Z", type: "event_msg", payload: { type: "task_complete" } }) + "\n";
+
+// Started first and awaited last: Codex's /new writes a new pointer from the
+// same tmux pane, and the pane must move to it on its next lookup.
+const resolveCase = !LOOP
+  ? null
+  : (async () => {
+      const home = makeHome();
+      const dir = scratch("resolve");
+      const a = path.join(dir, "rollout-a.jsonl");
+      const b = path.join(dir, "rollout-b.jsonl");
+      const body = readFileSync(fixture("plus"), "utf8");
+      writeFileSync(a, body);
+      writeFileSync(b, body.split("gpt-5.5").join("gpt-next"));
+      const ptrDir = path.join(home.dir, ".claude", "statusline", "codex");
+      mkdirSync(ptrDir, { recursive: true });
+      const pointer = (id, rollout, at) =>
+        writeFileSync(path.join(ptrDir, `${id}.json`), JSON.stringify({ session_id: id, rollout, cwd: dir, tmux_pane: "%42", event: "SessionStart", written_at: at }) + "\n");
+      pointer("sess-a", a, Date.now() - 1000);
+      const pane = startPane(["--codex-pane", "%42", "--cwd", dir], { ...paneEnv(home), COLUMNS: "160", LINES: "3" });
+      try {
+        const first = await pane.waitFor(/gpt-5\.5/, 0, 8000);
+        if (first === null) return { error: `the pane never drew session A: ${pane.err || stripAnsi(pane.out)}` };
+        const from = pane.out.length;
+        pointer("sess-b", b, Date.now());
+        const took = await pane.waitFor(/gpt-next/, from, PANE_RESOLVE_EVERY_MS + PANE_TICK_MS + 2000);
+        return { took };
+      } finally {
+        await pane.stop();
+      }
+    })().catch((err) => ({ error: err.message }));
+
+await test("the running pane repaints when the rollout grows: working turns idle when the turn ends", async () => {
+  if (!LOOP) return;
+  const home = makeHome();
+  const file = workingRollout();
+  const pane = startPane(["--rollout", file, "--cwd", os.tmpdir()], { ...paneEnv(home), COLUMNS: "160", LINES: "3" });
+  try {
+    assert.notEqual(await pane.waitFor(/working/, 0, 8000), null, pane.err || stripAnsi(pane.out));
+    const from = pane.out.length;
+    appendFileSync(file, TASK_COMPLETE);
+    const took = await pane.waitFor(/idle/, from, 2500);
+    assert.notEqual(took, null, `no idle frame within 2.5 s: ${stripAnsi(pane.out.slice(from))}`);
+  } finally {
+    await pane.stop();
+  }
+});
+
+await test("without fs.watch the tick alone repaints, and a resize refits the bar at once", async () => {
+  if (!LOOP) return;
+  // In process, with fs.watch taken away: the tick is what the pane relies on
+  // where a watch misses events. A sleeping child stands in for Codex; the
+  // pane ends when it does.
+  const file = workingRollout();
+  const codex = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" });
+  const out = new EventEmitter();
+  out.columns = 50;
+  out.rows = 3;
+  out.text = "";
+  out.write = (s) => {
+    out.text += s;
+    return true;
+  };
+  const noWatch = () => ({ close() {}, on() {} });
+  const lastFrame = () => stripAnsi(out.text.slice(out.text.lastIndexOf("\x1b[H")));
+  const running = runCodexPane(["--rollout", file, "--cwd", os.tmpdir(), "--pid", String(codex.pid)], { out, env: { ...process.env, COLUMNS: "", LINES: "" }, watch: noWatch });
+  try {
+    assert.notEqual(await until(() => /working/.test(lastFrame()), 5000), null, lastFrame());
+    assert.doesNotMatch(lastFrame(), /medium/, "50 columns shed the effort chip");
+    appendFileSync(file, TASK_COMPLETE);
+    const took = await until(() => /idle/.test(lastFrame()), PANE_TICK_MS + 1500);
+    assert.notEqual(took, null, `the tick did not repaint: ${lastFrame()}`);
+    // A resize repaints now, not at the next periodic redraw.
+    out.columns = 160;
+    const before = out.text.length;
+    out.emit("resize");
+    assert.ok(out.text.length > before, "the resize wrote a frame synchronously");
+    assert.match(lastFrame(), /medium/, "the bar refits to 160 columns");
+  } finally {
+    codex.kill("SIGKILL");
+    assert.equal(await running, 0);
+  }
+});
+
+await test("in a real tmux pane, a resize redraws the bar at the new width", async () => {
+  if (!LOOP) return;
+  const tmux = findOnPath("tmux", process.env, process.platform);
+  if (!tmux) return; // tmux is optional: CI without it covers resize in process above
+  const home = makeHome();
+  const sock = `statusline-035-${process.pid}-${Date.now()}`;
+  const run = (...args) => spawnSync(tmux, ["-L", sock, "-f", "/dev/null", ...args], { encoding: "utf8", env: { ...paneEnv(home), TMUX: "", TMUX_PANE: "" } });
+  const capture = () => run("capture-pane", "-p", "-t", "loop").stdout ?? "";
+  try {
+    const started = run("new-session", "-d", "-s", "loop", "-x", "50", "-y", "3", "--", process.execPath, CLI, "codex-pane", "--rollout", fixture("plus"), "--cwd", os.tmpdir());
+    assert.equal(started.status, 0, started.stderr);
+    assert.notEqual(await until(() => /gpt-5\.5/.test(capture()), 8000, 50), null, capture());
+    assert.doesNotMatch(capture(), /medium/, "50 columns shed the effort chip");
+    // Right after the first frame, so the periodic redraw is seconds away
+    // and only the resize handler can explain a new frame in time.
+    const resized = run("resize-window", "-t", "loop", "-x", "160", "-y", "3");
+    assert.equal(resized.status, 0, resized.stderr);
+    const took = await until(() => /medium/.test(capture()), 2500, 50);
+    assert.notEqual(took, null, `no redraw at 160 columns: ${capture()}`);
+    assert.ok(capture().split("\n").every((l) => l.length <= 160));
+  } finally {
+    run("kill-server");
+  }
+});
+
+await test("a new session from Codex's tmux pane is picked up within one lookup", async () => {
+  if (!LOOP) return;
+  const r = await resolveCase;
+  assert.equal(r.error, undefined, r.error);
+  assert.notEqual(r.took, null, `the pane did not switch to session B within ${PANE_RESOLVE_EVERY_MS + PANE_TICK_MS + 2000} ms`);
+});
+
 // Item 4: the wrapper ---------------------------------------------------------------
 
 const BASE = { cwd: "/w/p q", cliPath: "/c/cli.js", nodePath: "/n/node", pid: 4242, now: 1000, tmuxPath: "/usr/bin/tmux", platform: "darwin" };
@@ -329,6 +541,19 @@ await test("the hook goes after every existing SessionStart group, so Codex's tr
   assert.equal(removed.text, before, "the rest comes back byte for byte");
   assert.ok(isOurHookCommand('node "/anywhere/statusline-plugin/bin/cli.js" codex-hook'));
   assert.ok(!isOurHookCommand("other codex-hook-runner"));
+});
+
+await test("the hook runs through a bare node when a shell finds one, so a Node upgrade does not break it", () => {
+  // Codex trusts a hook by its command text. A version-pinned interpreter
+  // (nvm's, Homebrew's Cellar) disappears on the next Node upgrade: the hook
+  // then fails on every session start, and the reinstall that fixes it
+  // changes the text, so Codex asks to trust it again.
+  const cmd = buildCodexHookCommand();
+  assert.match(cmd, /codex-hook$/);
+  assert.ok(isOurHookCommand(cmd));
+  if (spawnSync("node", ["--version"], { stdio: "ignore" }).status !== 0) return;
+  assert.match(cmd, /^node "/, cmd);
+  if (process.execPath !== "node") assert.ok(!cmd.includes(process.execPath), cmd);
 });
 
 await test("a hooks.json that is not JSON is refused before anything is written", () => {

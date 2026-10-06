@@ -15,9 +15,9 @@
  * identical to the one on screen is not written at all.
  */
 
-import { statSync, watch } from "node:fs";
+import { statSync, existsSync, watch } from "node:fs";
 import { readRollout, rolloutPayload, rolloutActivity } from "./codexRollout.js";
-import { resolveCodexSession } from "./codexSession.js";
+import { resolveCodexSession, rolloutStartedAt } from "./codexSession.js";
 
 /** How often the loop checks the rollout, the watched process and the size. */
 export const PANE_TICK_MS = 1000;
@@ -69,6 +69,25 @@ export function parsePaneArgs(argv = []) {
   return out;
 }
 
+/**
+ * The session the pane shows after a lookup found `found` (null for none).
+ *
+ * A pointer or the flag is exact, so it always wins. A scan is a guess by
+ * directory, and with two Codex sessions there it can name either one from
+ * one lookup to the next. So a session the scan found is kept while its
+ * rollout exists, and another scan result replaces it only when that session
+ * started later: Codex's `/new` in the same pane, never the other session
+ * going back and forth.
+ */
+export function nextPaneSession(current, found) {
+  if (!found) return current;
+  if (!current || current.source !== "scan" || found.source !== "scan") return found;
+  if (found.rollout === current.rollout || !existsSync(current.rollout)) return found;
+  const was = rolloutStartedAt(current.rollout);
+  const is = rolloutStartedAt(found.rollout);
+  return Number.isFinite(is) && (!Number.isFinite(was) || is > was) ? found : current;
+}
+
 /** Whether a process is still there. EPERM means it is, under another user. */
 export function processAlive(pid) {
   try {
@@ -95,9 +114,10 @@ function paneSize(out, env) {
 /**
  * Runs the pane until Codex, the pane or the person ends it. With `--once`
  * it prints one frame as plain lines and returns, which is what the preview
- * and the tests use.
+ * and the tests use. `watch` stands in for fs.watch, so a test can take the
+ * fast path away and check that the tick alone keeps the pane current.
  */
-export async function runCodexPane(argv, { out = process.stdout, env = process.env } = {}) {
+export async function runCodexPane(argv, { out = process.stdout, env = process.env, watch: watchFile = watch } = {}) {
   const opts = parsePaneArgs(argv);
   const cwd = opts.cwd ?? process.cwd();
   const { resolveSettings } = await import("./config.js");
@@ -118,8 +138,9 @@ export async function runCodexPane(argv, { out = process.stdout, env = process.e
     } catch {
       found = null;
     }
-    if (found && found.rollout !== session?.rollout) {
-      session = found;
+    const next = nextPaneSession(session, found);
+    if (next && next.rollout !== session?.rollout) {
+      session = next;
       state = null;
     }
   };
@@ -203,7 +224,7 @@ export async function runCodexPane(argv, { out = process.stdout, env = process.e
       watcher = null;
       watched = session.rollout;
       try {
-        watcher = watch(session.rollout, { persistent: false }, soon);
+        watcher = watchFile(session.rollout, { persistent: false }, soon);
         watcher.on("error", () => {});
       } catch {
         watcher = null;

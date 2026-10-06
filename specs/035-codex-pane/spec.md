@@ -116,7 +116,8 @@ Two Codex sessions in the same directory each get their own pane, after a one-ti
 2. **Given** the hook runs, **Then** it writes `{session_id, rollout, cwd, tmux_pane}` to
    `~/.claude/statusline/codex/<id>.json` atomically, prints nothing, and sweeps stale pointers.
 3. **Given** a pointer from Codex's tmux pane, **Then** the pane uses it. Without one, the
-   newest pointer for the directory; without that, the newest rollout whose cwd matches.
+   newest pointer for the directory; without that, the newest rollout whose cwd matches,
+   preferring one whose session started after the pane did.
 
 ### User Story 4 - Install, uninstall and doctor (Priority: P2)
 
@@ -143,6 +144,15 @@ Two Codex sessions in the same directory each get their own pane, after a one-ti
   handed to the pane with `-e`.
 - Codex's `/new` starts another session in the same pane: the pane looks the session up again
   every 5 seconds.
+- Two Codex sessions are live in one directory and the hook is not running: the scan prefers
+  the rollout whose session started after the pane (with 5 s of slack), not the one written
+  last. The pane keeps a session it found by scanning until a pointer names another or the scan
+  finds one that started later, so it does not switch back and forth as each session writes.
+- A tail read that begins exactly on a line boundary keeps its first line. Only a tail that
+  begins mid-line drops it.
+- A `token_count` whose `rate_limits.limit_id` names a limit other than `codex` leaves the
+  5-hour and 7-day chips alone. A snapshot without `limit_id`, as older CLIs write, still sets
+  them.
 
 ## Requirements *(mandatory)*
 
@@ -171,7 +181,9 @@ Two Codex sessions in the same directory each get their own pane, after a one-ti
 - **FR-010**: `install --harness codex --pane` MUST append one SessionStart group after the
   existing ones, back the file up, and say Codex asks once to trust it. `--pane` with another
   harness MUST be refused.
-- **FR-011**: Uninstall MUST remove only hooks whose command ends in `cli.js codex-hook`.
+- **FR-011**: Uninstall MUST remove only hooks whose command ends in `cli.js codex-hook`. The
+  hook MUST run through a bare `node` whenever the installing shell resolves one, as the status
+  line command does, so a Node upgrade neither breaks it nor changes the text Codex trusted.
 - **FR-012**: `doctor` MUST report tmux, the hook and the latest pointer.
 - **FR-013**: The README MUST show a preview generated from a rollout fixture through the
   adapter and the real renderer.
@@ -183,7 +195,10 @@ Two Codex sessions in the same directory each get their own pane, after a one-ti
   the turn ends, keeps fitting after a resize, and closes when the stand-in exits.
 - **SC-002**: A 12 MB rollout is read in at most 3 MB the first time and only its appended
   bytes after that.
-- **SC-003**: `npm test` passes, with every case above covered.
+- **SC-003**: `npm test` passes, with every case above covered. That includes the running loop:
+  an append turns working into idle, a resize refits the bar (in process, and in a throwaway
+  `tmux -L` server when tmux is installed), and a new pointer from Codex's tmux pane is picked
+  up within one lookup.
 - **SC-004**: The other previews are byte-identical after `npm run previews`.
 
 ## Out of scope
