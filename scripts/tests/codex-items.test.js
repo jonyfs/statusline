@@ -190,6 +190,18 @@ await test("the theme is untouched without a flag", () => {
   assert.deepEqual(CODEX_THEMES, ["catppuccin-mocha", "catppuccin-macchiato", "catppuccin-frappe", "catppuccin-latte"]);
 });
 
+await test("a plain reinstall reports the theme an earlier --theme set as kept, not as Codex's own", () => {
+  const home = codexHome('[tui]\ntheme = "dracula"\n');
+  installHarness("codex", { env: env(home), theme: "catppuccin-latte" });
+  const again = installHarness("codex", { env: env(home) });
+  assert.equal(again.theme, "kept");
+  assert.equal(again.themeName, "catppuccin-latte");
+  assert.ok(read(home).includes('theme = "catppuccin-latte"'), "the theme stays");
+  // A theme the person chose themselves is just left as it is.
+  const mine = codexHome('[tui]\ntheme = "dracula"\n');
+  assert.equal(installHarness("codex", { env: env(mine) }).theme, "unchanged");
+});
+
 await test("--theme sets a Catppuccin theme and --no-theme puts back the one it replaced", () => {
   const before = '[tui]\ntheme = "dracula" # picked in /theme\n';
   const home = codexHome(before);

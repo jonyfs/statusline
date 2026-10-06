@@ -768,6 +768,9 @@ function installCodex(env, theme) {
     themeResult = restored === text ? "unchanged" : "restored";
     text = restored;
   }
+  // A plain reinstall (what `update` runs) leaves a theme an earlier --theme
+  // wrote where it is; the summary says so rather than calling it Codex's own.
+  if (themeResult === "unchanged" && codexOurTheme(text, entry)) themeResult = "kept";
 
   record.files[file] = entry;
   const backupPath = text !== before && existsSync(file) ? backupFile(file, "codex-config") : null;

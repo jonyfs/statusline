@@ -167,7 +167,8 @@ async function main() {
           const theme = {
             set: `${r.themeName} (--no-theme or uninstall puts yours back)`,
             restored: "back to what it was before --theme",
-            unchanged: "Codex's own, unchanged (--theme catppuccin-mocha sets one)",
+            kept: `${r.themeName}, set earlier by --theme (--no-theme or uninstall puts yours back)`,
+            unchanged: "left as it is (--theme catppuccin-mocha sets one)",
           }[r.theme];
           console.log(`  Items:         ${items}`);
           console.log(`  Colors:        ${colors}`);
