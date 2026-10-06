@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, readFileSync, readdirSync, existsSync, copyFileSync, utimesSync, chmodSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, appendFileSync, readFileSync, readdirSync, existsSync, copyFileSync, utimesSync, chmodSync, rmSync } from "node:fs";
 import { EventEmitter } from "node:events";
 import { spawnSync, spawn } from "node:child_process";
 import path from "node:path";
@@ -438,7 +438,15 @@ await test("in a real tmux pane, a resize redraws the bar at the new width", asy
     assert.notEqual(took, null, `no redraw at 160 columns: ${capture()}`);
     assert.ok(capture().split("\n").every((l) => l.length <= 160));
   } finally {
+    // tmux does not unlink its socket on kill-server, so every run would
+    // leave one behind in the tmux temp directory.
+    const socketPath = run("display-message", "-p", "#{socket_path}").stdout?.trim();
     run("kill-server");
+    try {
+      if (socketPath) rmSync(socketPath, { force: true });
+    } catch {
+      // already gone
+    }
   }
 });
 
