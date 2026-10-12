@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current feature's
-spec at specs/043-emoji-tier/spec.md
+spec at specs/044-chip-copy/spec.md
 <!-- SPECKIT END -->
 
 ## Skill routing
