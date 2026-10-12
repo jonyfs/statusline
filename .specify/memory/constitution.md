@@ -2,7 +2,13 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.10.0 (I extended on 2026-10-12: MINOR, text colour chosen by contrast. The Segment
+- Version: 8.0.0 (I and X amended on 2026-10-12: MAJOR, the colour budget. Items K2 and K8 of
+  the 2026-10 design review. Principle I's red → peach → yellow → green → sapphire → lavender
+  progression is replaced by a semantic budget in which each colour has one role, which
+  redefines the principle. Principle X's change highlighting also accepts bold plus underline.
+  K3 to K7 and K9 to K11 stay for later features. Templates: no change needed. Code follows in
+  feature 041.)
+- Previously, version 7.10.0 (I extended on 2026-10-12: MINOR, text colour chosen by contrast. The Segment
   format rule no longer fixes `fg:crust`: the text colour on a chip is the highest-contrast
   candidate among `crust`, `text`, `#11111b` and `#ffffff`, at least 4.5:1, with the background
   darkened in OKLCH when none reaches it. Item K1 of the 2026-10 design review. The palette
@@ -227,10 +233,26 @@ reference — not a vague "Starship-like" aspiration:
 - **Palette**: Catppuccin Mocha hex values MUST be used as color tokens (not raw hex inline):
   `red #f38ba8`, `peach #fab387`, `yellow #f9e2af`, `green #a6e3a1`, `sapphire #74c7ec`,
   `lavender #b4befe`, `crust #11111b` (text-on-color), `mantle #181825` (background accents).
-  Segment order in this project reuses the same color progression the local config uses
-  for its module chain (red → peach → yellow → green → sapphire → lavender), assigning one
-  color band per statusline line/segment group so the three lines read as one continuous
-  Powerline chain, not three unrelated bars.
+  The other Catppuccin tokens (`flamingo`, `mauve`, `pink`, `teal`, `blue`, `surface0` to
+  `surface2`, `text`) are defined in every palette too. A colour MUST mean one thing wherever
+  it appears: the semantic colour budget below replaces the earlier red → peach → yellow →
+  green → sapphire → lavender progression, which gave one colour several roles.
+  "Background" is a chip's fill; "icon" is the colour of the glyph alone on a neutral chip.
+  - `red`: background of the critical band and of merge conflicts.
+  - `peach`: background of the attention band, allow-all, and "your turn".
+  - `yellow`: icon only, for modified and CI running.
+  - `green`: icon only, for passed, healthy and added.
+  - `mauve`: pull request merged.
+  - `lavender`: identity, the branch and the model.
+  - `blue`: pull request open.
+  - `teal`: money and savings, spend, credits and rtk.
+  - `sapphire`: cold and late, a cold cache, behind, todo.
+  - `flamingo`: skills, all of them alike.
+  - `surface0`: the neutral fill of every healthy gauge, the directory and repository chips and
+    the working-tree state.
+  Subagent rows draw the model family in `mauve` for Opus, `lavender` for Sonnet and `teal` for
+  Haiku. A change to this table is an amendment to this principle, not an edit in a render
+  function.
 - **Segment format**: each block MUST follow the local config's pattern —
   `[ $content ](fg:<text_color> bg:<segment_color>)` — text on a solid color background,
   padded with a leading and trailing space inside the block. `<text_color>` MUST be chosen per
@@ -633,8 +655,10 @@ accessibility hazard where it works.
 
 - **Change highlighting**: when a tracked value differs from the previous render, that segment
   MUST mark itself as recently changed, and MUST revert once the change is no longer recent
-  (30 seconds). The mark MAY be an icon frame sequence advancing one frame per render, or a
-  colour shift on the segment. Colour is the stronger signal of the two: it is preattentive,
+  (30 seconds). The mark MAY be an icon frame sequence advancing one frame per render, a
+  colour shift on the segment, or bold plus underline on its text, which carries the change
+  where a colour shift would collide with the colour budget in Principle I or vanish under
+  `NO_COLOR`. Colour is the stronger signal of the two: it is preattentive,
   where a swapped glyph has to be recognised, and it does not require the reader to have seen
   the previous frame.
 - **Colour is not the only carrier where the consequence is irreversible**: a segment whose
@@ -807,4 +831,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.10.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
