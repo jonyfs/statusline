@@ -28,6 +28,10 @@ WANTED = {
     "E0B2": 0xE0B2,  # powerline left-pointing separator, for a right-aligned group
     "E0B1": 0xE0B1,  # powerline thin right-pointing, the no-Nerd-Font fallback
     "E0B3": 0xE0B3,  # powerline thin left-pointing, its mirror
+    "E0B4": 0xE0B4,  # powerline round right cap, the end of a pill (specs/045)
+    "E0B5": 0xE0B5,  # powerline round thin, between chips on one background
+    "E0B6": 0xE0B6,  # powerline round left cap, the start of a pill
+    "E0BC": 0xE0BC,  # powerline slant, the joint of the slant style
     "F418": 0xF418,  # nf-oct-git_branch
     "F407": 0xF407,  # nf-oct-git_pull_request
     "F455": 0xF455,  # nf-oct-calendar (blank grid, no baked-in date)

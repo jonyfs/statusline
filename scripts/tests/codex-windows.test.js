@@ -96,7 +96,7 @@ await test("a window at 100% says full", () => {
 
 await test("a narrow pane drops the reset before the chip", () => {
   const p = payloadWith({ primary: window(43200, 8, 20 * DAY), secondary: null });
-  const out = draw({ ...p, context_window: { used_percentage: 20 } }, 40);
+  const out = draw({ ...p, context_window: { used_percentage: 20 } }, 44);
   assert.match(out, /30d\s+8%/);
   assert.doesNotMatch(out, /26\/10/);
 });

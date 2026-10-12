@@ -131,9 +131,11 @@ await test("the first segment of each line is padded to a common width", () => {
   // Design range sits above the BMP and arrives as a surrogate pair. An
   // index into the string would have the lines disagreeing by one while the
   // terminal drew them flush.
-  const SEPARATOR = "\u{E0B0}";
+  // Either separator: two chips on one background are joined by the thin
+  // arrow, and the directory and repository are such a pair (specs/045).
+  const SEPARATOR = /[\u{E0B0}\u{E0B1}]/u;
   const firstBoundary = (line) => {
-    const at = line.indexOf(SEPARATOR, 1);
+    const at = line.slice(1).search(SEPARATOR) + 1;
     return at > 0 ? displayWidth(line.slice(0, at)) : -1;
   };
   const boundaries = lines.map(firstBoundary).filter((i) => i > 0);

@@ -51,7 +51,7 @@ import {
 } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
-import { displayWidth, PALETTES, colourEnabled, bgSeq } from "./theme.js";
+import { displayWidth, PALETTES, colourEnabled, bgSeq, SEPARATOR_STYLES } from "./theme.js";
 import { ROLE, LEGEND } from "./colourRoles.js";
 import { terminalFor } from "./layout.js";
 import { resolveLayout, repoConfig, terminalFlavor, resolveSettings, iconTier } from "./config.js";
@@ -586,6 +586,24 @@ export function iconStatus(env = process.env) {
   };
 }
 
+/**
+ * The separator style a render here would draw, and where it came from. An
+ * unknown name is returned as such: the bar draws the arrow and nothing else
+ * would say so.
+ */
+export function separatorStatus(env = process.env) {
+  const raw = env.CLAUDE_STATUSLINE_SEPARATOR;
+  if (!raw) return { style: "arrow", unknown: null, line: "separator: arrow (default)" };
+  if (SEPARATOR_STYLES.includes(raw)) {
+    return { style: raw, unknown: null, line: `separator: ${raw} (from CLAUDE_STATUSLINE_SEPARATOR)` };
+  }
+  return {
+    style: "arrow",
+    unknown: raw,
+    line: `separator: unknown "${raw}" (CLAUDE_STATUSLINE_SEPARATOR), using arrow`,
+  };
+}
+
 function pad(text, width) {
   const value = String(text);
   if (value.length > width - 1) return value.slice(0, width - 2) + "… ";
@@ -654,6 +672,7 @@ export function formatReport(report) {
     `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,
     ...(report.flavor ? [report.flavor.line] : []),
     ...(report.icons ? [report.icons.line] : []),
+    ...(report.separator ? [report.separator.line] : []),
     terminalLine(report.terminal),
     `history: ${report.samples} samples (a rate needs 5 spanning a minute)`,
     `rendered ${widths}`,
@@ -679,6 +698,7 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
   // its settings from there, and this line has to name what it used.
   report.flavor = flavorStatus(process.cwd());
   report.icons = iconStatus();
+  report.separator = separatorStatus();
   // A project statusLine wins over the user's, so a person in that project
   // sees another bar and this one looks broken (specs/028-cross-platform).
   report.overrides = projectOverrides(payload?.workspace?.project_dir || payload?.cwd || process.cwd());

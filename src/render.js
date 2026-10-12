@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import { realpathSync } from "node:fs";
-import { PALETTES, renderRow, displayWidth, STRONG, QUIET, MARK_OFF } from "./theme.js";
+import { PALETTES, renderRow, displayWidth, separatorStyle, STRONG, QUIET, MARK_OFF } from "./theme.js";
 import {
   getDirLabel,
   getDirUrl,
@@ -1044,7 +1044,8 @@ export function renderReadings(
   // The Powerline arrow needs a Powerline font. Choosing the emoji tier says
   // there may be none, so it takes the plain arrow unless a separator was
   // named: declared rather than assumed, as the plain separator rule asks.
-  const opts = { asciiArrows: asciiArrows || (tier === "emoji" && !process.env.CLAUDE_STATUSLINE_SEPARATOR) };
+  const opts = { asciiArrows: asciiArrows || (tier === "emoji" && !process.env.CLAUDE_STATUSLINE_SEPARATOR), width: maxWidth };
+  const roundStyle = separatorStyle(opts) === "round";
   // The rows are kept as segment lists until every line exists, because
   // aligning the first column across the bar needs all of them at once.
   // Rendering each line to text as it was built is what left that alignment
@@ -1104,6 +1105,7 @@ export function renderReadings(
         color: seg.color,
         ...(seg.icon ? { icon: seg.icon } : {}),
         ...(seg.tone ? { tone: seg.tone } : {}),
+        ...(seg.alignRight ? { alignRight: true } : {}),
         ...(seg.url ? { url: seg.url } : {}),
         // The composer page fits with the same `fitToWidth`, so a segment's
         // shorter forms travel with it or the page would drop what the
@@ -1210,7 +1212,14 @@ export function renderReadings(
         remoteUrl && !detached && git.branch
           ? `${remoteUrl}/actions?query=${encodeURIComponent(`branch:${git.branch}`)}`
           : remoteUrl;
-      l1.push({ key: "ci", color: ROLE.neutral, icon, text: ` ${mark} ${ci.workflow ?? "CI"} `, url: runs ?? undefined });
+      l1.push({
+        key: "ci",
+        color: ROLE.neutral,
+        icon,
+        text: ` ${mark} ${ci.workflow ?? "CI"} `,
+        variants: [` ${mark} `],
+        url: runs ?? undefined,
+      });
     }
     // What this session changed, which is a different question from what the
     // working tree looks like: the payload counts it, git does not. It sits
@@ -1276,7 +1285,16 @@ export function renderReadings(
   const update = shows("update") ? readings.update?.value : null;
   if (update?.text) {
     const icon = update.state === "updated" ? g.updateDone : g.updateReady;
-    l1.push({ key: "update", color: ROLE.neutral, text: ` ${icon} ${update.text} ` });
+    // At the right edge of the line, and the first chip to go. Its words are
+    // the first thing it gives up, which leaves the icon: the state is the
+    // glyph, and the sentence is for a line with room (specs/045).
+    l1.push({
+      key: "update",
+      color: ROLE.neutral,
+      alignRight: true,
+      text: ` ${icon} ${update.text} `,
+      variants: [` ${icon} `],
+    });
   }
   // The git gates running in this repository (specs/031-git-gate-rows): a
   // count here, and a row each after the bar when the window has room.
@@ -1302,7 +1320,7 @@ export function renderReadings(
     // The editor's vim mode, beside what the session is doing. Absent unless
     // vim mode is on (specs/027-bar-polish).
     const vimMode = shows("vim") ? readings.vim?.value : null;
-    if (vimMode) row.push({ key: "vim", color: ROLE.neutral, text: ` ${g.vim} ${vimMode} ` });
+    if (vimMode) row.push({ key: "vim", color: ROLE.neutral, text: ` ${g.vim} ${vimMode} `, variants: [` ${g.vim} `] });
     if (activity) {
       const mark = activity.working ? g.working : g.idle;
       // How many background jobs the session is waiting on, said whenever
@@ -1315,6 +1333,7 @@ export function renderReadings(
         color: ROLE.neutral,
         ...(activity.working ? { icon: ROLE.healthy } : {}),
         text: activity.working ? ` ${mark} working${waiting} ` : ` ${mark} idle `,
+        variants: [` ${mark} `],
       });
     }
   }
@@ -1697,6 +1716,8 @@ export function renderReadings(
     for (const seg of built) {
       const placed = attach(seg);
       if (placementFor(seg.key)?.on === false) continue;
+      // The pill style adds two caps to every chip, which the fit has to know.
+      if (roundStyle) placed.extra = 2;
       byLineNumber.get(placed.line)?.push(placed);
     }
     const out = [];

@@ -740,6 +740,26 @@ readers of this file a box; [Where the icons come from](#where-the-icons-come-fr
 maps each one to its codepoint. The screenshots throughout show the real
 thing, with the outlines baked in.
 
+## Separator styles
+
+`CLAUDE_STATUSLINE_SEPARATOR` picks how chips join: `arrow` (the default), `round` for
+pills, `slant` for the inclined edge and `thin` for a line. The pill is the one that
+changes the shape of the whole bar:
+
+![Pill separators](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/separator-round.svg)
+
+Between two chips on one background (the directory and the repository, the model and its
+effort, any healthy gauge) a solid arrow would be a shape cut out of one colour, so the bar
+draws the thin arrow there in the chip's text colour. Line 3 is read in three groups, the
+model and its effort, the usage gauges, and the money and savings, with one blank column
+between them. The update notice sits at the right edge of line 1 and is the first thing the
+line drops.
+
+The compact design is one line with the directory, the branch, the model, the context and the
+5-hour window. It is a preset in the [composer](#arranging-the-bar-yourself):
+
+![Compact](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/compact.svg)
+
 ## How the chips are worded
 
 The bar writes its own words in lowercase. Acronyms (`PR`, `CI`), units (`h`, `d`, `m`) and
@@ -1088,7 +1108,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
-| `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
+| `CLAUDE_STATUSLINE_SEPARATOR` | `arrow` (default), `round` (pills), `slant` or `thin`. Each is a Powerline glyph and needs the font the arrow needs. Two chips on one background are always joined by the thin arrow, since the solid one would be invisible there. An unknown name draws the arrow and `doctor` names it |
 | `CLAUDE_STATUSLINE_LAYOUT` | Path to an arrangement file, which beats every other place one can live. See the next-but-one section |
 | `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE=1` | Counts East Asian Ambiguous characters as two columns, which is what a terminal configured for East Asian text draws them as. Nothing reports that setting, so you say it. `tmux` calls the same thing `-u`. Without it the gauge and the `·` separator are measured one column and drawn two, and every column after them slides |
 | `NO_COLOR` | Set to anything non-empty, turns the colour off. It is a cross-tool convention rather than this project's, so setting it once covers every program that honours it. Nothing is lost: no figure on the bar is carried by colour alone, which is why the ramped ones wear a band mark. The Powerline separator goes with the colour and the thin one takes its place, since a solid arrow is a shape cut out of two backgrounds and there are none. Each chip starts with a thin bar `▏` instead, so the chips keep an edge |

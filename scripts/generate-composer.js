@@ -288,7 +288,7 @@ function composeAnsi(width, glyphMode, arrangement) {
   if (!rows.length) return { ansi: "", lines: [], resolved };
   const aligned = alignColumns(rows, width);
   const ansi = aligned
-    .map((row) => renderRow(PALETTE, row, { asciiArrows: glyphMode === "plain" }))
+    .map((row) => renderRow(PALETTE, row, { asciiArrows: glyphMode === "plain", width }))
     .join("\\n");
   return { ansi, lines, resolved, rows: aligned };
 }

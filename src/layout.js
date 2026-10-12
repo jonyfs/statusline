@@ -126,7 +126,15 @@ export function terminalFor(harness, { env = process.env, platform = process.pla
 export function rowWidth(row) {
   if (!row.length) return 0;
   const content = row.reduce((total, s) => total + displayWidth(s.text), 0);
-  return content + row.length * SEPARATOR_COLUMNS;
+  // One blank column where a line-3 group changes, and the caps a style adds
+  // to every chip (`extra`, set by the renderer for the pill style).
+  let gaps = 0;
+  let extra = 0;
+  row.forEach((s, i) => {
+    extra += s.extra ?? 0;
+    if (i > 0 && s.group && row[i - 1].group && s.group !== row[i - 1].group) gaps += 1;
+  });
+  return content + row.length * SEPARATOR_COLUMNS + gaps + extra;
 }
 
 /**

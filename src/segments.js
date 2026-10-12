@@ -60,7 +60,7 @@ export const SEGMENTS = [
   // The statusline's own update state (specs/026-update-check): about the
   // install, not the session, so it sits with the repository's state. Useful
   // band, after the CI tick, so nothing already on the line moves.
-  { key: "update", line: 1, order: 70, priority: 60, colour: "identity", source: "cache" },
+  { key: "update", line: 1, order: 90, priority: 60, colour: "identity", source: "cache" },
   // The git gates running in this repository's worktrees (specs/031-git-gate-
   // rows). Normally rows after the bar; this chip stands in for them only when
   // the window is too short to hold both. Last on the line, so nothing moves.
@@ -81,54 +81,54 @@ export const SEGMENTS = [
   // Everything both lines carried is still here — the terminal decides what
   // survives, not this table, and at 120 columns that is the model, the effort,
   // the three levels with their resets, and the savings figure.
-  { key: "model", line: 3, order: 10, priority: 92, colour: "change", source: "payload" },
-  { key: "effort", line: 3, order: 20, priority: 74, colour: "identity", source: "payload" },
+  { key: "model", line: 3, group: "identity", order: 10, priority: 92, colour: "change", source: "payload" },
+  { key: "effort", line: 3, group: "identity", order: 20, priority: 74, colour: "identity", source: "payload" },
   // Fast mode, beside the effort (specs/027-bar-polish).
-  { key: "fastMode", line: 3, order: 22, priority: 73, colour: "identity", source: "payload" },
+  { key: "fastMode", line: 3, group: "identity", order: 22, priority: 73, colour: "identity", source: "payload" },
   // Copilot CLI only (specs/029-multi-harness). Allow-all ranks high: every
   // tool runs without asking while it is on, which is a state to see.
-  { key: "allowAll", line: 3, order: 24, priority: 85, colour: "identity", source: "payload" },
-  { key: "premiumRequests", line: 3, order: 57, priority: 62, colour: "identity", source: "payload" },
-  { key: "context", line: 3, order: 30, priority: 100, colour: "ramp", source: "payload" },
-  { key: "fiveHour", line: 3, order: 40, priority: 94, colour: "ramp", source: "payload" },
-  { key: "burnRate", line: 3, order: 42, priority: 66, colour: "ramp", source: "samples" },
-  { key: "projection", line: 3, order: 44, priority: 64, colour: "identity", source: "samples" },
-  { key: "sevenDay", line: 3, order: 50, priority: 90, colour: "ramp", source: "payload" },
+  { key: "allowAll", line: 3, group: "identity", order: 24, priority: 85, colour: "identity", source: "payload" },
+  { key: "premiumRequests", line: 3, group: "savings", order: 57, priority: 62, colour: "identity", source: "payload" },
+  { key: "context", line: 3, group: "gauges", order: 30, priority: 100, colour: "ramp", source: "payload" },
+  { key: "fiveHour", line: 3, group: "gauges", order: 40, priority: 94, colour: "ramp", source: "payload" },
+  { key: "burnRate", line: 3, group: "gauges", order: 42, priority: 66, colour: "ramp", source: "samples" },
+  { key: "projection", line: 3, group: "gauges", order: 44, priority: 64, colour: "identity", source: "samples" },
+  { key: "sevenDay", line: 3, group: "gauges", order: 50, priority: 90, colour: "ramp", source: "payload" },
   // Codex only (specs/037-codex-windows). A window that is neither 5 hours nor
   // 7 days, such as the free plan's 30 days, stands beside the 7-day slot it
   // takes the place of. Ranked with the windows: on the free plan it is the
   // only usage figure there is. The credit balance sits with the spend limit.
-  { key: "codexWindow", line: 3, order: 49, priority: 89, colour: "ramp", source: "payload" },
-  { key: "codexCredits", line: 3, order: 53, priority: 67, colour: "identity", source: "payload" },
+  { key: "codexWindow", line: 3, group: "gauges", order: 49, priority: 89, colour: "ramp", source: "payload" },
+  { key: "codexCredits", line: 3, group: "savings", order: 53, priority: 67, colour: "identity", source: "payload" },
   // Copilot CLI only (specs/033-copilot-parity). GitHub meters Copilot by the
   // month, so these stand where the 5-hour and 7-day chips stand under Claude
   // Code, which are absent under Copilot: the two never share a line. Two
   // bands below the windows and just under the savings figure the owner
   // ranked to survive, since a month's meter rarely decides the next ten
   // minutes; their date goes first, through the chip's shorter form.
-  { key: "premiumQuota", line: 3, order: 41, priority: 71, colour: "ramp", source: "cache" },
-  { key: "chatQuota", line: 3, order: 51, priority: 69, colour: "ramp", source: "cache" },
+  { key: "premiumQuota", line: 3, group: "gauges", order: 41, priority: 71, colour: "ramp", source: "cache" },
+  { key: "chatQuota", line: 3, group: "gauges", order: 51, priority: 69, colour: "ramp", source: "cache" },
   // Present only behind a Claude gateway with spend limits, where it is the
   // allowance that decides whether work can continue once a window is used
   // up, so it outranks both windows. Placed after them so neither moves
   // (specs/023-extra-usage-limit).
-  { key: "spendLimit", line: 3, order: 52, priority: 95, colour: "ramp", source: "payload" },
+  { key: "spendLimit", line: 3, group: "gauges", order: 52, priority: 95, colour: "ramp", source: "payload" },
   // Only when the prompt cache is cold, or warm and about to go cold: the one
   // moment its state changes what you do next (specs/025-prompt-cache-chip).
   // Actionable, so it sits under the allowances and the model and above the
   // burn rate. Order 54 moves nothing that was already on the line.
-  { key: "promptCache", line: 3, order: 54, priority: 80, colour: "ramp", source: "payload" },
-  { key: "duration", line: 3, order: 55, priority: 50, colour: "identity", source: "payload" },
+  { key: "promptCache", line: 3, group: "savings", order: 54, priority: 80, colour: "ramp", source: "payload" },
+  { key: "duration", line: 3, group: "savings", order: 55, priority: 50, colour: "identity", source: "payload" },
   // Copilot CLI only: the AI credits this session used, and the share of its
   // session limit when one is set (specs/033-copilot-parity). Beside the
   // premium requests, the other thing Copilot bills a session by.
-  { key: "aiCredits", line: 3, order: 56, priority: 61, colour: "ramp", source: "payload" },
+  { key: "aiCredits", line: 3, group: "savings", order: 56, priority: 61, colour: "ramp", source: "payload" },
   // Raised from 40, the lowest on the bar, at the owner's decision: the
   // savings figure is to survive the merge rather than be the first thing the
   // narrower line gives up. What goes first instead is the session duration,
   // then the projection and the burn rate — all three derived from figures
   // that stay on the line.
-  { key: "rtk", line: 3, order: 60, priority: 72, colour: "identity", source: "rtk" },
+  { key: "rtk", line: 3, group: "savings", order: 60, priority: 72, colour: "identity", source: "rtk" },
 ];
 
 const BY_KEY = new Map(SEGMENTS.map((s) => [s.key, s]));

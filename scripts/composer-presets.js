@@ -114,6 +114,24 @@ export const PRESETS = [
     },
   },
   {
+    id: "compact",
+    label: "Compact",
+    optimisesFor: "Height and width together. The directory, the branch, the model, the context and the nearest limit fit on one line, in a pane a third of the usual size.",
+    givesUp: "Everything on the second and third lines: skills, the todo, the working state, the 7-day window, the spend, the savings and every counter.",
+    forWhom: "Somebody with a small tmux pane or a narrow window who wants one line and nothing else.",
+    conflicts: [],
+    arrangement: {
+      version: 1,
+      name: "compact",
+      segments: {
+        ...only("dir", "branch", "model", "context", "fiveHour"),
+        model: { line: 1, order: 40 },
+        context: { line: 1, order: 42 },
+        fiveHour: { line: 1, order: 44 },
+      },
+    },
+  },
+  {
     id: "twoLine",
     label: "Two lines",
     optimisesFor: "Height. The repository and the work share the first line, the limits and the model share the second.",

@@ -174,7 +174,7 @@ await test("the page composes the same bar the renderer draws", async () => {
     }
     if (!rows.length) return "";
     return alignColumns(rows, width)
-      .map((row) => renderRow(PALETTES.mocha, row, { asciiArrows: false }))
+      .map((row) => renderRow(PALETTES.mocha, row, { asciiArrows: false, width }))
       .join("\n");
   };
 
