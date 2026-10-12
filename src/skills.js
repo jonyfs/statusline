@@ -200,6 +200,10 @@ export function getSessionActivity(transcriptPath, { now = Date.now(), limit = 3
     // transcript says the job started and has not said it ended.
     working: recent || background.shells + background.agents > 0,
     background,
+    // How long the transcript has been quiet, for the idle clock, and whether
+    // the session is waiting on a person (specs/048-state-feedback).
+    idleMs: scan.lastAt !== null ? Math.max(0, now - scan.lastAt) : null,
+    awaiting: scan.awaiting === true,
   };
 }
 

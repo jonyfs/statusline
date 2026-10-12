@@ -51,7 +51,7 @@ await test("the top band is what a narrow terminal keeps", () => {
   const top = SEGMENTS.filter((s) => s.priority >= PRIORITY_BANDS.essential)
     .sort((a, b) => b.priority - a.priority)
     .map((s) => s.key);
-  assert.deepEqual(top, ["context", "branch", "dir", "spendLimit", "fiveHour", "model", "sevenDay"]);
+  assert.deepEqual(top, ["context", "conflicts", "branch", "dir", "spendLimit", "fiveHour", "model", "sevenDay"]);
 });
 
 await test("the bands are ordered and named", () => {

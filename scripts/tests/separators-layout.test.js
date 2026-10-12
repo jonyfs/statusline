@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
-import { renderPayload } from "../../src/render.js";
+import { renderPayload, GLYPHS } from "../../src/render.js";
 import { PALETTES, renderRow, displayWidth, separatorStyle, separatorFor } from "../../src/theme.js";
 import { rowWidth } from "../../src/layout.js";
 import { preset } from "../composer-presets.js";
@@ -107,7 +107,9 @@ await test("a chip steps down to its icon before it is dropped", () => {
 await test("the update chip is at the right edge, and gives up its words before it goes", () => {
   const withUpdate = { ...PAYLOAD };
   const line = strip(draw({ maxWidth: 200 }, withUpdate)).split("\n")[0];
-  assert.ok(line.trimEnd().endsWith("1 fix") || /update/.test(line), "the update chip is last on line 1");
+  // The chip is its icon (specs/048): the sentence is in doctor.
+  assert.ok(line.includes(GLYPHS.nerd.updateReady), "the update icon is on line 1");
+  assert.ok(!/update ready/.test(line), "and the sentence is not");
   assert.equal(displayWidth(line), 200, "padded out to the right edge");
 });
 

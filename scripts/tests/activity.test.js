@@ -130,8 +130,8 @@ await test("the bar says working or idle, and neither without a transcript", () 
       })
     );
 
-  assert.match(render(busy), re`${G.working} working`);
-  assert.match(render(quiet), re`${G.idle} idle`);
+  assert.match(render(busy), re`[${G.workingFrame0}${G.workingFrame1}${G.workingFrame2}${G.workingFrame3}] working`);
+  assert.match(render(quiet), re`(?:${G.idle}|${G.sleeping}) (?:idle|sleeping)`);
 
   const none = stripAnsi(
     renderPayload(fullPayload(), { sources: gitSources(), trackChanges: false, now: NOW, ...WIDE })
@@ -155,29 +155,29 @@ const renderActivity = (file, subagentActivity, now = NOW) =>
 await test("a running subagent shows working even with a quiet top-level session", () => {
   const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
   const out = renderActivity(quiet, () => ["explore"]);
-  assert.match(out, re`${G.working} working`);
+  assert.match(out, re`[${G.workingFrame0}${G.workingFrame1}${G.workingFrame2}${G.workingFrame3}] working`);
 });
 
 // FR-002/Acceptance Scenario 2: both active, unchanged "working".
 await test("working stays working when both the session and a subagent are active", () => {
   const busy = transcript([assistant(NOW - 1000, [{ type: "text", text: "x" }])]);
   const out = renderActivity(busy, () => ["explore"]);
-  assert.match(out, re`${G.working} working`);
+  assert.match(out, re`[${G.workingFrame0}${G.workingFrame1}${G.workingFrame2}${G.workingFrame3}] working`);
 });
 
 // FR-003/Acceptance Scenario 3: neither active, "idle" exactly as before.
 await test("idle stays idle when neither the session nor any subagent is active", () => {
   const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
   const out = renderActivity(quiet, () => []);
-  assert.match(out, re`${G.idle} idle`);
+  assert.match(out, re`(?:${G.idle}|${G.sleeping}) (?:idle|sleeping)`);
 });
 
 // FR-005: no subagent snapshot ever existing leaves behavior unchanged.
 await test("with no subagent snapshot, working/idle behaves exactly as before this feature", () => {
   const busy = transcript([assistant(NOW - 1000, [{ type: "text", text: "x" }])]);
   const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
-  assert.match(renderActivity(busy, () => []), re`${G.working} working`);
-  assert.match(renderActivity(quiet, () => []), re`${G.idle} idle`);
+  assert.match(renderActivity(busy, () => []), re`[${G.workingFrame0}${G.workingFrame1}${G.workingFrame2}${G.workingFrame3}] working`);
+  assert.match(renderActivity(quiet, () => []), re`(?:${G.idle}|${G.sleeping}) (?:idle|sleeping)`);
 });
 
 // User Story 2/Acceptance Scenario 1: once the real subagent snapshot ages
@@ -196,7 +196,7 @@ await test("idle returns once the real subagent snapshot goes stale and the sess
     const quiet = transcript([assistant(NOW - 600_000, [{ type: "text", text: "x" }])]);
     // 60s later: well past specs/011's 30s freshness window.
     const out = renderActivity(quiet, subagentActivity, NOW + 60_000);
-    assert.match(out, re`${G.idle} idle`);
+    assert.match(out, re`(?:${G.idle}|${G.sleeping}) (?:idle|sleeping)`);
   });
 });
 

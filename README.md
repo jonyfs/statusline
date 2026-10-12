@@ -779,6 +779,23 @@ they have. A few rules keep the line from moving as figures change:
 - The main figure of a chip is bold, and its reset and units are in a quieter text colour.
   Under `NO_COLOR` neither is drawn.
 
+## What the session is doing
+
+The activity chip has four states. While the session works it shows a spinner of four frames,
+one a redraw: it advances on the session's own counter and never reads the clock, so a bar
+redrawn every 60 seconds turns once a minute, and a stuck session is a spinner that has
+stopped. Idle is a coffee cup for five minutes of quiet and a sleeping mark after, when line 2
+goes quiet too. `your turn` shows when the newest thing in the transcript is a question or a
+plan that has no answer yet. A permission prompt is not recorded anywhere and Claude Code
+hides the bar while one is open, so it is not a state here.
+
+A changed branch or model is marked for 10 seconds, the pull request and CI for two minutes,
+and the skills for 30. The update notice is its icon at the right edge of line 1, and
+`doctor` has the sentence. When `gh` cannot be reached the pull request is a dim icon with no
+number, so a missing lookup does not read as "no pull request". A clean working tree in step
+with its upstream shows a green tick beside the branch. When the bar cannot run it prints a
+neutral chip that says so.
+
 ## Reading a level at a glance
 
 Each gauge is a five-cell track and a figure: `󰔟 5h [track] 62%`. A cell turns on at the

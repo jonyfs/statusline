@@ -21,7 +21,13 @@
 <text x="210.90" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
 <text x="220.70" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">i</text>
 <text x="230.50" y="52" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">n</text>
+<rect x="245.20" y="36" width="9.80" height="22" fill="rgb(49,50,68)"/>
 <path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(180,190,254)" transform="translate(245.20 52.00) scale(0.00821 -0.00821)"/>
+<rect x="255.00" y="36" width="9.80" height="22" fill="rgb(49,50,68)"/>
+<rect x="264.80" y="36" width="9.80" height="22" fill="rgb(49,50,68)"/>
+<path d="M832 1152Q943 1104 1024 1024Q1104 944 1152.0 833.0Q1200 722 1199 600Q1199 478 1152 367Q1104 256 1024.0 176.0Q944 96 832 48Q722 0 600.0 0.0Q478 0 367.0 48.0Q256 96 176.0 176.0Q96 256 48.0 367.0Q0 478 0.0 600.0Q0 722 48.0 833.0Q96 944 176.0 1024.0Q256 1104 367.0 1152.0Q478 1200 600.0 1200.0Q722 1200 832 1152ZM883 729Q898 745 898 767Q898 790 881.0 807.0Q864 824 842 823Q820 823 803 808L506 511L396 621Q380 636 357.0 636.0Q334 636 318 620Q301 603 301 580Q301 558 316 542L466 391Q483 374 506 375Q529 375 546 391Z" fill="rgb(166,227,161)" transform="translate(264.80 52.00) scale(0.00821 -0.00821)"/>
+<rect x="274.60" y="36" width="9.80" height="22" fill="rgb(49,50,68)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(49,50,68)" transform="translate(284.40 52.00) scale(0.00821 -0.00821)"/>
 <rect x="10.00" y="61" width="147.00" height="22" fill="rgb(242,205,205)"/>
 <path d="M1055 626H969V857Q969 903 935.5 936.5Q902 970 857 970H627V1056Q627 1115 585.5 1157.5Q544 1200 485.0 1200.0Q426 1200 384.5 1157.0Q343 1114 343 1056V970H113Q67 970 33.5 936.5Q0 903 0 857V640H86Q150 640 194.5 594.5Q239 549 239.0 484.5Q239 420 194.5 374.5Q150 329 86 329H0V112Q0 66 33.5 33.0Q67 0 113 0H329V86Q329 150 375.0 194.0Q421 238 485.0 238.0Q549 238 594.5 194.0Q640 150 640 86V0H857Q903 0 936.0 33.5Q969 67 969 112V343H1055Q1114 343 1157.0 384.5Q1200 426 1200.0 484.5Q1200 543 1157.0 584.5Q1114 626 1055 626Z" fill="rgb(17,17,27)" transform="translate(19.80 77.00) scale(0.00821 -0.00821)"/>
 <text x="44.30" y="77" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">c</text>

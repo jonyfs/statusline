@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Session state you can read at a glance
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items I81 to I90. Constitution v8.4.1 (amendment K7)
 records the four-frame spinner. Features 041 (colour), 042 (glyphs), 044 (copy), 045 and 046

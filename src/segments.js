@@ -48,7 +48,7 @@ export const SEGMENTS = [
   { key: "projectDir", line: 1, order: 12, priority: 44, colour: "identity", source: "payload" },
   { key: "branch", line: 1, order: 20, priority: 98, colour: "change", source: "git" },
   { key: "worktree", line: 1, order: 25, priority: 88, colour: "identity", source: "payload" },
-  { key: "conflicts", line: 1, order: 28, priority: 87, colour: "identity", source: "git" },
+  { key: "conflicts", line: 1, order: 28, priority: 99, colour: "identity", source: "git" },
   { key: "worktreeState", line: 1, order: 30, priority: 86, colour: "identity", source: "git" },
   // Not repository state: it is what this session changed, from the
   // payload's own counters rather than from git. It sits here because it
@@ -179,7 +179,7 @@ export const SEGMENT_ABOUT = {
   gates: "The git hooks running in this repository's worktrees: which hook, in which worktree and branch, what it is running now and for how long, one row each after the bar. A run waiting for another's gates.lock says so. Only when the window is too short does it shrink to a count on line 1.",
   skills: "The skills shaping this session, newest first, dropped once they fall outside the activity window. A skill a subagent invoked belongs to that subagent's row instead.",
   todo: "The current todo and how far the list has got.",
-  activity: "Whether the transcript grew in the last ten seconds, or a subagent of this session is running. Nothing emits \"thinking now\", so this is the honest approximation.",
+  activity: "What the session is doing: working (the transcript grew in the last ten seconds, or a subagent of this session is running, with a spinner that turns once a redraw), idle, sleeping after five quiet minutes, or your turn when its newest entry is a question or a plan that has no answer yet. Nothing emits \"thinking now\", so this is the honest approximation.",
   model: "The model answering, and how much of its context window this session carries.",
   effort: "The reasoning effort it is running at.",
   fastMode: "Fast mode, shown only while it is on, because it spends the limits faster.",

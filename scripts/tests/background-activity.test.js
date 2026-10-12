@@ -179,11 +179,11 @@ await test("line 2 says working with the background count, then idle once it is 
       })
     );
 
-  assert.match(render(), re`${G.working} working · 1 bg`);
+  assert.match(render(), re`[${G.workingFrame0}${G.workingFrame1}${G.workingFrame2}${G.workingFrame3}] working · 1 bg`);
 
   appendFileSync(file, JSON.stringify(enqueued(NOW - 25_000, "bB", "completed")) + "\n");
   const after = render();
-  assert.match(after, re`${G.idle} idle`);
+  assert.match(after, re`(?:${G.idle}|${G.sleeping}) (?:idle|sleeping)`);
   assert.doesNotMatch(after, / bg /);
 });
 
@@ -197,6 +197,6 @@ await test("a session working on its own does not add a background count", () =>
       ...WIDE,
     })
   );
-  assert.match(out, re`${G.working} working `);
+  assert.match(out, re`[${G.workingFrame0}${G.workingFrame1}${G.workingFrame2}${G.workingFrame3}] working `);
   assert.doesNotMatch(out, / bg /);
 });

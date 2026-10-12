@@ -87,6 +87,7 @@ export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PR
       value = { branch: result.branch };
     }
     writeEntry(key, name, value, { now: Date.now() });
+    if (name === "pr") writeEntry(key, "prFailed", false, { now: Date.now() });
     takeLock(key, name, { now, release: true });
     return result.state === "found";
   }
@@ -96,6 +97,9 @@ export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PR
   // missing `rtk` cost one node process every few seconds. A quarter of the
   // maximum age instead: a refresh starts at half of it, so one retry still
   // lands before the value this one left in place expires.
+  // A failed pull request lookup leaves a marker, so the bar can draw a dim
+  // icon instead of a blank that reads as "no pull request".
+  if (name === "pr") writeEntry(key, "prFailed", true, { now: Date.now() });
   takeLock(key, name, { now: Date.now(), holdFor: (MAX_AGE_MS[name] ?? 60_000) / 4 });
   return false;
 }

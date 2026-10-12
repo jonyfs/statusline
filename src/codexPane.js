@@ -15,6 +15,7 @@
  * identical to the one on screen is not written at all.
  */
 
+import { unavailableChip } from "./unavailable.js";
 import { statSync, existsSync, watch } from "node:fs";
 import { readRollout, rolloutPayload, rolloutActivity } from "./codexRollout.js";
 import { resolveCodexSession, rolloutStartedAt } from "./codexSession.js";
@@ -166,7 +167,7 @@ export async function runCodexPane(argv, { out = process.stdout, env = process.e
         sources: { getSessionActivity: () => activity },
       });
     } catch {
-      text = " statusline unavailable ";
+      text = unavailableChip();
     }
     return text.split("\n").slice(0, rows);
   };
