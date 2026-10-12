@@ -1,3 +1,5 @@
+import { WIDE } from "./data/wide.js";
+
 export const PALETTES = {
   mocha: {
     crust: "#11111b", mantle: "#181825", base: "#1e1e2e",
@@ -234,6 +236,31 @@ function ambiguousIsWide() {
   return process.env.CLAUDE_STATUSLINE_AMBIGUOUS_WIDE === "1";
 }
 
+/**
+ * Whether a code point is drawn two columns wide: East Asian Width W or F, or
+ * Emoji_Presentation=Yes. The table is generated from Unicode's own files by
+ * scripts/generate-width-table.js. A hand-written list had stopped at the
+ * emoji someone had drawn that week and missed ➕ ➖ ❔ 🆕 and the coloured
+ * circles beside them.
+ */
+// Nothing below the first range is wide, which is almost every character a
+// row holds. Skipping the search for them keeps the redraw budget.
+const WIDE_FIRST = WIDE[0][0];
+
+function isWide(cp) {
+  if (cp < WIDE_FIRST) return false;
+  let lo = 0;
+  let hi = WIDE.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const [from, to] = WIDE[mid];
+    if (cp < from) hi = mid - 1;
+    else if (cp > to) lo = mid + 1;
+    else return true;
+  }
+  return false;
+}
+
 export function displayWidth(text) {
   const plain = String(text)
     .replace(/\x1b\[[0-9;]*m/g, "")
@@ -255,30 +282,7 @@ export function displayWidth(text) {
     const wide =
       forcedEmoji ||
       (ambiguousIsWide() && AMBIGUOUS.has(cp)) ||
-      (cp >= 0x1100 && cp <= 0x115f) ||
-      (cp >= 0x2e80 && cp <= 0xa4cf) ||
-      (cp >= 0xac00 && cp <= 0xd7a3) ||
-      (cp >= 0xf900 && cp <= 0xfaff) ||
-      (cp >= 0xfe30 && cp <= 0xfe6f) ||
-      (cp >= 0xff00 && cp <= 0xff60) ||
-      (cp >= 0xffe0 && cp <= 0xffe6) ||
-      (cp >= 0x1f300 && cp <= 0x1f64f) ||
-      (cp >= 0x1f680 && cp <= 0x1f6ff) ||
-      (cp >= 0x1f900 && cp <= 0x1f9ff) ||
-      (cp >= 0x1fa70 && cp <= 0x1faff) ||
-      cp === 0x231a || cp === 0x231b ||
-      (cp >= 0x23e9 && cp <= 0x23ec) ||
-      cp === 0x23f0 || cp === 0x23f3 ||
-      (cp >= 0x25fd && cp <= 0x25fe) ||
-      (cp >= 0x2614 && cp <= 0x2615) ||
-      (cp >= 0x2648 && cp <= 0x2653) ||
-      (cp >= 0x23f1 && cp <= 0x23f3) ||
-      (cp >= 0x23f8 && cp <= 0x23fa) ||
-      cp === 0x26a1 ||
-      (cp >= 0x26aa && cp <= 0x26ab) ||
-      cp === 0x2728 || cp === 0x2705 || cp === 0x274c ||
-      (cp >= 0x2b1b && cp <= 0x2b1c) ||
-      cp === 0x2b50 || cp === 0x2b55;
+      isWide(cp);
     width += wide ? 2 : 1;
   }
   return width;
