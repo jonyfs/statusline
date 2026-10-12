@@ -1,5 +1,5 @@
 import { WIDE } from "./data/wide.js";
-import { chipColours, lightenOklch, toOklch } from "./contrast.js";
+import { chipColours, contrastRatio, lightenOklch, toOklch } from "./contrast.js";
 
 export const PALETTES = {
   mocha: {
@@ -203,6 +203,34 @@ function hyperlink(url, text) {
 }
 
 /**
+ * Terminals known to draw SGR `4:4`, the dotted underline, from what they
+ * put in the environment. A table in one place: an unknown terminal gets no
+ * underline at all rather than the plain one an old parser would fall back to.
+ */
+const STYLED_UNDERLINE = [
+  (env) => Boolean(env.KITTY_WINDOW_ID) || env.TERM === "xterm-kitty",
+  (env) => env.TERM_PROGRAM === "WezTerm" || Boolean(env.WEZTERM_EXECUTABLE),
+  (env) => env.TERM_PROGRAM === "iTerm.app",
+  (env) => Boolean(env.WT_SESSION),
+  (env) => env.TERM_PROGRAM === "ghostty" || env.TERM === "xterm-ghostty",
+  (env) => Number(env.VTE_VERSION) >= 5000,
+];
+
+export function styledUnderline(env = process.env) {
+  return STYLED_UNDERLINE.some((test) => test(env));
+}
+
+/**
+ * Linked text: an OSC 8 hyperlink, with a dotted underline where the
+ * terminal draws one, so a name that can be clicked looks like it can.
+ * Not a colour, so `NO_COLOR` keeps it.
+ */
+export function link(url, text) {
+  const linked = hyperlink(url, text);
+  return styledUnderline() ? `\x1b[4:4m${linked}\x1b[24m` : linked;
+}
+
+/**
  * Renders one Powerline row from an ordered list of {color, text, url?}
  * segments. color is a palette hex string; the segment's foreground
  * auto-selects crust (dark) or text (light) for contrast, matching the
@@ -252,16 +280,32 @@ function quantised(palette) {
   return q;
 }
 
+/**
+ * The colour for a chip marked `quiet`, text that is read second: the palette's `text` or
+ * `crust` when that still reaches 4.5:1 on the chip, otherwise the chip's
+ * own text colour. Dimmed with colour rather than SGR 2, so the contrast
+ * stays something the suite can measure.
+ */
+export function quietText(palette, colour) {
+  const { fg: strong, bg } = chipOf(palette, colour);
+  for (const token of [palette.text, palette.crust]) {
+    const tone = colourDepth() === "256" ? drawnColour(token, "256") : token;
+    if (tone !== strong && contrastRatio(tone, bg) >= 4.5) return tone;
+  }
+  return strong;
+}
+
 export function renderRow(palette, segments, { asciiArrows = false } = {}) {
   const arrow = separatorFor({ asciiArrows });
   let out = "";
   segments.forEach((seg, i) => {
-    const { fg: segFg, bg: segBg } = chipOf(palette, seg.color);
+    const { fg: chipFg, bg: segBg } = chipOf(palette, seg.color);
+    const segFg = seg.quiet ? quietText(palette, seg.color) : chipFg;
     if (i > 0) {
       const prev = chipOf(palette, segments[i - 1].color).bg;
       out += `${fg(prev)}${bg(segBg)}${arrow}`;
     }
-    const text = seg.url ? hyperlink(seg.url, seg.text) : seg.text;
+    const text = seg.url ? link(seg.url, seg.text) : seg.text;
     out += `${bg(segBg)}${fg(segFg)}${text}`;
   });
   const last = segments[segments.length - 1];
@@ -357,7 +401,7 @@ function isWide(cp) {
 
 export function displayWidth(text) {
   const plain = String(text)
-    .replace(/\x1b\[[0-9;]*m/g, "")
+    .replace(/\x1b\[[0-9;:]*m/g, "")
     .replace(/\x1b\]8;;[^\x07]*\x07/g, "");
 
   const chars = [...plain];

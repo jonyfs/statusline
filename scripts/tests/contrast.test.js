@@ -60,3 +60,127 @@ await test("lightening in OKLCH keeps the hue and raises the lightness", () => {
     assert.ok(after.C <= before.C + 0.005, `${hex} chroma did not grow`);
   }
 });
+
+// Every scenario the previews are drawn from, in every palette, read back
+// from the ANSI the renderer emits.
+import { renderPayload } from "../../src/render.js";
+import { SCENARIOS, FLAVOR_SCENARIO } from "../preview-fixtures.js";
+
+const NO_ARRANGEMENT = { arrangement: null, origin: "default", path: null, error: null };
+const FLAVORS = ["mocha", "frappe", "macchiato", "latte", "nord", "gruvbox"];
+const SEPARATOR_GLYPH = /[\u{E0B0}-\u{E0D4}▸]/u;
+
+/** Every run of text drawn with an explicit foreground and background. */
+function pairs(ansi) {
+  const out = [];
+  let fg = null;
+  let bg = null;
+  const re = /\x1b\[([0-9;:]*)m|\x1b\]8;;[^\x07]*\x07|([^\x1b]+)/g;
+  let m;
+  while ((m = re.exec(ansi))) {
+    if (m[2] !== undefined) {
+      const text = m[2].replace(SEPARATOR_GLYPH, "").replace(/\s+/g, "");
+      if (text && fg && bg) out.push({ fg, bg, text: m[2] });
+    } else if (m[1] !== undefined) {
+      const p = m[1].split(";");
+      for (let i = 0; i < p.length; i++) {
+        const n = Number(p[i]);
+        if (n === 0 || m[1] === "") (fg = null), (bg = null);
+        else if (n === 39) fg = null;
+        else if (n === 49) bg = null;
+        else if ((n === 38 || n === 48) && p[i + 1] === "2") {
+          const hex = `#${[p[i + 2], p[i + 3], p[i + 4]].map((c) => Number(c).toString(16).padStart(2, "0")).join("")}`;
+          if (n === 38) fg = hex;
+          else bg = hex;
+          i += 4;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+const withFlavors = (fn) => {
+  for (const flavor of FLAVORS) fn(flavor);
+};
+
+await test("every emitted foreground and background pair reaches 4.5:1 in every palette", () => {
+  const failures = [];
+  withFlavors((flavor) => {
+    for (const scenario of [...SCENARIOS, FLAVOR_SCENARIO]) {
+      const ansi = renderPayload(scenario.payload, {
+        flavor,
+        sources: scenario.sources,
+        trackChanges: false,
+        layout: NO_ARRANGEMENT,
+        maxWidth: scenario.width ?? 120,
+        maxHeight: 40,
+      });
+      for (const p of pairs(ansi)) {
+        const ratio = contrastRatio(p.fg, p.bg);
+        if (ratio < 4.5) failures.push(`${flavor} ${p.fg} on ${p.bg} ${ratio.toFixed(2)} "${p.text.trim()}"`);
+      }
+    }
+  });
+  assert.deepEqual([...new Set(failures)], []);
+});
+
+/** The backgrounds a row steps through, one entry per chip. */
+function chipBackgrounds(line) {
+  const out = [];
+  for (const m of line.matchAll(/\x1b\[48;2;(\d+);(\d+);(\d+)m/g)) {
+    const hex = `#${[m[1], m[2], m[3]].map((c) => Number(c).toString(16).padStart(2, "0")).join("")}`;
+    if (out[out.length - 1] !== hex) out.push(hex);
+  }
+  return out;
+}
+
+// Lightness is what tells two grey chips apart. Two accents are told apart
+// by hue, which a luminance ratio does not measure, so the rule is for
+// backgrounds that are both neutral.
+const neutralOf = (flavor) => new Set(["crust", "mantle", "base", "surface1", "surface2"].map((k) => PALETTES[flavor][k]));
+
+await test("neighbouring neutral chips on different backgrounds are at least 1.6:1 apart", () => {
+  const close = [];
+  withFlavors((flavor) => {
+    for (const scenario of [...SCENARIOS, FLAVOR_SCENARIO]) {
+      const ansi = renderPayload(scenario.payload, {
+        flavor,
+        sources: scenario.sources,
+        trackChanges: false,
+        layout: NO_ARRANGEMENT,
+        maxWidth: scenario.width ?? 120,
+        maxHeight: 40,
+      });
+      for (const line of ansi.split("\n")) {
+        const bgs = chipBackgrounds(line);
+        for (let i = 1; i < bgs.length; i++) {
+          if (!neutralOf(flavor).has(bgs[i - 1]) || !neutralOf(flavor).has(bgs[i])) continue;
+          const r = contrastRatio(bgs[i - 1], bgs[i]);
+          if (r < 1.6) close.push(`${flavor} ${bgs[i - 1]} next to ${bgs[i]} ${r.toFixed(2)}`);
+        }
+      }
+    }
+  });
+  assert.deepEqual([...new Set(close)], []);
+});
+
+await test("the repository sits on the directory chip's background, in a quieter colour", () => {
+  const full = SCENARIOS.find((s) => s.file === "full.svg");
+  const ansi = renderPayload(full.payload, {
+    flavor: "mocha",
+    sources: full.sources,
+    trackChanges: false,
+    layout: NO_ARRANGEMENT,
+    maxWidth: 120,
+    maxHeight: 40,
+  });
+  const line = ansi.split("\n")[0];
+  const at = line.indexOf("jonyfs/statusline");
+  assert.ok(at > 0, "the repository is shown");
+  const beforeRepo = line.slice(0, at);
+  const dirAt = beforeRepo.lastIndexOf("statusline");
+  const between = beforeRepo.slice(dirAt);
+  const backgrounds = [...between.matchAll(/\x1b\[48;2;[0-9;]+m/g)].map((m) => m[0]);
+  assert.equal(new Set(backgrounds).size, 1, "one background from the directory to the repository");
+});

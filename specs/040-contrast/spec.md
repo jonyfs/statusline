@@ -44,8 +44,10 @@ why each choice was made, so a plan and tasks are written before the code.
   | mauve `#8839ef` | `#ffffff` | 5.4 |
 
 - The directory chip and the repository chip sit side by side on `surface1` and `surface2`. On
-  Mocha their backgrounds differ by 1.37:1, so the edge between them is close to invisible and
-  the two read as one block with two labels.
+  Mocha their backgrounds differ by 1.37:1, and by 1.19:1 to 1.44:1 in the other palettes, so
+  the edge between them is close to invisible and the two read as one block with two labels.
+  Accent pairs sit closer still by luminance (Mocha red and peach are 1.31:1) and are plainly
+  different, because they differ in hue.
 - `lighten()` mixes each channel toward white in sRGB. It is the highlight for a segment that
   just changed, and it washes the hue out: a lightened red drifts toward pink.
 - With no flavor set the bar draws Mocha, a dark palette, on any terminal. On a light terminal
@@ -95,20 +97,21 @@ A person sees where the directory chip ends and the repository name begins.
 **Why this priority**: two near-identical backgrounds side by side make a chip boundary that
 the person cannot see, so the second chip's content is read as part of the first.
 
-**Independent Test**: for every palette, take each pair of adjacent chips with different
-backgrounds in a fully populated line 1 and assert their contrast is at least 1.6:1.
+**Independent Test**: for every palette, take each pair of adjacent chips that both sit on a
+neutral token (`crust`, `mantle`, `base`, `surface1`, `surface2`) with different backgrounds in
+every preview scenario and assert their contrast is at least 1.6:1.
 
 **Acceptance Scenarios**:
 
 1. **Given** a repository whose owner and name are known, **When** line 1 is drawn, **Then**
-   the repository is not a chip of its own next to the directory chip: it is text inside the
-   directory chip, dimmer than the directory label.
-2. **Given** two adjacent chips whose backgrounds differ by less than 1.6:1 and are not the
-   same colour, **When** a segment is added to the bar, **Then** a test fails, so a later
-   feature cannot reintroduce the pair.
-3. **Given** the directory label is trimmed to fit a narrow width, **When** the repository
-   text is part of the chip, **Then** the repository text is dropped before the directory
-   label loses its floor of 12 columns.
+   the repository sits on the directory chip's background, in a quieter text colour that still
+   reaches 4.5:1 where the palette has one, so the two read as one block.
+2. **Given** two adjacent chips on different neutral backgrounds less than 1.6:1 apart,
+   **When** a segment is added to the bar, **Then** a test fails, so a later feature cannot
+   reintroduce the pair.
+3. **Given** two accent chips side by side, **When** they are drawn, **Then** nothing is
+   asserted about their luminance ratio: accents are told apart by hue, and a ratio does not
+   measure hue.
 
 ---
 
@@ -260,11 +263,12 @@ than 3 degrees and lightness rises.
   other chip the `crust` colour MUST be removed from `renderRow`.
 - **FR-005**: Mocha accent chips MUST keep their text colour. Any other chip whose text colour
   changes MUST be explained by a higher ratio than before.
-- **FR-006**: The repository chip MUST become dim text inside the directory chip. The two
-  segment keys MUST NOT sit as adjacent chips with backgrounds under 1.6:1 apart.
-- **FR-007**: A test MUST fail when two adjacent chips of different background are under 1.6:1
-  apart in any palette. Chips of the same background are the concern of feature 045 and are
-  excluded.
+- **FR-006**: The repository chip MUST be drawn on the directory chip's background with a
+  quieter text colour. It keeps its own segment key, so arrangements and the composer still
+  address it.
+- **FR-007**: A test MUST fail when two adjacent chips on different neutral backgrounds are
+  under 1.6:1 apart in any palette. Chips of the same background are the concern of feature
+  045 and are excluded, and so are accent pairs.
 - **FR-008**: `lighten()` MUST work in OKLCH: lightness rises, hue and chroma are kept.
 - **FR-009**: With no flavor in the environment or in `.statusline.json`, a light background
   reported by `COLORFGBG` MUST select Latte and anything else Mocha. A set flavor MUST win.
@@ -307,7 +311,7 @@ than 3 degrees and lightness rises.
 - **SC-002**: The ten Latte accent values under Evidence match to one decimal.
 - **SC-003**: The Mocha previews change only where the repository text folds into the
   directory chip and where a `surface1` or `surface2` chip takes `#ffffff` text.
-- **SC-004**: No adjacent pair of chips with different backgrounds is under 1.6:1 in any
+- **SC-004**: No adjacent pair of chips on different neutral backgrounds is under 1.6:1 in any
   palette.
 - **SC-005**: The redraw benchmark stays at or under 25 ms at p95.
 - **SC-006**: Rendering with `COLORTERM=256color` emits no 24-bit colour sequence, and rendering

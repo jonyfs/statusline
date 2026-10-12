@@ -45,18 +45,22 @@ flavor: env > .statusline.json > COLORFGBG light -> latte > mocha          src/c
 8. **Flavor from the terminal.** `resolveSettings` gets `flavorSource` and falls back to
    `COLORFGBG` before `mocha`. `doctor` reports the source. No OSC 11: the command cannot read
    a terminal reply inside its budget, and its output is piped.
-9. **Repository text moves into the directory chip.** The chip's text becomes
-   `<icon> <dir>` then a dim `owner/repo`. Links are embedded, not whole-chip, because a chip
-   has one `url` and the two parts go to different places. `link(url, text)` is exported from
-   `src/theme.js` and draws the dotted underline where supported. `displayWidth` already strips
-   OSC 8; its CSI pattern gains `:` so `\x1b[4:4m` is not counted as text.
+9. **The repository keeps its chip and takes the directory's background.** It stays a segment
+   with its own key, so arrangements, shedding and the composer pool address it as before. Its
+   colour becomes `surface1` and the segment carries `quiet`, which `renderRow` draws with
+   `quietText`: the palette's `text` or `crust` when that reaches 4.5:1 on the chip, otherwise
+   the chip's own text. Dimmed by colour, not SGR 2, so the contrast stays measurable. Two
+   chips of one background leave a one-column gap where the arrow would be; making that edge
+   better is feature 045. `link(url, text)` is exported from `src/theme.js` and draws the
+   dotted underline where supported. `displayWidth`'s CSI pattern gains `:` so `\x1b[4:4m` is
+   not counted as text.
 10. **Underline support is a table.** Environment markers for kitty, WezTerm, iTerm2, Windows
     Terminal, VTE 5000 or later and Ghostty, in one array in `src/theme.js`. Unknown means no
     underline.
 11. **NO_COLOR edge.** Under `NO_COLOR`, `renderRow` prefixes each chip with `▏` and U+258F
     joins `AMBIGUOUS`, so width follows `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE`.
-12. **The neighbour rule is a test.** A fixture with every segment present is rendered in each
-    palette and adjacent different backgrounds are asserted at 1.6:1 or more.
+12. **The neighbour rule is a test, for neutrals.** Every preview scenario is rendered in each
+    palette and adjacent chips on different neutral tokens are asserted at 1.6:1 or more.
 
 ## Files
 
@@ -67,7 +71,7 @@ flavor: env > .statusline.json > COLORFGBG light -> latte > mocha          src/c
 | `src/taskRows.js`, `src/gateRows.js` | use the shared emitter |
 | `src/config.js` | flavor from `COLORFGBG`, `flavorSource` |
 | `src/doctor.js` | flavor line names the terminal as the source |
-| `src/render.js` | repo text inside the directory chip; trim drops it first |
+| `src/render.js` | the repository chip on `surface1`, `quiet` |
 | `scripts/tests/contrast.test.js` | new: ratios, Latte table, all segments x six palettes, neighbours, depth, `NO_COLOR` |
 | `docs/previews/*` | regenerated |
 | `README.md` | flavor and `COLORTERM`, `COLORFGBG` |
@@ -77,6 +81,6 @@ flavor: env > .statusline.json > COLORFGBG light -> latte > mocha          src/c
 - A palette that cannot reach 4.5:1 even at lightness 0. None here; the test names it.
 - A terminal that sets `COLORFGBG` wrongly picks Latte unasked. A set flavor always wins and
   `doctor` says where the choice came from.
-- Dropping the repository chip removes its separate link. The branch chip keeps the remote
-  link, and the repository text inside the directory chip carries its own.
+- `surface1` next to `surface2` is still adjacent when `projectDir` is drawn. The neutral test
+  names it if it appears in a scenario.
 - Redraw budget: memoisation keeps the added work to a map lookup per chip.

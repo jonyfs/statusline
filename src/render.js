@@ -1027,10 +1027,16 @@ export function renderReadings(
     // directory cannot in one that is not.
     const repo = shows("repo") ? readings.repo.value : null;
     if (repo?.owner && repo.name) {
+      //
+      // On the directory chip's own background, in a quieter text colour.
+      // `surface1` and `surface2` are 1.3:1 to 1.4:1 apart in every palette,
+      // an edge nobody can see, so the two read as one block with one
+      // label dimmer than the other (specs/040-contrast).
       l1.push({
         key: "repo",
-        color: "surface2",
+        color: "surface1",
         text: ` ${repo.owner}/${repo.name} `,
+        quiet: true,
         url: remoteUrl,
       });
     }
