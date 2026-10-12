@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.4.1 (X clarified on 2026-10-12: PATCH, the spinner. Item K7 of the 2026-10 design
+- Version: 8.5.0 (I amended on 2026-10-12: MINOR, the terminal palette. Item K11 of the
+  2026-10 design review. A palette that maps tokens to the 16 ANSI colours is allowed and is
+  exempt from the contrast test, since its colours are unknown at render time. K9, the
+  localised text the review proposed, stays rejected by Principle VI. Templates: no change
+  needed. Code follows in feature 049.)
+- Previously, version 8.4.1 (X clarified on 2026-10-12: PATCH, the spinner. Item K7 of the 2026-10 design
   review. The one animated indicator, the working chip's four-frame spinner advancing on a
   counter, is recorded where the rule says nothing animates. No rule changes. K9 and K11 stay
   for later features. Templates: no change needed. Code follows in feature 048.)
@@ -323,7 +328,12 @@ reference — not a vague "Starship-like" aspiration:
   bar that clashes with the rest of a terminal is a bar people turn off. Any added palette MUST
   define every colour token the Catppuccin flavors define, MUST be selected the same way, and
   MUST NOT become the default: Catppuccin Mocha remains what this project looks like when
-  nobody has chosen anything.
+  nobody has chosen anything. A `terminal` palette that maps the tokens to the terminal's own
+  16 ANSI colours is allowed, because it is the palette that cannot clash with a terminal's
+  theme, and it is exempt from the 4.5:1 contrast test: its colours are unknown when the bar is
+  drawn, so no ratio can be computed for them. The exemption is for that palette only, and
+  `CLAUDE_STATUSLINE_CONTRAST=high` is the way to ask for more contrast where the colours are
+  known.
 
 Modules MUST NOT break when the palette variant changes. All prompt strings, separators, and
 color references MUST validate against Starship v1.26+ module/schema conventions, since that
@@ -881,4 +891,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.4.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.5.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
