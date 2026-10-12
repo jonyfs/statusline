@@ -2,7 +2,13 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.1.0 (X amended on 2026-10-12: MINOR. Items K5 and K10 of the 2026-10 design review.
+- Version: 8.2.0 (I and X amended on 2026-10-12: MINOR, the emoji tier. Item K4 of the 2026-10
+  design review. The glyph table gains a third column, emoji, selected by
+  `CLAUDE_STATUSLINE_ICONS=nerd|emoji|plain`, restricted to `Emoji_Presentation=Yes` codepoints
+  that fill the icon slot of a chip, with a named rejection list. Nerd mode stays emoji-free
+  unless `CLAUDE_STATUSLINE_EVENT_EMOJI=1`. K3, K6, K7, K9 and K11 stay for later features.
+  Templates: no change needed. Code follows in feature 043.)
+- Previously, version 8.1.0 (X amended on 2026-10-12: MINOR. Items K5 and K10 of the 2026-10 design review.
   Push and pull use the Octicon arrows `F431` and `F433` in place of cloud-up and cloud-down,
   and the stale sentence about clock-face emoji under time-derived icons is replaced by the
   rule the code follows. K3, K4, K6, K7, K9 and K11 stay for later features. Templates: no
@@ -278,7 +284,10 @@ reference — not a vague "Starship-like" aspiration:
   conventions and reads in a single typeface. A plain ASCII label is never an icon. An emoji is
   permitted only where no glyph in the installed Nerd Font set carries the meaning, and each
   such case MUST be recorded under Principle X together with the codepoints that were rendered
-  and rejected; per-hour clock faces are the first recorded case. The reason for the default is
+  and rejected; per-hour clock faces are the first recorded case. That exception is now one a
+  person can choose as a whole: `CLAUDE_STATUSLINE_ICONS=emoji` selects the emoji tier of the
+  glyph table, which Principle X defines, and nothing else turns an emoji on. The reason for the
+  default is
   width: a private-use Nerd Font glyph occupies one column where an emoji occupies two, and on a
   bar whose segments already compete for the columns `COLUMNS` reports, every emoji spends a
   column a segment could have used. Emoji also resolve to the system emoji font
@@ -708,15 +717,24 @@ accessibility hazard where it works.
   "stopwatch" draws three horizontal bars, `F0BE` "checklist" draws the App Store logo, and
   `F0C71` "format_list_checks" draws a smiling face. Shipping any of them on its name would put
   a symbol on the line that means something else.
-- **One glyph table, one fallback per entry**: every glyph the bar can emit MUST be a row in a
-  single glyph table carrying its Nerd Font codepoint and its plain-mode substitute. A glyph
+- **One glyph table, two fallbacks per entry**: every glyph the bar can emit MUST be a row in a
+  single glyph table carrying its Nerd Font codepoint, its emoji and its plain-mode substitute.
+  `CLAUDE_STATUSLINE_ICONS=nerd|emoji|plain` selects the column; `nerd` is the default, and
+  `CLAUDE_STATUSLINE_ASCII=1` still means `plain`. An emoji entry MUST be a codepoint with
+  `Emoji_Presentation=Yes`, which Unicode draws two columns wide and in colour without a
+  variation selector, and it MUST only fill the icon slot at the start of a chip. The ones that
+  look like emoji and are not (`⚡ ☕ ⏭ ⚠️ 🌡️ ⌨️ 🗓️ ⏱️ 📅 📆`) are rejected by name, because they
+  draw as text on some terminals and as pictures on others. In nerd mode the bar stays free of
+  emoji, except that `CLAUDE_STATUSLINE_EVENT_EMOJI=1` may draw 💥 for conflicts, 🔥 for a
+  critical burn and 🚀 for an applied update, which are events and not states. A glyph
   written inline in a render function is a glyph `CLAUDE_STATUSLINE_ASCII=1` cannot replace, and
   a fallback that swaps some icons and not others leaves boxes on the line while claiming to
   have removed them. The renderer and `scripts/extract-glyphs.py` MUST list the same set, since
   a glyph missing from the extractor renders in the terminal and vanishes from the generated
   previews.
-- **An emoji on the bar is an exception with a reason**: where Principle I's Nerd Font default is
-  not met, the search that failed MUST be recorded here — which codepoints were rendered, and
+- **An emoji on the bar is chosen, or an exception with a reason**: the emoji tier above is
+  the person's choice and needs no record. Anywhere else, where Principle I's Nerd Font default
+  is not met, the search that failed MUST be recorded here — which codepoints were rendered, and
   what each one drew. Retired case: per-hour clock faces. They were the one recorded exception,
   kept because the hour was the information they carried, and they went out on 2026-09-06 with
   the merged reset segment. Each window now draws its own reset beside its own level, and a face
@@ -838,4 +856,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
