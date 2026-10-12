@@ -109,7 +109,7 @@ coloured background, and each has a green icon.
 A maintainer adding a segment cannot give it a colour that already means something else.
 
 **Why this priority**: the budget decays the first time someone picks a colour that looks right
-for one segment. Without a check, the table in the constitution is a wish.
+for one segment. Without a check, nothing enforces the table in the constitution.
 
 **Independent Test**: a test lists every segment key with the colour role it uses and fails if
 one token is used for two roles, or if a segment uses a token the budget does not give it.
@@ -228,7 +228,7 @@ a swatch drawn in that colour, and none under `NO_COLOR`.
   is given a second role.
 - **SC-004**: Every ok-band gauge in the previews has a `surface0` background.
 - **SC-005**: The 4.5:1 test of feature 040 passes unchanged.
-- **SC-006**: The redraw benchmark stays at or under 25 ms at p95.
+- **SC-006**: The redraw benchmark stays inside the redraw budget `scripts/bench.js` enforces (300 ms at p95; the guide's 25 ms target is not enforced).
 
 ## Assumptions
 

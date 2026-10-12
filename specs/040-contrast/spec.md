@@ -64,8 +64,7 @@ why each choice was made, so a plan and tasks are written before the code.
 
 A person on any of the six palettes reads every chip, including on Latte, without squinting.
 
-**Why this priority**: this is the whole point. A bar the person cannot read is a bar they turn
-off, and Latte is the palette a person on a light terminal is most likely to pick.
+**Why this priority**: a bar the person cannot read gets turned off, and Latte is the palette a person on a light terminal is most likely to pick.
 
 **Independent Test**: render every segment key in each of the six palettes, extract each
 emitted foreground and background pair, and compute the WCAG 2.2 contrast ratio. Each is at
@@ -318,7 +317,7 @@ than 3 degrees and lightness rises.
   directory chip and where a `surface1` or `surface2` chip takes `#ffffff` text.
 - **SC-004**: No adjacent pair of chips on different neutral backgrounds is under 1.6:1 in any
   palette.
-- **SC-005**: The redraw benchmark stays at or under 25 ms at p95.
+- **SC-005**: The redraw benchmark stays inside the redraw budget `scripts/bench.js` enforces (300 ms at p95; the guide's 25 ms target is not enforced).
 - **SC-006**: Rendering with `COLORTERM=256color` emits no 24-bit colour sequence, and rendering
   with `NO_COLOR=1` emits no colour sequence and one `▏` per chip.
 

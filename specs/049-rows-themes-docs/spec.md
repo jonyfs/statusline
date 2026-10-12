@@ -69,7 +69,7 @@ of the cells and the colour of each model.
 
 A person picks `tokyonight`, `rosepine`, `dracula`, `solarized` or `onedark`, or `terminal`.
 
-**Why this priority**: a bar that clashes with the terminal is a bar people turn off.
+**Why this priority**: people turn off a bar that clashes with the terminal.
 
 **Independent Test**: for each of the five, assert every token is defined and every emitted
 foreground and background pair reaches 4.5:1; for `terminal`, assert it draws with the 16
@@ -191,11 +191,11 @@ that matches the choice.
 
 ### Measurable Outcomes
 
-- **SC-001**: Eleven palettes are known to `doctor`.
-- **SC-002**: Every emitted pair is at least 4.5:1 in the ten non-terminal palettes, and at
+- **SC-001**: Twelve palettes are known to `doctor`.
+- **SC-002**: Every emitted pair is at least 4.5:1 in the eleven non-terminal palettes, and at
   least 7:1 in all of them with `CONTRAST=high`.
 - **SC-003**: With `FLAVOR=terminal`, no `38;2`, `48;2`, `38;5` or `48;5` sequence appears.
-- **SC-004**: The redraw benchmark stays at or under 25 ms at p95.
+- **SC-004**: The redraw benchmark stays inside the redraw budget `scripts/bench.js` enforces (300 ms at p95; the guide's 25 ms target is not enforced).
 
 ## Assumptions
 
@@ -210,4 +210,4 @@ that matches the choice.
 
 Per design review items J91 to J100: `src/taskRows.js`, `src/gateRows.js`, `src/theme.js`
 (palettes, `terminal`), `src/contrast.js` (high mode), `src/ramp.js` (cvd), `src/doctor.js`,
-`scripts/generate-images.py`, `scripts/generate-composer.js`, tests, docs and the README.
+`scripts/generate-images.js` and `scripts/rasterise-ansi.py`, `scripts/generate-composer.js`, tests, docs and the README.

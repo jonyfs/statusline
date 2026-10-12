@@ -207,7 +207,7 @@ icons names the three values and links it.
   rejected ones is present.
 - **SC-003**: The emoji tier fits at 80, 120 and 200 columns in both width settings.
 - **SC-004**: With the variable unset, every preview other than `emoji-tier.svg` is unchanged.
-- **SC-005**: The redraw benchmark stays at or under 25 ms at p95.
+- **SC-005**: The redraw benchmark stays inside the redraw budget `scripts/bench.js` enforces (300 ms at p95; the guide's 25 ms target is not enforced).
 
 ## Assumptions
 

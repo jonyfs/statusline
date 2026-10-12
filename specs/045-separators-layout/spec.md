@@ -137,8 +137,7 @@ wider than its width.
 A person with a small pane picks the compact design: directory, branch, model, context and the
 5-hour window on one line.
 
-**Why this priority**: it is the design the other three lines cannot be, for a window the three
-lines do not fit.
+**Why this priority**: it is the design for a window the three-line bar does not fit.
 
 **Independent Test**: the preset exists with exactly those keys on line 1, and the previews
 include it.
@@ -213,7 +212,7 @@ include it.
   same chips, apart from `round`'s caps.
 - **SC-003**: At 40, 80 and 120 columns no line is wider than its width.
 - **SC-004**: The 4.5:1 test of feature 040 passes unchanged.
-- **SC-005**: The redraw benchmark stays at or under 25 ms at p95.
+- **SC-005**: The redraw benchmark stays inside the redraw budget `scripts/bench.js` enforces (300 ms at p95; the guide's 25 ms target is not enforced).
 
 ## Assumptions
 

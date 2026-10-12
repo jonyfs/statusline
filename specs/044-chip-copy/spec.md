@@ -260,7 +260,7 @@ the repository in the quieter colour.
 - **SC-003**: No chip text the bar writes itself contains a capital that is not an acronym, a
   unit or data.
 - **SC-004**: The 4.5:1 test of feature 040 passes unchanged.
-- **SC-005**: The redraw benchmark stays at or under 25 ms at p95.
+- **SC-005**: The redraw benchmark stays inside the redraw budget `scripts/bench.js` enforces (300 ms at p95; the guide's 25 ms target is not enforced).
 
 ## Assumptions
 

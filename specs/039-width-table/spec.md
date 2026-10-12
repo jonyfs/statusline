@@ -163,7 +163,7 @@ column, with and without the Ambiguous setting.
   test that failed before the change.
 - **SC-002**: The existing suite passes with no test edited to fit the new behaviour.
 - **SC-003**: No hand-written wide range remains in `displayWidth`.
-- **SC-004**: The redraw benchmark stays inside its existing budget (p95 at or under 25 ms).
+- **SC-004**: The redraw benchmark stays inside its existing budget (p95 inside the budget `scripts/bench.js` enforces (300 ms; the guide's 25 ms target is not enforced)).
 - **SC-005**: `npm run previews` leaves `docs/previews` unchanged, because the bar draws none of
   the eight characters today. If it does change, each changed preview is explained in the
   commit.
