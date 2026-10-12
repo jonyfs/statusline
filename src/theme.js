@@ -310,7 +310,10 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
       const prev = chipOf(palette, segments[i - 1].color).bg;
       out += `${fg(prev)}${bg(segBg)}${arrow}`;
     }
-    const text = seg.url ? link(seg.url, seg.text) : seg.text;
+    // Without colour a chip has no edge. Its leading pad becomes a thin bar,
+    // the same width, so the fit that was measured with the pad still holds.
+    const label = colourEnabled() ? seg.text : `\u258f${seg.text.replace(/^ /, "")}`;
+    const text = seg.url ? link(seg.url, label) : label;
     out += `${bg(segBg)}${fg(segFg)}${text}`;
   });
   const last = segments[segments.length - 1];
@@ -353,6 +356,7 @@ const AMBIGUOUS = new Set([
   0x00b7, // · middle dot, the separator between a row's columns
   0x2500, // ─ the empty cell of a gauge
   0x2588, 0x2592, 0x2593, // █ ▒ ▓ its fills
+  0x258f, // ▏ the left edge of a chip when NO_COLOR removes its background
   0x2026, // … ellipsis, where a clipped row or label is cut
   // Not drawn today, and listed anyway. These are Ambiguous per Unicode
   // whether or not this bar uses them, and every one of them was on the bar

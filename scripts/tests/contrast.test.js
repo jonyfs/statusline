@@ -277,3 +277,43 @@ await test("NO_COLOR wins over any depth", () => {
     assert.ok(!/\x1b\[(38|48);/.test(out));
   });
 });
+
+import { displayWidth, link } from "../../src/theme.js";
+
+await test("linked text is underlined dotted on a terminal that draws it, and only there", () => {
+  const seg = [{ color: "blue", text: " name ", url: "https://example.com" }];
+  withEnv({ KITTY_WINDOW_ID: "1" }, () => {
+    const out = renderRow(PALETTES.mocha, seg);
+    assert.ok(out.includes("\x1b[4:4m"), "dotted underline on");
+    assert.ok(out.includes("\x1b[24m"), "and off again");
+  });
+  withEnv({ KITTY_WINDOW_ID: undefined, WT_SESSION: undefined, TERM_PROGRAM: undefined, VTE_VERSION: undefined, TERM: "xterm" }, () => {
+    assert.ok(!renderRow(PALETTES.mocha, seg).includes("\x1b[4:4m"));
+    assert.equal(link("https://example.com", "x"), "\x1b]8;;https://example.com\x07x\x1b]8;;\x07");
+  });
+  withEnv({ KITTY_WINDOW_ID: "1", NO_COLOR: "1" }, () => {
+    assert.ok(renderRow(PALETTES.mocha, seg).includes("\x1b[4:4m"), "an underline is not a colour");
+  });
+});
+
+await test("the dotted underline is not counted as text", () => {
+  assert.equal(displayWidth("\x1b[4:4mab\x1b[24m"), 2);
+});
+
+await test("with NO_COLOR each chip starts with a left edge", () => {
+  withEnv({ NO_COLOR: "1" }, () => {
+    const out = renderRow(PALETTES.mocha, [
+      { color: "red", text: " one " },
+      { color: "green", text: " two " },
+    ]);
+    assert.equal(out.split("▏").length - 1, 2);
+    assert.ok(out.startsWith("▏one "));
+    assert.equal(displayWidth("▏"), 1);
+  });
+  withEnv({ NO_COLOR: undefined }, () => {
+    assert.ok(!renderRow(PALETTES.mocha, [{ color: "red", text: " one " }]).includes("▏"));
+  });
+  withEnv({ CLAUDE_STATUSLINE_AMBIGUOUS_WIDE: "1" }, () => {
+    assert.equal(displayWidth("▏"), 2);
+  });
+});
