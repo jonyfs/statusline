@@ -127,7 +127,7 @@ await test("doctor names the active flavor and where it came from", () => {
 
 await test("doctor warns when the flavor name is unknown", () => {
   const cwd = mkdtempSync(path.join(os.tmpdir(), "statusline-flavor-"));
-  const status = flavorStatus(cwd, { CLAUDE_STATUSLINE_FLAVOR: "dracula" });
+  const status = flavorStatus(cwd, { CLAUDE_STATUSLINE_FLAVOR: "solarized-light" });
   assert.equal(status.known, false);
-  assert.equal(status.line, 'flavor: unknown "dracula" (from CLAUDE_STATUSLINE_FLAVOR), using mocha');
+  assert.equal(status.line, 'flavor: unknown "solarized-light" (from CLAUDE_STATUSLINE_FLAVOR), using mocha');
 });

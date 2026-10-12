@@ -1,5 +1,5 @@
 import { WIDE } from "./data/wide.js";
-import { chipColours, contrastRatio, lightenOklch, readableOn, toOklch } from "./contrast.js";
+import { chipColours, contrastRatio, lightenOklch, readableOn, toOklch, HIGH } from "./contrast.js";
 
 export const PALETTES = {
   mocha: {
@@ -52,7 +52,66 @@ export const PALETTES = {
     sapphire: "#8ec07c", blue: "#83a598", lavender: "#bdae93", mauve: "#b16286",
     flamingo: "#d5c4a1", teal: "#689d6a", pink: "#d3869b",
   },
+
+  // Five editor themes, and the terminal's own colours (specs/049). Each
+  // defines every token and is never the default. The values are the themes'
+  // published ones mapped to the token names the bar uses; where a theme has
+  // no colour for a token the nearest one stands in.
+  tokyonight: {
+    crust: "#15161e", mantle: "#16161e", base: "#1a1b26",
+    surface0: "#24283b", surface1: "#292e42", surface2: "#3b4261", text: "#c0caf5",
+    red: "#f7768e", peach: "#ff9e64", yellow: "#e0af68", green: "#9ece6a",
+    sapphire: "#7dcfff", blue: "#7aa2f7", lavender: "#9aa5ce", mauve: "#bb9af7",
+    flamingo: "#ff757f", teal: "#73daca", pink: "#ff007c",
+  },
+  rosepine: {
+    crust: "#16141f", mantle: "#1f1d2e", base: "#191724",
+    surface0: "#26233a", surface1: "#403d52", surface2: "#524f67", text: "#e0def4",
+    red: "#eb6f92", peach: "#ebbcba", yellow: "#f6c177", green: "#9ccfd8",
+    sapphire: "#31748f", blue: "#3e8fb0", lavender: "#908caa", mauve: "#c4a7e7",
+    flamingo: "#ea9a97", teal: "#56949f", pink: "#ea9a97",
+  },
+  dracula: {
+    crust: "#191a21", mantle: "#21222c", base: "#282a36",
+    surface0: "#343746", surface1: "#44475a", surface2: "#6272a4", text: "#f8f8f2",
+    red: "#ff5555", peach: "#ffb86c", yellow: "#f1fa8c", green: "#50fa7b",
+    sapphire: "#8be9fd", blue: "#6272a4", lavender: "#caa9fa", mauve: "#bd93f9",
+    flamingo: "#ff9ac1", teal: "#7ee0c6", pink: "#ff79c6",
+  },
+  solarized: {
+    crust: "#00212b", mantle: "#073642", base: "#002b36",
+    surface0: "#073642", surface1: "#586e75", surface2: "#657b83", text: "#93a1a1",
+    red: "#dc322f", peach: "#cb4b16", yellow: "#b58900", green: "#859900",
+    sapphire: "#2aa198", blue: "#268bd2", lavender: "#839496", mauve: "#6c71c4",
+    flamingo: "#d33682", teal: "#2aa198", pink: "#d33682",
+  },
+  onedark: {
+    crust: "#181a1f", mantle: "#21252b", base: "#282c34",
+    surface0: "#2c313a", surface1: "#3e4451", surface2: "#4b5263", text: "#abb2bf",
+    red: "#e06c75", peach: "#d19a66", yellow: "#e5c07b", green: "#98c379",
+    sapphire: "#56b6c2", blue: "#61afef", lavender: "#a9b1d6", mauve: "#c678dd",
+    flamingo: "#be5046", teal: "#4db5a8", pink: "#e06c9f",
+  },
+  // The terminal's own 16 colours, written as `ansi:N`. Its colours are not
+  // known when the bar is drawn, so it is exempt from the contrast test and
+  // draws black or bright white text on them (constitution 8.5.0, K11).
+  terminal: {
+    crust: "ansi:0", mantle: "ansi:0", base: "ansi:0",
+    surface0: "ansi:8", surface1: "ansi:8", surface2: "ansi:8", text: "ansi:7",
+    red: "ansi:1", peach: "ansi:9", yellow: "ansi:3", green: "ansi:2",
+    sapphire: "ansi:6", blue: "ansi:4", lavender: "ansi:12", mauve: "ansi:5",
+    flamingo: "ansi:13", teal: "ansi:14", pink: "ansi:13",
+  },
 };
+
+/**
+ * `CLAUDE_STATUSLINE_CONTRAST=high`: pure black or white text at 7:1, for a
+ * person who needs more than the 4.5:1 floor. Read per call, like `NO_COLOR`.
+ */
+export const contrastHigh = (env = process.env) => String(env.CLAUDE_STATUSLINE_CONTRAST ?? "").toLowerCase() === "high";
+
+/** Whether a palette value is one of the terminal's own colours. */
+export const isAnsi = (value) => typeof value === "string" && value.startsWith("ansi:");
 
 const POWERLINE_ARROW = "";
 const POWERLINE_THIN = "\u{E0B1}";
@@ -209,6 +268,12 @@ export function drawnColour(hex, depth = colourDepth()) {
 /** The SGR sequence for a foreground (38) or background (48) colour. */
 function sgr(kind, hex) {
   if (!colourEnabled()) return "";
+  if (isAnsi(hex)) {
+    // The terminal's own colour: the 30s and 40s, and the bright 90s and 100s.
+    const n = Number(hex.slice(5));
+    const base = kind === 38 ? 30 : 40;
+    return `\x1b[${n < 8 ? base + n : base + 60 + (n - 8)}m`;
+  }
   if (colourDepth() === "256") return `\x1b[${kind};5;${nearest256(hex).index}m`;
   const [r, g, b] = hexToRgb(hex);
   return `\x1b[${kind};2;${r};${g};${b}m`;
@@ -297,6 +362,13 @@ export function resolveColour(palette, colour) {
  */
 function chipOf(palette, colour) {
   const wanted = resolveColour(palette, colour);
+  // The terminal's colours are unknown: black on the bright ones and bright
+  // white on the dark neutrals, with no ratio to compute.
+  if (isAnsi(wanted)) {
+    const neutral = ["surface0", "surface1", "surface2", "base", "mantle", "crust"].includes(colour);
+    return { fg: neutral ? "ansi:15" : "ansi:0", bg: wanted };
+  }
+  if (contrastHigh()) return chipColours(palette, wanted, undefined, HIGH);
   if (colourDepth() !== "256") return chipColours(palette, wanted);
   const drawn = chipColours(quantised(palette), drawnColour(wanted, "256"), (hex) => drawnColour(hex, "256"));
   return { fg: drawn.fg, bg: drawn.bg };
@@ -328,6 +400,7 @@ export const GOOD = "\u0004";
  */
 export function quietText(palette, colour) {
   const { fg: strong, bg } = chipOf(palette, colour);
+  if (isAnsi(bg) || contrastHigh()) return strong;
   for (const token of [palette.text, palette.crust]) {
     const tone = colourDepth() === "256" ? drawnColour(token, "256") : token;
     if (tone !== strong && contrastRatio(tone, bg) >= 4.5) return tone;
@@ -340,7 +413,19 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
   const glyphs = SEPARATOR_GLYPHS[style];
   const chips = segments.map((seg) => {
     const { fg: chipFg, bg: segBg } = chipOf(palette, seg.color);
-    const toned = seg.tone ? readableOn(resolveColour(palette, seg.tone), segBg) : null;
+    const readable = (c, onBg) => {
+      if (isAnsi(c) || isAnsi(onBg)) return c;
+      if (colourDepth() !== "256") return readableOn(c, onBg);
+      // At 256 colours the adjusted colour is rounded to the nearest index,
+      // which can land below the floor; ask for a little more until it does not.
+      let drawn = onBg;
+      for (let min = 4.5; min <= 7.01; min += 0.5) {
+        drawn = drawnColour(readableOn(c, onBg, min), "256");
+        if (contrastRatio(drawn, onBg) >= 4.5) return drawn;
+      }
+      return drawn;
+    };
+    const toned = seg.tone ? readable(resolveColour(palette, seg.tone), segBg) : null;
     const segFg = toned ?? (seg.quiet ? quietText(palette, seg.color) : chipFg);
     // Without colour a chip has no edge. Its leading pad becomes a thin bar,
     // the same width, so the fit that was measured with the pad still holds.
@@ -349,7 +434,7 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
     // text, drawn in the token's colour made readable on this background,
     // then the chip's own text colour again.
     if (seg.icon && colourEnabled()) {
-      const accent = readableOn(resolveColour(palette, seg.icon), segBg);
+      const accent = readable(resolveColour(palette, seg.icon), segBg);
       label = label.replace(/^(\s*)(\S+)/, (_, pad, word) => `${pad}${fg(accent)}${word}${fg(segFg)}`);
     }
     // The segment builders mark a figure strong and a reset or unit quiet with
@@ -363,7 +448,7 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
         label = label.replace(/[\u0001-\u0004]/g, "");
       } else {
         const quiet = fg(quietText(palette, seg.color));
-        const good = fg(readableOn(resolveColour(palette, "green"), segBg));
+        const good = fg(readable(resolveColour(palette, "green"), segBg));
         label = label
           .replace(/\u0001/g, "\x1b[1m")
           .replace(/\u0002/g, quiet)

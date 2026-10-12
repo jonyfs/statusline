@@ -10,6 +10,9 @@ const MIN_RATIO = 4.5;
 const STEP = 0.04;
 const FIXED_CANDIDATES = ["#11111b", "#ffffff"];
 
+/** The high-contrast mode: pure black or white at 7:1 (specs/049). */
+export const HIGH = { min: 7, candidates: ["#000000", "#ffffff"], key: "high" };
+
 export function hexToRgb(hex) {
   const n = parseInt(hex.slice(1), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -118,17 +121,17 @@ const readableMemo = new Map();
  * away from the background's own lightness, hue and chroma kept. A colour
  * that already reads is returned as it is.
  */
-export function readableOn(hex, bg) {
-  const key = `${hex}|${bg}`;
+export function readableOn(hex, bg, min = MIN_RATIO) {
+  const key = `${hex}|${bg}|${min}`;
   const hit = readableMemo.get(key);
   if (hit) return hit;
   let out = hex;
-  if (contrastRatio(hex, bg) < MIN_RATIO) {
+  if (contrastRatio(hex, bg) < min) {
     const { L, C, h } = toOklch(hex);
     const direction = toOklch(bg).L > 0.6 ? -1 : 1;
     for (let level = L + direction * STEP; level >= 0 && level <= 1; level += direction * STEP) {
       out = fromOklch({ L: level, C, h });
-      if (contrastRatio(out, bg) >= MIN_RATIO) break;
+      if (contrastRatio(out, bg) >= min) break;
     }
   }
   readableMemo.set(key, out);
@@ -147,26 +150,28 @@ const memo = new WeakMap();
  * darkened colour to what the terminal can draw, so the ratio that is checked
  * is the ratio that is shown; the memo is per palette, which is one snap.
  */
-export function chipColours(palette, bg, snap = (hex) => hex) {
+export function chipColours(palette, bg, snap = (hex) => hex, mode = null) {
+  const min = mode?.min ?? MIN_RATIO;
+  const cacheKey = mode ? `${mode.key}|${bg}` : bg;
   let byBg = memo.get(palette);
   if (!byBg) memo.set(palette, (byBg = new Map()));
-  const hit = byBg.get(bg);
+  const hit = byBg.get(cacheKey);
   if (hit) return hit;
 
-  const candidates = [palette.crust, palette.text, ...FIXED_CANDIDATES].filter(Boolean);
+  const candidates = mode ? mode.candidates : [palette.crust, palette.text, ...FIXED_CANDIDATES].filter(Boolean);
   let { fg, ratio } = best(candidates, bg);
   let drawn = bg;
-  if (ratio < MIN_RATIO) {
+  if (ratio < min) {
     const { L, C, h } = toOklch(bg);
     for (let level = L - STEP; level > -STEP; level -= STEP) {
       // `snap` is the terminal's own rounding: a darker colour that rounds
       // back to the one that failed is no step at all.
       drawn = snap(fromOklch({ L: Math.max(0, level), C, h }));
       ({ fg, ratio } = best(candidates, drawn));
-      if (ratio >= MIN_RATIO || level <= 0) break;
+      if (ratio >= min || level <= 0) break;
     }
   }
   const result = { fg, bg: drawn };
-  byBg.set(bg, result);
+  byBg.set(cacheKey, result);
   return result;
 }

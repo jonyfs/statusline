@@ -8,7 +8,7 @@
  * its image side-loading wants a raster URL. Committing the PNGs gives
  * them stable raw.githubusercontent addresses that Medium can fetch.
  *
- * These deliberately live in docs/images/ rather than docs/previews/.
+ * These deliberately live in docs/article-images/ rather than docs/previews/.
  * The previews are checked for staleness in CI, and that check only
  * works because their generation is byte-reproducible. PNG rasterisation
  * is not: it depends on the installed Chrome build and the host's font
@@ -27,7 +27,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = path.join(ROOT, "docs", "previews");
-const OUT = path.join(ROOT, "docs", "images");
+const OUT = path.join(ROOT, "docs", "article-images");
 
 const CHROME_CANDIDATES = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -84,7 +84,7 @@ function main() {
     );
     console.log(`  ${path.basename(target)}  ${w * 2}x${h * 2}`);
   }
-  console.log(`\n${svgs.length} images written to docs/images/`);
+  console.log(`\n${svgs.length} images written to docs/article-images/`);
 }
 
 main();

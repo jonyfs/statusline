@@ -173,7 +173,7 @@ await test("each run is a row after the bar, this worktree marked, and line 1 co
   const lines = out.split("\n");
   assert.match(lines[0], /2 gates · here 3m/);
   const rows = lines.slice(-2);
-  assert.match(rows[0], new RegExp(`${GLYPHS.nerd.gateRunning} pre-commit .*\\* barbershop-dev .*harness/gates .*gates\\.sh › review-cycle\\.test\\.sh .*3m`));
+  assert.match(rows[0], new RegExp(`${GLYPHS.nerd.commit} pre-commit .*\\* barbershop-dev .*harness/gates .*gates\\.sh › review-cycle\\.test\\.sh .*3m`));
   assert.match(rows[1], /  barbershop-056 .*056-tema .*npm test .*48s/);
 });
 
@@ -275,7 +275,7 @@ await test("rows fit the width, giving up the branch first, and plain mode has n
   const text = stripAnsi(rows[0]);
   assert.ok(displayWidth(text) <= 70, text);
   assert.doesNotMatch(text, /harness\/gates/, "the branch went first");
-  assert.match(text, new RegExp(`^${GLYPHS.plain.gateRunning} pre-commit`));
+  assert.match(text, new RegExp(`^${GLYPHS.plain.commit} pre-commit`));
   assert.ok(![...text].some((c) => c.codePointAt(0) >= 0xe000 && c.codePointAt(0) <= 0xf8ff || c.codePointAt(0) >= 0xf0000));
 });
 

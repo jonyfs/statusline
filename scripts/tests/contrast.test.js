@@ -67,7 +67,7 @@ import { renderPayload } from "../../src/render.js";
 import { SCENARIOS, FLAVOR_SCENARIO } from "../preview-fixtures.js";
 
 const NO_ARRANGEMENT = { arrangement: null, origin: "default", path: null, error: null };
-const FLAVORS = ["mocha", "frappe", "macchiato", "latte", "nord", "gruvbox"];
+const FLAVORS = ["mocha", "frappe", "macchiato", "latte", "nord", "gruvbox", "tokyonight", "rosepine", "dracula", "solarized", "onedark"];
 const SEPARATOR_GLYPH = /[\u{E0B0}-\u{E0D4}▸]/u;
 
 /** Every run of text drawn with an explicit foreground and background. */

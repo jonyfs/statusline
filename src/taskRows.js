@@ -70,12 +70,12 @@ export function elapsed(startTime, now) {
  * the text fits the width. `model` is absent until a task's model resolves (Claude Code v2.1.205),
  * and a task with no tier gets no segment rather than a guessed one.
  */
+// By family and not by effort (specs/049-rows-themes-docs): Opus is `mauve`, Sonnet
+// `lavender` and Haiku `teal`, as the colour budget says. The effort is still in the label, and
+// red and green mean what they mean everywhere else on the bar.
 const TIERS = [
-  { test: (m, e) => m === "opus" && (e === "xhigh" || e === "max"), colour: "red" },
-  { test: (m, e) => m === "opus" && e === "high", colour: "peach" },
-  { test: (m) => m === "opus", colour: "peach" },
-  { test: (m, e) => m === "sonnet" && (e === "high" || e === "xhigh" || e === "max"), colour: "yellow" },
-  { test: (m) => m === "sonnet", colour: "green" },
+  { test: (m) => m === "opus", colour: "mauve" },
+  { test: (m) => m === "sonnet", colour: "lavender" },
   { test: (m) => m === "haiku", colour: "teal" },
 ];
 
@@ -142,7 +142,7 @@ const MAX_COLUMN = 48;
  * row and the token count on the next, and padding them to a common width
  * lines up things that are not the same thing.
  */
-function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [] } = {}) {
+function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [], treePrefix = "" } = {}) {
   // Text, or the placeholder. A name that arrives as an object interpolates
   // as the literal `[object Object]` into the column a reader uses to tell
   // one agent from another.
@@ -190,16 +190,16 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   const gauge =
     pct === null ? null : `${eighthsBar(pct)} ${pct >= 85 ? "!" : ""}${Math.round(Math.min(100, pct))}%`;
 
-  // The order is the owner's, chosen on 2026-09-08 from rendered examples:
-  // what it costs, then what is unusual about it, then who it is and what it
-  // is doing. The three sparse columns lead, which means most rows open with
-  // the width they reserve — the trade was made with that in view.
+  // What the agent was asked to do leads (specs/049-rows-themes-docs): it is what a
+  // reader scans for. It replaces the order the owner chose on 2026-09-08, which led with what
+  // the agent costs; the three sparse columns follow it and reserve their width as before.
+  const brief = what ?? (typeIdentifies ? null : name);
   return [
+    cell(brief ? `${treePrefix}${brief}` : treePrefix ? treePrefix.trimEnd() : null, leadColour),
     cell(tierLabel, tier ? palette[tier.colour] ?? palette.surface2 : palette.surface2),
     cell(taskStatus(task), palette.peach),
     cell(typeIdentifies ? name : null, palette.lavender),
     cell(skills.length ? skills.join(", ") : null, palette.green),
-    cell(what ?? (typeIdentifies ? null : name), leadColour),
     cell(step, palette.sapphire),
     cell(gauge, pct === null ? palette.green : palette[rampColour(pct, "green")] ?? palette.green),
     cell(counted === null ? null : abbreviate(counted), palette.surface2),
@@ -254,9 +254,9 @@ const SHED_ORDER = [
   7, // the token count: the gauge beside it already says the proportion
   8, // the age: the least actionable thing on the row
   6, // the gauge: its percentage is the last of it to go
-  2, // the agent type, which is only there when it identifies something
-  1, // the status, which is only there when it is not `running`
-  3, // the skills it is running
+  3, // the agent type, which is only there when it identifies something
+  2, // the status, which is only there when it is not `running`
+  4, // the skills it is running
   5, // the step it is on
 ];
 
@@ -362,7 +362,7 @@ function widthMemoryPath(sessionId) {
  * Shedding still wins. This reserves room; it does not argue for keeping a
  * column the terminal has no space for.
  */
-const REMEMBERED_COLUMNS = [1, 2, 3];
+const REMEMBERED_COLUMNS = [2, 3, 4];
 
 function readWidthMemory(sessionId) {
   try {
@@ -508,12 +508,45 @@ export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, n
     if (n) seen.set(n, (seen.get(n) ?? 0) + 1);
   }
 
+  // A task whose parent is another task of this tick follows it, drawn with a
+  // tree prefix: `├─` for each child but the last, `└─` for the last. Most
+  // harnesses send no parent, so rows stay flat unless one does.
+  const parentOf = (t) => t?.parentId ?? t?.parent_id ?? t?.parentTaskId ?? null;
+  const ids = new Set(tasks.map((t) => t?.id).filter(Boolean));
+  const childrenOf = new Map();
+  for (const t of tasks) {
+    const parent = parentOf(t);
+    if (parent && ids.has(parent) && t?.id !== parent) {
+      if (!childrenOf.has(parent)) childrenOf.set(parent, []);
+      childrenOf.get(parent).push(t);
+    }
+  }
+  const prefixes = new Map();
+  const ordered = [];
+  const placed = new Set();
+  for (const t of tasks) {
+    const parent = parentOf(t);
+    if (parent && ids.has(parent) && t?.id !== parent) continue;
+    ordered.push(t);
+    placed.add(t);
+    const kids = childrenOf.get(t?.id) ?? [];
+    kids.forEach((kid, i) => {
+      prefixes.set(kid.id, i === kids.length - 1 ? "\u2514\u2500 " : "\u251c\u2500 ");
+      ordered.push(kid);
+      placed.add(kid);
+    });
+  }
+  // A task that was missed (a cycle) keeps its place at the end.
+  for (const t of tasks) if (!placed.has(t)) ordered.push(t);
+  tasks = ordered;
+
   const optionsFor = (task) => ({
     columns,
     palette,
     now,
     nameIsShared: (seen.get(taskLabel(task)) ?? 0) > 1,
     skills: skillsByAgent.get(task?.id) ?? [],
+    treePrefix: prefixes.get(task?.id) ?? "",
   });
 
   // Two passes: the columns can only be sized once every row in the tick has

@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Rows, themes, accessibility modes and docs
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items J91 to J100. Constitution v8.5.0 (amendment K11)
 allows the `terminal` palette and exempts it from the contrast test. Features 040 to 048 are

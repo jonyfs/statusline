@@ -79,9 +79,19 @@ function buildPools() {
   // at all. In a terminal it names fewer instead of vanishing. The page is a
   // tool for choosing placement, and placement is what it gets exactly right.
   const common = { flavor: "mocha", tracking: false, now, samples: SAMPLES, maxWidth: 400, maxHeight: 40, asPool: true };
+  const priorIcons = process.env.CLAUDE_STATUSLINE_ICONS;
+  process.env.CLAUDE_STATUSLINE_ICONS = "emoji";
+  let emoji;
+  try {
+    emoji = renderReadings(readings, PAYLOAD, { ...common, asciiArrows: false });
+  } finally {
+    if (priorIcons === undefined) delete process.env.CLAUDE_STATUSLINE_ICONS;
+    else process.env.CLAUDE_STATUSLINE_ICONS = priorIcons;
+  }
   return {
     nerd: renderReadings(readings, PAYLOAD, { ...common, asciiArrows: false }),
     plain: renderReadings(readings, PAYLOAD, { ...common, asciiArrows: true }),
+    emoji,
   };
 }
 
@@ -211,6 +221,8 @@ const page = `<!doctype html>
   <div class="switches">
     <fieldset id="width-switch"><legend>Width</legend></fieldset>
     <fieldset id="glyph-switch"><legend>Glyphs</legend></fieldset>
+    <fieldset id="separator-switch"><legend>Separator</legend></fieldset>
+    <fieldset id="flavor-switch"><legend>Theme</legend><select id="flavor" aria-label="Theme"></select></fieldset>
     <fieldset><legend>Start over</legend><button type="button" id="reset">Back to today</button></fieldset>
   </div>
 
@@ -237,6 +249,11 @@ ${presetCards}
   <textarea id="handover" readonly spellcheck="false"></textarea>
   <p><button type="button" id="copy">Copy the arrangement</button> <span id="copied" class="note"></span></p>
 
+  <h2>The choices that are not in the file</h2>
+  <p class="note">The theme, the icon tier and the separator are environment
+  variables. Defaults are left out.</p>
+  <textarea id="env" readonly spellcheck="false" style="min-height:90px"></textarea>
+
   <footer id="footnote"></footer>
 </main>
 
@@ -255,7 +272,7 @@ const PRESETS = ${escapeScript(PRESETS)};
 const WIDTHS = ${escapeScript(WIDTHS)};
 const ABOUT = ${escapeScript(SEGMENT_ABOUT)};
 const MISSING_CONTENT = ${escapeScript(missingContent)};
-const PALETTE = ${escapeScript(PALETTES.mocha)};
+const FLAVORS = ${escapeScript(Object.keys(PALETTES).filter((name) => name !== "terminal"))};
 const STORAGE_KEY = "statusline-composer-v1";
 
 const draw = createAnsiToSvg(GLYPHS);
@@ -265,10 +282,15 @@ const state = {
   basePreset: "today",
   width: 120,
   glyphs: "nerd",
+  flavor: "mocha",
+  separator: "arrow",
 };
 
 /** What the terminal would print for the arrangement on the canvas. */
 function composeAnsi(width, glyphMode, arrangement) {
+  // The renderer reads the separator style from the environment, and the page
+  // is the one place that sets it for itself.
+  process.env.CLAUDE_STATUSLINE_SEPARATOR = state.separator;
   const pool = POOLS[glyphMode];
   const byKey = new Map(pool.map((s) => [s.key, s]));
   const resolved = resolveArrangement(REGISTRY, arrangement, "page");
@@ -282,13 +304,15 @@ function composeAnsi(width, glyphMode, arrangement) {
       })
       .filter(Boolean);
     if (!row.length) continue;
-    rows.push(fitToWidth(row, width));
+    // The pill style costs two columns a chip, which the fit has to know.
+    const costed = state.separator === "round" && glyphMode === "nerd" ? row.map((s) => ({ ...s, extra: 2 })) : row;
+    rows.push(fitToWidth(costed, width));
     lines.push(line);
   }
   if (!rows.length) return { ansi: "", lines: [], resolved };
   const aligned = alignColumns(rows, width);
   const ansi = aligned
-    .map((row) => renderRow(PALETTE, row, { asciiArrows: glyphMode === "plain", width }))
+    .map((row) => renderRow(PALETTES[state.flavor], row, { asciiArrows: glyphMode !== "nerd", width }))
     .join("\\n");
   return { ansi, lines, resolved, rows: aligned };
 }
@@ -424,6 +448,8 @@ function save() {
       basePreset: state.basePreset,
       width: state.width,
       glyphs: state.glyphs,
+      flavor: state.flavor,
+      separator: state.separator,
     }));
   } catch {
     // A browser with storage switched off still works; it just forgets.
@@ -439,7 +465,9 @@ function restore() {
       state.arrangement = saved.arrangement;
       state.basePreset = saved.basePreset ?? "custom";
       if (WIDTHS.includes(saved.width)) state.width = saved.width;
-      if (saved.glyphs === "plain" || saved.glyphs === "nerd") state.glyphs = saved.glyphs;
+      if (["nerd", "emoji", "plain"].includes(saved.glyphs)) state.glyphs = saved.glyphs;
+      if (FLAVORS.includes(saved.flavor)) state.flavor = saved.flavor;
+      if (["arrow", "round", "slant", "thin"].includes(saved.separator)) state.separator = saved.separator;
     }
   } catch {
     // A stored value that will not parse is a stored value that is gone.
@@ -542,7 +570,7 @@ function buildSwitches() {
   }
 
   const glyphHost = document.getElementById("glyph-switch");
-  for (const [mode, label] of [["nerd", "Nerd Font"], ["plain", "Plain text"]]) {
+  for (const [mode, label] of [["nerd", "Nerd Font"], ["emoji", "Emoji"], ["plain", "Plain text"]]) {
     const button = document.createElement("button");
     button.type = "button";
     button.textContent = label;
@@ -555,6 +583,35 @@ function buildSwitches() {
     });
     glyphHost.append(button);
   }
+
+  const separatorHost = document.getElementById("separator-switch");
+  for (const style of ["arrow", "round", "slant", "thin"]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = style;
+    button.dataset.separator = style;
+    button.addEventListener("click", () => {
+      state.separator = style;
+      save();
+      paintSwitches();
+      renderCanvas();
+    });
+    separatorHost.append(button);
+  }
+
+  const flavorSelect = document.getElementById("flavor");
+  for (const name of FLAVORS) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    flavorSelect.append(option);
+  }
+  flavorSelect.addEventListener("change", () => {
+    state.flavor = flavorSelect.value;
+    save();
+    paintSwitches();
+    renderCanvas();
+  });
 }
 
 function paintSwitches() {
@@ -564,6 +621,20 @@ function paintSwitches() {
   for (const button of document.querySelectorAll("[data-glyphs]")) {
     button.setAttribute("aria-pressed", String(button.dataset.glyphs === state.glyphs));
   }
+  for (const button of document.querySelectorAll("[data-separator]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.separator === state.separator));
+  }
+  document.getElementById("flavor").value = state.flavor;
+  document.getElementById("env").value = environmentFor(state);
+}
+
+/** The variables that reproduce the page's choices, with the defaults left out. */
+function environmentFor({ flavor, glyphs, separator }) {
+  const lines = [];
+  if (flavor !== "mocha") lines.push(\`export CLAUDE_STATUSLINE_FLAVOR=\${flavor}\`);
+  if (glyphs !== "nerd") lines.push(\`export CLAUDE_STATUSLINE_ICONS=\${glyphs}\`);
+  if (separator !== "arrow") lines.push(\`export CLAUDE_STATUSLINE_SEPARATOR=\${separator}\`);
+  return lines.length ? lines.join("\\n") : "# the defaults: nothing to set";
 }
 
 function loadPreset(id) {

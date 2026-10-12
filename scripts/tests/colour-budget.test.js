@@ -102,6 +102,8 @@ await test("a tie for the highest critical percentage goes to the first in line 
 
 await test("an icon on a neutral chip still reaches 4.5:1 in every palette", () => {
   for (const [name, palette] of Object.entries(PALETTES)) {
+    // The terminal's own colours are unknown, so there is no ratio to check.
+    if (name === "terminal") continue;
     const out = renderRow(palette, [{ color: "surface0", icon: "green", text: " X text " }]);
     const [, r, g, b] = /\x1b\[38;2;(\d+);(\d+);(\d+)mX/.exec(out) ?? [];
     assert.ok(r !== undefined, `${name} drew an icon colour`);

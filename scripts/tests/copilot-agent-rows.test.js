@@ -68,7 +68,7 @@ await test("a started subagent runs until it completes or fails, and each runnin
   const rows = lines.filter((l) => /Brief number|Review the diff/.test(l));
   assert.equal(rows.length, 2, out);
   assert.match(out, /Brief number 1/);
-  assert.match(out, /code-review.*Review the diff/);
+  assert.match(out, /Review the diff.*code-review/);
   assert.doesNotMatch(out, /Brief number 3|Brief number 4/);
   assert.match(lines.at(-1), /Review the diff/, "the rows follow the bar's lines");
 });
@@ -183,7 +183,7 @@ await test("the real session log draws its explore subagent while it ran, and no
   assert.equal(running.agents[0].effort, "low");
   assert.equal(running.working, true);
   const out = stripAnsi(renderPayload({ ...fixture, transcript_path: dir }, { sources: emptySources, trackChanges: false, now: whileRunning, ...WIDE }));
-  assert.match(out.split("\n").at(-1), /explore.*Read text files via explore subagent/);
+  assert.match(out.split("\n").at(-1), /Read text files via explore subagent.*explore/);
   const after = copilotSessionActivity(upTo("2026-10-06T02:41:45.000Z"), { now: Date.parse("2026-10-06T02:41:45.000Z") });
   assert.deepEqual(after.agents, []);
 });

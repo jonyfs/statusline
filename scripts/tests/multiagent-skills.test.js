@@ -38,7 +38,7 @@ await test("the snapshot label matches renderTaskRow's identity for the same tas
     await runTaskRows({ now: NOW, input: JSON.stringify({ columns: 100, tasks: [t] }) });
     const snapshot = JSON.parse(readFileSync(snapshotFile(home), "utf8"));
     const row = stripAnsi(renderTaskRow(t, { now: NOW }).content);
-    assert.ok(row.startsWith(snapshot.tasks[0].label), "the row leads with the same label the snapshot recorded");
+    assert.ok(row.includes(snapshot.tasks[0].label), "the row carries the same label the snapshot recorded");
   });
 });
 
