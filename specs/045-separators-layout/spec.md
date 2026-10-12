@@ -161,11 +161,13 @@ include it.
 - **The first and last chip**: `round` draws caps on both; `arrow` and `slant` end with the
   closing glyph as today.
 - **A chip with no icon-only form**: its short form is the last before it is dropped.
-- **The hairline above the bar** (F59): rejected. A line above the bar is a fourth line, and
-  Principle II fixes the display at three. The composer page already separates the bar from the
-  rest of the screen.
-- **Optical padding after arrows** (F54): not changed. A terminal draws columns, and a space
-  of a different width is one column; there is nothing to measure.
+- **The hairline above the bar** (F59): a line above the bar would be a fourth line, which
+  Principle II forbids. The intent is met without one by `CLAUDE_STATUSLINE_HAIRLINE=1`, which
+  draws an overline (SGR 53) on line 1's chips (specs/051-review-fixes).
+- **Optical padding** (F54): the pill drops its inner padding, since its caps are its edges, so
+  it costs what an arrow chip costs. The arrow keeps one column of padding: the track already
+  costs about six columns a gauge, and a second pad would shed chips a column earlier
+  (specs/051-review-fixes).
 
 ## Requirements *(mandatory)*
 

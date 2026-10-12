@@ -701,7 +701,8 @@ Two accessibility modes sit beside the palettes:
 
 - `CLAUDE_STATUSLINE_CONTRAST=high` draws pure black or white text and raises the floor to 7:1.
 - `CLAUDE_STATUSLINE_RAMP=cvd` draws a healthy gauge's icon in blue, the warn band in yellow
-  and the critical band in red, so a person who cannot separate red from green is not asked to.
+  and the critical band in red, so a person who cannot separate red from green is not asked to. Blue and yellow are the axis colour vision deficiencies keep, and red stays for critical because
+  the budget gives that band red; peach there would sit next to the warn yellow in lightness.
 
 The [composer page](#arranging-the-bar-yourself) has a theme, an icon tier and a separator
 control and prints the variables for the choice.
@@ -725,6 +726,10 @@ Each colour means one thing. `doctor --explain` ends with the legend.
 | sapphire | a cold prompt cache, todo |
 | flamingo | every skill, alike |
 | neutral | plain state: directory, repository, working tree, healthy gauges |
+
+With no flavor set, the bar reads the terminal's background from `COLORFGBG`, then from the
+answer `install` or `doctor` got by asking the terminal (OSC 11) and remembered per terminal.
+A redraw never asks the terminal itself: the reply would arrive on Claude Code's own input.
 
 The text on a chip is chosen for each background: whichever of the flavor's own `crust` and
 `text`, `#11111b` and `#ffffff` has the highest WCAG contrast, and at least 4.5:1. A background
@@ -1147,10 +1152,11 @@ can also carry its own settings in a file, which is the next section.
 | Variable | What it does |
 |---|---|
 | `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato`, `latte`, `nord`, `gruvbox`, `tokyonight`, `rosepine`, `dracula`, `solarized`, `onedark` or `terminal` (the terminal's own 16 colours). An unknown name draws `mocha`, and `doctor` says so on its `flavor:` line. With no flavor set anywhere, a terminal that reports a light background through `COLORFGBG` (7 or 15) gets `latte`, and `doctor` says the choice came from the terminal |
-| `COLORTERM` | `truecolor` or `24bit` draws 24-bit colour. Any other value, or none in Apple Terminal, draws the nearest of the 256 colours. An unset value elsewhere keeps 24-bit, since Windows Terminal and some SSH setups draw it and do not set the variable |
+| `COLORTERM` | `truecolor` or `24bit` draws 24-bit colour. Any other value, or none in Apple Terminal, draws the nearest of the 256 colours. With `COLORTERM` unset, a `TERM` ending in `-256color` draws 256 colours, except in Windows Terminal, tmux and the terminals that name themselves (iTerm, WezTerm, VS Code, Ghostty, Hyper), which draw 24-bit and often set neither. `doctor` prints the depth and why |
 | `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_ICONS` | `nerd` (default), `emoji` or `plain`. The emoji tier draws pictures and takes the plain separator unless one is named |
 | `CLAUDE_STATUSLINE_UNDERLINE=0` | Turns off the dotted underline on linked text |
+| `CLAUDE_STATUSLINE_HAIRLINE=1` | Draws an overline on line 1, a rule above the bar without a fourth line. A terminal that does not draw overlines ignores it |
 | `CLAUDE_STATUSLINE_BLOCK=1` | Pads every line to the widest with spaces on the `mantle` colour, so the right edge is a block |
 | `CLAUDE_STATUSLINE_SPARKLINE=1` | Adds the last eight samples beside the burn rate and, with eight readings, beside the context figure |
 | `CLAUDE_STATUSLINE_EVENT_EMOJI=1` | In the Nerd Font tier, draws 💥, 🔥 and 🚀 for conflicts, a critical burn rate and an applied update |

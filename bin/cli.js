@@ -49,6 +49,20 @@ function ignoreClosedOutput() {
   }
 }
 
+/**
+ * Asks the terminal for its background and remembers the answer, for the render
+ * path to read later. Only here, where the command owns the terminal: a render
+ * cannot ask, because the reply would arrive on Claude Code's own input.
+ */
+async function rememberTerminalBackground() {
+  try {
+    const { refreshTerminalBackground } = await import("../src/terminalBackground.js");
+    await refreshTerminalBackground();
+  } catch {
+    // an unanswered query is an unknown background
+  }
+}
+
 const UPDATE_COMMAND = `node "${process.argv[1]}" update`;
 
 // One string for both answers: `--help` asked for it, and an unknown command
@@ -121,6 +135,7 @@ async function main() {
       console.log(USAGE);
       break;
     case "install": {
+      await rememberTerminalBackground();
       const harness = harnessFlag();
       if (harness) {
         const { installHarness } = await import("../src/install.js");
@@ -321,6 +336,7 @@ async function main() {
         process.stdout.write(explainSegments() + "\n");
         break;
       }
+      if (!rest.includes("--json")) await rememberTerminalBackground();
       const out = await runDoctor({ json: rest.includes("--json") });
       process.stdout.write(out + "\n");
       break;
