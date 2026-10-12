@@ -45,7 +45,7 @@ await test("getActiveSkillsTrueCount reflects more skills than SKILLS_SHOWN", ()
       ...WIDE,
     })
   );
-  assert.match(out, /a, b, c, d, e \+14/, "hidden count reflects the true total, not the display cap");
+  assert.match(out, /a(?:, | \uE0B5 )b(?:, | \uE0B5 )c(?:, | \uE0B5 )d(?:, | \uE0B5 )e \+14/, "hidden count reflects the true total, not the display cap");
 });
 
 await test("getActiveSkillsTrueCount uses scannedTrueCount when given, else the scanned array's length", () => {

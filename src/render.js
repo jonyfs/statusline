@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import { realpathSync } from "node:fs";
-import { PALETTES, renderRow, displayWidth, separatorStyle, STRONG, QUIET, MARK_OFF, GOOD } from "./theme.js";
+import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD } from "./theme.js";
 import {
   getDirLabel,
   getDirUrl,
@@ -1079,6 +1079,9 @@ export function renderReadings(
     g.conflict = GLYPHS.emoji.conflict;
     g.updateDone = GLYPHS.emoji.updateDone;
   }
+  // Skill names are joined by the thin round separator in the Nerd Font tier,
+  // and by a comma where that glyph cannot be drawn (specs/050-catalog-gaps).
+  const skillJoin = tier === "nerd" ? " \u{E0B5} " : ", ";
   // The band mark is a coloured circle in the emoji tier, where the rest of
   // the line is already pictures.
   // A figure keeps its width: a percentage is padded to three characters with
@@ -1284,6 +1287,9 @@ export function renderReadings(
     // File counts are not animated: they change on every save, and
     // Principle X reserves animation for state that changes discretely.
     if (git.changed) state.push(`${g.modified} ${git.changed}`);
+    // Staged and removed files, from the same status read (specs/050).
+    if (git.staged) state.push(`${g.added} ${git.staged}`);
+    if (git.removed) state.push(`${g.removed} ${git.removed}`);
     if (git.untracked) state.push(`${g.untracked} ${git.untracked}`);
     // A null ahead/behind means there is no upstream at all, which is not
     // the same as being in sync with one (FR-012).
@@ -1492,7 +1498,7 @@ export function renderReadings(
         key: "skills",
         color: ROLE.skills,
         emphasis: changes.isChanged("skills"),
-        text: ` ${g.skills} ${skills.join(", ")}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
+        text: ` ${g.skills} ${skills.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
       },
     ];
     pushLine2Extras(l2);
@@ -1623,6 +1629,18 @@ export function renderReadings(
     context: () => {
       const { band } = contextBand(ctxPct, repoConfig(readings.cwd || process.cwd()).contextBands);
       const built = gaugeChipText({ icon: g.context, label: "context", pct: ctxPct, band });
+      // The last eight context readings, when asked for and when there are that
+      // many: whether it is climbing or flat (specs/050-catalog-gaps).
+      const spark = process.env.CLAUDE_STATUSLINE_SPARKLINE === "1" ? sparkline(sampleHistory, "contextPct", 8) : null;
+      if (spark) {
+        const fig = gaugeFigure(ctxPct, band);
+        const longer = ` ${g.context} context ${track(ctxPct, trackSet)} ${fig} ${quiet(spark)} `;
+        return {
+          ...gaugeChip(ctxPct, band),
+          text: longer,
+          variants: [built.text, ...built.variants, ` ${g.context} ${fig} `],
+        };
+      }
       // The word is the next thing to go after the track.
       const bare = ` ${g.context} ${gaugeFigure(ctxPct, band)} `;
       return { ...gaugeChip(ctxPct, band), text: built.text, variants: [...built.variants, bare] };
@@ -1912,10 +1930,19 @@ export function renderReadings(
   // boundaries up down the bar. It yields to the width limit, line by line,
   // inside `alignColumns`.
   const aligned = alignColumns(surviving.map((entry) => entry.row), maxWidth);
-  const drawn = surviving.map((entry, i) => ({
-    line: entry.line,
-    text: renderRow(palette, aligned[i], opts),
-  }));
+  // `CLAUDE_STATUSLINE_BLOCK=1`: every line is padded to the widest one with
+  // spaces on `mantle`, so the right edge is a block and not a ragged one.
+  const block = process.env.CLAUDE_STATUSLINE_BLOCK === "1" && colourEnabled();
+  const texts = surviving.map((_, i) => renderRow(palette, aligned[i], opts));
+  const widest = block ? Math.max(0, ...texts.map((text) => displayWidth(text))) : 0;
+  const drawn = surviving.map((entry, i) => {
+    let text = texts[i];
+    if (block) {
+      const pad = widest - displayWidth(text);
+      if (pad > 0) text += `${bgSeq(palette.mantle)}${" ".repeat(pad)}\x1b[0m`;
+    }
+    return { line: entry.line, text };
+  });
   if (asRows) return drawn;
   // Under Copilot, which has no subagent row setting, the rows follow the
   // bar's lines in the same output. They are not lines of the bar: they never
