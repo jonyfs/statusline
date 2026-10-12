@@ -345,7 +345,7 @@ await test("the quota chips sit where the windows sit, labelled monthly, with th
   assert.match(line3, new RegExp(`${G.calendar} month chat\\s+3%\\s+\\S+\\s+nov 1 `, "u"));
   assert.ok(line3.indexOf("context") < line3.indexOf("premium") && line3.indexOf("premium") < line3.indexOf("chat"));
   assert.doesNotMatch(out, / 5h | 7d /, "still no windows Copilot does not have");
-  const narrow = render(copilot(), { maxWidth: 120 }, { getCopilotQuota: () => quota, getRtkSavings: () => 81 });
+  const narrow = render(copilot(), { maxWidth: 128 }, { getCopilotQuota: () => quota, getRtkSavings: () => 81 });
   assert.match(narrow, /month chat\s+3%/, "the figure stays");
   assert.doesNotMatch(narrow, /month chat 3%\s+\S+\s+/, "the date goes before the figure does");
 });

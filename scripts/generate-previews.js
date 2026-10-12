@@ -40,6 +40,7 @@ import { renderPayload } from "../src/render.js";
 import { alignTaskRows } from "../src/taskRows.js";
 import { ansiToSvg } from "../src/preview/ansiToSvg.js";
 import { PALETTES } from "../src/theme.js";
+import { preset } from "./composer-presets.js";
 import { SCENARIOS, FLAVOR_SCENARIO, EXTRA_FLAVORS, FIXED_NOW, TASK_ROWS_SCENARIO } from "./preview-fixtures.js";
 
 const OUT_DIR = path.join(
@@ -133,6 +134,44 @@ function main() {
     if (priorIcons === undefined) delete process.env.CLAUDE_STATUSLINE_ICONS;
     else process.env.CLAUDE_STATUSLINE_ICONS = priorIcons;
   }
+
+  // The pill separator (specs/045-separators-layout), and the compact preset:
+  // one line, the five segments a small pane has room for.
+  const priorSeparator = process.env.CLAUDE_STATUSLINE_SEPARATOR;
+  process.env.CLAUDE_STATUSLINE_SEPARATOR = "round";
+  try {
+    const roundAnsi = withFrozenClock(() =>
+      renderPayload(FLAVOR_SCENARIO.payload, {
+        sources: FLAVOR_SCENARIO.sources,
+        trackChanges: false,
+        layout: NO_ARRANGEMENT,
+        maxWidth: PREVIEW_WIDTH,
+        maxHeight: PREVIEW_HEIGHT,
+      })
+    );
+    writeFileSync(
+      path.join(OUT_DIR, "separator-round.svg"),
+      ansiToSvg(roundAnsi, { title: "CLAUDE_STATUSLINE_SEPARATOR=round", background: PALETTES.mocha.base })
+    );
+    written.push("separator-round.svg");
+  } finally {
+    if (priorSeparator === undefined) delete process.env.CLAUDE_STATUSLINE_SEPARATOR;
+    else process.env.CLAUDE_STATUSLINE_SEPARATOR = priorSeparator;
+  }
+  const compactAnsi = withFrozenClock(() =>
+    renderPayload(FLAVOR_SCENARIO.payload, {
+      sources: FLAVOR_SCENARIO.sources,
+      trackChanges: false,
+      layout: { arrangement: preset("compact").arrangement, origin: "preset", path: null, error: null },
+      maxWidth: PREVIEW_WIDTH,
+      maxHeight: PREVIEW_HEIGHT,
+    })
+  );
+  writeFileSync(
+    path.join(OUT_DIR, "compact.svg"),
+    ansiToSvg(compactAnsi, { title: "The compact preset: one line", background: PALETTES.mocha.base })
+  );
+  written.push("compact.svg");
 
   const asciiAnsi = withFrozenClock(() =>
     renderPayload(FLAVOR_SCENARIO.payload, {

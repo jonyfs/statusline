@@ -59,6 +59,41 @@ const POWERLINE_THIN = "\u{E0B1}";
 const ASCII_ARROW = "▸";
 
 /**
+ * What each separator style draws (Principle I, v8.3.0).
+ *
+ * `between` joins two chips on different backgrounds, `same` two on one
+ * background, `open` and `close` start and end a run, and `gap` is what sits
+ * between two pills. `useText` draws `between` in the previous chip's text
+ * colour, for the thin style, where the glyph is a line and not a shape.
+ */
+const SEPARATOR_GLYPHS = {
+  arrow: { between: POWERLINE_ARROW, same: POWERLINE_THIN, open: "", close: POWERLINE_ARROW },
+  slant: { between: "\u{E0BC}", same: POWERLINE_THIN, open: "", close: "\u{E0BC}" },
+  thin: { between: POWERLINE_THIN, same: POWERLINE_THIN, open: "", close: POWERLINE_THIN, useText: true },
+  round: { between: "", same: "\u{E0B5}", open: "\u{E0B6}", close: "\u{E0B4}", gap: " " },
+  ascii: { between: ASCII_ARROW, same: ASCII_ARROW, open: "", close: ASCII_ARROW },
+};
+
+/** The styles a person may name. */
+export const SEPARATOR_STYLES = ["arrow", "round", "slant", "thin"];
+
+/**
+ * Which separator style to draw: `arrow` by default, a named one when
+ * `CLAUDE_STATUSLINE_SEPARATOR` asks for it, `ascii` for the plain tier and
+ * `thin` without colour. A value that is none of those is not guessed at: the
+ * default is drawn and `doctor` names it.
+ */
+export function separatorStyle({ asciiArrows = false, style = process.env.CLAUDE_STATUSLINE_SEPARATOR } = {}) {
+  if (asciiArrows) return "ascii";
+  // The solid arrow is a shape cut out of two backgrounds, and with `NO_COLOR`
+  // there are no backgrounds: it becomes a row of filled triangles between
+  // chips that no longer have edges. The thin one is a line, which is what a
+  // divider without colour has to be.
+  if (!colourEnabled()) return "thin";
+  return SEPARATOR_STYLES.includes(style) ? style : "arrow";
+}
+
+/**
  * Which separator to draw.
  *
  * Powerline is the default and the design. A thin separator is a declared
@@ -67,14 +102,7 @@ const ASCII_ARROW = "▸";
  * as long as it is asked for rather than assumed.
  */
 export function separatorFor({ asciiArrows = false, style = process.env.CLAUDE_STATUSLINE_SEPARATOR } = {}) {
-  if (asciiArrows) return ASCII_ARROW;
-  if (style === "thin") return POWERLINE_THIN;
-  // The solid arrow is a shape cut out of two backgrounds, and with `NO_COLOR`
-  // there are no backgrounds: it becomes a row of filled triangles between
-  // chips that no longer have edges. The thin one is a line, which is what a
-  // divider without colour has to be.
-  if (!colourEnabled()) return POWERLINE_THIN;
-  return POWERLINE_ARROW;
+  return SEPARATOR_GLYPHS[separatorStyle({ asciiArrows, style })].between || POWERLINE_ARROW;
 }
 
 function hexToRgb(hex) {
@@ -305,17 +333,13 @@ export function quietText(palette, colour) {
   return strong;
 }
 
-export function renderRow(palette, segments, { asciiArrows = false } = {}) {
-  const arrow = separatorFor({ asciiArrows });
-  let out = "";
-  segments.forEach((seg, i) => {
+export function renderRow(palette, segments, { asciiArrows = false, width = null } = {}) {
+  const style = separatorStyle({ asciiArrows });
+  const glyphs = SEPARATOR_GLYPHS[style];
+  const chips = segments.map((seg) => {
     const { fg: chipFg, bg: segBg } = chipOf(palette, seg.color);
     const toned = seg.tone ? readableOn(resolveColour(palette, seg.tone), segBg) : null;
     const segFg = toned ?? (seg.quiet ? quietText(palette, seg.color) : chipFg);
-    if (i > 0) {
-      const prev = chipOf(palette, segments[i - 1].color).bg;
-      out += `${fg(prev)}${bg(segBg)}${arrow}`;
-    }
     // Without colour a chip has no edge. Its leading pad becomes a thin bar,
     // the same width, so the fit that was measured with the pad still holds.
     let label = colourEnabled() ? seg.text : `\u258f${seg.text.replace(/^ /, "")}`;
@@ -326,9 +350,6 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
       const accent = readableOn(resolveColour(palette, seg.icon), segBg);
       label = label.replace(/^(\s*)(\S+)/, (_, pad, word) => `${pad}${fg(accent)}${word}${fg(segFg)}`);
     }
-    // A segment that changed is bold and underlined, with its colours as
-    // they were: the mark survives `NO_COLOR`, and it does not borrow the
-    // meaning of another colour.
     // The segment builders mark a figure strong and a reset or unit quiet with
     // three control characters (`STRONG`, `QUIET`, `MARK_OFF`), which data
     // cannot carry because the text boundary removes every control character.
@@ -346,16 +367,52 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
           .replace(/\u0003/g, `\x1b[22m${fg(segFg)}`);
       }
     }
+    // A segment that changed is bold and underlined, with its colours as
+    // they were: the mark survives `NO_COLOR`, and it does not borrow the
+    // meaning of another colour.
     if (seg.emphasis) label = `\x1b[1m\x1b[4m${label}\x1b[22m\x1b[24m`;
     const text = seg.url ? link(seg.url, label) : label;
-    out += `${bg(segBg)}${fg(segFg)}${text}`;
+    return { segFg, segBg, text, group: seg.group ?? null, alignRight: seg.alignRight === true };
   });
-  const last = segments[segments.length - 1];
+
+  // A chip opens a run at the start of the row and after a group change. Each
+  // run is closed with the style's end glyph and the next one starts a column
+  // later, so a group is a gap and not a different colour.
+  const open = (chip) =>
+    glyphs.open ? `${reset()}${fg(chip.segBg)}${glyphs.open}${bg(chip.segBg)}` : bg(chip.segBg);
+  const close = (chip) => `${reset()}${fg(chip.segBg)}${glyphs.close}${reset()}`;
+
+  let out = "";
+  chips.forEach((chip, i) => {
+    const prev = chips[i - 1];
+    if (i === 0) {
+      out += open(chip);
+    } else if (chip.alignRight && width && i === chips.length - 1) {
+      // At the right edge of the row: the run is closed, the room is spaces,
+      // and the chip opens a run of its own. With no room it follows as usual.
+      const used = displayWidth(out) + displayWidth(glyphs.close);
+      const need = displayWidth(chip.text) + displayWidth(glyphs.open) + displayWidth(glyphs.close);
+      const room = width - used - need;
+      out += room > 0 ? `${close(prev)}${" ".repeat(room)}${open(chip)}` : `${close(prev)} ${open(chip)}`;
+    } else if (chip.group && prev.group && chip.group !== prev.group) {
+      out += `${close(prev)} ${open(chip)}`;
+    } else if (chip.segBg === prev.segBg) {
+      // The same colour on both sides: a solid arrow would be a shape cut out
+      // of one colour, invisible. The thin one is drawn in the text colour
+      // of the chip it follows (Principle I, v8.3.0).
+      out += `${fg(prev.segFg)}${bg(chip.segBg)}${glyphs.same}`;
+    } else if (glyphs.open) {
+      out += `${close(prev)}${glyphs.gap ?? ""}${open(chip)}`;
+    } else {
+      out += `${fg(glyphs.useText ? prev.segFg : prev.segBg)}${bg(chip.segBg)}${glyphs.between}`;
+    }
+    out += `${bg(chip.segBg)}${fg(chip.segFg)}${chip.text}`;
+  });
   // Reset before the closing cap: without it, the arrow inherits the last
   // segment's own background (still active from the loop above) and its
-  // triangle becomes invisible — same-color foreground on same-color
-  // background — instead of fading into the terminal's real background.
-  out += `${reset()}${fg(chipOf(palette, last.color).bg)}${arrow}${reset()}`;
+  // triangle becomes invisible, same-colour foreground on same-colour
+  // background, instead of fading into the terminal's real background.
+  out += close(chips[chips.length - 1]);
   return out;
 }
 

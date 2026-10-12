@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Separators and line 3 grouping
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items F51 to F60. Constitution v8.3.0 (amendment K3)
 defines the separator styles and the equal-background rule. Features 040 and 044 are merged.
@@ -125,9 +125,9 @@ wider than its width.
    but the icon does, **Then** the icon is drawn.
 2. **Given** a chip that is only worth its words (the branch, the directory), **When** it does
    not fit, **Then** it keeps the rules it has today.
-3. **Given** the update chip, **When** line 1 has room, **Then** it is drawn as its icon only,
-   at the right edge of the line.
-4. **Given** line 1 with no room, **When** drawn, **Then** the update icon is the first thing
+3. **Given** the update chip, **When** line 1 has room, **Then** it is drawn at the right edge
+   of the line, and when it does not have room for its words it is drawn as its icon.
+4. **Given** line 1 with no room, **When** drawn, **Then** the update chip is the first thing
    dropped.
 
 ---
@@ -184,8 +184,8 @@ include it.
   requests, duration), with one blank column between groups that have a chip.
 - **FR-006**: The update, CI, working and vim chips MUST have an icon-only form, and the
   layout MUST step through long, short and icon-only before dropping a chip.
-- **FR-007**: The update chip MUST be drawn as its icon at the right edge of line 1 when there
-  is room, and MUST be the first chip dropped.
+- **FR-007**: The update chip MUST be drawn at the right edge of line 1, MUST give up its words
+  before it goes, leaving its icon, and MUST be the first chip dropped.
 - **FR-008**: A `compact` preset MUST exist with the directory, branch, model, context and
   5-hour window on one line.
 - **FR-009**: New glyph codepoints (`E0B4`, `E0B5`, `E0B6`, `E0BC`) MUST be in the extractor
