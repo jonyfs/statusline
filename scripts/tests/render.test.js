@@ -55,20 +55,20 @@ await test("working-tree state renders after the branch", () => {
   const line1 = (over) =>
     stripAnsi(renderPayload({}, { sources: gitSources(over), trackChanges: false })).split("\n")[0];
 
-  const MODIFIED = "\u{F459}", ADDED = "\u{F457}", PUSH = "\u{F40A}", PULL = "\u{F409}";
+  const MODIFIED = "\u{F459}", UNTRACKED = "?", PUSH = "\u{F431}", PULL = "\u{F433}";
 
   const clean = line1({});
-  for (const g of [MODIFIED, ADDED, PUSH, PULL]) {
+  for (const g of [MODIFIED, PUSH, PULL]) {
     assert.ok(!clean.includes(g), "a clean, in-sync branch adds nothing");
   }
   assert.ok(line1({ changed: 3 }).includes(`${MODIFIED} 3`));
-  assert.ok(line1({ untracked: 2 }).includes(`${ADDED} 2`));
+  assert.ok(line1({ untracked: 2 }).includes(`${UNTRACKED} 2`));
   assert.ok(line1({ ahead: 1 }).includes(`${PUSH} 1`));
   assert.ok(line1({ behind: 4 }).includes(`${PULL} 4`));
 
   // Order matters: the state cluster belongs immediately after the branch.
   const full = line1({ changed: 1, untracked: 2, ahead: 3, behind: 4 });
-  const expected = `${MODIFIED} 1  ${ADDED} 2  ${PUSH} 3  ${PULL} 4`;
+  const expected = `${MODIFIED} 1  ${UNTRACKED} 2  ${PUSH} 3  ${PULL} 4`;
   assert.ok(full.includes(expected), `unexpected layout: ${JSON.stringify(full)}`);
   assert.ok(full.indexOf("main") < full.indexOf(expected), "state must follow the branch");
 });

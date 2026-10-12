@@ -18,7 +18,7 @@ await test("PR labels appear next to the number and status", () => {
     }),
     gitSources()
   );
-  assert.match(out, /PR #12 approved bug, priority-high/);
+  assert.match(out, /PR #12 \S approved bug, priority-high/);
 });
 
 // FR-003: zero labels renders exactly as before this feature, no empty marker.
@@ -31,8 +31,8 @@ await test("a PR with no labels renders unchanged", () => {
     fullPayload({ pr: { number: 12, url: "https://github.com/o/r/pull/12", review_state: "approved" } }),
     gitSources()
   );
-  assert.match(withEmpty, /PR #12 approved /);
-  assert.doesNotMatch(withEmpty, /PR #12 approved\s+\S+,/);
+  assert.match(withEmpty, /PR #12 \S approved /);
+  assert.doesNotMatch(withEmpty, /PR #12 \S approved\s+\S+,/);
   assert.equal(withEmpty, withNone, "an explicit empty array must render the same as an absent field");
 });
 
@@ -66,7 +66,7 @@ await test("MR labels render the same way as PR labels", () => {
     }),
     gitSources()
   );
-  assert.match(out, /MR #44 approved needs-review/);
+  assert.match(out, /MR #44 \S approved needs-review/);
 });
 
 // FR-006: label fetch failure (labels absent, older gh, non-GitHub host)

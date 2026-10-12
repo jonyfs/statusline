@@ -1,4 +1,5 @@
 import path from "node:path";
+import os from "node:os";
 import { realpathSync } from "node:fs";
 import { PALETTES, renderRow, displayWidth } from "./theme.js";
 import {
@@ -149,17 +150,30 @@ const NF_CALENDAR = "\u{F455}";  // nf-oct-calendar
 // F45D "arrow_up" draws a signpost), so the name is not evidence.
 const NF_MODIFIED = "\u{F459}";  // boxed dot, GitHub's "modified" marker
 const NF_ADDED = "\u{F457}";     // boxed plus, GitHub's "added" marker
-const NF_PUSH = "\u{F40A}";      // cloud up: commits waiting to be pushed
-const NF_PULL = "\u{F409}";      // cloud down: commits waiting to be pulled
+const NF_PUSH = "\u{F431}";      // nf-oct-arrow_up: commits waiting to be pushed (v8.1.0)
+const NF_PULL = "\u{F433}";      // nf-oct-arrow_down: commits waiting to be pulled
 
 // A commit, for a detached HEAD. The branch icon would claim the line is
 // showing a branch when it is showing a commit id.
 const NF_COMMIT = "\u{F417}";    // nf-oct-git_commit
 
 // The rest of line 1's git and GitHub state, in the same Octicon set.
-const NF_DIR = "\u{F413}";       // nf-oct-file_directory
+const NF_DIR = "\u{F4D4}";       // nf-oct-file_directory_open_fill: the working directory
+const NF_HOME = "\u{F02DC}";     // nf-md-home: the working directory when it is $HOME
+const NF_REPO = "\u{F401}";      // nf-oct-repo: the repository
+const NF_WORKTREE = "\u{E5FB}";  // nf-custom-folder_git_branch: a linked worktree
+const NF_REMOVED = "\u{F458}";   // nf-oct-diff_removed: boxed minus
+const NF_PR_DRAFT = "\u{F4DD}";  // nf-oct-git_pull_request_draft
+const NF_PR_MERGED = "\u{F419}"; // nf-oct-git_merge
+const NF_PR_CLOSED = "\u{F4DC}"; // nf-oct-git_pull_request_closed
+const NF_REVIEW_APPROVED = "\u{F4A4}"; // nf-oct-check_circle_fill
+const NF_REVIEW_COMMENTS = "\u{F442}"; // nf-oct-comment_discussion
+const NF_REVIEW_REQUESTED = "\u{F441}"; // nf-oct-eye
+const NF_EFFORT_LOW = "\u{F0875}";    // nf-md-gauge_low
+const NF_EFFORT_MEDIUM = "\u{F029A}"; // nf-md-gauge
+const NF_EFFORT_HIGH = "\u{F0874}";   // nf-md-gauge_full
 const NF_FROM = "\u{F004D}";     // nf-md-arrow_left: what this came from
-const NF_ALERT = "\u{F421}";     // nf-oct-alert: unmerged paths
+const NF_ALERT = "\u{F40C}";     // nf-oct-alert_fill: unmerged paths
 const NF_CHECK = "\u{F42E}";     // nf-oct-check: the run passed
 const NF_X = "\u{F467}";         // nf-oct-x: the run failed
 // F0997 was here until 2026-10-06, under the name progress_clock, and it
@@ -183,15 +197,15 @@ const NF_WORKING = "\u{F08EA}";  // nf-md-hammer
 const NF_IDLE = "\u{F0176}";     // nf-md-coffee
 const NF_SKILLS = "\u{F0431}";   // nf-md-puzzle
 const NF_MODEL = "\u{F06A9}";    // nf-md-robot
-const NF_EFFORT = "\u{F0E7}";    // nf-fa-bolt
+const NF_EFFORT = NF_EFFORT_HIGH;
 const NF_CONTEXT = "\u{F035B}";  // nf-md-memory: a context window is memory.
                                  // F09DA, listed as "brain", draws a boxed
                                  // chevron in this build
-const NF_TIMER = "\u{F051B}";    // nf-md-timer. F44E, listed as "stopwatch",
+const NF_TIMER = "\u{F051F}";    // an hourglass: a window that runs out, time remaining. F44E, listed as "stopwatch",
                                  // draws three flat bars in this build
-const NF_HOURGLASS = "\u{F252}"; // nf-fa-hourglass_half: session duration
+const NF_STOPWATCH = "\u{F520}"; // a stopwatch: session duration, time elapsed
 const NF_BURN = "\u{F0238}";     // nf-md-fire: how fast the window is going
-const NF_RUST = "\u{E7A8}";      // nf-dev-rust: rtk is a Rust binary
+const NF_RUST = "\u{F1679}";     // a piggy bank, which is what rtk keeps: savings
 // The spend limit. Rendered from the installed font before adoption
 // (specs/023-extra-usage-limit/glyph-evidence.png): F0114 nf-md-cash draws a
 // banknote, which reads as currency rather than a budget being spent, and
@@ -210,7 +224,7 @@ const NF_DOWNLOAD = "\u{F01DA}";      // nf-md-download: ready, blocked, failed
 const NF_ARROW_UP_BOLD = "\u{F0737}"; // nf-md-arrow_up_bold: updated
 // Two modes the payload reports (specs/027-bar-polish/glyph-evidence.png).
 const NF_VIM = "\u{E62B}";           // nf-custom-vim: the vim mode
-const NF_SPEEDOMETER = "\u{F04C5}";  // nf-md-speedometer: fast mode
+const NF_SPEEDOMETER = "\u{F140B}";  // a lightning bolt: fast mode
 // Copilot CLI's two figures (specs/029-multi-harness/glyph-evidence.png).
 // F0565, listed as a ticket, draws a shield with a tick.
 const NF_COPILOT = "\u{F4B8}";       // nf-oct-copilot: premium requests
@@ -249,6 +263,20 @@ export const GLYPHS = {
     push: NF_PUSH,
     pull: NF_PULL,
     dir: NF_DIR,
+    home: NF_HOME,
+    repo: NF_REPO,
+    worktree: NF_WORKTREE,
+    removed: NF_REMOVED,
+    untracked: "?",
+    prDraft: NF_PR_DRAFT,
+    prMerged: NF_PR_MERGED,
+    prClosed: NF_PR_CLOSED,
+    reviewApproved: NF_REVIEW_APPROVED,
+    reviewComments: NF_REVIEW_COMMENTS,
+    reviewRequested: NF_REVIEW_REQUESTED,
+    effortLow: NF_EFFORT_LOW,
+    effortMedium: NF_EFFORT_MEDIUM,
+    effortHigh: NF_EFFORT_HIGH,
     from: NF_FROM,
     conflict: NF_ALERT,
     ciPass: NF_CHECK,
@@ -262,7 +290,7 @@ export const GLYPHS = {
     effort: NF_EFFORT,
     context: NF_CONTEXT,
     timer: NF_TIMER,
-    duration: NF_HOURGLASS,
+    duration: NF_STOPWATCH,
     burn: NF_BURN,
     rtk: NF_RUST,
     spend: NF_WALLET,
@@ -317,7 +345,21 @@ export const GLYPHS = {
     // Ambiguous. The doubled forms are Narrow and read the same.
     push: "\u21D1",        // ⇑
     pull: "\u21D3",        // ⇓
-    dir: "\u2302",        // ⌂
+    dir: "\u2302",       // ⌂
+    home: "\u2302",      // ⌂
+    repo: "\u22A1",      // ⊡ a boxed dot
+    worktree: "\u2387",  // ⎇ the branch sign, as for a branch
+    removed: "-",
+    untracked: "?",
+    prDraft: "\u21C4",   // ⇄ every state of a pull request is the exchange arrows
+    prMerged: "\u21C4",
+    prClosed: "\u21C4",
+    reviewApproved: "\u2713", // ✓
+    reviewComments: "\u2709", // ✉
+    reviewRequested: "\u229B", // ⊛
+    effortLow: "\u21AF", // ↯ the plain set has one effort mark for every level
+    effortMedium: "\u21AF",
+    effortHigh: "\u21AF",
     from: "\u21D0",        // ⇐
     conflict: "\u2716",   // ✖
     ciPass: "\u2713",     // ✓
@@ -897,6 +939,10 @@ export function renderReadings(
 
   const palette = PALETTES[flavor] || PALETTES.mocha;
   const g = asciiArrows ? GLYPHS.plain : GLYPHS.nerd;
+  // Effort is a level, so its glyph fills with it. A level the table does not
+  // name (`xhigh`, `max`, whatever a harness sends) is at least high.
+  const effortGlyph = (level) =>
+    ({ low: g.effortLow, medium: g.effortMedium, high: g.effortHigh })[String(level).toLowerCase()] ?? g.effortHigh;
 
   // The rows that follow the bar: Copilot's subagents (specs/030) and the git
   // gates (specs/031). Counted here because the gates fall back to a line 1
@@ -978,7 +1024,15 @@ export function renderReadings(
   // Line 1: working directory, then branch, ahead/behind, PR — each name
   // is an OSC 8 hyperlink when a target is known (dir -> file://, branch ->
   // GitHub tree view, PR -> PR page), with no visible URL text.
-  const dirSegment = (label) => ({ key: "dir", color: ROLE.neutral, text: ` ${g.dir} ${label} `, url: dirUrl });
+  const atHome = (() => {
+    try {
+      return Boolean(readings.cwd) && path.resolve(readings.cwd) === path.resolve(os.homedir());
+    } catch {
+      return false;
+    }
+  })();
+  const dirGlyph = atHome ? g.home : g.dir;
+  const dirSegment = (label) => ({ key: "dir", color: ROLE.neutral, text: ` ${dirGlyph} ${label} `, url: dirUrl });
   const l1 = [dirSegment(dirLabel)];
 
   // A17: Claude can move during a session, and then the directory on the bar
@@ -1016,7 +1070,7 @@ export function renderReadings(
     // File counts are not animated: they change on every save, and
     // Principle X reserves animation for state that changes discretely.
     if (git.changed) state.push(`${g.modified} ${git.changed}`);
-    if (git.untracked) state.push(`${g.added} ${git.untracked}`);
+    if (git.untracked) state.push(`${g.untracked} ${git.untracked}`);
     // A null ahead/behind means there is no upstream at all, which is not
     // the same as being in sync with one (FR-012).
     if (git.ahead) state.push(`${g.push} ${git.ahead}`);
@@ -1037,7 +1091,7 @@ export function renderReadings(
       l1.push({
         key: "repo",
         color: ROLE.neutral,
-        text: ` ${repo.owner}/${repo.name} `,
+        text: ` ${g.repo} ${repo.owner}/${repo.name} `,
         quiet: true,
         url: remoteUrl,
       });
@@ -1084,13 +1138,21 @@ export function renderReadings(
     const worktree = shows("worktree") ? readings.worktree.value : null;
     if (worktree) {
       const from = worktree.from ? ` ${g.from} ${worktree.from}` : "";
-      l1.push({ key: "worktree", color: ROLE.neutral, text: ` ${worktree.name}${from} ` });
+      l1.push({ key: "worktree", color: ROLE.neutral, text: ` ${g.worktree} ${worktree.name}${from} ` });
     }
     if (pr) {
       // `changes_requested` is the one review state too long to spell out on
       // a line this tight, and "changes" says it.
       const review = pr.review === "changes_requested" ? "changes" : pr.review;
       const label = pr.kind === "mr" ? "MR" : "PR";
+      // The state is drawn, not only worded: a draft, a merged and a closed
+      // request each have their own mark, and the review word carries its own
+      // beside it. Where the source gave no state the request is open.
+      const prGlyph =
+        { draft: g.prDraft, merged: g.prMerged, closed: g.prClosed }[pr.review] ?? g.pr;
+      const reviewGlyph =
+        { approved: g.reviewApproved, commented: g.reviewComments, review_required: g.reviewRequested }[pr.review] ?? null;
+      const reviewMark = reviewGlyph ? `${reviewGlyph} ` : "";
       // Same "show a few, count the rest" shape as the skills chip: a PR
       // with zero labels must render exactly as before this field existed
       // (specs/006, FR-003), so the suffix is only ever added, never a
@@ -1105,7 +1167,7 @@ export function renderReadings(
         key: "pr",
         color: String(pr.state).toUpperCase() === "MERGED" ? ROLE.merged : ROLE.open,
         emphasis: changes.isChanged("pr"),
-        text: ` ${g.pr} ${label} #${pr.number}${review ? ` ${review}` : ""}${labelText} `,
+        text: ` ${prGlyph} ${label} #${pr.number}${review ? ` ${reviewMark}${review}` : ""}${labelText} `,
         url: pr.url,
       });
     }
@@ -1291,7 +1353,7 @@ export function renderReadings(
         variants: [` ${g.spend} ${amount} · ${level} `],
       };
     },
-    effort: () => (effort ? { color: ROLE.neutral, text: ` ${g.effort} ${effort} ` } : null),
+    effort: () => (effort ? { color: ROLE.neutral, text: ` ${effortGlyph(effort)} ${effort} ` } : null),
     // Fast mode spends faster, so it sits with the model and effort that say
     // what is spending. Drawn only when on (specs/027-bar-polish).
     fastMode: () => (shows("fastMode") && readings.fastMode?.value ? { color: ROLE.neutral, text: ` ${g.fast} fast ` } : null),

@@ -1308,10 +1308,10 @@ so a clean branch in sync with its remote adds nothing at all.
 | Icon | Meaning |
 |---|---|
 | diff-modified marker | Tracked files with uncommitted changes |
-| diff-added marker | Untracked files git isn't watching yet |
-| cloud up | Commits you have that the remote doesn't, waiting to be pushed |
-| cloud down | Commits the remote has that you don't, waiting to be pulled |
-| alert triangle | Paths with merge conflicts, counted apart from ordinary changes |
+| `?` | Untracked files git isn't watching yet |
+| arrow up | Commits you have that the remote doesn't, waiting to be pushed |
+| arrow down | Commits the remote has that you don't, waiting to be pulled |
+| alert | Paths with merge conflicts, counted apart from ordinary changes |
 
 These are GitHub's own Octicons, the same marks you see in a diff view.
 Three modified files, seven untracked, two commits to push and five to
@@ -1360,10 +1360,13 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-oct-git_branch` | `U+F418` | branch |
 | `nf-oct-git_commit` | `U+F417` | a detached HEAD, which is a commit and not a branch |
 | `nf-oct-git_pull_request` | `U+F407` | pull request |
-| `nf-oct-file_directory` | `U+F413` | working directory |
-| `nf-oct-diff_modified` / `nf-oct-diff_added` | `U+F459` / `U+F457` | tracked changes, untracked files |
-| `nf-oct-cloud_upload` / `nf-oct-cloud_download` | `U+F40A` / `U+F409` | commits to push, commits to pull |
-| `nf-oct-alert` | `U+F421` | merge conflicts |
+| `nf-oct-file_directory_open_fill` / `nf-md-home` | `U+F4D4` / `U+F02DC` | working directory, and `$HOME` |
+| `nf-oct-repo` / `nf-custom-folder_git_branch` | `U+F401` / `U+E5FB` | the repository, a linked worktree |
+| `nf-oct-diff_modified` / `nf-oct-diff_removed` | `U+F459` / `U+F458` | tracked changes, removed files (untracked files are `?`) |
+| `nf-oct-arrow_up` / `nf-oct-arrow_down` | `U+F431` / `U+F433` | commits to push, commits to pull |
+| `nf-oct-alert_fill` | `U+F40C` | merge conflicts |
+| `nf-oct-git_pull_request_draft` / `_merged` / `_closed` | `U+F4DD` / `U+F419` / `U+F4DC` | pull request: draft, merged, closed |
+| `nf-oct-check_circle_fill` / `nf-oct-comment_discussion` / `nf-oct-eye` | `U+F4A4` / `U+F442` / `U+F441` | review: approved, comments, requested |
 | `nf-oct-check` / `nf-oct-x` / `nf-md-progress_clock` | `U+F42E` / `U+F467` / `U+F0996` | CI passed, failed, still running |
 | `nf-oct-calendar` | `U+F455` | the 7-day window |
 | `nf-md-arrow_left` | `U+F004D` | where a directory or a worktree came from |
@@ -1371,17 +1374,17 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-md-hammer` / `nf-md-coffee` | `U+F08EA` / `U+F0176` | working, idle |
 | `nf-md-puzzle` | `U+F0431` | active skills |
 | `nf-md-robot` | `U+F06A9` | model |
-| `nf-fa-bolt` | `U+F0E7` | effort level |
+| `nf-md-gauge_low` / `nf-md-gauge` / `nf-md-gauge_full` | `U+F0875` / `U+F029A` / `U+F0874` | effort: low, medium, high |
 | `nf-md-memory` | `U+F035B` | context window |
-| `nf-md-timer` | `U+F051B` | the 5-hour window |
-| `nf-fa-hourglass_half` | `U+F252` | session duration |
+| `nf-md-timer_sand` | `U+F051F` | the 5-hour window, an hourglass: time that runs out |
+| `nf-oct-stopwatch` | `U+F520` | session duration, a stopwatch: time elapsed |
 | `nf-md-fire` | `U+F0238` | burn rate |
-| `nf-dev-rust` | `U+E7A8` | rtk, which is a Rust binary |
+| `nf-md-piggy_bank` | `U+F1679` | rtk, what it saves |
 | `nf-md-wallet` | `U+F0584` | the spend limit |
 | `nf-md-thermometer` / `nf-md-snowflake` | `U+F050F` / `U+F0717` | the prompt cache, warm and cold |
 | `nf-md-download` / `nf-md-arrow_up_bold` | `U+F01DA` / `U+F0737` | an update waiting or blocked, and one applied |
 | `nf-custom-vim` | `U+E62B` | the vim mode, while vim mode is on |
-| `nf-md-speedometer` | `U+F04C5` | fast mode, while it is on |
+| `nf-md-lightning_bolt` | `U+F140B` | fast mode, while it is on |
 
 The 7-day calendar is a blank grid, and deliberately not the 📆 emoji. Every
 emoji font draws a fixed date into that glyph; Apple's shows "17". Sitting

@@ -58,13 +58,13 @@ await test("worktree: counts present when dirty, absent when clean", () => {
 });
 
 await test("upstream: divergence shown when tracking, absent when there is none", () => {
-  assert.match(render(payload, everything), /\u{F40A} 1/u);
+  assert.match(render(payload, everything), /\u{F431} 1/u);
   const noUpstream = render(
     {},
     { ...everything, getGitInfo: () => ({ branch: "solo", detached: false, oid: "x", upstream: null, ahead: null, behind: null, changed: 0, untracked: 0 }) }
   );
   assert.match(noUpstream, /solo/);
-  assert.doesNotMatch(noUpstream, /\u{F40A}|\u{F409}/u, "no upstream means no divergence counters");
+  assert.doesNotMatch(noUpstream, /\u{F431}|\u{F433}/u, "no upstream means no divergence counters");
 });
 
 await test("pr: present when open, absent when there is none, absent when stale", () => {
