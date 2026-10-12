@@ -285,6 +285,11 @@ function quantised(palette) {
   return q;
 }
 
+/** Markers a segment builder writes into its text; `renderRow` turns them into weight and colour. */
+export const STRONG = "\u0001";
+export const QUIET = "\u0002";
+export const MARK_OFF = "\u0003";
+
 /**
  * The colour for a chip marked `quiet`, text that is read second: the palette's `text` or
  * `crust` when that still reaches 4.5:1 on the chip, otherwise the chip's
@@ -324,6 +329,23 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
     // A segment that changed is bold and underlined, with its colours as
     // they were: the mark survives `NO_COLOR`, and it does not borrow the
     // meaning of another colour.
+    // The segment builders mark a figure strong and a reset or unit quiet with
+    // three control characters (`STRONG`, `QUIET`, `MARK_OFF`), which data
+    // cannot carry because the text boundary removes every control character.
+    // Under `NO_COLOR` the markers are removed and nothing replaces them: the
+    // bar's contract there is plain text with no escape at all, and a bold on
+    // every figure would put one on every chip.
+    if (/[\u0001-\u0003]/.test(label)) {
+      if (!colourEnabled()) {
+        label = label.replace(/[\u0001-\u0003]/g, "");
+      } else {
+        const quiet = fg(quietText(palette, seg.color));
+        label = label
+          .replace(/\u0001/g, "\x1b[1m")
+          .replace(/\u0002/g, quiet)
+          .replace(/\u0003/g, `\x1b[22m${fg(segFg)}`);
+      }
+    }
     if (seg.emphasis) label = `\x1b[1m\x1b[4m${label}\x1b[22m\x1b[24m`;
     const text = seg.url ? link(seg.url, label) : label;
     out += `${bg(segBg)}${fg(segFg)}${text}`;
@@ -423,6 +445,7 @@ function isWide(cp) {
 export function displayWidth(text) {
   const plain = String(text)
     .replace(/\x1b\[[0-9;:]*m/g, "")
+    .replace(/[\u0001-\u0003]/g, "")
     .replace(/\x1b\]8;;[^\x07]*\x07/g, "");
 
   const chars = [...plain];

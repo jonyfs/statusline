@@ -34,13 +34,13 @@ await test("#1 a long directory gives up its own columns before the PR and CI ar
   const line = lineOne(renderDir("d".repeat(90)));
   assert.match(line, /PR #42/, `the PR survived: ${JSON.stringify(line)}`);
   assert.match(line, /CI/, "and the CI chip");
-  assert.match(line, /…d+/, "because the directory was cut from the left");
+  assert.match(line, /…\/d+/, "because the directory was cut from the left");
   assert.ok(displayWidth(line) <= LIMIT, `line 1 is ${displayWidth(line)} columns`);
 });
 
 await test("#1 a directory wider than the line is shortened, never dropped in favour of the branch", () => {
   const line = lineOne(renderDir("e".repeat(130)));
-  assert.match(line, /…e+/, `the directory is still there: ${JSON.stringify(line)}`);
+  assert.match(line, /…\/e+/, `the directory is still there: ${JSON.stringify(line)}`);
   assert.match(line, /main/, "beside the branch");
   assert.ok(displayWidth(line) <= LIMIT, `line 1 is ${displayWidth(line)} columns`);
 });

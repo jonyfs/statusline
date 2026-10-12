@@ -190,7 +190,11 @@ export function shortCountdown(resetsAtSeconds, now = Date.now(), bound = {}) {
   if (full === null) return null;
   if (full === "resetting now") return "now";
   // `2h09m` is `2h09`: once an `h` has said hours, the minutes need no unit.
-  return full.replace(/^resets in /, "").replace(/ (\d+)h$/, "").replace(/^(\d+h\d\d)m$/, "$1");
+  return full
+    .replace(/^resets in /, "")
+    .replace(/ (\d+)h$/, "")
+    .replace(/^0h(\d\d)m$/, (_, m) => `${Number(m)}m`)
+    .replace(/^(\d+h\d\d)m$/, "$1");
 }
 
 /**

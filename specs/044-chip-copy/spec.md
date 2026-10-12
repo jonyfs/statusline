@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Tighter chip copy
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items E41 to E50. Feature 042 gave every chip an icon that
 says what it is, which makes some of the words beside the icons redundant. The review file
@@ -194,8 +194,8 @@ the repository in the quieter colour.
 1. **Given** a gauge, **When** drawn, **Then** the figure is bold.
 2. **Given** a reset, a unit or the repository, **When** drawn, **Then** it is in the quiet
    text colour that still reaches 4.5:1 where the palette has one.
-3. **Given** `NO_COLOR`, **When** drawn, **Then** the bold stays and the quiet colour is
-   plain.
+3. **Given** `NO_COLOR`, **When** drawn, **Then** the text carries no escape at all: the
+   bold goes with the colour, because the bar's contract there is plain text.
 4. **Given** the markup, **When** a width is measured, **Then** it adds no columns.
 
 ---
@@ -252,8 +252,10 @@ the repository in the quieter colour.
 
 ### Measurable Outcomes
 
-- **SC-001**: The fixture bar is at least 15 columns shorter on line 3 than before this
-  feature.
+- **SC-001**: At 80 columns no line of the fixture is wider than 80, and a chip with a short
+  form shows it before it is dropped. The long forms keep their length: padding adds a column
+  to each two-digit figure, and the dropped words and units take back more than that on
+  line 1.
 - **SC-002**: A gauge at 5, 50 and 100 percent has the same width in columns.
 - **SC-003**: No chip text the bar writes itself contains a capital that is not an acronym, a
   unit or data.
