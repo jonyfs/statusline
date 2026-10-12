@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, stripAnsi } from "../test-harness.js";
-import { bandFor, rampColour, bar, barWidth, bandMark } from "../../src/ramp.js";
+import { bandFor, rampColour, bar, barWidth } from "../../src/ramp.js";
 import { renderPayload } from "../../src/render.js";
 import { displayWidth } from "../../src/theme.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
@@ -100,23 +100,19 @@ await test("the ramp reaches the rate limits as well, per E5", () => {
   const safe = atLevel(20);
   const warn = atLevel(70);
   const hot = atLevel(95);
-  assert.doesNotMatch(safe, /[\u25b4\u25b5]/, "nothing is wrong needs no symbol");
-  assert.match(warn, /\u25b5/);
-  assert.match(hot, /\u25b4/);
-  // Two of them. The context figure carries its level in colour alone since
-  // 2026-08-26; the two rate limits, which have the consequence you cannot
-  // undo, still mark their band.
-  assert.equal((hot.match(/\u25b4/g) || []).length, 2);
-  assert.doesNotMatch(hot.slice(0, hot.indexOf("5h")), /\u25b4/, "and none of them is the context figure");
+  // The triangles were retired by constitution 8.4.0 (K6): the critical band
+  // draws the alert glyph before the number, and the warn band a bold number.
+  assert.doesNotMatch(safe, /[\u25b4\u25b5\uF40C]/, "nothing is wrong needs no symbol");
+  assert.doesNotMatch(warn, /[\u25b4\u25b5\uF40C]/, "warn is a bold number, not a glyph");
+  assert.doesNotMatch(hot, /[\u25b4\u25b5]/, "the triangles are gone");
+  assert.equal((hot.match(/\uF40C/g) || []).length, 3, "the alert glyph marks each critical gauge");
 });
 
 await test("the band survives without colour, per E6", () => {
-  // Section 508: colour may not be the only carrier. The bar used to do
-  // this job; a one-character mark does it now, at a fraction of the width.
-  assert.equal(bandMark(10), "");
-  assert.equal(bandMark(70), "\u25b5");
-  assert.equal(bandMark(95), "\u25b4");
-  assert.equal(bandMark(null), "", "an unknown level has no band to mark");
+  // Section 508: colour may not be the only carrier. The alert glyph marks
+  // the critical band, and the track says how full it is (specs/046-gauges).
+  const hot = atLevel(95);
+  assert.match(hot, /\uF40C/);
 });
 
 await test("the bar itself still exists, for the subagent rows", () => {
@@ -131,6 +127,6 @@ await test("a bar never renders for a segment the payload left out", () => {
   )
     .split("\n")
     .pop();
-  assert.match(line, /context\s+\?%/);
+  assert.match(line, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
   assert.doesNotMatch(line, /[█▓▒]/, "no level, no fill");
 });

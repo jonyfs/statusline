@@ -54,7 +54,6 @@ export const SEGMENT_COLOURS = {
   context: GAUGE,
   fiveHour: GAUGE,
   burnRate: { fill: ["neutral"] },
-  projection: { fill: ["attention"] },
   sevenDay: GAUGE,
   codexWindow: GAUGE,
   codexCredits: { fill: ["money"] },

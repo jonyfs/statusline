@@ -62,6 +62,12 @@ WANTED = {
     "F442": 0xF442,    # review: comments
     "F441": 0xF441,    # review: requested
     "F06B0": 0xF06B0,  # a reset: when a window comes back
+    "EE00": 0xEE00,    # gauge track: empty, start
+    "EE01": 0xEE01,    # gauge track: empty, middle
+    "EE02": 0xEE02,    # gauge track: empty, end
+    "EE03": 0xEE03,    # gauge track: full, start
+    "EE04": 0xEE04,    # gauge track: full, middle
+    "EE05": 0xEE05,    # gauge track: full, end
     "F0875": 0xF0875,  # effort: low
     "F029A": 0xF029A,  # effort: medium
     "F0874": 0xF0874,  # effort: high

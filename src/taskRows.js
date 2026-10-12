@@ -20,7 +20,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
-import { bar, rampColour } from "./ramp.js";
+import { eighthsBar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
 import { readSkillsByAgent } from "./skillEvents.js";
@@ -185,7 +185,10 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   // and the figure is what separates them.
   // `bar` clamps to 0-100; the figure beside it has to agree, or a task over
   // its own window reads as `500%` against a bar that stops at full.
-  const gauge = pct === null ? null : `${bar(pct, columns)} ${Math.round(Math.min(100, pct))}%`;
+  // Eight cells in eighths (specs/046-gauges): sixty-four steps in the same
+  // columns, where the nine shade cells it replaced had ten.
+  const gauge =
+    pct === null ? null : `${eighthsBar(pct)} ${pct >= 85 ? "!" : ""}${Math.round(Math.min(100, pct))}%`;
 
   // The order is the owner's, chosen on 2026-09-08 from rendered examples:
   // what it costs, then what is unusual about it, then who it is and what it

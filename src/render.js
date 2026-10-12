@@ -116,10 +116,10 @@ import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
 import { resolveLayout, iconTier, repoConfig } from "./config.js";
 import { abbreviateBranch, cutMiddle, DEFAULT_BRANCH_PREFIXES, BRANCH_COLUMNS } from "./names.js";
-import { bar, gaugeChip, bandMark, bandFor } from "./ramp.js";
+import { bar, gaugeChip, bandFor, track, paceBand, contextBand } from "./ramp.js";
 import { ROLE } from "./colourRoles.js";
 import { plainText } from "./text.js";
-import { ratePerHour, projectFull, pushSample } from "./samples.js";
+import { ratePerHour, projectFull, pushSample, sparkline } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight, terminalFor, readTtySize } from "./layout.js";
 import { loadCopilotSettings } from "./copilotSettings.js";
 import { getCopilotQuota, formatQuotaDate } from "./copilotQuota.js";
@@ -271,6 +271,14 @@ export const GLYPHS = {
     removed: NF_REMOVED,
     untracked: "?",
     reset: NF_RESET,
+    trackEmptyStart: "\u{EE00}",
+    trackEmptyMid: "\u{EE01}",
+    trackEmptyEnd: "\u{EE02}",
+    trackFullStart: "\u{EE03}",
+    trackFullMid: "\u{EE04}",
+    trackFullEnd: "\u{EE05}",
+    bandCritical: "\u{F40C}",
+    bandWarn: "",
     prDraft: NF_PR_DRAFT,
     prMerged: NF_PR_MERGED,
     prClosed: NF_PR_CLOSED,
@@ -333,6 +341,14 @@ export const GLYPHS = {
     removed: "\u2796",           // ➖
     untracked: "\u2754",         // ❔
     reset: "\u{1F501}",          // 🔁
+    trackEmptyStart: "\u2B1C",    // ⬜ the track is drawn from the plain set in this tier
+    trackEmptyMid: "\u2B1C",
+    trackEmptyEnd: "\u2B1C",
+    trackFullStart: "\u{1F7E9}",  // 🟩
+    trackFullMid: "\u{1F7E9}",
+    trackFullEnd: "\u{1F7E9}",
+    bandCritical: "\u{1F534}",    // 🔴
+    bandWarn: "\u{1F7E1}",        // 🟡
     prDraft: "\u{1F6A7}",        // 🚧
     prMerged: "\u{1F7E3}",       // 🟣
     prClosed: "\u{1F6AB}",       // 🚫
@@ -417,6 +433,14 @@ export const GLYPHS = {
     removed: "-",
     untracked: "?",
     reset: "\u21BA",     // ↺
+    trackEmptyStart: ".",
+    trackEmptyMid: ".",
+    trackEmptyEnd: ".",
+    trackFullStart: "|",
+    trackFullMid: "|",
+    trackFullEnd: "|",
+    bandCritical: "!",
+    bandWarn: "",
     prDraft: "\u21C4",   // ⇄ every state of a pull request is the exchange arrows
     prMerged: "\u21C4",
     prClosed: "\u21C4",
@@ -1015,7 +1039,6 @@ export function renderReadings(
   }
   // The band mark is a coloured circle in the emoji tier, where the rest of
   // the line is already pictures.
-  const mark = (pct) => bandMark(pct, tier);
   // A figure keeps its width: a percentage is padded to three characters with
   // U+2007 FIGURE SPACE, so the chips after it do not move when it crosses 10
   // or 100 (specs/044-chip-copy). `?` is padded the same, so the chip does not
@@ -1027,6 +1050,49 @@ export function renderReadings(
   const strong = (s) => `${STRONG}${s}${MARK_OFF}`;
   const quiet = (s) => `${QUIET}${s}${MARK_OFF}`;
   const figure = (n) => strong(`${pad3(n)}%`);
+  // A gauge's own pieces (specs/046-gauges). The track needs a Nerd Font, so
+  // the other two tiers draw it from the plain set. The band is a mark before
+  // the number in the critical band and a bold number in the warn band, and
+  // the emoji tier writes the same band as a coloured circle.
+  const trackSet = tier === "nerd" ? GLYPHS.nerd : GLYPHS.plain;
+  const gaugeFigure = (pct, band) => {
+    if (typeof pct !== "number" || !Number.isFinite(pct)) return quiet(`${"\u2007\u2007"}\u2014`);
+    const number = `${pad3(pct)}%`;
+    // The critical mark takes the place of the figure space when it is one
+    // column wide, so the chip does not move when a figure turns critical.
+    if (band === "critical") {
+      const padded = pad3(pct);
+      const rest = displayWidth(g.bandCritical) === 1 ? padded.replace(/^\u2007/, "") : padded;
+      return `${g.bandCritical}${rest}%`;
+    }
+    if (band === "warn") return `${g.bandWarn}${strong(number)}`;
+    return number;
+  };
+  // How much of a window has gone, from where its reset is: null when the
+  // reset is unknown or past, or further out than the window is long.
+  const elapsedPct = (resetsAtSeconds, windowMinutes) => {
+    if (typeof resetsAtSeconds !== "number" || !Number.isFinite(resetsAtSeconds)) return null;
+    const length = windowMinutes * 60_000;
+    const remaining = resetsAtSeconds * 1000 - now;
+    if (remaining < 0 || remaining > length * 1.02) return null;
+    return Math.max(0, Math.min(100, (1 - remaining / length) * 100));
+  };
+  const paceNote = (pace, pct) =>
+    typeof pace === "number" && pace > 5 && !(pct >= 100) ? ` ${quiet(`+${pace}pp`)}` : "";
+  /**
+   * The text and shorter forms of a gauge chip: icon, label, track, figure
+   * and the pace, then (when there is one) its reset. The width guard drops
+   * the track first, then the reset; the figure is last to go.
+   */
+  const gaugeChipText = ({ icon, label, pct, band, pace, reset = null, full = "" }) => {
+    const head = ` ${icon} ${label ? `${label} ` : ""}`;
+    const fig = `${gaugeFigure(pct, band)}${full}${paceNote(pace, pct)}`;
+    const withTrack = `${head}${track(pct, trackSet)} ${fig}`;
+    const noTrack = `${head}${fig}`;
+    const tail = reset ? ` ${quiet(`${g.reset} ${reset}`)}` : "";
+    const variants = reset ? [`${noTrack}${tail} `, `${noTrack} `] : [`${noTrack} `];
+    return { text: `${withTrack}${tail} `, variants };
+  };
   // Effort is a level, so its glyph fills with it. A level the table does not
   // name (`xhigh`, `max`, whatever a harness sends) is at least high.
   const effortGlyph = (level) =>
@@ -1431,11 +1497,12 @@ export function renderReadings(
     const q = copilotQuota?.quotas?.[name];
     if (!q) return null;
     const full = q.full || q.usedPct >= 100 ? " full" : "";
-    const level = ` ${g.calendar} month ${name} ${figure(q.usedPct)}${mark(q.usedPct)}${full}`;
     const date = formatQuotaDate(copilotQuota.resetDate);
-    return date
-      ? { ...gaugeChip(q.usedPct), text: `${level} ${quiet(`${g.reset} ${date}`)} `, variants: [`${level} `] }
-      : { ...gaugeChip(q.usedPct), text: `${level} ` };
+    const band = bandFor(q.usedPct)?.name ?? null;
+    return {
+      ...gaugeChip(q.usedPct, band),
+      ...gaugeChipText({ icon: g.calendar, label: `month ${name}`, pct: q.usedPct, band, reset: date || null, full }),
+    };
   };
 
   const line3Content = {
@@ -1462,10 +1529,11 @@ export function renderReadings(
       const bare = /^[\d.,]+$/.test(c.formatted);
       const amount = bare ? `${c.formatted} AIC` : c.formatted;
       if (c.pct === null) return { color: ROLE.money, text: ` ${g.spend} ${amount} ` };
-      const level = `${figure(c.pct)}${mark(c.pct)}${fullMark(c.pct)}`;
+      const band = bandFor(c.pct)?.name ?? null;
+      const level = `${gaugeFigure(c.pct, band)}${fullMark(c.pct)}`;
       const against = bare ? `${c.formatted}/${creditCount(c.max)} AIC` : `${c.formatted} of ${creditCount(c.max)}`;
       return {
-        ...gaugeChip(c.pct),
+        ...gaugeChip(c.pct, band),
         text: ` ${g.spend} ${against} · ${level} `,
         variants: [` ${g.spend} ${amount} · ${level} `],
       };
@@ -1488,11 +1556,13 @@ export function renderReadings(
     // this is the one ramped segment where colour is the sole carrier. The
     // 5-hour and 7-day figures beside it still mark their band, and they
     // are the ones with a consequence you cannot undo.
-    context: () => ({
-      ...gaugeChip(ctxPct),
-      text: ` ${g.context} context ${figure(ctxPct ?? "?")} `,
-      variants: [` ${g.context} ${figure(ctxPct ?? "?")} `],
-    }),
+    context: () => {
+      const { band } = contextBand(ctxPct, repoConfig(readings.cwd || process.cwd()).contextBands);
+      const built = gaugeChipText({ icon: g.context, label: "context", pct: ctxPct, band });
+      // The word is the next thing to go after the track.
+      const bare = ` ${g.context} ${gaugeFigure(ctxPct, band)} `;
+      return { ...gaugeChip(ctxPct, band), text: built.text, variants: [...built.variants, bare] };
+    },
     // Each window says how much of it is gone and when it comes back, in one
     // chip. Until 2026-09-06 the two resets shared a segment two places away
     // reading `2h09m / 3d`, which asked the reader to know that the left half
@@ -1509,8 +1579,11 @@ export function renderReadings(
       // chip's one variant is itself without the countdown, which the width
       // guard reaches before it drops anything essential (specs/027).
       const resets = shortCountdown(fiveHourResetsAt, now) ?? "?";
-      const level = ` ${g.timer} 5h ${figure(fiveHourPct ?? "?")}${mark(fiveHourPct)}${fullMark(fiveHourPct)}`;
-      return { ...gaugeChip(fiveHourPct), text: `${level} ${quiet(`${g.reset} ${resets}`)} `, variants: [`${level} `] };
+      const { band, pace } = paceBand(fiveHourPct, elapsedPct(fiveHourResetsAt, 300));
+      return {
+        ...gaugeChip(fiveHourPct, band),
+        ...gaugeChipText({ icon: g.timer, label: "5h", pct: fiveHourPct, band, pace, reset: resets, full: fullMark(fiveHourPct) }),
+      };
     },
     sevenDay: () => {
       if (noSevenDay) return null;
@@ -1521,8 +1594,11 @@ export function renderReadings(
       // the reasoning that a countdown three days long is noise; the near case
       // used to be covered by the merged segment, and now lives here.
       const moment = farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?";
-      const level = ` ${g.calendar} 7d ${figure(sevenDayPct ?? "?")}${mark(sevenDayPct)}${fullMark(sevenDayPct)}`;
-      return { ...gaugeChip(sevenDayPct), text: `${level} ${quiet(`${g.reset} ${moment}`)} `, variants: [`${level} `] };
+      const { band, pace } = paceBand(sevenDayPct, elapsedPct(sevenDayResetsAt, 10080));
+      return {
+        ...gaugeChip(sevenDayPct, band),
+        ...gaugeChipText({ icon: g.calendar, label: "7d", pct: sevenDayPct, band, pace, reset: moment, full: fullMark(sevenDayPct) }),
+      };
     },
     // The allowance a gateway reports once an administrator sets a spend
     // limit. It is drawn as reported, past 100% included, because that is how
@@ -1540,8 +1616,11 @@ export function renderReadings(
       const at = typeof w.resets_at === "number" ? w.resets_at : null;
       const counts = formatResetCountdown(at, now, bound) !== null;
       const moment = !counts ? "?" : at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
-      const level = ` ${g.calendar} ${w.label} ${figure(pct)}${mark(pct)}${fullMark(pct)}`;
-      return { ...gaugeChip(pct), text: `${level} ${quiet(`${g.reset} ${moment}`)} `, variants: [`${level} `] };
+      const { band, pace } = paceBand(pct, elapsedPct(at, w.window_minutes));
+      return {
+        ...gaugeChip(pct, band),
+        ...gaugeChipText({ icon: g.calendar, label: w.label, pct, band, pace, reset: moment, full: fullMark(pct) }),
+      };
     },
     // Codex's credit balance, drawn as Codex writes it.
     codexCredits: () => {
@@ -1552,8 +1631,11 @@ export function renderReadings(
       if (noLimits) return null;
       if (spendLimitPct === null) return null;
       const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
-      const level = ` ${g.spend} spend ${figure(spendLimitPct)}${mark(spendLimitPct)}`;
-      return { ...gaugeChip(spendLimitPct), text: `${level} ${quiet(`${g.reset} ${moment}`)} `, variants: [`${level} `] };
+      const band = bandFor(spendLimitPct)?.name ?? null;
+      return {
+        ...gaugeChip(spendLimitPct, band),
+        ...gaugeChipText({ icon: g.spend, label: "spend", pct: spendLimitPct, band, reset: moment }),
+      };
     },
     // The prompt cache, drawn only when its state changes what you do next:
     // cold, or warm inside its closing window. A warm cache with time to
@@ -1596,34 +1678,31 @@ export function renderReadings(
       if (noLimits) return null;
       const rate = ratePerHour(sampleHistory, "fiveHourPct");
       if (rate === null || rate <= 0) return null;
+      const icon = eventEmoji && bandFor(fiveHourPct)?.name === "critical" ? GLYPHS.emoji.burn : g.burn;
+      const perHour = `${rate.toFixed(rate < 10 ? 1 : 0)}%/h`;
+      // One chip for one fact: how fast the window is going and when that
+      // runs it out. The moment is only drawn when the window would be full
+      // before it resets, which is the only case that changes what you do.
+      let runsOut = "";
+      const at = typeof fiveHourPct === "number" && fiveHourPct >= 100 ? null : projectFull(sampleHistory, "fiveHourPct", now);
+      if (at !== null && !(typeof fiveHourResetsAt === "number" && at >= fiveHourResetsAt * 1000)) {
+        const d = new Date(at);
+        runsOut = ` ${quiet(`full ~${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`)}`;
+      }
+      // Eight samples of the 5-hour figure, when asked for and when there are
+      // that many. Part of the long form only.
+      const samples = process.env.CLAUDE_STATUSLINE_SPARKLINE === "1" ? sparkline(sampleHistory, "fiveHourPct", 8) : null;
+      const short = ` ${icon} ${perHour}${runsOut} `;
       return {
         color: ROLE.neutral,
-        text: ` ${eventEmoji && bandFor(fiveHourPct)?.name === "critical" ? GLYPHS.emoji.burn : g.burn} ${rate.toFixed(rate < 10 ? 1 : 0)}%/h `,
+        text: samples ? ` ${icon} ${perHour} ${samples}${runsOut} ` : short,
+        ...(samples ? { variants: [short] } : {}),
       };
     },
-    // B2: the sentence you were going to say out loud anyway. It renders
-    // only when the window would run out before it resets, because that is
-    // the only case where it changes what you do.
-    //
-    // It says "5h limit" rather than "empty", which is what it said until
-    // 2026-09-01. Empty of what was never on the line: beside three
-    // percentages, a bare "empty" reads as a segment that lost its value
-    // rather than as a time. The window it projects is named for the same
-    // reason, since the 7-day figure sits two segments away and is also a
-    // limit.
-    projection: () => {
-      if (noLimits) return null;
-      // A window already at its limit says `full` on its own chip. A time
-      // beside it would announce, as a forecast, a limit already reached.
-      if (typeof fiveHourPct === "number" && fiveHourPct >= 100) return null;
-      const at = projectFull(sampleHistory, "fiveHourPct", now);
-      if (at === null) return null;
-      if (typeof fiveHourResetsAt === "number" && at >= fiveHourResetsAt * 1000) return null;
-      const d = new Date(at);
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return { color: ROLE.attention, text: ` 5h limit ~${hh}:${mm} ` };
-    },
+    // B2, merged into the burn rate chip above by specs/046-gauges: the
+    // sentence says "full ~13:05" beside the rate, and only when the window
+    // would run out before it resets, which is the only case where it changes
+    // what you do. It has no key of its own any more.
     // A4, A5, A6: what the session has spent, in time and in lines.
     // Copilot's premium requests this session, and whether every tool now runs
     // without asking. Neither exists in Claude Code's payload.

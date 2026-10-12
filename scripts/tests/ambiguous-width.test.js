@@ -11,7 +11,8 @@
 import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
 import { displayWidth } from "../../src/theme.js";
-import { bar, bandMark, barWidth } from "../../src/ramp.js";
+import { bar, barWidth } from "../../src/ramp.js";
+import { GLYPHS } from "../../src/render.js";
 
 const wide = (fn) => {
   process.env.CLAUDE_STATUSLINE_AMBIGUOUS_WIDE = "1";
@@ -42,19 +43,19 @@ await test("a gauge's cells are one width whatever it is showing", () => {
   }
 });
 
-await test("both band marks are the same width, so crossing a band moves nothing", () => {
-  const marks = [bandMark(62), bandMark(90)];
-  assert.deepEqual(marks.map(displayWidth), [1, 1], "narrow in an ordinary terminal");
-  assert.deepEqual(
-    wide(() => marks.map(displayWidth)),
-    [1, 1],
-    "and narrow still where Ambiguous is drawn wide, since neither mark is Ambiguous"
-  );
+await test("the band mark is one column, so crossing a band moves nothing", () => {
+  // The critical mark is the Nerd Font alert glyph (constitution 8.4.0): a
+  // private-use codepoint, one column whatever the Ambiguous setting says.
+  const mark = GLYPHS.nerd.bandCritical;
+  assert.equal(displayWidth(mark), 1, "narrow in an ordinary terminal");
+  assert.equal(wide(() => displayWidth(mark)), 1, "and narrow still where Ambiguous is drawn wide");
 });
 
-await test("the marks still differ, so the band survives without colour", () => {
-  assert.notEqual(bandMark(62), bandMark(90), "warn and critical are distinguishable");
-  assert.equal(bandMark(20), "", "the safe band needs no symbol");
+await test("the eighths and the unknown dash are Ambiguous, so the switch widens them", () => {
+  for (const ch of ["\u2589", "\u258f", "\u2581", "\u2587", "\u2014"]) {
+    assert.equal(displayWidth(ch), 1, `${ch} is one column by default`);
+    assert.equal(wide(() => displayWidth(ch)), 2, `${ch} is two where Ambiguous is drawn wide`);
+  }
 });
 
 // The switch is the only way a reader can tell the bar what its terminal does,

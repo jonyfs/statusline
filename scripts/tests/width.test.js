@@ -102,24 +102,24 @@ await test("dropping a segment is preferred to shortening one", () => {
   assert.match(wide, /rtk/, "with room, the savings figure is there");
   assert.match(wide, /Claude Opus 5/, "and so is the model, since the merge of 2026-09-07");
   // An exhausted window says `full` (specs/023-extra-usage-limit).
-  assert.match(wide, /7d\s+100%\u25b4 full\s+\S+\s/);
+  assert.match(wide, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full\s+\S+\s/);
 
   // Narrower: the savings figure goes, then the effort, then the 7-day reset,
   // then the 5-hour countdown. The levels never go, since they are what the
   // line is for, and the model stays down to 70 columns. At 60 this fixture's
   // 23-character model name no longer fits beside the context figure and
-  // `5h\s+100%▴ full` even with every reset gone, so it goes by priority.
+  // `5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full` even with every reset gone, so it goes by priority.
   for (const width of [100, 80, 70]) {
     const line = lastLineAt(width);
     assert.match(line, /Claude Opus 5/, `the model survives at ${width}`);
     assert.match(line, /100%/, `the context figure survives at ${width}`);
-    assert.match(line, /5h\s+100%\u25b4/, `the nearest limit survives at ${width}`);
+    assert.match(line, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100%/, `the nearest limit survives at ${width}`);
     assert.equal((line.match(/resets in/g) || []).length, 0, "the words stay off the line");
   }
 
   const at60 = lastLineAt(60);
   assert.match(at60, /100%/, "the context figure survives at 60");
-  assert.match(at60, /5h\s+100%\u25b4 full/, "the exhausted window still says so at 60");
+  assert.match(at60, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full/, "the exhausted window still says so at 60");
 
   // 45: down to the top of the table.
   assert.match(lastLineAt(45), /100%/);

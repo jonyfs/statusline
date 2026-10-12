@@ -34,8 +34,10 @@ await test("a row names the task, its work, its context and its age", () => {
 await test("the context bar uses the same ramp as the statusline", () => {
   const calm = strip(renderTaskRow(task({ tokenCount: 20000 }), { columns: 80, now: NOW }).content);
   const hot = strip(renderTaskRow(task({ tokenCount: 190000 }), { columns: 80, now: NOW }).content);
-  assert.match(calm, /█/, "the safe band is solid");
-  assert.match(hot, /▒/, "the critical band is not");
+  // Eight cells in eighths (specs/046-gauges): a tenth is a partial cell, and
+  // 95% is seven whole cells and most of the eighth.
+  assert.match(calm, /[\u2589-\u258f]/, "the safe band shows the fill in eighths");
+  assert.match(hot, /█{7}/, "the critical band is nearly full");
   assert.match(hot, /!/, "and carries the mark colour cannot lose");
 });
 

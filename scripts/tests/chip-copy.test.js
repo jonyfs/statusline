@@ -29,15 +29,25 @@ await test("long and short forms of the chips", () => {
     return [c.text.trim(), ...(c.variants ?? []).map((v) => v.trim())];
   };
   const g = GLYPHS.nerd;
-  assert.deepEqual(forms("context"), [`${g.context} context ${FIGURE_SPACE}46%`, `${g.context} ${FIGURE_SPACE}46%`]);
+  const trackAt = (pct) => [0, 1, 2, 3, 4].map((i) => {
+    const edge = i === 0 ? "Start" : i === 4 ? "End" : "Mid";
+    return g[`track${pct >= (i + 0.5) * 20 ? "Full" : "Empty"}${edge}`];
+  }).join("");
+  assert.deepEqual(forms("context"), [
+    `${g.context} context ${trackAt(46)} ${FIGURE_SPACE}46%`,
+    `${g.context} context ${FIGURE_SPACE}46%`,
+    `${g.context} ${FIGURE_SPACE}46%`,
+  ]);
   assert.deepEqual(forms("rtk"), [`${g.rtk} rtk 81% saved`, `${g.rtk} 81%`]);
   assert.deepEqual(forms("pr"), [
     `${g.pr} PR #128 ${g.reviewApproved} approved`,
     `${g.pr} #128 ${g.reviewApproved}`,
   ]);
+  // 62% used with 57% of the window gone is five points ahead: ok, no note.
   assert.deepEqual(forms("fiveHour"), [
-    `${g.timer} 5h ${FIGURE_SPACE}62%▵ ${g.reset} 2h09`,
-    `${g.timer} 5h ${FIGURE_SPACE}62%▵`,
+    `${g.timer} 5h ${trackAt(62)} ${FIGURE_SPACE}62% ${g.reset} 2h09`,
+    `${g.timer} 5h ${FIGURE_SPACE}62% ${g.reset} 2h09`,
+    `${g.timer} 5h ${FIGURE_SPACE}62%`,
   ]);
 });
 
@@ -63,7 +73,9 @@ await test("a percentage keeps its width from one digit to three", () => {
     return displayWidth(c.text);
   };
   assert.equal(widthOf(5), widthOf(50));
-  assert.equal(widthOf(50), widthOf(100));
+  // 100 is critical and carries the alert glyph, which takes the place of the
+  // figure space a two-digit figure has, so a three-digit one is one wider.
+  assert.ok(widthOf(100) <= widthOf(50) + 1, `${widthOf(100)} against ${widthOf(50)}`);
   const five = chip("context", withPct(5)).text;
   assert.ok(five.includes(`${FIGURE_SPACE}${FIGURE_SPACE}5%`));
   assert.ok(!chip("context", withPct(100)).text.includes(FIGURE_SPACE));

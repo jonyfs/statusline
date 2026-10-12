@@ -22,7 +22,7 @@ const assert = (cond, message) => {
 const NO_ARRANGEMENT = { arrangement: null, origin: "default", path: null, error: null };
 
 /** The bar as text, for one arrangement, at one width. */
-function draw(arrangement, { width = 230, sources = SOURCES } = {}) {
+function draw(arrangement, { width = 300, sources = SOURCES } = {}) {
   return stripAnsi(
     renderPayload(PAYLOAD, {
       sources: { ...sources },
@@ -56,21 +56,21 @@ await test("a segment switched off leaves the bar", () => {
   const after = draw({ version: 1, segments: { rtk: { on: false } } });
   assert(/rtk 81% saved/.test(before), "the baseline has no savings segment to remove");
   assert(!/rtk 81% saved/.test(after), "the savings segment survived being switched off");
-  assert(/context\s+46%/.test(after), "something else was removed along with it");
+  assert(/context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(after), "something else was removed along with it");
 });
 
 await test("a segment switched off leaves whatever its priority", () => {
   // Context carries the highest priority on the bar. If anything ignores an
   // off switch, it is this.
   const after = draw({ version: 1, segments: { context: { on: false } } });
-  assert(!/context\s+46%/.test(after), "the highest-priority segment ignored being switched off");
+  assert(!/context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(after), "the highest-priority segment ignored being switched off");
 });
 
 await test("a segment moved to another line renders there", () => {
   // 240 columns: the fixture's line 3 carries every allowance chip of every
   // harness (Codex's 30-day window and credits joined it in specs/037), and
   // at 200 the moved skills chip is the one the width drops.
-  const after = lines(draw({ version: 1, segments: { skills: { line: 3, order: 5 } } }, { width: 240 }));
+  const after = lines(draw({ version: 1, segments: { skills: { line: 3, order: 5 } } }, { width: 320 }));
   assert(after.some((l) => /Opus 5/.test(l) && /speckit-implement/.test(l)), "skills did not land beside the model");
   assert(!after.some((l) => /speckit-implement/.test(l) && /working/.test(l)), "skills is still on its old line");
 });

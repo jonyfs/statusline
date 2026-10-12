@@ -44,7 +44,7 @@ await test("under Copilot there are no chips for limits Copilot does not have", 
   const out = render(copilot());
   assert.doesNotMatch(out, / 5h | 7d |spend|%\/h|limit ~/, out);
   assert.match(out, /Auto/, "the model");
-  assert.match(out, /context\s+31%/, "the context figure");
+  assert.match(out, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?31%/, "the context figure");
   assert.match(out, /12m/, "the session duration");
 });
 
@@ -88,7 +88,7 @@ await test("a closed turn long ago reads idle, and an old skill has left the win
 await test("a Claude payload renders exactly as it did", () => {
   const claude = fullPayload({ now: NOW });
   const a = render(claude);
-  assert.match(a, / 5h\s+20%/);
+  assert.match(a, / 5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%/);
   assert.doesNotMatch(a, /premium|allow all/);
 });
 
