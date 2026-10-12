@@ -170,12 +170,15 @@ export function getSessionCost(payload) {
   };
 }
 
-/** `1h04m`, or `04m` under an hour. Item A4's chosen form. */
+/**
+ * `1h04`, or `4m` under an hour. Item A4's form without its trailing `m`
+ * (specs/044-chip-copy): after an `h` the minutes are already minutes.
+ */
 export function formatDuration(ms) {
   if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return null;
   const minutes = Math.floor(ms / 60000);
   const hours = Math.floor(minutes / 60);
-  return hours > 0 ? `${hours}h${String(minutes % 60).padStart(2, "0")}m` : `${minutes}m`;
+  return hours > 0 ? `${hours}h${String(minutes % 60).padStart(2, "0")}` : `${minutes}m`;
 }
 
 /**
@@ -186,7 +189,12 @@ export function shortCountdown(resetsAtSeconds, now = Date.now(), bound = {}) {
   const full = formatResetCountdown(resetsAtSeconds, now, bound);
   if (full === null) return null;
   if (full === "resetting now") return "now";
-  return full.replace(/^resets in /, "").replace(/ (\d+)h$/, "");
+  // `2h09m` is `2h09`: once an `h` has said hours, the minutes need no unit.
+  return full
+    .replace(/^resets in /, "")
+    .replace(/ (\d+)h$/, "")
+    .replace(/^0h(\d\d)m$/, (_, m) => `${Number(m)}m`)
+    .replace(/^(\d+h\d\d)m$/, "$1");
 }
 
 /**

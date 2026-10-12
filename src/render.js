@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import { realpathSync } from "node:fs";
-import { PALETTES, renderRow, displayWidth } from "./theme.js";
+import { PALETTES, renderRow, displayWidth, STRONG, QUIET, MARK_OFF } from "./theme.js";
 import {
   getDirLabel,
   getDirUrl,
@@ -114,7 +114,8 @@ import { trackChanges, loadSamples } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
-import { resolveLayout, iconTier } from "./config.js";
+import { resolveLayout, iconTier, repoConfig } from "./config.js";
+import { abbreviateBranch, cutMiddle, DEFAULT_BRANCH_PREFIXES, BRANCH_COLUMNS } from "./names.js";
 import { bar, gaugeChip, bandMark, bandFor } from "./ramp.js";
 import { ROLE } from "./colourRoles.js";
 import { plainText } from "./text.js";
@@ -163,6 +164,7 @@ const NF_HOME = "\u{F02DC}";     // nf-md-home: the working directory when it is
 const NF_REPO = "\u{F401}";      // nf-oct-repo: the repository
 const NF_WORKTREE = "\u{E5FB}";  // nf-custom-folder_git_branch: a linked worktree
 const NF_REMOVED = "\u{F458}";   // nf-oct-diff_removed: boxed minus
+const NF_RESET = "\u{F06B0}";    // a clock with a circular arrow: when the window comes back
 const NF_PR_DRAFT = "\u{F4DD}";  // nf-oct-git_pull_request_draft
 const NF_PR_MERGED = "\u{F419}"; // nf-oct-git_merge
 const NF_PR_CLOSED = "\u{F4DC}"; // nf-oct-git_pull_request_closed
@@ -268,6 +270,7 @@ export const GLYPHS = {
     worktree: NF_WORKTREE,
     removed: NF_REMOVED,
     untracked: "?",
+    reset: NF_RESET,
     prDraft: NF_PR_DRAFT,
     prMerged: NF_PR_MERGED,
     prClosed: NF_PR_CLOSED,
@@ -329,6 +332,7 @@ export const GLYPHS = {
     worktree: "\u{1F333}",       // 🌳
     removed: "\u2796",           // ➖
     untracked: "\u2754",         // ❔
+    reset: "\u{1F501}",          // 🔁
     prDraft: "\u{1F6A7}",        // 🚧
     prMerged: "\u{1F7E3}",       // 🟣
     prClosed: "\u{1F6AB}",       // 🚫
@@ -412,6 +416,7 @@ export const GLYPHS = {
     worktree: "\u2387",  // ⎇ the branch sign, as for a branch
     removed: "-",
     untracked: "?",
+    reset: "\u21BA",     // ↺
     prDraft: "\u21C4",   // ⇄ every state of a pull request is the exchange arrows
     prMerged: "\u21C4",
     prClosed: "\u21C4",
@@ -1011,6 +1016,17 @@ export function renderReadings(
   // The band mark is a coloured circle in the emoji tier, where the rest of
   // the line is already pictures.
   const mark = (pct) => bandMark(pct, tier);
+  // A figure keeps its width: a percentage is padded to three characters with
+  // U+2007 FIGURE SPACE, so the chips after it do not move when it crosses 10
+  // or 100 (specs/044-chip-copy). `?` is padded the same, so the chip does not
+  // shift when the value arrives.
+  const pad3 = (n) => `${"\u2007".repeat(Math.max(0, 3 - String(n).length))}${n}`;
+  // The main figure of a chip is bold, and its reset and units recede
+  // (specs/044-chip-copy). Three markers that `renderRow` turns into weight
+  // and colour; the pool and the width measure see none of them.
+  const strong = (s) => `${STRONG}${s}${MARK_OFF}`;
+  const quiet = (s) => `${QUIET}${s}${MARK_OFF}`;
+  const figure = (n) => strong(`${pad3(n)}%`);
   // Effort is a level, so its glyph fills with it. A level the table does not
   // name (`xhigh`, `max`, whatever a harness sends) is at least high.
   const effortGlyph = (level) =>
@@ -1081,9 +1097,10 @@ export function renderReadings(
     for (const seg of segs) {
       if (pooled.has(seg.key)) continue;
       pooled.add(seg.key);
+      const plain = (s) => String(s).replace(/[\u0001-\u0003]/g, "");
       pool.push({
         key: seg.key,
-        text: seg.text,
+        text: plain(seg.text),
         color: seg.color,
         ...(seg.icon ? { icon: seg.icon } : {}),
         ...(seg.tone ? { tone: seg.tone } : {}),
@@ -1091,7 +1108,7 @@ export function renderReadings(
         // The composer page fits with the same `fitToWidth`, so a segment's
         // shorter forms travel with it or the page would drop what the
         // terminal only shortens.
-        ...(seg.variants ? { variants: seg.variants } : {}),
+        ...(seg.variants ? { variants: seg.variants.map(plain) } : {}),
       });
     }
   };
@@ -1124,7 +1141,12 @@ export function renderReadings(
   }
   if (git) {
     const detached = git.detached === true || git.branch === "(detached)";
-    const label = detached ? git.oid?.slice(0, 7) || "detached" : git.branch;
+    // The prefix is abbreviated and a long name is cut in the middle, where
+    // two branches differ. The link still goes to the full name.
+    const prefixes = repoConfig(readings.cwd || process.cwd()).branchPrefixes ?? DEFAULT_BRANCH_PREFIXES;
+    const label = detached
+      ? git.oid?.slice(0, 7) || "detached"
+      : cutMiddle(abbreviateBranch(git.branch, prefixes), BRANCH_COLUMNS);
     // A detached HEAD is a commit, not a branch. Linking it to a tree view
     // and drawing a branch icon beside it would say otherwise.
     // Encoded a path segment at a time: a `#` or a `%` in a branch name is
@@ -1243,6 +1265,7 @@ export function renderReadings(
         color: String(pr.state).toUpperCase() === "MERGED" ? ROLE.merged : ROLE.open,
         emphasis: changes.isChanged("pr"),
         text: ` ${prGlyph} ${label} #${pr.number}${review ? ` ${reviewMark}${review}` : ""}${labelText} `,
+        variants: [` ${prGlyph} #${pr.number}${reviewGlyph ? ` ${reviewGlyph}` : review ? ` ${review}` : ""} `],
         url: pr.url,
       });
     }
@@ -1389,10 +1412,10 @@ export function renderReadings(
     const q = copilotQuota?.quotas?.[name];
     if (!q) return null;
     const full = q.full || q.usedPct >= 100 ? " full" : "";
-    const level = ` ${g.calendar} month ${name} ${q.usedPct}%${mark(q.usedPct)}${full}`;
+    const level = ` ${g.calendar} month ${name} ${figure(q.usedPct)}${mark(q.usedPct)}${full}`;
     const date = formatQuotaDate(copilotQuota.resetDate);
     return date
-      ? { ...gaugeChip(q.usedPct), text: `${level} · ${date} `, variants: [`${level} `] }
+      ? { ...gaugeChip(q.usedPct), text: `${level} ${quiet(`${g.reset} ${date}`)} `, variants: [`${level} `] }
       : { ...gaugeChip(q.usedPct), text: `${level} ` };
   };
 
@@ -1420,7 +1443,7 @@ export function renderReadings(
       const bare = /^[\d.,]+$/.test(c.formatted);
       const amount = bare ? `${c.formatted} AIC` : c.formatted;
       if (c.pct === null) return { color: ROLE.money, text: ` ${g.spend} ${amount} ` };
-      const level = `${c.pct}%${mark(c.pct)}${fullMark(c.pct)}`;
+      const level = `${figure(c.pct)}${mark(c.pct)}${fullMark(c.pct)}`;
       const against = bare ? `${c.formatted}/${creditCount(c.max)} AIC` : `${c.formatted} of ${creditCount(c.max)}`;
       return {
         ...gaugeChip(c.pct),
@@ -1428,7 +1451,7 @@ export function renderReadings(
         variants: [` ${g.spend} ${amount} · ${level} `],
       };
     },
-    effort: () => (effort ? { color: ROLE.neutral, text: ` ${effortGlyph(effort)} ${effort} ` } : null),
+    effort: () => (effort ? { color: ROLE.identity, text: ` ${effortGlyph(effort)} ${effort} ` } : null),
     // Fast mode spends faster, so it sits with the model and effort that say
     // what is spending. Drawn only when on (specs/027-bar-polish).
     fastMode: () => (shows("fastMode") && readings.fastMode?.value ? { color: ROLE.neutral, text: ` ${g.fast} fast ` } : null),
@@ -1448,7 +1471,8 @@ export function renderReadings(
     // are the ones with a consequence you cannot undo.
     context: () => ({
       ...gaugeChip(ctxPct),
-      text: ` ${g.context} Context ${ctxPct ?? "?"}% `,
+      text: ` ${g.context} context ${figure(ctxPct ?? "?")} `,
+      variants: [` ${g.context} ${figure(ctxPct ?? "?")} `],
     }),
     // Each window says how much of it is gone and when it comes back, in one
     // chip. Until 2026-09-06 the two resets shared a segment two places away
@@ -1466,8 +1490,8 @@ export function renderReadings(
       // chip's one variant is itself without the countdown, which the width
       // guard reaches before it drops anything essential (specs/027).
       const resets = shortCountdown(fiveHourResetsAt, now) ?? "?";
-      const level = ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${mark(fiveHourPct)}${fullMark(fiveHourPct)}`;
-      return { ...gaugeChip(fiveHourPct), text: `${level} \u00b7 ${resets} `, variants: [`${level} `] };
+      const level = ` ${g.timer} 5h ${figure(fiveHourPct ?? "?")}${mark(fiveHourPct)}${fullMark(fiveHourPct)}`;
+      return { ...gaugeChip(fiveHourPct), text: `${level} ${quiet(`${g.reset} ${resets}`)} `, variants: [`${level} `] };
     },
     sevenDay: () => {
       if (noSevenDay) return null;
@@ -1478,8 +1502,8 @@ export function renderReadings(
       // the reasoning that a countdown three days long is noise; the near case
       // used to be covered by the merged segment, and now lives here.
       const moment = farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?";
-      const level = ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${mark(sevenDayPct)}${fullMark(sevenDayPct)}`;
-      return { ...gaugeChip(sevenDayPct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
+      const level = ` ${g.calendar} 7d ${figure(sevenDayPct ?? "?")}${mark(sevenDayPct)}${fullMark(sevenDayPct)}`;
+      return { ...gaugeChip(sevenDayPct), text: `${level} ${quiet(`${g.reset} ${moment}`)} `, variants: [`${level} `] };
     },
     // The allowance a gateway reports once an administrator sets a spend
     // limit. It is drawn as reported, past 100% included, because that is how
@@ -1497,8 +1521,8 @@ export function renderReadings(
       const at = typeof w.resets_at === "number" ? w.resets_at : null;
       const counts = formatResetCountdown(at, now, bound) !== null;
       const moment = !counts ? "?" : at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
-      const level = ` ${g.calendar} ${w.label} ${pct}%${mark(pct)}${fullMark(pct)}`;
-      return { ...gaugeChip(pct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
+      const level = ` ${g.calendar} ${w.label} ${figure(pct)}${mark(pct)}${fullMark(pct)}`;
+      return { ...gaugeChip(pct), text: `${level} ${quiet(`${g.reset} ${moment}`)} `, variants: [`${level} `] };
     },
     // Codex's credit balance, drawn as Codex writes it.
     codexCredits: () => {
@@ -1509,8 +1533,8 @@ export function renderReadings(
       if (noLimits) return null;
       if (spendLimitPct === null) return null;
       const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
-      const level = ` ${g.spend} spend ${spendLimitPct}%${mark(spendLimitPct)}`;
-      return { ...gaugeChip(spendLimitPct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
+      const level = ` ${g.spend} spend ${figure(spendLimitPct)}${mark(spendLimitPct)}`;
+      return { ...gaugeChip(spendLimitPct), text: `${level} ${quiet(`${g.reset} ${moment}`)} `, variants: [`${level} `] };
     },
     // The prompt cache, drawn only when its state changes what you do next:
     // cold, or warm inside its closing window. A warm cache with time to
@@ -1521,12 +1545,13 @@ export function renderReadings(
       if (!promptCache?.observed) return null;
       if (promptCache.state === "warm") {
         if (!promptCache.closing) return null;
-        return { color: ROLE.neutral, icon: ROLE.modified, text: ` ${g.cacheWarm} cache warm \u00b7 ${cacheMinutesLeft(promptCache.secondsLeft)} ` };
+        return { color: ROLE.neutral, icon: ROLE.modified, text: ` ${g.cacheWarm} cache warm \u00b7 ${cacheMinutesLeft(promptCache.secondsLeft)} `, variants: [` ${g.cacheWarm} ${cacheMinutesLeft(promptCache.secondsLeft)} `] };
       }
       const tokens = promptCache.recacheTokens !== null ? abbreviate(promptCache.recacheTokens) : null;
       const chip = (...parts) => ` ${g.cacheCold} cache cold${parts.filter(Boolean).map((t) => ` \u00b7 ${t}`).join("")} `;
       const text = chip(tokens, promptCache.cause);
-      const variants = [chip(tokens), chip()].filter((v, i, all) => v !== text && all.indexOf(v) === i);
+      const bare = tokens ? ` ${g.cacheCold} ${tokens} ` : ` ${g.cacheCold} `;
+      const variants = [chip(tokens), chip(), bare].filter((v, i, all) => v !== text && all.indexOf(v) === i);
       return { color: ROLE.cold, text, ...(variants.length ? { variants } : {}) };
     },
     // C5 asked for this figure to render only once it had moved five points,
@@ -1543,7 +1568,7 @@ export function renderReadings(
     // cross.
     rtk: () => {
       if (rtkPct === null) return null;
-      return { color: ROLE.money, text: ` ${g.rtk} rtk ${rtkPct}% saved ` };
+      return { color: ROLE.money, text: ` ${g.rtk} rtk ${strong(`${rtkPct}%`)} ${quiet("saved")} `, variants: [` ${g.rtk} ${strong(`${rtkPct}%`)} `] };
     },
 
     // B1: a percentage says where you are; a rate says whether you get there
@@ -1591,7 +1616,7 @@ export function renderReadings(
     duration: () => {
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       const label = formatDuration(c?.durationMs);
-      return label ? { color: ROLE.neutral, text: ` ${g.duration} ${label} ` } : null;
+      return label ? { color: ROLE.neutral, text: ` ${g.duration} ${strong(label)} ` } : null;
     },
   };
 
@@ -1778,7 +1803,7 @@ function trimFromLeft(label, columns) {
   if (displayWidth(label) <= target) return null;
   // The ellipsis is Ambiguous, so it is two columns where Ambiguous is drawn
   // wide; reserving a fixed one let a cut label overflow by a column there.
-  const tail = displayWidth("…");
+  const tail = displayWidth("…/");
   const chars = [...label];
   let kept = [];
   let width = 0;
@@ -1788,5 +1813,5 @@ function trimFromLeft(label, columns) {
     kept.unshift(chars[i]);
     width = next;
   }
-  return kept.length ? `…${kept.join("")}` : null;
+  return kept.length ? `…/${kept.join("")}` : null;
 }

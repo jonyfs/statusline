@@ -90,6 +90,6 @@ await test("a session segment carries no link", () => {
   // The context figure sits between two escape-free runs; if it had a link,
   // one of the targets would not belong to the project, which the case above
   // already forbids. This pins the intent directly.
-  const contextRun = out.slice(out.indexOf("Context"));
+  const contextRun = out.slice(out.indexOf("context"));
   assert.ok(!contextRun.slice(0, 40).includes("\x1b]8;;"), "the context figure is not a link");
 });

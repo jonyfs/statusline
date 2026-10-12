@@ -99,6 +99,6 @@ await test("each window's row reports its level and its reset, as its chip draws
   for (const key of ["fiveHour", "sevenDay"]) {
     const row = report.segments.find((r) => r.key === key);
     assert.equal(row.rendered, true, `${key} is on line 4, so the diagnostic must not call it absent`);
-    assert.match(row.value, /^\d+% · resets in /, `${key} reports the level and the reset together`);
+    assert.match(row.value, /^\d+%\s+\S+\s+resets in /, `${key} reports the level and the reset together`);
   }
 });

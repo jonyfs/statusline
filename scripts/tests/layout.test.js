@@ -148,15 +148,15 @@ await test("an arranged bar still drops by priority", async () => {
   // rtk carries the lowest priority on the bar and context the highest.
   // Put both on line 3 and squeeze it: the savings figure goes first.
   const moved = { version: 1, segments: { rtk: { line: 3, order: 5 }, context: { line: 3, order: 6 } } };
-  const roomy = draw(moved, 200);
+  const roomy = draw(moved, 230);
   assert.ok(/rtk 81% saved/.test(roomy), "the savings figure is missing before the squeeze");
-  assert.ok(/Context 46%/.test(roomy), "the context figure is missing before the squeeze");
+  assert.ok(/context\s+46%/.test(roomy), "the context figure is missing before the squeeze");
 
   // Narrow enough that the four segments on that line cannot all fit: at 60
   // columns they still do, which is the whole point of measuring rather than
   // assuming.
   const tight = draw(moved, 36);
-  assert.ok(/Context 46%/.test(tight), "the highest-priority segment was dropped");
+  assert.ok(/46%/.test(tight), "the highest-priority segment was dropped");
   assert.ok(!/rtk 81% saved/.test(tight), "the lowest-priority segment survived a 60-column window");
 });
 

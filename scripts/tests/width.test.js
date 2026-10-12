@@ -76,10 +76,10 @@ await test("a narrow line drops by priority, not by position", () => {
   // own, so the priority table only gets to decide below that.
   const tight = line4At(70);
   assert.doesNotMatch(tight, /rtk/, "priority 40 is the first to go");
-  assert.match(tight, /Context 100%/, "priority 100 stays");
+  assert.match(tight, /100%/, "priority 100 stays");
 
   const tighter = line4At(40);
-  assert.match(tighter, /Context/, "the top of the table survives to the end");
+  assert.match(tighter, /100%/, "the top of the table survives to the end");
 });
 
 await test("dropping a segment is preferred to shortening one", () => {
@@ -102,27 +102,27 @@ await test("dropping a segment is preferred to shortening one", () => {
   assert.match(wide, /rtk/, "with room, the savings figure is there");
   assert.match(wide, /Claude Opus 5/, "and so is the model, since the merge of 2026-09-07");
   // An exhausted window says `full` (specs/023-extra-usage-limit).
-  assert.match(wide, /7d 100%\u25b4 full ·/);
+  assert.match(wide, /7d\s+100%\u25b4 full\s+\S+\s/);
 
   // Narrower: the savings figure goes, then the effort, then the 7-day reset,
   // then the 5-hour countdown. The levels never go, since they are what the
   // line is for, and the model stays down to 70 columns. At 60 this fixture's
   // 23-character model name no longer fits beside the context figure and
-  // `5h 100%▴ full` even with every reset gone, so it goes by priority.
+  // `5h\s+100%▴ full` even with every reset gone, so it goes by priority.
   for (const width of [100, 80, 70]) {
     const line = lastLineAt(width);
     assert.match(line, /Claude Opus 5/, `the model survives at ${width}`);
-    assert.match(line, /Context 100%/, `the context figure survives at ${width}`);
-    assert.match(line, /5h 100%\u25b4/, `the nearest limit survives at ${width}`);
+    assert.match(line, /100%/, `the context figure survives at ${width}`);
+    assert.match(line, /5h\s+100%\u25b4/, `the nearest limit survives at ${width}`);
     assert.equal((line.match(/resets in/g) || []).length, 0, "the words stay off the line");
   }
 
   const at60 = lastLineAt(60);
-  assert.match(at60, /Context 100%/, "the context figure survives at 60");
-  assert.match(at60, /5h 100%\u25b4 full/, "the exhausted window still says so at 60");
+  assert.match(at60, /100%/, "the context figure survives at 60");
+  assert.match(at60, /5h\s+100%\u25b4 full/, "the exhausted window still says so at 60");
 
   // 45: down to the top of the table.
-  assert.match(lastLineAt(45), /Context 100%/);
+  assert.match(lastLineAt(45), /100%/);
 });
 
 // The savings figure was the lowest priority on the bar and the first thing
@@ -162,7 +162,7 @@ await test("an unconstrained line keeps everything, so the guard costs nothing n
     )
   );
   const line4 = out.split("\n").pop();
-  assert.match(line4, /·/, "with room to spare, the named moment stays");
+  assert.match(line4, /\d{2}:\d{2}/, "with room to spare, the named moment stays");
   assert.ok(displayWidth(line4) <= LIMIT);
 });
 

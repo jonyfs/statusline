@@ -34,13 +34,13 @@ await test("#1 a long directory gives up its own columns before the PR and CI ar
   const line = lineOne(renderDir("d".repeat(90)));
   assert.match(line, /PR #42/, `the PR survived: ${JSON.stringify(line)}`);
   assert.match(line, /CI/, "and the CI chip");
-  assert.match(line, /…d+/, "because the directory was cut from the left");
+  assert.match(line, /…\/d+/, "because the directory was cut from the left");
   assert.ok(displayWidth(line) <= LIMIT, `line 1 is ${displayWidth(line)} columns`);
 });
 
 await test("#1 a directory wider than the line is shortened, never dropped in favour of the branch", () => {
   const line = lineOne(renderDir("e".repeat(130)));
-  assert.match(line, /…e+/, `the directory is still there: ${JSON.stringify(line)}`);
+  assert.match(line, /…\/e+/, `the directory is still there: ${JSON.stringify(line)}`);
   assert.match(line, /main/, "beside the branch");
   assert.ok(displayWidth(line) <= LIMIT, `line 1 is ${displayWidth(line)} columns`);
 });
@@ -74,9 +74,9 @@ await test("#2 a 7-day reset in milliseconds reads as unknown, not as a confiden
     },
   });
   const out = stripAnsi(renderPayload(payload, { sources: emptySources, trackChanges: false, now: NOW, maxWidth: 200, maxHeight: 40 }));
-  const chip = out.split("\n").find((l) => l.includes("7d 40%"));
+  const chip = out.split("\n").find((l) => /7d\s+40%/.test(l));
   assert.ok(chip, "the 7-day chip is drawn");
-  assert.match(chip, /7d 40% · \? /, `the reset is '?': ${JSON.stringify(chip)}`);
+  assert.match(chip, /7d\s+40%\s+\S+\s+\? /, `the reset is '?': ${JSON.stringify(chip)}`);
 });
 
 // #3 -------------------------------------------------------------------------

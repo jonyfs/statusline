@@ -83,5 +83,5 @@ await test("shedding an arranged bar follows the same order", async () => {
   // it carries the limits, and it carries the model since the merge.
   const oneRow = drawAt(1, emptied);
   assert.equal(oneRow.length, 1, "more than one line survived a one-row window");
-  assert.ok(/Context 46%/.test(oneRow[0]), "the line carrying the limits was not the survivor");
+  assert.ok(/context\s+46%/.test(oneRow[0]), "the line carrying the limits was not the survivor");
 });

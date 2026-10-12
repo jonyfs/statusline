@@ -156,7 +156,7 @@ const draw = (payload) =>
 await test("the bar under OpenCode: model, context, todo and working, and no window chips", () => {
   const out = draw(opencodePayload(SNAPSHOT, { now: NOW }));
   assert.match(out, /Kimi K2\.7 Code/);
-  assert.match(out, /Context 57%/);
+  assert.match(out, /context\s+57%/);
   assert.match(out, /Run tests to verify changes \(1\/3\)/);
   assert.match(out, /working/);
   assert.doesNotMatch(out, /5h |7d |\?%/);

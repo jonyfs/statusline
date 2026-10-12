@@ -39,7 +39,9 @@ const hook = (settings.hooks?.PostToolUse ?? []).flatMap((g) => g.hooks ?? []).f
 const commands = [
   // The bar draws its context segment whatever the payload says, so its
   // presence proves the command ran even if a shell did not pass stdin on.
-  { name: "statusLine", command: settings.statusLine?.command, expect: /Context/ },
+  // The figure is what both forms of the chip carry; the word is dropped
+  // when the width is short (specs/044-chip-copy).
+  { name: "statusLine", command: settings.statusLine?.command, expect: /\d+%/ },
   { name: "skill hook", command: hook?.command, expect: null },
   { name: "subagent rows", command: settings.subagentStatusLine?.command, expect: null },
 ];

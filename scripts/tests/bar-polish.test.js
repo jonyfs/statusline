@@ -26,24 +26,24 @@ const narrow = fullPayload({
 // Story 1 -----------------------------------------------------------------
 
 await test("a narrow line gives up the reset text before it gives up the model", () => {
-  const l = lineWith(render(narrow, { maxWidth: 70 }), "Context");
+  const l = lineWith(render(narrow, { maxWidth: 70 }), "Opus");
   assert.match(l, /Claude Opus 5/, `the model was dropped: ${l}`);
-  assert.match(l, /5h 100%▴ full/, "the exhausted window keeps its word");
-  assert.doesNotMatch(l, /1h00m|· \d/, `reset text survived: ${l}`);
+  assert.match(l, /5h\s+100%▴ full/, "the exhausted window keeps its word");
+  assert.doesNotMatch(l, /1h00|· \d/, `reset text survived: ${l}`);
 });
 
 await test("the 7-day reset goes before the 5-hour countdown", () => {
   const widths = [];
-  for (let w = 140; w >= 40; w -= 1) widths.push([w, lineWith(render(narrow, { maxWidth: w }), "Context")]);
-  const firstNo7d = widths.find(([, l]) => /7d/.test(l) && !/7d 100%▴ full ·/.test(l));
-  const firstNo5h = widths.find(([, l]) => /5h/.test(l) && !/5h 100%▴ full ·/.test(l));
+  for (let w = 140; w >= 40; w -= 1) widths.push([w, lineWith(render(narrow, { maxWidth: w }), "Opus")]);
+  const firstNo7d = widths.find(([, l]) => /7d/.test(l) && !/7d\s+100%▴ full ·/.test(l));
+  const firstNo5h = widths.find(([, l]) => /5h/.test(l) && !/5h\s+100%▴ full ·/.test(l));
   assert.ok(firstNo7d && firstNo5h);
   assert.ok(firstNo7d[0] >= firstNo5h[0], `7d reset went at ${firstNo7d[0]}, 5h at ${firstNo5h[0]}`);
 });
 
 await test("with room enough after dropping minor segments, every reset stays", () => {
-  const l = lineWith(render(narrow, { maxWidth: 120 }), "Context");
-  assert.match(l, /5h 100%▴ full · 1h00m/);
+  const l = lineWith(render(narrow, { maxWidth: 120 }), "Opus");
+  assert.match(l, /5h\s+100%▴ full\s+\S+\s+1h00/);
 });
 
 // Story 2 -----------------------------------------------------------------

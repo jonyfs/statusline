@@ -63,7 +63,7 @@ await test("expiry label names the real day, not a fake one", () => {
   const at = (iso) => Math.floor(new Date(iso).getTime() / 1000);
   assert.equal(resetMomentLabel(at("2026-08-24T15:00:00"), now), "15:00");
   assert.equal(resetMomentLabel(at("2026-08-25T09:00:00"), now), "tomorrow 09:00");
-  assert.equal(resetMomentLabel(at("2026-08-27T18:30:00"), now), "Thu 18:30");
+  assert.equal(resetMomentLabel(at("2026-08-27T18:30:00"), now), "thu 18:30");
 });
 
 await test("change tracking marks a change and decays after the window", () => {

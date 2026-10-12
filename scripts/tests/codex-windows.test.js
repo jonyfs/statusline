@@ -69,35 +69,35 @@ const codex = (rateLimits) => ({ cwd: "/Users/dev/projects/statusline", codex: {
 
 await test("a free-plan rollout draws its 30-day window, and no 5h or 7d chip", () => {
   const out = draw(rolloutPayload(readRollout(path.join(FIXTURES, "codex-rollout-free.jsonl")), { now: NOW }));
-  assert.match(out, /30d 15%/);
+  assert.match(out, /30d\s+15%/);
   assert.doesNotMatch(out, /5h /);
   assert.doesNotMatch(out, /7d /);
 });
 
 await test("a 30-day reset more than a day out names the date", () => {
   const out = draw(payloadWith({ primary: window(43200, 8, 20 * DAY), secondary: null }));
-  assert.match(out, /30d 8%.* · 26\/10 12:00/);
+  assert.match(out, /30d\s+8%.*\s\S+\s26\/10 12:00/);
 });
 
 await test("a reset inside a day counts down", () => {
   const out = draw(payloadWith({ primary: window(43200, 99, 3 * 3600 + 20 * 60), secondary: null }));
-  assert.match(out, /30d 99%.* · 3h20m/);
+  assert.match(out, /30d\s+99%.*\s\S+\s3h20/);
 });
 
 await test("a reset further out than the window is a wrong unit, shown as ?", () => {
   const out = draw(payloadWith({ primary: window(43200, 8, 40 * DAY), secondary: null }));
-  assert.match(out, /30d 8%.* · \? /);
+  assert.match(out, /30d\s+8%.*\s\S+\s\? /);
 });
 
 await test("a window at 100% says full", () => {
   const out = draw(payloadWith({ primary: window(43200, 100, 2 * DAY), secondary: null }));
-  assert.match(out, /30d 100%.* full/);
+  assert.match(out, /30d\s+100%.* full/);
 });
 
 await test("a narrow pane drops the reset before the chip", () => {
   const p = payloadWith({ primary: window(43200, 8, 20 * DAY), secondary: null });
   const out = draw({ ...p, context_window: { used_percentage: 20 } }, 40);
-  assert.match(out, /30d 8%/);
+  assert.match(out, /30d\s+8%/);
   assert.doesNotMatch(out, /26\/10/);
 });
 
@@ -114,10 +114,10 @@ await test("5h and 7d keep their chips beside another window, and the chip shows
   const p = payloadWith({ primary: window(1440, 9, 3600), secondary: window(10080, 40, 2 * DAY) });
   assert.deepEqual(Object.keys(p.rate_limits).sort(), ["other_windows", "seven_day"]);
   const out = draw(p);
-  assert.match(out, /1d 9%/);
-  assert.match(out, /7d 40%/);
+  assert.match(out, /1d\s+9%/);
+  assert.match(out, /7d\s+40%/);
   const two = draw(payloadWith({ primary: window(1440, 9, 3600), secondary: window(43200, 3, 9 * DAY) }));
-  assert.match(two, /1d 9%/);
+  assert.match(two, /1d\s+9%/);
   assert.doesNotMatch(two, /30d/);
 });
 
@@ -139,7 +139,7 @@ await test("doctor names every other window, and why the chip is absent elsewher
   const p = payloadWith({ primary: window(1440, 9, 3600), secondary: window(43200, 3, 9 * DAY) });
   const report = buildReport(p, { now: NOW, live: false, probe: { ...emptySources, getSessionActivity: () => null } });
   const row = (r, key) => r.segments.find((s) => s.key === key);
-  assert.match(row(report, "codexWindow").value, /^1d 9% · .*, 30d 3% · /);
+  assert.match(row(report, "codexWindow").value, /^1d\s+9%\s+\S+\s+.*, 30d 3%\s+\S+\s+/);
   const claude = buildReport({ cwd: "/tmp" }, { now: NOW, live: false, probe: emptySources });
   assert.equal(row(claude, "codexWindow").reason, "Codex CLI only");
   assert.equal(row(claude, "codexCredits").reason, "Codex CLI only");
@@ -174,12 +174,12 @@ await test("a Claude Code payload draws neither chip", () => {
     cwd: "/Users/dev/projects/statusline",
     rate_limits: { five_hour: { used_percentage: 43, resets_at: NOW_S + 3600 }, seven_day: { used_percentage: 79, resets_at: NOW_S + 2 * DAY } },
   });
-  assert.match(out, /5h 43%/);
-  assert.match(out, /7d 79%/);
+  assert.match(out, /5h\s+43%/);
+  assert.match(out, /7d\s+79%/);
   assert.doesNotMatch(out, /30d|credits/);
 });
 
 await test("a Codex payload built by hand renders the chip the same way", () => {
   const out = draw(codex({ other_windows: [{ label: "30d", window_minutes: 43200, used_percentage: 8.4, resets_at: NOW_S + 20 * DAY }] }));
-  assert.match(out, /30d 8%/);
+  assert.match(out, /30d\s+8%/);
 });

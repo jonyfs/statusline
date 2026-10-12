@@ -45,7 +45,9 @@ export const SEGMENT_COLOURS = {
   activity: { fill: ["neutral"], icon: ["healthy"] },
   vim: { fill: ["neutral"] },
   model: { fill: ["identity"] },
-  effort: { fill: ["neutral"] },
+  // Effort is the model's own property: it takes the model's colour, so the two
+  // read as one block (specs/044-chip-copy).
+  effort: { fill: ["identity"] },
   fastMode: { fill: ["neutral"] },
   allowAll: { fill: ["attention"] },
   premiumRequests: { fill: ["neutral"] },

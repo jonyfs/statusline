@@ -33,7 +33,7 @@ const rich = (over = {}) =>
 // A4 -----------------------------------------------------------------------
 
 await test("session duration renders in hours and minutes, and is absent without it", () => {
-  assert.match(render(rich()), re`${G.duration} 1h04m`);
+  assert.match(render(rich()), re`${G.duration} 1h04`);
   assert.doesNotMatch(render(fullPayload()), re`${G.duration}`);
 });
 

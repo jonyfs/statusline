@@ -242,7 +242,7 @@ await test("codex-pane --once draws the real bar from a rollout at the given wid
   assert.equal(r.status, 0, r.stderr);
   const out = stripAnsi(r.stdout);
   assert.match(out, /gpt-5\.5/);
-  assert.match(out, /5h 11%/);
+  assert.match(out, /5h\s+11%/);
   assert.ok(out.trimEnd().split("\n").length <= 3, out);
 });
 

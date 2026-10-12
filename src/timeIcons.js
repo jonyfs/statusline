@@ -14,7 +14,8 @@
  * with a symbol that does not mean what it appears to.
  */
 
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// Lowercase: the words the bar writes itself share one casing (specs/044).
+const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 /**
  * How the reset moment reads to a human: the weekday when it lands on a

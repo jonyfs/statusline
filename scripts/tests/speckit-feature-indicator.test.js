@@ -101,7 +101,7 @@ await test("the shown identifier tracks feature.json across renders", () => {
 await test("no feature.json falls back to the step label, not an empty parenthetical", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "no-feature-json-"));
   const out = render(root, { ...gitSources(), getActiveSkills: () => ["speckit-plan"] });
-  assert.match(out, /speckit-plan \(Planning\)/, "falls back to the SDD step label");
+  assert.match(out, /speckit-plan \(planning\)/, "falls back to the SDD step label");
   assert.doesNotMatch(out, /\(\)/, "never an empty parenthetical");
 });
 

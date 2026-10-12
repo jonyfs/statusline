@@ -740,6 +740,25 @@ readers of this file a box; [Where the icons come from](#where-the-icons-come-fr
 maps each one to its codepoint. The screenshots throughout show the real
 thing, with the outlines baked in.
 
+## How the chips are worded
+
+The bar writes its own words in lowercase. Acronyms (`PR`, `CI`), units (`h`, `d`, `m`) and
+anything that comes from your session (a model, a branch, a skill, a vim mode) keep the case
+they have. A few rules keep the line from moving as figures change:
+
+- A percentage is padded to three characters with a figure space, so `5%`, `50%` and `100%`
+  take the same width and the chips after them stay put.
+- A duration under an hour is `45m`, and an hour or more is `2h09`, with no trailing `m`.
+- A reset is introduced by its own icon instead of a dot.
+- A chip that has a short form (`context 46%` is `46%` with its icon, `rtk 81% saved` is
+  `81%`) shows it before the width guard drops the chip.
+- The model and its effort share one background and read as one block.
+- A branch prefix is abbreviated (`feature/` is `f/`, `fix/` is `x/`), and a name longer than
+  28 columns is cut in the middle with `…`. A directory cut from the left begins with `…/`.
+  Name your own prefixes in `.statusline.json`: `{ "branchPrefixes": { "release/": "r/" } }`.
+- The main figure of a chip is bold, and its reset and units are in a quieter text colour.
+  Under `NO_COLOR` neither is drawn.
+
 ## Reading a level at a glance
 
 The context figure, the 5-hour window, the 7-day window and the spend limit
@@ -1084,9 +1103,10 @@ repository root:
 { "flavor": "gruvbox", "separator": "thin", "skillWindowMin": 60 }
 ```
 
-Six keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin`,
-`layout` and `gates`. `gates` holds the patterns that name the repository's
-gate scripts (see "Gate scripts run without a hook"). Anything else in the
+Seven keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin`,
+`layout`, `gates` and `branchPrefixes`. `gates` holds the patterns that name the
+repository's gate scripts (see "Gate scripts run without a hook"), and
+`branchPrefixes` maps a branch prefix to its short form. Anything else in the
 file is ignored. An environment variable always
 wins, and a file in your home directory is ignored entirely, because settings
 that live in a repository travel to everyone who clones it.
@@ -1401,6 +1421,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-md-gauge_low` / `nf-md-gauge` / `nf-md-gauge_full` | `U+F0875` / `U+F029A` / `U+F0874` | effort: low, medium, high |
 | `nf-md-memory` | `U+F035B` | context window |
 | `nf-md-timer_sand` | `U+F051F` | the 5-hour window, an hourglass: time that runs out |
+| `nf-md-update` | `U+F06B0` | a reset: when a window comes back |
 | `nf-oct-stopwatch` | `U+F520` | session duration, a stopwatch: time elapsed |
 | `nf-md-fire` | `U+F0238` | burn rate |
 | `nf-md-piggy_bank` | `U+F1679` | rtk, what it saves |

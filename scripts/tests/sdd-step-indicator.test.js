@@ -21,7 +21,7 @@ const render = (payload, sources) =>
 // FR-001/FR-002 (User Story 1): a step label shows next to an active speckit skill.
 await test("a speckit-* skill's step label appears on the skills chip", () => {
   const out = render(fullPayload(), { ...gitSources(), getActiveSkills: () => ["speckit-plan"] });
-  assert.match(out, /speckit-plan \(Planning\)/);
+  assert.match(out, /speckit-plan \(planning\)/);
 });
 
 // Acceptance Scenario 4: no speckit-* skill active means no step label.
@@ -37,8 +37,8 @@ await test("the most recently active speckit-* skill's step wins", () => {
     ...gitSources(),
     getActiveSkills: () => ["speckit-tasks", "speckit-plan"],
   });
-  assert.match(out, /\(Writing tasks\)/);
-  assert.doesNotMatch(out, /\(Planning\)/);
+  assert.match(out, /\(writing tasks\)/);
+  assert.doesNotMatch(out, /\(planning\)/);
 });
 
 // User Story 2: no separate expiry logic; the label simply follows getActiveSkills's output.

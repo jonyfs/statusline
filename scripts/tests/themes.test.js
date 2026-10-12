@@ -59,7 +59,7 @@ await test("every theme renders every segment", () => {
     });
     const plain = stripAnsi(out);
     assert.match(plain, /Sonnet 5/, `${flavor} lost the model`);
-    assert.match(plain, /Context/, `${flavor} lost the context figure`);
+    assert.match(plain, /context/, `${flavor} lost the context figure`);
     assert.doesNotMatch(out, /undefined|NaN/, `${flavor} rendered a hole`);
   }
 });

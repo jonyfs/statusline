@@ -22,7 +22,7 @@ import { repoKey, readEntry, shouldRefresh, spawnRefresh } from "./cache.js";
 /** The quota is the account's, whichever directory asks, so there is one entry. */
 export const COPILOT_QUOTA_KEY = repoKey("copilot-quota-global");
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 /** `2026-11-01` as `Nov 1`, read as a calendar date so no time zone moves it. */
 export function formatQuotaDate(date) {

@@ -90,7 +90,7 @@ await test("the context segment renders a number, and no bar", () => {
   // sixteen columns on the widest line for something the number already
   // said in three, so it was dropped on 2026-08-26.
   const line = atLevel(38);
-  assert.match(line, /Context/);
+  assert.match(line, /context/);
   assert.match(line, /38%/);
   assert.doesNotMatch(line, /[█▓▒░]/, "the bar is gone from the statusline");
 });
@@ -131,6 +131,6 @@ await test("a bar never renders for a segment the payload left out", () => {
   )
     .split("\n")
     .pop();
-  assert.match(line, /Context [░█▓▒]* ?\?%/);
+  assert.match(line, /context\s+\?%/);
   assert.doesNotMatch(line, /[█▓▒]/, "no level, no fill");
 });

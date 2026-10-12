@@ -248,17 +248,17 @@ export function inProgressFeatureId(projectRoot = process.cwd()) {
  * a change to the lookup logic (specs/007-speckit-step-indicator).
  */
 export const SDD_STEP_LABELS = {
-  "speckit-specify": "Specifying",
-  "speckit-clarify": "Clarifying",
-  "speckit-plan": "Planning",
-  "speckit-tasks": "Writing tasks",
-  "speckit-analyze": "Analyzing",
-  "speckit-implement": "Implementing",
-  "speckit-checklist": "Checklisting",
-  "speckit-constitution": "Setting constitution",
-  "speckit-converge": "Converging",
-  "speckit-taskstoissues": "Filing issues",
-  "speckit-agent-context-update": "Updating agent context",
+  "speckit-specify": "specifying",
+  "speckit-clarify": "clarifying",
+  "speckit-plan": "planning",
+  "speckit-tasks": "writing tasks",
+  "speckit-analyze": "analyzing",
+  "speckit-implement": "implementing",
+  "speckit-checklist": "checklisting",
+  "speckit-constitution": "setting constitution",
+  "speckit-converge": "converging",
+  "speckit-taskstoissues": "filing issues",
+  "speckit-agent-context-update": "updating agent context",
 };
 
 /**
