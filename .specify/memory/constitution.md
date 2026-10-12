@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.0.0 (I and X amended on 2026-10-12: MAJOR, the colour budget. Items K2 and K8 of
+- Version: 8.1.0 (X amended on 2026-10-12: MINOR. Items K5 and K10 of the 2026-10 design review.
+  Push and pull use the Octicon arrows `F431` and `F433` in place of cloud-up and cloud-down,
+  and the stale sentence about clock-face emoji under time-derived icons is replaced by the
+  rule the code follows. K3, K4, K6, K7, K9 and K11 stay for later features. Templates: no
+  change needed. Code follows in feature 042.)
+- Previously, version 8.0.0 (I and X amended on 2026-10-12: MAJOR, the colour budget. Items K2 and K8 of
   the 2026-10 design review. Principle I's red → peach → yellow → green → sapphire → lavender
   progression is replaced by a semantic budget in which each colour has one role, which
   redefines the principle. Principle X's change highlighting also accepts bold plus underline.
@@ -686,12 +691,14 @@ accessibility hazard where it works.
 - **No false positives on first render**: a session with no previous state MUST render every
   icon static. Treating an absent baseline as "everything just changed" would light up the whole
   line at startup.
-- **Time-derived icons**: where an icon represents a moment, it MUST be derived from the real
-  timestamp — the reset segments use the clock-face emoji matching the actual reset hour, not a
-  fixed clock glyph.
+- **Time-derived text**: where a segment represents a moment, it MUST be derived from the real
+  timestamp: the reset segments show the countdown or the day and time the window comes back,
+  never a fixed placeholder.
 - **Speak the platform's vocabulary**: git and GitHub state MUST use GitHub's own Octicons, so
   the line reads in symbols its audience already knows: the diff-modified and diff-added markers
-  for working-tree counts, and cloud-up/cloud-down for commits waiting to be pushed or pulled.
+  for working-tree counts, and the Octicon arrows `F431` (arrow-up) and `F433` (arrow-down) for
+  commits waiting to be pushed or pulled. The cloud glyphs they replace named a remote, where
+  git's own words, ahead and behind, are directions.
 - **A codepoint's name is not evidence of its glyph**: every icon MUST be rendered from the
   installed font and inspected before adoption, and that rendering MUST be kept with the change
   that adopts it, so the next reader sees the evidence rather than the claim. Nerd Font tables
@@ -831,4 +838,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.1.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
