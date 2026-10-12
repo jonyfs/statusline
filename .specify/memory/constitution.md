@@ -2,7 +2,11 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.4.0 (X amended on 2026-10-12: MINOR, band marks. Item K6 of the 2026-10 design
+- Version: 8.4.1 (X clarified on 2026-10-12: PATCH, the spinner. Item K7 of the 2026-10 design
+  review. The one animated indicator, the working chip's four-frame spinner advancing on a
+  counter, is recorded where the rule says nothing animates. No rule changes. K9 and K11 stay
+  for later features. Templates: no change needed. Code follows in feature 048.)
+- Previously, version 8.4.0 (X amended on 2026-10-12: MINOR, band marks. Item K6 of the 2026-10 design
   review. The critical band is marked by the alert glyph before the number and the warn band by
   a bold number, in place of the two triangles, and the stale triangle text is removed. K7, K9
   and K11 stay for later features. Templates: no change needed. Code follows in feature 046.)
@@ -766,8 +770,10 @@ accessibility hazard where it works.
   an indicator that has silently stopped while still claiming to move. The frame count MUST be
   small enough to read at this cadence: four frames is one turn over roughly twenty seconds of
   activity, where the ten-frame spinner a terminal library ships is built for a repaint every
-  eighty milliseconds and would show an arbitrary cell. Nothing on the bar animates today; this
-  is written down because the rule cost a bug to learn, and whoever tries next should find it.
+  eighty milliseconds and would show an arbitrary cell. The one indicator that animates is the
+  working chip's four-frame spinner (`EE06`, `EE07`, `EE09`, `EE0A`; `|`, `/`, `-`, `\` in the
+  plain tier), which advances one frame per render on the session's own counter. Four is the
+  count this rule allows, and the rule is written down because it cost a bug to learn.
 - **An icon MUST be legible before it is learned**: a reader who has never seen the bar should
   be able to say what a segment claims. A filled disc against a hollow one distinguishes two
   states without naming either, which is a legend the reader has to be given; a hammer against a
@@ -875,4 +881,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.4.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.4.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
