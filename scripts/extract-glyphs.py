@@ -38,15 +38,35 @@ WANTED = {
     # not evidence of what the glyph looks like.
     "F459": 0xF459,  # nf-oct-diff_modified: boxed dot, GitHub's modified marker
     "F457": 0xF457,  # nf-oct-diff_added: boxed plus, GitHub's added marker
-    "F40A": 0xF40A,  # nf-oct-cloud_upload: commits waiting to be pushed
-    "F409": 0xF409,  # nf-oct-cloud_download: commits waiting to be pulled
     "F417": 0xF417,  # nf-oct-git_commit: a detached HEAD, which is not a branch
-    "F413": 0xF413,  # nf-oct-file_directory: the working directory
-    "F421": 0xF421,  # nf-oct-alert: unmerged paths
     "F42E": 0xF42E,  # nf-oct-check: the CI run passed
     "F467": 0xF467,  # nf-oct-x: the CI run failed
     "F4A0": 0xF4A0,  # nf-oct-tasklist: the todo list. F0BE is listed as
                      # "checklist" and draws the App Store logo
+    # specs/042-glyph-refresh: the icons whose picture said another thing.
+    # Each was rendered from the installed FiraCode Nerd Font Mono and kept on
+    # specs/042-glyph-refresh/glyph-evidence.png before it was adopted.
+    "F4D4": 0xF4D4,    # directory
+    "F02DC": 0xF02DC,  # the directory when it is $HOME
+    "F401": 0xF401,    # the repository
+    "E5FB": 0xE5FB,    # a linked worktree
+    "F458": 0xF458,    # removed files
+    "F4DD": 0xF4DD,    # pull request: draft
+    "F419": 0xF419,    # pull request: merged
+    "F4DC": 0xF4DC,    # pull request: closed
+    "F4A4": 0xF4A4,    # review: approved
+    "F442": 0xF442,    # review: comments
+    "F441": 0xF441,    # review: requested
+    "F0875": 0xF0875,  # effort: low
+    "F029A": 0xF029A,  # effort: medium
+    "F0874": 0xF0874,  # effort: high
+    "F140B": 0xF140B,  # fast mode
+    "F051F": 0xF051F,  # the 5-hour window
+    "F520": 0xF520,    # session duration
+    "F1679": 0xF1679,  # rtk
+    "F431": 0xF431,    # commits to push
+    "F433": 0xF433,    # commits to pull
+    "F40C": 0xF40C,    # merge conflicts
     # Material Design and Devicon, for the segments GitHub has no vocabulary
     # for. These replaced emoji on 2026-09-01: an emoji costs two columns
     # where a private-use glyph costs one, on a bar already short of width.
@@ -55,14 +75,10 @@ WANTED = {
     "F0176": 0xF0176,  # nf-md-coffee: idle
     "F0431": 0xF0431,  # nf-md-puzzle: the active skills
     "F06A9": 0xF06A9,  # nf-md-robot: the model
-    "F0E7": 0xF0E7,    # nf-fa-bolt: the effort level
     "F035B": 0xF035B,  # nf-md-memory: the context window. F09DA is listed as
                        # "brain" and draws a boxed chevron
-    "F051B": 0xF051B,  # nf-md-timer: the 5-hour window. F44E is listed as
                        # "stopwatch" and draws three flat bars
-    "F252": 0xF252,    # nf-fa-hourglass_half: session duration
     "F0238": 0xF0238,  # nf-md-fire: how fast the window is being spent
-    "E7A8": 0xE7A8,    # nf-dev-rust: rtk is a Rust binary
     "F0584": 0xF0584,  # nf-md-wallet: the spend limit. F0114 "cash" draws a
                        # banknote, and F00F6, listed as a cart, a calendar
     "F050F": 0xF050F,  # nf-md-thermometer: a warm prompt cache
@@ -75,7 +91,6 @@ WANTED = {
                        # 2026-10-06, draws md-progress_download
     "F097F": 0xF097F,  # nf-md-lock_clock: a git gate waiting for gates.lock
     "F099E": 0xF099E,  # nf-md-shield_off: Copilot's allow-all
-    "F04C5": 0xF04C5,  # nf-md-speedometer: fast mode
     "F01DA": 0xF01DA,  # nf-md-download: an update ready, blocked or failed
     "F0737": 0xF0737,  # nf-md-arrow_up_bold: the statusline updated. F0CE0,
                        # listed as an up arrow in a circle, points right

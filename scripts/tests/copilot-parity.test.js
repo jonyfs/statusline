@@ -125,7 +125,7 @@ await test("the context falls back to Copilot's current figure, then to tokens o
 await test("the effort comes from the root user message in Copilot's log", () => {
   const activity = copilotSessionActivity(sessionDir(realEvents), { now: NOW });
   assert.equal(activity.effort, "medium");
-  assert.match(render(copilot()), new RegExp(`${G.effort} medium`, "u"));
+  assert.match(render(copilot()), new RegExp(`${G.effortMedium} medium`, "u"));
 });
 
 await test("a later model change replaces the effort, a subagent's never does, and settings come last", () => {

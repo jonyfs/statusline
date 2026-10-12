@@ -29,7 +29,7 @@ await test("the pull request comes from the payload, and gh is not called", () =
     fullPayload({ pr: { number: 12, url: "https://github.com/o/r/pull/12", review_state: "approved" } }),
     { ...gitSources(), getPrInfo }
   );
-  assert.match(out, /PR #12 approved/);
+  assert.match(out, /PR #12 \S approved/);
   assert.equal(getPrInfo.called, false, "the payload answered, so gh must not run");
 });
 
@@ -45,7 +45,7 @@ await test("gh still answers when the payload has no pull request field", () => 
 
 await test("a review state replaces the bare open state", () => {
   for (const [review, expected] of [
-    ["approved", /PR #3 approved/],
+    ["approved", /PR #3 \S approved/],
     ["changes_requested", /PR #3 changes/],
     ["pending", /PR #3 pending/],
     ["draft", /PR #3 draft/],
@@ -65,13 +65,13 @@ await test("a merge request says merge request, and an older version still works
     fullPayload({ pr: { number: 44, url: "https://gitlab.com/o/r/-/merge_requests/44", kind: "mr", review_state: "approved" } }),
     gitSources()
   );
-  assert.match(mr, /MR #44 approved/);
+  assert.match(mr, /MR #44 \S approved/);
 
   const pr = render(
     fullPayload({ pr: { number: 44, url: "https://github.com/o/r/pull/44", review_state: "approved" } }),
     gitSources()
   );
-  assert.match(pr, /PR #44 approved/);
+  assert.match(pr, /PR #44 \S approved/);
 });
 
 await test("normalizePr reads both shapes into one", () => {

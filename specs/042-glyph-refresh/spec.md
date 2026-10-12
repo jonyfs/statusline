@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Icons that say what they mean
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items C21 to C30. Constitution v8.1.0 (amendment K5)
 already names the Octicon arrows for push and pull. The review file
@@ -223,8 +223,8 @@ contains every codepoint in `GLYPHS.nerd`.
 
 ### Measurable Outcomes
 
-- **SC-001**: The two tables have 50 keys each (36 now and 14 new), and the key sets are
-  equal.
+- **SC-001**: The two tables have the same keys, 14 more than before (50 each), and the key
+  sets are equal.
 - **SC-002**: All 22 requested nerd codepoints and every plain substitute appear on the proof
   sheet and are visible in it.
 - **SC-003**: No nerd glyph in the table measures other than one column, in both settings.
