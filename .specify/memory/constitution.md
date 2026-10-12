@@ -2,7 +2,14 @@
 
 <!--
 Sync Impact Report:
-- Version: 7.9.0 (III and IV extended on 2026-10-06: MINOR, the bar inside OpenCode. III names
+- Version: 7.10.0 (I extended on 2026-10-12: MINOR, text colour chosen by contrast. The Segment
+  format rule no longer fixes `fg:crust`: the text colour on a chip is the highest-contrast
+  candidate among `crust`, `text`, `#11111b` and `#ffffff`, at least 4.5:1, with the background
+  darkened in OKLCH when none reaches it. Item K1 of the 2026-10 design review. The palette
+  progression, separators, glyph table, band marks and a `terminal` palette stay as they are
+  and are left to later amendments. Templates: no change needed. Code follows in its own
+  feature, which MUST add the contrast test.)
+- Previously, version 7.9.0 (III and IV extended on 2026-10-06: MINOR, the bar inside OpenCode. III names
   OpenCode's synced TUI state as a data source, with OpenCode's own context formula and no usage
   windows. IV adds `--harness opencode`, which edits only this plugin's entry in the `plugin` list
   of OpenCode's `tui.json`, and an uninstall that restores the original bytes when nothing else
@@ -225,8 +232,13 @@ reference — not a vague "Starship-like" aspiration:
   color band per statusline line/segment group so the three lines read as one continuous
   Powerline chain, not three unrelated bars.
 - **Segment format**: each block MUST follow the local config's pattern —
-  `[ $content ](fg:crust bg:<segment_color>)` — light text on solid color background,
-  padded with a leading and trailing space inside the block.
+  `[ $content ](fg:<text_color> bg:<segment_color>)` — text on a solid color background,
+  padded with a leading and trailing space inside the block. `<text_color>` MUST be chosen per
+  background: the candidate with the highest WCAG 2.2 contrast ratio among `crust`, `text`,
+  `#11111b` and `#ffffff`, and it MUST reach 4.5:1. When no candidate does, the background is
+  darkened in OKLCH, lightness lowered in steps, until one does. This replaces the fixed
+  `fg:crust` rule, which fails 4.5:1 on most Latte accents and on some Nord and Gruvbox ones;
+  `crust` stays the first candidate, so Mocha output does not change.
 - **Powerline separators**: segments MUST be joined with the arrow/triangle glyph `` (U+E0B0,
   Nerd Font "powerline" glyph), transitioning `fg:<previous_bg> bg:<next_bg>` between segments,
   exactly as `[](bg:peach fg:red)` chains directory→git in the reference config. A plain
@@ -795,4 +807,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 7.9.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-06
+**Version**: 7.10.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
