@@ -78,9 +78,10 @@ least 4.5.
    **When** the text colour is chosen, **Then** the background is darkened in OKLCH, lightness
    lowered in steps, until one candidate reaches 4.5:1, and the chip is drawn with the darkened
    background.
-3. **Given** the Mocha palette, **When** every segment is rendered, **Then** the output is
-   byte-for-byte what it was before this feature, because `crust` already reaches 4.5:1 there
-   and stays the first candidate.
+3. **Given** the Mocha palette, **When** every accent chip is rendered, **Then** its text colour
+   is what it was before this feature, because `crust` is already the best candidate there and
+   wins ties. The `surface1` and `surface2` chips change from `text` to `#ffffff`, which has
+   the higher ratio.
 4. **Given** two chips on the same background, **When** the text colour is chosen for each,
    **Then** both get the same colour, and the choice is computed once per palette and
    background.
@@ -152,8 +153,8 @@ still at least 4.5:1 in the 256-colour values.
 
 1. **Given** `COLORTERM` is `truecolor` or `24bit`, **When** the bar is rendered, **Then** the
    output uses 24-bit sequences, as today.
-2. **Given** `COLORTERM` is unset or any other value, **When** the bar is rendered, **Then**
-   every colour is emitted as the nearest 256-colour index, and the contrast test of story 1
+2. **Given** `COLORTERM` is set to any other value, or unset in Apple Terminal, **When** the
+   bar is rendered, **Then** every colour is emitted as the nearest 256-colour index, and the contrast test of story 1
    holds on those values.
 3. **Given** `NO_COLOR` is set, **When** the bar is rendered, **Then** no colour of either kind
    is emitted.
@@ -233,6 +234,9 @@ than 3 degrees and lightness rises.
 - **`COLORFGBG` malformed or with a single value**: treated as unset.
 - **`COLORFGBG` set by a terminal that is wrong**: the person sets a flavor, which always wins.
 - **A flavor name that is unknown**: falls back as it does today.
+- **`COLORTERM` unset**: the bar keeps 24-bit colour, as today, except in Apple Terminal, which
+  draws 256 colours and does not set it. Windows Terminal and several SSH setups draw truecolor
+  and do not set it either, so an absent variable is not read as "no truecolor".
 - **Truecolor reported by `COLORTERM` but unsupported**: not detectable; the person sets
   `COLORTERM` or accepts the approximation.
 - **A chip with no link under `NO_COLOR`**: only the `▏` marks it.
@@ -254,9 +258,8 @@ than 3 degrees and lightness rises.
   redraw benchmark MUST stay at or under 25 ms at p95.
 - **FR-004**: The fixed rule that gives `surface1` and `surface2` the `text` colour and every
   other chip the `crust` colour MUST be removed from `renderRow`.
-- **FR-005**: Output on Mocha MUST be unchanged, which `crust` as the first candidate
-  guarantees. Any other palette whose output changes MUST be explained by a ratio that was
-  below 4.5:1 before.
+- **FR-005**: Mocha accent chips MUST keep their text colour. Any other chip whose text colour
+  changes MUST be explained by a higher ratio than before.
 - **FR-006**: The repository chip MUST become dim text inside the directory chip. The two
   segment keys MUST NOT sit as adjacent chips with backgrounds under 1.6:1 apart.
 - **FR-007**: A test MUST fail when two adjacent chips of different background are under 1.6:1
@@ -267,7 +270,8 @@ than 3 degrees and lightness rises.
   reported by `COLORFGBG` MUST select Latte and anything else Mocha. A set flavor MUST win.
   The render path MUST NOT query the terminal.
 - **FR-010**: `doctor` MUST say that the flavor was chosen from the terminal background.
-- **FR-011**: When `COLORTERM` is neither `truecolor` nor `24bit`, colours MUST be emitted as
+- **FR-011**: When `COLORTERM` is set and is neither `truecolor` nor `24bit`, or is unset in
+  Apple Terminal, colours MUST be emitted as
   256-colour indices, each the nearest to the palette colour, and every pair MUST also reach
   4.5:1 as the terminal will draw it.
 - **FR-012**: A chip with a link MUST draw its text with a dotted underline (SGR `4:4`, off
@@ -301,12 +305,12 @@ than 3 degrees and lightness rises.
   4.5:1, asserted by a test that fails on the current renderer for Latte, Nord, Gruvbox,
   Frappé and Macchiato.
 - **SC-002**: The ten Latte accent values under Evidence match to one decimal.
-- **SC-003**: The Mocha previews are unchanged except for the repository text folding into the
-  directory chip.
+- **SC-003**: The Mocha previews change only where the repository text folds into the
+  directory chip and where a `surface1` or `surface2` chip takes `#ffffff` text.
 - **SC-004**: No adjacent pair of chips with different backgrounds is under 1.6:1 in any
   palette.
 - **SC-005**: The redraw benchmark stays at or under 25 ms at p95.
-- **SC-006**: Rendering with `COLORTERM` unset emits no 24-bit colour sequence, and rendering
+- **SC-006**: Rendering with `COLORTERM=256color` emits no 24-bit colour sequence, and rendering
   with `NO_COLOR=1` emits no colour sequence and one `▏` per chip.
 
 ## Assumptions

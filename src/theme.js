@@ -1,4 +1,5 @@
 import { WIDE } from "./data/wide.js";
+import { chipColours, lightenOklch, toOklch } from "./contrast.js";
 
 export const PALETTES = {
   mocha: {
@@ -101,17 +102,89 @@ export function colourEnabled() {
   return raw === undefined || raw === "";
 }
 
-function fg(hex) {
-  if (!colourEnabled()) return "";
-  const [r, g, b] = hexToRgb(hex);
-  return `\x1b[38;2;${r};${g};${b}m`;
+/**
+ * How many colours this terminal draws: `"truecolor"` or `"256"`.
+ *
+ * `COLORTERM=truecolor` or `24bit` is the terminal saying so. Any other set
+ * value means it did not, and Apple Terminal, which draws 256 colours and
+ * sets nothing, is named by `TERM_PROGRAM`. An unset `COLORTERM` anywhere
+ * else keeps 24-bit: Windows Terminal and several SSH setups draw truecolor
+ * and do not set it, so an absent variable is not evidence of less.
+ * Read per call, like `NO_COLOR`.
+ */
+export function colourDepth(env = process.env) {
+  const term = (env.COLORTERM || "").toLowerCase();
+  if (term === "truecolor" || term === "24bit") return "truecolor";
+  if (term) return "256";
+  return env.TERM_PROGRAM === "Apple_Terminal" ? "256" : "truecolor";
 }
 
-function bg(hex) {
-  if (!colourEnabled()) return "";
-  const [r, g, b] = hexToRgb(hex);
-  return `\x1b[48;2;${r};${g};${b}m`;
+const CUBE = [0, 95, 135, 175, 215, 255];
+let table256 = null;
+
+/** Indices 16 to 255 as hex, the six-level cube and the grey ramp. Never 0 to 15: themes remap those. */
+function palette256() {
+  if (table256) return table256;
+  table256 = [];
+  for (let r = 0; r < 6; r++) {
+    for (let g = 0; g < 6; g++) {
+      for (let b = 0; b < 6; b++) {
+        const hex = `#${[CUBE[r], CUBE[g], CUBE[b]].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+        table256.push({ index: 16 + 36 * r + 6 * g + b, hex, lab: labOf(hex) });
+      }
+    }
+  }
+  for (let i = 0; i < 24; i++) {
+    const v = 8 + 10 * i;
+    const hex = `#${v.toString(16).padStart(2, "0").repeat(3)}`;
+    table256.push({ index: 232 + i, hex, lab: labOf(hex) });
+  }
+  return table256;
 }
+
+function labOf(hex) {
+  const { L, C, h } = toOklch(hex);
+  const rad = (h * Math.PI) / 180;
+  return [L, C * Math.cos(rad), C * Math.sin(rad)];
+}
+
+const nearestCache = new Map();
+
+/** The 256-colour entry nearest to `hex` by OKLab distance. */
+function nearest256(hex) {
+  const hit = nearestCache.get(hex);
+  if (hit) return hit;
+  const lab = labOf(hex);
+  let pick = null;
+  let top = Infinity;
+  for (const entry of palette256()) {
+    const d = (entry.lab[0] - lab[0]) ** 2 + (entry.lab[1] - lab[1]) ** 2 + (entry.lab[2] - lab[2]) ** 2;
+    if (d < top) {
+      top = d;
+      pick = entry;
+    }
+  }
+  nearestCache.set(hex, pick);
+  return pick;
+}
+
+/** The colour as this terminal will draw it, as hex. Truecolor is the colour itself. */
+export function drawnColour(hex, depth = colourDepth()) {
+  return depth === "256" ? nearest256(hex).hex : hex;
+}
+
+/** The SGR sequence for a foreground (38) or background (48) colour. */
+function sgr(kind, hex) {
+  if (!colourEnabled()) return "";
+  if (colourDepth() === "256") return `\x1b[${kind};5;${nearest256(hex).index}m`;
+  const [r, g, b] = hexToRgb(hex);
+  return `\x1b[${kind};2;${r};${g};${b}m`;
+}
+
+export const fgSeq = (hex) => sgr(38, hex);
+export const bgSeq = (hex) => sgr(48, hex);
+const fg = fgSeq;
+const bg = bgSeq;
 
 const RESET_SEQ = "\x1b[0m";
 
@@ -146,9 +219,7 @@ function hyperlink(url, text) {
  * it still says which segment it is.
  */
 export function lighten(hex, ratio = 0.45) {
-  const [r, g, b] = hexToRgb(hex);
-  const mix = (c) => Math.round(c + (255 - c) * ratio);
-  return `#${[mix(r), mix(g), mix(b)].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+  return lightenOklch(hex, ratio);
 }
 
 /** A palette colour by name, or a literal hex when one is handed in. */
@@ -157,14 +228,37 @@ export function resolveColour(palette, colour) {
   return palette[colour];
 }
 
+/**
+ * The text colour and the background a chip of this colour is drawn with.
+ *
+ * At 256 colours the contrast is worked out on the colours the terminal will
+ * actually draw, so the 4.5:1 floor holds there too.
+ */
+function chipOf(palette, colour) {
+  const wanted = resolveColour(palette, colour);
+  if (colourDepth() !== "256") return chipColours(palette, wanted);
+  const drawn = chipColours(quantised(palette), drawnColour(wanted, "256"));
+  return { fg: drawn.fg, bg: drawn.bg };
+}
+
+const quantisedPalettes = new WeakMap();
+
+function quantised(palette) {
+  let q = quantisedPalettes.get(palette);
+  if (!q) {
+    q = Object.fromEntries(Object.entries(palette).map(([k, v]) => [k, drawnColour(v, "256")]));
+    quantisedPalettes.set(palette, q);
+  }
+  return q;
+}
+
 export function renderRow(palette, segments, { asciiArrows = false } = {}) {
   const arrow = separatorFor({ asciiArrows });
   let out = "";
   segments.forEach((seg, i) => {
-    const segFg = seg.color === "surface1" || seg.color === "surface2" ? palette.text : palette.crust;
-    const segBg = resolveColour(palette, seg.color);
+    const { fg: segFg, bg: segBg } = chipOf(palette, seg.color);
     if (i > 0) {
-      const prev = resolveColour(palette, segments[i - 1].color);
+      const prev = chipOf(palette, segments[i - 1].color).bg;
       out += `${fg(prev)}${bg(segBg)}${arrow}`;
     }
     const text = seg.url ? hyperlink(seg.url, seg.text) : seg.text;
@@ -175,7 +269,7 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
   // segment's own background (still active from the loop above) and its
   // triangle becomes invisible — same-color foreground on same-color
   // background — instead of fading into the terminal's real background.
-  out += `${reset()}${fg(resolveColour(palette, last.color))}${arrow}${reset()}`;
+  out += `${reset()}${fg(chipOf(palette, last.color).bg)}${arrow}${reset()}`;
   return out;
 }
 

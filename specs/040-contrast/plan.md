@@ -20,7 +20,9 @@ flavor: env > .statusline.json > COLORFGBG light -> latte > mocha          src/c
    hex to OKLab and OKLCH and back, `chipColours(palette, bg)` and `lightenOklch(hex, ratio)`.
    It imports nothing, so the suite tests it directly with the ten Latte values.
 2. **Candidates in a fixed order.** `crust`, `text`, `#11111b`, `#ffffff`, and the first one
-   with the highest ratio wins, so a tie goes to `crust` and Mocha output does not change.
+   with the highest ratio wins, so a tie goes to `crust`. Mocha accents keep `crust`; the
+   `surface` chips take `#ffffff`, which beats `text`. Frappé, Macchiato, Nord and Gruvbox
+   accents may move from `crust` to the slightly darker `#11111b`.
 3. **Darkening.** OKLCH lightness drops 0.04 per step, chroma and hue kept, clipped to sRGB.
    The result is `{ fg, bg }`, and `bg` replaces the palette colour for that chip only. The
    separator arrow takes its colours from the same result, so no seam appears.
@@ -35,8 +37,10 @@ flavor: env > .statusline.json > COLORFGBG light -> latte > mocha          src/c
 6. **One emitter.** `fg()` and `bg()` in `src/theme.js` become exported `fgSeq` and `bgSeq`
    taking the depth. `src/taskRows.js` and `src/gateRows.js` have their own 38;2 builders and
    switch to these, so a 256-colour terminal is not served truecolor by a side door.
-7. **Depth from `COLORTERM`, per call.** `truecolor` or `24bit` gives 24-bit, anything else
-   gives 256. `NO_COLOR` still wins. Read per call like `NO_COLOR`, so a test sets it around
+7. **Depth from `COLORTERM`, per call.** `truecolor` or `24bit` gives 24-bit. Any other set
+   value gives 256, and so does an unset one in Apple Terminal (`TERM_PROGRAM`). An unset
+   `COLORTERM` elsewhere stays 24-bit, because Windows Terminal and some SSH setups draw
+   truecolor and do not set it. `NO_COLOR` still wins. Read per call like `NO_COLOR`, so a test sets it around
    one render.
 8. **Flavor from the terminal.** `resolveSettings` gets `flavorSource` and falls back to
    `COLORFGBG` before `mocha`. `doctor` reports the source. No OSC 11: the command cannot read
