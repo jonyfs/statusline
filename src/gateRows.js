@@ -9,18 +9,14 @@
  * to the width, since Copilot wraps a long line rather than cutting it.
  */
 
-import { PALETTES, displayWidth, colourEnabled } from "./theme.js";
+import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
 import { clipAnsi, cutToWidth, elapsed } from "./taskRows.js";
 import { plainText } from "./text.js";
 
 const RESET = "\x1b[0m";
 const SEP = " · ";
 
-function fg(hex) {
-  if (!colourEnabled() || !hex) return "";
-  const n = parseInt(hex.slice(1), 16);
-  return `\x1b[38;2;${(n >> 16) & 255};${(n >> 8) & 255};${n & 255}m`;
-}
+const fg = (hex) => (hex ? fgSeq(hex) : "");
 
 /** The most a column is padded to; past it the cell keeps its own width. */
 const MAX_COLUMN = { hook: 14, worktree: 28, branch: 30, step: 44 };

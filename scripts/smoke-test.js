@@ -25,6 +25,16 @@ process.env.LINES = process.env.CLAUDE_STATUSLINE_TEST_LINES || "40";
 // the suite needs it too, and it has to happen before any Date exists.
 process.env.TZ = "UTC";
 
+// Colour depth and underline style follow the terminal the suite was started
+// in, and so would every colour sequence a case asserts against. Pin a
+// truecolor terminal that draws no styled underline; the cases that care
+// about either set their own around one render.
+process.env.COLORTERM = "truecolor";
+for (const name of ["TERM_PROGRAM", "KITTY_WINDOW_ID", "WEZTERM_EXECUTABLE", "WT_SESSION", "VTE_VERSION", "COLORFGBG", "NO_COLOR"]) {
+  delete process.env[name];
+}
+process.env.TERM = "xterm";
+
 import { readdirSync, mkdtempSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";

@@ -53,7 +53,7 @@ import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
 import { displayWidth, PALETTES } from "./theme.js";
 import { terminalFor } from "./layout.js";
-import { resolveLayout, repoConfig } from "./config.js";
+import { resolveLayout, repoConfig, terminalFlavor } from "./config.js";
 import { resolveArrangement } from "./arrangement.js";
 
 /**
@@ -547,8 +547,15 @@ export function terminalLine(t) {
 export function flavorStatus(cwd = process.cwd(), env = process.env) {
   const fromEnv = env.CLAUDE_STATUSLINE_FLAVOR;
   const fromFile = fromEnv ? undefined : repoConfig(cwd).flavor;
-  const name = fromEnv || fromFile || "mocha";
-  const source = fromEnv ? "from CLAUDE_STATUSLINE_FLAVOR" : fromFile ? "from .statusline.json" : "default";
+  const fromTerminal = fromEnv || fromFile ? null : terminalFlavor(env);
+  const name = fromEnv || fromFile || fromTerminal || "mocha";
+  const source = fromEnv
+    ? "from CLAUDE_STATUSLINE_FLAVOR"
+    : fromFile
+      ? "from .statusline.json"
+      : fromTerminal
+        ? "from the terminal background (COLORFGBG)"
+        : "default";
   const known = Object.hasOwn(PALETTES, name);
   return {
     name,

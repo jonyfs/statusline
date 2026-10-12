@@ -688,6 +688,11 @@ around them. Neither is the default:
 | `nord` | ![nord](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-nord.svg) |
 | `gruvbox` | ![gruvbox](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-gruvbox.svg) |
 
+The text on a chip is chosen for each background: whichever of the flavor's own `crust` and
+`text`, `#11111b` and `#ffffff` has the highest WCAG contrast, and at least 4.5:1. A background
+that none of them reaches is darkened until one does. Latte is why: its pale `crust` was
+unreadable on every accent.
+
 No Nerd Font in your terminal? `CLAUDE_STATUSLINE_ASCII=1` swaps the whole
 glyph set at once, icons and Powerline separators together:
 
@@ -1017,7 +1022,8 @@ can also carry its own settings in a file, which is the next section.
 
 | Variable | What it does |
 |---|---|
-| `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato`, `latte`, `nord` or `gruvbox`. An unknown name draws `mocha`, and `doctor` says so on its `flavor:` line |
+| `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato`, `latte`, `nord` or `gruvbox`. An unknown name draws `mocha`, and `doctor` says so on its `flavor:` line. With no flavor set anywhere, a terminal that reports a light background through `COLORFGBG` (7 or 15) gets `latte`, and `doctor` says the choice came from the terminal |
+| `COLORTERM` | `truecolor` or `24bit` draws 24-bit colour. Any other value, or none in Apple Terminal, draws the nearest of the 256 colours. An unset value elsewhere keeps 24-bit, since Windows Terminal and some SSH setups draw it and do not set the variable |
 | `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
@@ -1025,7 +1031,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_SEPARATOR=thin` | Draws the thin Powerline separator instead of the solid arrow, for terminals that render the solid one badly |
 | `CLAUDE_STATUSLINE_LAYOUT` | Path to an arrangement file, which beats every other place one can live. See the next-but-one section |
 | `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE=1` | Counts East Asian Ambiguous characters as two columns, which is what a terminal configured for East Asian text draws them as. Nothing reports that setting, so you say it. `tmux` calls the same thing `-u`. Without it the gauge and the `·` separator are measured one column and drawn two, and every column after them slides |
-| `NO_COLOR` | Set to anything non-empty, turns the colour off. It is a cross-tool convention rather than this project's, so setting it once covers every program that honours it. Nothing is lost: no figure on the bar is carried by colour alone, which is why the ramped ones wear a band mark. The Powerline separator goes with the colour and the thin one takes its place, since a solid arrow is a shape cut out of two backgrounds and there are none |
+| `NO_COLOR` | Set to anything non-empty, turns the colour off. It is a cross-tool convention rather than this project's, so setting it once covers every program that honours it. Nothing is lost: no figure on the bar is carried by colour alone, which is why the ramped ones wear a band mark. The Powerline separator goes with the colour and the thin one takes its place, since a solid arrow is a shape cut out of two backgrounds and there are none. Each chip starts with a thin bar `▏` instead, so the chips keep an edge |
 
 ### Per-repository settings
 
