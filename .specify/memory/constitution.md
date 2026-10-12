@@ -2,7 +2,11 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.3.0 (I amended on 2026-10-12: MINOR, separator styles. Item K3 of the 2026-10
+- Version: 8.4.0 (X amended on 2026-10-12: MINOR, band marks. Item K6 of the 2026-10 design
+  review. The critical band is marked by the alert glyph before the number and the warn band by
+  a bold number, in place of the two triangles, and the stale triangle text is removed. K7, K9
+  and K11 stay for later features. Templates: no change needed. Code follows in feature 046.)
+- Previously, version 8.3.0 (I amended on 2026-10-12: MINOR, separator styles. Item K3 of the 2026-10
   design review. Between chips of one background the thin arrow in the text colour replaces the
   invisible solid one, and `CLAUDE_STATUSLINE_SEPARATOR` names `arrow`, `round`, `slant` or
   `thin` as declared styles. K6, K7, K9 and K11 stay for later features. Templates: no change
@@ -688,8 +692,11 @@ accessibility hazard where it works.
   where a swapped glyph has to be recognised, and it does not require the reader to have seen
   the previous frame.
 - **Colour is not the only carrier where the consequence is irreversible**: a segment whose
-  colour ramps by level MUST also mark its band in something other than colour (`▴` past 60%,
-  `▲` past 85%), since roughly one man in twelve cannot separate red from green. The context
+  colour ramps by level MUST also mark its band in something other than colour, since roughly
+  one man in twelve cannot separate red from green. The critical band draws the alert glyph
+  `F40C` (plain `!`) before the number, and the warn band draws the number in bold, with no
+  glyph, because a mark that appears at 60% and one at 85% were two marks for one scale. The
+  ▴ and ▵ marks this rule used to name are retired with this amendment. The context
   figure is the one declared exception, carrying its level in colour alone at the owner's decision
   of 2026-08-26. The 5-hour and 7-day figures MUST keep their marks: those are the limits whose
   consequence a reader cannot undo. Any further exception MUST be recorded here rather than
@@ -868,4 +875,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.3.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.4.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
