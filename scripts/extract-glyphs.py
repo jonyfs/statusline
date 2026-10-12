@@ -57,6 +57,7 @@ WANTED = {
     "F4A4": 0xF4A4,    # review: approved
     "F442": 0xF442,    # review: comments
     "F441": 0xF441,    # review: requested
+    "F06B0": 0xF06B0,  # a reset: when a window comes back
     "F0875": 0xF0875,  # effort: low
     "F029A": 0xF029A,  # effort: medium
     "F0874": 0xF0874,  # effort: high

@@ -94,9 +94,9 @@ await test("every installed speckit-* skill maps to a readable, non-raw label", 
 });
 
 await test("known speckit-* skills map to their intended step label", () => {
-  assert.equal(sddStepFor("speckit-specify"), "Specifying");
-  assert.equal(sddStepFor("speckit-plan"), "Planning");
-  assert.equal(sddStepFor("speckit-implement"), "Implementing");
+  assert.equal(sddStepFor("speckit-specify"), "specifying");
+  assert.equal(sddStepFor("speckit-plan"), "planning");
+  assert.equal(sddStepFor("speckit-implement"), "implementing");
 });
 
 await test("an unmapped speckit-* skill falls back to a formatted name, not null or raw", () => {

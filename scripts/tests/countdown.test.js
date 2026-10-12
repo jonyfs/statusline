@@ -85,8 +85,8 @@ await test("an unknown reset renders as text, not as a blank or a guess", () => 
   const plain = stripAnsi(
     renderPayload({}, { sources: emptySources, trackChanges: false, maxWidth: 200, maxHeight: 40 })
   );
-  assert.match(plain, /5h \?% · \?/);
-  assert.match(plain, /7d \?% · \?/);
+  assert.match(plain, /5h\s+\?%\s+\S+\s+\?/);
+  assert.match(plain, /7d\s+\?%\s+\S+\s+\?/);
 });
 
 await test("a reset a week out reads as a date, not as today's weekday", () => {
@@ -95,9 +95,9 @@ await test("a reset a week out reads as a date, not as today's weekday", () => {
   const now = new Date("2026-08-27T10:00:00Z");
   const sameWeekday = secondsAt("2026-09-03T13:00:00Z");
   const label = resetMomentLabel(sameWeekday, now);
-  assert.doesNotMatch(label, /Thu/);
+  assert.doesNotMatch(label, /thu/);
   assert.match(label, /^\d{2}\/\d{2} \d{2}:\d{2}$/);
 
   // Inside the week the weekday still says it best.
-  assert.match(resetMomentLabel(secondsAt("2026-08-29T13:00:00Z"), now), /^Sat \d{2}:\d{2}$/);
+  assert.match(resetMomentLabel(secondsAt("2026-08-29T13:00:00Z"), now), /^sat \d{2}:\d{2}$/);
 });

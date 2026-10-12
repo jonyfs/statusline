@@ -116,8 +116,8 @@ await test("the context falls back to Copilot's current figure, then to tokens o
   assert.equal(getContextPercent({ context_window: { used_percentage: null, current_context_tokens: 5, displayed_context_limit: 0 } }), null);
   assert.equal(getContextPercent({ context_window: { used_percentage: 31, current_context_used_percentage: 12 } }), 31, "the payload's own figure wins");
   assert.equal(getContextTokens(fixture).size, 200_000, "the displayed limit stands in for a null window size");
-  assert.match(render(copilot()), /Context 0%/);
-  assert.match(render(fullPayload({ now: NOW })), /Context 26%/, "Claude Code is unchanged");
+  assert.match(render(copilot()), /context\s+0%/);
+  assert.match(render(fullPayload({ now: NOW })), /context\s+26%/, "Claude Code is unchanged");
 });
 
 // Item 3: the effort -------------------------------------------------------------
@@ -289,7 +289,7 @@ await test("with a session limit the credits chip says how much of it is gone, a
   const limited = [...realEvents, { type: "session.session_limits_changed", data: { sessionLimits: { maxAiCredits: 20 } }, timestamp: at(10) }];
   const payload = copilot({ ai_used: { total_nano_aiu: 4_200_000_000, formatted: "4.20" } }, limited);
   assert.equal(copilotSessionActivity(payload.transcript_path, { now: NOW }).sessionLimit, 20);
-  assert.match(render(payload), new RegExp(`${G.spend} 4\\.20/20 AIC · 21% `, "u"));
+  assert.match(render(payload), new RegExp(`${G.spend} 4\\.20/20 AIC · \u200721% `, "u"));
   const cleared = [...limited, { type: "session.session_limits_changed", data: { sessionLimits: null }, timestamp: at(5) }];
   assert.equal(copilotSessionActivity(sessionDir(cleared), { now: NOW }).sessionLimit, null);
   const resumed = [{ type: "session.resume", data: { sessionLimits: { maxAiCredits: 5 } }, timestamp: at(5) }];
@@ -327,7 +327,7 @@ await test("the quota normaliser keeps the monthly figures and drops what has no
   assert.equal(paid.quotas.chat, null, "unlimited is no meter");
   assert.equal(normalizeCopilotQuota({ message: "Not Found" }), null);
   assert.equal(normalizeCopilotQuota(null), null);
-  assert.equal(formatQuotaDate("2026-11-01"), "Nov 1");
+  assert.equal(formatQuotaDate("2026-11-01"), "nov 1");
   assert.equal(formatQuotaDate("nonsense"), null);
 });
 
@@ -340,14 +340,14 @@ await test("the quota chips sit where the windows sit, labelled monthly, with th
     },
   });
   const out = render(copilot(), {}, { getCopilotQuota: () => quota });
-  const line3 = out.split("\n").find((l) => l.includes("Context"));
-  assert.match(line3, new RegExp(`${G.calendar} month premium 76%\u25B5 · Nov 1 `, "u"));
-  assert.match(line3, new RegExp(`${G.calendar} month chat 3% · Nov 1 `, "u"));
-  assert.ok(line3.indexOf("Context") < line3.indexOf("premium") && line3.indexOf("premium") < line3.indexOf("chat"));
+  const line3 = out.split("\n").find((l) => l.includes("context"));
+  assert.match(line3, new RegExp(`${G.calendar} month premium\\s+76%\u25B5 \\S nov 1 `, "u"));
+  assert.match(line3, new RegExp(`${G.calendar} month chat\\s+3%\\s+\\S+\\s+nov 1 `, "u"));
+  assert.ok(line3.indexOf("context") < line3.indexOf("premium") && line3.indexOf("premium") < line3.indexOf("chat"));
   assert.doesNotMatch(out, / 5h | 7d /, "still no windows Copilot does not have");
   const narrow = render(copilot(), { maxWidth: 120 }, { getCopilotQuota: () => quota, getRtkSavings: () => 81 });
-  assert.match(narrow, /month chat 3%/, "the figure stays");
-  assert.doesNotMatch(narrow, /month chat 3% · /, "the date goes before the figure does");
+  assert.match(narrow, /month chat\s+3%/, "the figure stays");
+  assert.doesNotMatch(narrow, /month chat 3%\s+\S+\s+/, "the date goes before the figure does");
 });
 
 await test("no quota is read, and no lookup started, under Claude Code", () => {

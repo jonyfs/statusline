@@ -24,7 +24,7 @@ await test("malformed stdin still renders and still exits 0", () => {
   const r = runRender("{not json at all");
   assert.equal(r.status, 0);
   assert.equal(r.stderr, "");
-  assert.match(r.stdout, /Context/);
+  assert.match(r.stdout, /context/);
 });
 
 await test("a render that throws prints a line and exits 0", () => {
@@ -57,7 +57,7 @@ await test("the installed command is the one that renders", () => {
     encoding: "utf8",
     env: { ...process.env, CLAUDE_STATUSLINE_NO_REFRESH: "1" },
   });
-  assert.match(out, /Context/);
+  assert.match(out, /context/);
 });
 
 // Claude Code cancels the command it has in flight when a new update

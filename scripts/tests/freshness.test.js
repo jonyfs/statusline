@@ -56,9 +56,9 @@ await test("usage segments keep their slot and show ?% instead of disappearing",
   // has nothing; these five must not, or a reader cannot tell "unknown"
   // from "the segment moved".
   const plain = stripAnsi(renderPayload({}, { sources: emptySources }));
-  assert.match(plain, /Context [░█▓▒]* ?\?%/);
-  assert.match(plain, /5h \?% · \?/);
-  assert.match(plain, /7d \?% · \?/);
+  assert.match(plain, /context\s+\?%/);
+  assert.match(plain, /5h\s+\?%\s+\S+\s+\?/);
+  assert.match(plain, /7d\s+\?%\s+\S+\s+\?/);
   assert.doesNotMatch(plain, /NaN|undefined|null/);
 });
 
@@ -69,9 +69,9 @@ await test("a partial payload leaves the present figures alone", () => {
       { sources: emptySources }
     )
   );
-  assert.match(plain, /Context [░█▓▒]* ?41%/);
-  assert.match(plain, /5h \?%/);
-  assert.match(plain, /7d \?%/);
+  assert.match(plain, /context\s+41%/);
+  assert.match(plain, /5h\s+\?%/);
+  assert.match(plain, /7d\s+\?%/);
 });
 
 await test("every segment in the registry has a maximum age", () => {

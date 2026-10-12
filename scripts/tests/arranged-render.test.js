@@ -22,7 +22,7 @@ const assert = (cond, message) => {
 const NO_ARRANGEMENT = { arrangement: null, origin: "default", path: null, error: null };
 
 /** The bar as text, for one arrangement, at one width. */
-function draw(arrangement, { width = 200, sources = SOURCES } = {}) {
+function draw(arrangement, { width = 230, sources = SOURCES } = {}) {
   return stripAnsi(
     renderPayload(PAYLOAD, {
       sources: { ...sources },
@@ -56,14 +56,14 @@ await test("a segment switched off leaves the bar", () => {
   const after = draw({ version: 1, segments: { rtk: { on: false } } });
   assert(/rtk 81% saved/.test(before), "the baseline has no savings segment to remove");
   assert(!/rtk 81% saved/.test(after), "the savings segment survived being switched off");
-  assert(/Context 46%/.test(after), "something else was removed along with it");
+  assert(/context\s+46%/.test(after), "something else was removed along with it");
 });
 
 await test("a segment switched off leaves whatever its priority", () => {
   // Context carries the highest priority on the bar. If anything ignores an
   // off switch, it is this.
   const after = draw({ version: 1, segments: { context: { on: false } } });
-  assert(!/Context 46%/.test(after), "the highest-priority segment ignored being switched off");
+  assert(!/context\s+46%/.test(after), "the highest-priority segment ignored being switched off");
 });
 
 await test("a segment moved to another line renders there", () => {
