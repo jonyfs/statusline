@@ -203,7 +203,14 @@ export function colourDepth(env = process.env) {
   const term = (env.COLORTERM || "").toLowerCase();
   if (term === "truecolor" || term === "24bit") return "truecolor";
   if (term) return "256";
-  return env.TERM_PROGRAM === "Apple_Terminal" ? "256" : "truecolor";
+  if (env.TERM_PROGRAM === "Apple_Terminal") return "256";
+  // `TERM=xterm-256color` with `COLORTERM` unset is what a 256-colour terminal
+  // reports. Terminals that draw truecolor and set neither are named, since
+  // they would be served the approximation for no reason: Windows Terminal,
+  // and the ones that identify themselves by `TERM_PROGRAM`.
+  const known = env.WT_SESSION || ["iTerm.app", "WezTerm", "vscode", "ghostty", "Hyper"].includes(env.TERM_PROGRAM);
+  if (!known && /-256color$/.test(env.TERM || "")) return "256";
+  return "truecolor";
 }
 
 const CUBE = [0, 95, 135, 175, 215, 255];
@@ -315,6 +322,9 @@ const STYLED_UNDERLINE = [
 ];
 
 export function styledUnderline(env = process.env) {
+  // `CLAUDE_STATUSLINE_UNDERLINE=0` is the way out for a person who does not
+  // want links marked.
+  if (["0", "off", "false"].includes(String(env.CLAUDE_STATUSLINE_UNDERLINE ?? "").toLowerCase())) return false;
   return STYLED_UNDERLINE.some((test) => test(env));
 }
 

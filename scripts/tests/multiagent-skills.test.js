@@ -132,7 +132,7 @@ await test("line 2 carries the session's own skills and nothing about agents", a
       getActiveSkillsTrueCount: () => 2,
       subagentActivity,
     });
-    assert.match(out, /humanizer, code-review/);
+    assert.match(out, /humanizer(?:, | \uE0B5 )code-review/);
     assert.doesNotMatch(out, /sub-a|sub-b/, "no agent names, no tiers, no ages");
   });
 });

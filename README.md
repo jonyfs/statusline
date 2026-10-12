@@ -1150,6 +1150,9 @@ can also carry its own settings in a file, which is the next section.
 | `COLORTERM` | `truecolor` or `24bit` draws 24-bit colour. Any other value, or none in Apple Terminal, draws the nearest of the 256 colours. An unset value elsewhere keeps 24-bit, since Windows Terminal and some SSH setups draw it and do not set the variable |
 | `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_ICONS` | `nerd` (default), `emoji` or `plain`. The emoji tier draws pictures and takes the plain separator unless one is named |
+| `CLAUDE_STATUSLINE_UNDERLINE=0` | Turns off the dotted underline on linked text |
+| `CLAUDE_STATUSLINE_BLOCK=1` | Pads every line to the widest with spaces on the `mantle` colour, so the right edge is a block |
+| `CLAUDE_STATUSLINE_SPARKLINE=1` | Adds the last eight samples beside the burn rate and, with eight readings, beside the context figure |
 | `CLAUDE_STATUSLINE_EVENT_EMOJI=1` | In the Nerd Font tier, draws 💥, 🔥 and 🚀 for conflicts, a critical burn rate and an applied update |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
@@ -1419,6 +1422,8 @@ so a clean branch in sync with its remote adds nothing at all.
 |---|---|
 | diff-modified marker | Tracked files with uncommitted changes |
 | `?` | Untracked files git isn't watching yet |
+| boxed plus | Files staged in the index |
+| boxed minus | Files removed, staged or not |
 | arrow up | Commits you have that the remote doesn't, waiting to be pushed |
 | arrow down | Commits the remote has that you don't, waiting to be pulled |
 | alert | Paths with merge conflicts, counted apart from ordinary changes |

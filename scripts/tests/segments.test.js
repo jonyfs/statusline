@@ -97,7 +97,7 @@ await test("pr degraded: a draft says draft rather than open", () => {
 await test("skills: one chip carrying the list, absent when there are none", () => {
   // D7's chosen form. A chip per skill spent a separator and two spaces on
   // each name; as one list they read as one fact.
-  assert.match(render(payload, everything), re`${G.skills} alpha, beta`);
+  assert.match(render(payload, everything), re`${G.skills} alpha(?:, | \uE0B5 )beta`);
 
   const none = render(payload, { ...everything, getActiveSkills: () => [] });
   assert.doesNotMatch(none, re`${G.skills}`);
@@ -107,7 +107,7 @@ await test("skills: one chip carrying the list, absent when there are none", () 
     getActiveSkills: () => ["a", "b", "c", "d", "e", "f", "g"],
     getActiveSkillsTrueCount: () => 7,
   });
-  assert.match(many, re`${G.skills} a, b, c, d, e \+2`, "the ones left out are counted, not hidden");
+  assert.match(many, re`${G.skills} a(?:, | \uE0B5 )b(?:, | \uE0B5 )c(?:, | \uE0B5 )d(?:, | \uE0B5 )e \+2`, "the ones left out are counted, not hidden");
 });
 
 await test("model: present from the payload, falls back to a name rather than nothing", () => {

@@ -69,7 +69,7 @@ await test("Copilot's events give the skills and the working state", () => {
   assert.deepEqual(activity.skills, ["humanizer", "code-review"]);
   assert.equal(activity.working, true, "an open turn is work in progress");
   const out = render(copilot({}, events));
-  assert.match(out, /humanizer, code-review/);
+  assert.match(out, /humanizer(?:, | \uE0B5 )code-review/);
   assert.match(out, /working/);
 });
 

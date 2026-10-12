@@ -149,3 +149,41 @@ await test("the figure is bold and the reset quiet, and the markup adds no colum
 await test("data cannot carry the markers", () => {
   assert.ok(!/[\u0001-\u0003]/.test(plainText("a\u0001b\u0002c\u0003d")));
 });
+
+import { parsePorcelainV2 } from "../../src/git.js";
+import { colourDepth, styledUnderline } from "../../src/theme.js";
+
+await test("a status read counts staged and removed files", () => {
+  const text = ["# branch.head main", "1 M. N... 100644 100644 100644 a b f1", "1 .D N... 100644 100644 000000 a b f2", "1 D. N... 100644 000000 000000 a b f3", "? new"].join("\0");
+  const git = parsePorcelainV2(text);
+  assert.equal(git.changed, 3);
+  assert.equal(git.staged, 2, "M. and D. are in the index");
+  assert.equal(git.removed, 2, "D in either column");
+  assert.equal(git.untracked, 1);
+});
+
+await test("TERM=xterm-256color with COLORTERM unset is 256 colours, except where truecolor is known", () => {
+  assert.equal(colourDepth({ TERM: "xterm-256color" }), "256");
+  assert.equal(colourDepth({ TERM: "xterm-256color", WT_SESSION: "1" }), "truecolor");
+  assert.equal(colourDepth({ TERM: "xterm-256color", TERM_PROGRAM: "iTerm.app" }), "truecolor");
+  assert.equal(colourDepth({ TERM: "xterm-256color", COLORTERM: "truecolor" }), "truecolor");
+  assert.equal(colourDepth({ TERM: "xterm" }), "truecolor");
+});
+
+await test("the dotted underline has an opt-out", () => {
+  assert.equal(styledUnderline({ KITTY_WINDOW_ID: "1" }), true);
+  assert.equal(styledUnderline({ KITTY_WINDOW_ID: "1", CLAUDE_STATUSLINE_UNDERLINE: "0" }), false);
+});
+
+await test("block mode pads every line to the widest, on mantle", () => {
+  const before = process.env.CLAUDE_STATUSLINE_BLOCK;
+  process.env.CLAUDE_STATUSLINE_BLOCK = "1";
+  try {
+    const out = renderPayload(PAYLOAD, { sources: SOURCES, trackChanges: false, layout: NO_ARRANGEMENT, maxWidth: 300, maxHeight: 40, trailingRows: false });
+    const widths = out.split("\n").map((l) => displayWidth(l));
+    assert.equal(new Set(widths).size, 1, `every line is ${widths.join(", ")} wide`);
+  } finally {
+    if (before === undefined) delete process.env.CLAUDE_STATUSLINE_BLOCK;
+    else process.env.CLAUDE_STATUSLINE_BLOCK = before;
+  }
+});

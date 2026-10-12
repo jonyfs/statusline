@@ -125,6 +125,8 @@ export function parsePorcelainV2(text) {
   let ahead = null;
   let behind = null;
   let changed = 0;
+  let staged = 0;
+  let removed = 0;
   let untracked = 0;
   let conflicts = 0;
   let skipNext = false;
@@ -151,10 +153,14 @@ export function parsePorcelainV2(text) {
     // An unmerged path is a conflict, not an ordinary change. Counting it as
     // one understated a state that stops everything until it is resolved.
     else if (record.startsWith("u ")) conflicts++;
-    else if (record.startsWith("1 ")) changed++;
-    else if (record.startsWith("2 ")) {
+    else if (record.startsWith("1 ") || record.startsWith("2 ")) {
       changed++;
-      skipNext = true;
+      // `XY`: X is the index, Y the working tree. A dot is no change there.
+      const x = record[2];
+      const y = record[3];
+      if (x && x !== ".") staged++;
+      if (x === "D" || y === "D") removed++;
+      if (record.startsWith("2 ")) skipNext = true;
     }
     // `! ` records are ignored files, which the statusline does not count.
   }
@@ -169,6 +175,8 @@ export function parsePorcelainV2(text) {
     ahead,
     behind,
     changed,
+    staged,
+    removed,
     untracked,
     conflicts,
   };
