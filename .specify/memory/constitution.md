@@ -2,7 +2,12 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.2.0 (I and X amended on 2026-10-12: MINOR, the emoji tier. Item K4 of the 2026-10
+- Version: 8.3.0 (I amended on 2026-10-12: MINOR, separator styles. Item K3 of the 2026-10
+  design review. Between chips of one background the thin arrow in the text colour replaces the
+  invisible solid one, and `CLAUDE_STATUSLINE_SEPARATOR` names `arrow`, `round`, `slant` or
+  `thin` as declared styles. K6, K7, K9 and K11 stay for later features. Templates: no change
+  needed. Code follows in feature 045.)
+- Previously, version 8.2.0 (I and X amended on 2026-10-12: MINOR, the emoji tier. Item K4 of the 2026-10
   design review. The glyph table gains a third column, emoji, selected by
   `CLAUDE_STATUSLINE_ICONS=nerd|emoji|plain`, restricted to `Emoji_Presentation=Yes` codepoints
   that fill the icon slot of a chip, with a named rejection list. Nerd mode stays emoji-free
@@ -279,6 +284,13 @@ reference — not a vague "Starship-like" aspiration:
   glyph, never as the default: the Powerline arrow is what the design is, and a bar that
   silently chose a pipe would be a different design wearing the same name. The existing ASCII
   mode already establishes this shape, where the fallback is asked for rather than assumed.
+  Between two chips on the same background the solid arrow is invisible, a shape cut out of one
+  colour, so the renderer MUST draw the thin arrow `` (U+E0B1) there in the text colour of the
+  chip it follows. `CLAUDE_STATUSLINE_SEPARATOR=arrow|round|slant|thin` names a style, and a
+  named style is the person asking: `arrow` is the default (`E0B0`), `round` the pill
+  (`E0B6` and `E0B4`, with `E0B5` between equal backgrounds), `slant` the inclined edge
+  (`E0BC`) and `thin` the line (`E0B1`). Each is a Powerline Extra Symbols glyph, so each needs
+  the same font the arrow does.
 - **Glyphs**: a segment icon MUST be a Nerd Font glyph — the Octicon, Material Design and
   Devicon sets the reference config already draws from — so the line matches p10k/Powerline
   conventions and reads in a single typeface. A plain ASCII label is never an icon. An emoji is
@@ -856,4 +868,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.2.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.3.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
