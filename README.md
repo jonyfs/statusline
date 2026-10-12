@@ -688,6 +688,20 @@ around them. Neither is the default:
 | `nord` | ![nord](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-nord.svg) |
 | `gruvbox` | ![gruvbox](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-gruvbox.svg) |
 
+Each colour means one thing. `doctor --explain` ends with the legend.
+
+| Colour | Means |
+|---|---|
+| red | a gauge in its critical band, merge conflicts |
+| peach | a gauge in its warn band, allow-all, gates, a forecast limit |
+| yellow, green | icon only: running or closing, passed or healthy |
+| lavender | the branch and the model |
+| blue, mauve | a pull request that is open, one that was merged |
+| teal | spend, credits, rtk savings |
+| sapphire | a cold prompt cache, todo |
+| flamingo | every skill, alike |
+| neutral | plain state: directory, repository, working tree, healthy gauges |
+
 The text on a chip is chosen for each background: whichever of the flavor's own `crust` and
 `text`, `#11111b` and `#ffffff` has the highest WCAG contrast, and at least 4.5:1. A background
 that none of them reaches is darkened until one does. Latte is why: its pale `crust` was
@@ -707,8 +721,11 @@ thing, with the outlines baked in.
 ## Reading a level at a glance
 
 The context figure, the 5-hour window, the 7-day window and the spend limit
-all colour themselves by level: green below 60%, yellow to 85%, red above it.
-Same thresholds on all of them, so a glance reads them the same way.
+all colour themselves by level. Below 60% the chip is neutral and only its icon
+is green, so a healthy bar is quiet. Up to 85% the chip is peach, and above it
+red. Same thresholds on all of them, so a glance reads them the same way. When
+several gauges are past 85%, only the highest keeps the red background and the
+rest show red text on the neutral fill.
 
 Colour is not the only carrier, because around one man in twelve cannot
 separate red from green. Each band past the first adds a mark:
@@ -1445,15 +1462,16 @@ has a substitute in the same table, so the fallback is total rather than
 partial: a mode that swapped the separators and left the icons would leave a
 line of empty boxes while claiming to have fixed it.
 
-## Segments brighten when something changes
+## Segments are marked when something changes
 
-When a tracked value differs from the last redraw, that segment's colour
-brightens for thirty seconds and then settles back. It tracks four things:
-branch, pull request, active skills, and model.
+When a tracked value differs from the last redraw, that segment's text is
+bold and underlined for thirty seconds and then settles back. It tracks four
+things: branch, pull request, active skills, and model.
 
-Colour rather than a moving icon, because colour is noticed before it is
-read: you see a brighter block without looking at it, where a swapped glyph
-has to be recognised, and you do not need to have seen the frame before it.
+Bold and underline rather than a colour shift, because a colour shift would
+borrow another colour's meaning, and rather than a moving icon, because a mark
+on the text is noticed without recognising a swapped glyph. It does not depend
+on colour, so `NO_COLOR` keeps it.
 The segment keeps its own hue, so it still says which segment it is.
 
 Four segments and no more, because the usage figures already use colour to

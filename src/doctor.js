@@ -51,9 +51,10 @@ import {
 } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
-import { displayWidth, PALETTES } from "./theme.js";
+import { displayWidth, PALETTES, colourEnabled, bgSeq } from "./theme.js";
+import { ROLE, LEGEND } from "./colourRoles.js";
 import { terminalFor } from "./layout.js";
-import { resolveLayout, repoConfig, terminalFlavor } from "./config.js";
+import { resolveLayout, repoConfig, terminalFlavor, resolveSettings } from "./config.js";
 import { resolveArrangement } from "./arrangement.js";
 
 /**
@@ -691,6 +692,26 @@ function readInstallChecks() {
 }
 
 /**
+ * What each colour means, one line each, with a swatch in that colour.
+ *
+ * The budget is only useful to a reader who can learn it without opening the
+ * constitution. The swatch is drawn through the same emitters as the bar, in
+ * the palette a render here would use, so it is the colour the person sees
+ * and falls away with `NO_COLOR` like every other colour.
+ */
+export function colourLegend(cwd = process.cwd(), env = process.env) {
+  const { flavor } = resolveSettings(cwd, env);
+  const palette = PALETTES[flavor] ?? PALETTES.mocha;
+  const names = LEGEND.map(([role]) => ROLE[role]);
+  const width = Math.max(...names.map((n) => n.length));
+  return LEGEND.map(([role, meaning]) => {
+    const token = ROLE[role];
+    const swatch = colourEnabled() ? `${bgSeq(palette[token])}  \x1b[0m ` : "";
+    return `  ${swatch}${token.padEnd(width)}  ${meaning}`;
+  });
+}
+
+/**
  * What every segment shows, one line each.
  *
  * The bar cannot be asked directly: a terminal has no hover, and the
@@ -713,5 +734,6 @@ export function explainSegments() {
     }
     out.push(`  ${row.key.padEnd(width)}  ${SEGMENT_ABOUT[row.key] ?? "(undescribed)"}`);
   }
+  out.push("", "colours", ...colourLegend());
   return out.join("\n");
 }

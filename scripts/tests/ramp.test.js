@@ -43,7 +43,7 @@ await test("an unknown level is not a band", () => {
 
 await test("each band has its own colour", () => {
   assert.equal(rampColour(10, "x"), "green");
-  assert.equal(rampColour(70, "x"), "yellow");
+  assert.equal(rampColour(70, "x"), "peach", "attention is peach, yellow is an icon (specs/041)");
   assert.equal(rampColour(95, "x"), "red");
 });
 

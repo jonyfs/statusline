@@ -1,31 +1,31 @@
 import { WIDE } from "./data/wide.js";
-import { chipColours, contrastRatio, lightenOklch, toOklch } from "./contrast.js";
+import { chipColours, contrastRatio, lightenOklch, readableOn, toOklch } from "./contrast.js";
 
 export const PALETTES = {
   mocha: {
     crust: "#11111b", mantle: "#181825", base: "#1e1e2e",
-    surface1: "#45475a", surface2: "#585b70", text: "#cdd6f4",
+    surface0: "#313244", surface1: "#45475a", surface2: "#585b70", text: "#cdd6f4",
     red: "#f38ba8", peach: "#fab387", yellow: "#f9e2af", green: "#a6e3a1",
     sapphire: "#74c7ec", blue: "#89b4fa", lavender: "#b4befe", mauve: "#cba6f7",
     flamingo: "#f2cdcd", teal: "#94e2d5", pink: "#f5c2e7",
   },
   frappe: {
     crust: "#232634", mantle: "#292c3c", base: "#303446",
-    surface1: "#51576d", surface2: "#626880", text: "#c6d0f5",
+    surface0: "#414559", surface1: "#51576d", surface2: "#626880", text: "#c6d0f5",
     red: "#e78284", peach: "#ef9f76", yellow: "#e5c890", green: "#a6d189",
     sapphire: "#85c1dc", blue: "#8caaee", lavender: "#babbf1", mauve: "#ca9ee6",
     flamingo: "#eebebe", teal: "#81c8be", pink: "#f4b8e4",
   },
   macchiato: {
     crust: "#181926", mantle: "#1e2030", base: "#24273a",
-    surface1: "#494d64", surface2: "#5b6078", text: "#cad3f5",
+    surface0: "#363a4f", surface1: "#494d64", surface2: "#5b6078", text: "#cad3f5",
     red: "#ed8796", peach: "#f5a97f", yellow: "#eed49f", green: "#a6da95",
     sapphire: "#7dc4e4", blue: "#8aadf4", lavender: "#b7bdf8", mauve: "#c6a0f6",
     flamingo: "#f0c6c6", teal: "#8bd5ca", pink: "#f5bde6",
   },
   latte: {
     crust: "#dce0e8", mantle: "#e6e9ef", base: "#eff1f5",
-    surface1: "#bcc0cc", surface2: "#acb0be", text: "#4c4f69",
+    surface0: "#ccd0da", surface1: "#bcc0cc", surface2: "#acb0be", text: "#4c4f69",
     red: "#d20f39", peach: "#fe640b", yellow: "#df8e1d", green: "#40a02b",
     sapphire: "#209fb5", blue: "#1e66f5", lavender: "#7287fd", mauve: "#8839ef",
     flamingo: "#dd7878", teal: "#179299", pink: "#ea76cb",
@@ -40,14 +40,14 @@ export const PALETTES = {
   // segment can reference a colour that exists in one theme and not another.
   nord: {
     crust: "#2e3440", mantle: "#3b4252", base: "#434c5e",
-    surface1: "#4c566a", surface2: "#616e88", text: "#eceff4",
+    surface0: "#434c5e", surface1: "#4c566a", surface2: "#616e88", text: "#eceff4",
     red: "#bf616a", peach: "#d08770", yellow: "#ebcb8b", green: "#a3be8c",
     sapphire: "#88c0d0", blue: "#5e81ac", lavender: "#81a1c1", mauve: "#b48ead",
     flamingo: "#d8dee9", teal: "#8fbcbb", pink: "#cbb0c7",
   },
   gruvbox: {
     crust: "#1d2021", mantle: "#282828", base: "#32302f",
-    surface1: "#504945", surface2: "#665c54", text: "#ebdbb2",
+    surface0: "#3c3836", surface1: "#504945", surface2: "#665c54", text: "#ebdbb2",
     red: "#fb4934", peach: "#fe8019", yellow: "#fabd2f", green: "#b8bb26",
     sapphire: "#8ec07c", blue: "#83a598", lavender: "#bdae93", mauve: "#b16286",
     flamingo: "#d5c4a1", teal: "#689d6a", pink: "#d3869b",
@@ -305,14 +305,26 @@ export function renderRow(palette, segments, { asciiArrows = false } = {}) {
   let out = "";
   segments.forEach((seg, i) => {
     const { fg: chipFg, bg: segBg } = chipOf(palette, seg.color);
-    const segFg = seg.quiet ? quietText(palette, seg.color) : chipFg;
+    const toned = seg.tone ? readableOn(resolveColour(palette, seg.tone), segBg) : null;
+    const segFg = toned ?? (seg.quiet ? quietText(palette, seg.color) : chipFg);
     if (i > 0) {
       const prev = chipOf(palette, segments[i - 1].color).bg;
       out += `${fg(prev)}${bg(segBg)}${arrow}`;
     }
     // Without colour a chip has no edge. Its leading pad becomes a thin bar,
     // the same width, so the fit that was measured with the pad still holds.
-    const label = colourEnabled() ? seg.text : `\u258f${seg.text.replace(/^ /, "")}`;
+    let label = colourEnabled() ? seg.text : `\u258f${seg.text.replace(/^ /, "")}`;
+    // An icon in its own colour on a neutral chip: the first word of the
+    // text, drawn in the token's colour made readable on this background,
+    // then the chip's own text colour again.
+    if (seg.icon && colourEnabled()) {
+      const accent = readableOn(resolveColour(palette, seg.icon), segBg);
+      label = label.replace(/^(\s*)(\S+)/, (_, pad, word) => `${pad}${fg(accent)}${word}${fg(segFg)}`);
+    }
+    // A segment that changed is bold and underlined, with its colours as
+    // they were: the mark survives `NO_COLOR`, and it does not borrow the
+    // meaning of another colour.
+    if (seg.emphasis) label = `\x1b[1m\x1b[4m${label}\x1b[22m\x1b[24m`;
     const text = seg.url ? link(seg.url, label) : label;
     out += `${bg(segBg)}${fg(segFg)}${text}`;
   });

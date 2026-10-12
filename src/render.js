@@ -114,7 +114,8 @@ import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
 import { resolveLayout } from "./config.js";
-import { bar, rampColour, bandMark } from "./ramp.js";
+import { bar, gaugeChip, bandMark } from "./ramp.js";
+import { ROLE } from "./colourRoles.js";
 import { plainText } from "./text.js";
 import { ratePerHour, projectFull, pushSample } from "./samples.js";
 import { fitToWidth, alignColumns, linesToRender, rowWidth, terminalWidth, terminalHeight, terminalFor, readTtySize } from "./layout.js";
@@ -356,8 +357,6 @@ export const GLYPHS = {
     gateWaiting: "\u29D6", // ⧖
   },
 };
-
-const SKILL_CHIP_COLORS = ["green", "sapphire", "mauve", "peach", "teal", "pink"];
 
 async function readStdinAsync() {
   return new Promise((resolve) => {
@@ -965,6 +964,8 @@ export function renderReadings(
         key: seg.key,
         text: seg.text,
         color: seg.color,
+        ...(seg.icon ? { icon: seg.icon } : {}),
+        ...(seg.tone ? { tone: seg.tone } : {}),
         ...(seg.url ? { url: seg.url } : {}),
         // The composer page fits with the same `fitToWidth`, so a segment's
         // shorter forms travel with it or the page would drop what the
@@ -977,7 +978,7 @@ export function renderReadings(
   // Line 1: working directory, then branch, ahead/behind, PR — each name
   // is an OSC 8 hyperlink when a target is known (dir -> file://, branch ->
   // GitHub tree view, PR -> PR page), with no visible URL text.
-  const dirSegment = (label) => ({ key: "dir", color: "surface1", text: ` ${g.dir} ${label} `, url: dirUrl });
+  const dirSegment = (label) => ({ key: "dir", color: ROLE.neutral, text: ` ${g.dir} ${label} `, url: dirUrl });
   const l1 = [dirSegment(dirLabel)];
 
   // A17: Claude can move during a session, and then the directory on the bar
@@ -987,7 +988,7 @@ export function renderReadings(
   if (projectDir && projectDir !== readings.cwd) {
     l1.push({
       key: "projectDir",
-      color: "surface2",
+      color: ROLE.neutral,
       text: ` ${g.from} ${getDirLabel(projectDir)} `,
       url: pathToFileUrl(projectDir),
     });
@@ -1003,7 +1004,8 @@ export function renderReadings(
       !detached && remoteUrl ? `${remoteUrl}/tree/${git.branch.split("/").map(encodeURIComponent).join("/")}` : null;
     l1.push({
       key: "branch",
-      color: changes.colourFor("branch", "lavender", palette),
+      color: ROLE.identity,
+        emphasis: changes.isChanged("branch"),
       text: ` ${detached ? g.commit : g.branch} ${label} `,
       url: branchUrl,
     });
@@ -1020,7 +1022,7 @@ export function renderReadings(
     if (git.ahead) state.push(`${g.push} ${git.ahead}`);
     if (git.behind) state.push(`${g.pull} ${git.behind}`);
     if (state.length) {
-      l1.push({ key: "worktreeState", color: "mauve", text: ` ${state.join("  ")} ` });
+      l1.push({ key: "worktreeState", color: ROLE.neutral, text: ` ${state.join("  ")} ` });
     }
     // A2's chosen form: owner and repo as text. It repeats the directory in
     // a repository whose folder is named after it, and says something the
@@ -1034,7 +1036,7 @@ export function renderReadings(
       // label dimmer than the other (specs/040-contrast).
       l1.push({
         key: "repo",
-        color: "surface1",
+        color: ROLE.neutral,
         text: ` ${repo.owner}/${repo.name} `,
         quiet: true,
         url: remoteUrl,
@@ -1048,7 +1050,7 @@ export function renderReadings(
       const running = ci.status && ci.status !== "completed";
       const passed = ci.conclusion === "success";
       const mark = running ? g.ciRunning : passed ? g.ciPass : g.ciFail;
-      const colour = running ? "yellow" : passed ? "green" : "red";
+      const icon = running ? ROLE.modified : passed ? ROLE.healthy : ROLE.critical;
       // The runs for the branch you are on, not the repository's most recent:
       // scoping the link the same way the segment scopes its answer is what
       // stops a click landing on main's green tick from a branch you never
@@ -1057,7 +1059,7 @@ export function renderReadings(
         remoteUrl && !detached && git.branch
           ? `${remoteUrl}/actions?query=${encodeURIComponent(`branch:${git.branch}`)}`
           : remoteUrl;
-      l1.push({ key: "ci", color: colour, text: ` ${mark} ${ci.workflow ?? "CI"} `, url: runs ?? undefined });
+      l1.push({ key: "ci", color: ROLE.neutral, icon, text: ` ${mark} ${ci.workflow ?? "CI"} `, url: runs ?? undefined });
     }
     // What this session changed, which is a different question from what the
     // working tree looks like: the payload counts it, git does not. It sits
@@ -1067,21 +1069,22 @@ export function renderReadings(
     if (sessionCost && (sessionCost.linesAdded !== null || sessionCost.linesRemoved !== null)) {
       l1.push({
         key: "linesChanged",
-        color: "green",
+        color: ROLE.neutral,
+        icon: ROLE.healthy,
         text: ` +${sessionCost.linesAdded ?? 0} −${sessionCost.linesRemoved ?? 0} `,
       });
     }
     // B8: an unmerged path stops everything until it is resolved, which is
     // not what an ordinary changed file means.
     if (git.conflicts) {
-      l1.push({ key: "conflicts", color: "red", text: ` ${g.conflict} ${git.conflicts} ` });
+      l1.push({ key: "conflicts", color: ROLE.critical, text: ` ${g.conflict} ${git.conflicts} ` });
     }
     // A19: which worktree, and what it came from. The branch name alone does
     // not always say, and a worktree is exactly when you need to be sure.
     const worktree = shows("worktree") ? readings.worktree.value : null;
     if (worktree) {
       const from = worktree.from ? ` ${g.from} ${worktree.from}` : "";
-      l1.push({ key: "worktree", color: "teal", text: ` ${worktree.name}${from} ` });
+      l1.push({ key: "worktree", color: ROLE.neutral, text: ` ${worktree.name}${from} ` });
     }
     if (pr) {
       // `changes_requested` is the one review state too long to spell out on
@@ -1100,7 +1103,8 @@ export function renderReadings(
         : "";
       l1.push({
         key: "pr",
-        color: changes.colourFor("pr", "blue", palette),
+        color: String(pr.state).toUpperCase() === "MERGED" ? ROLE.merged : ROLE.open,
+        emphasis: changes.isChanged("pr"),
         text: ` ${g.pr} ${label} #${pr.number}${review ? ` ${review}` : ""}${labelText} `,
         url: pr.url,
       });
@@ -1112,7 +1116,7 @@ export function renderReadings(
   const update = shows("update") ? readings.update?.value : null;
   if (update?.text) {
     const icon = update.state === "updated" ? g.updateDone : g.updateReady;
-    l1.push({ key: "update", color: "teal", text: ` ${icon} ${update.text} ` });
+    l1.push({ key: "update", color: ROLE.neutral, text: ` ${icon} ${update.text} ` });
   }
   // The git gates running in this repository (specs/031-git-gate-rows): a
   // count here, and a row each after the bar when the window has room.
@@ -1133,12 +1137,12 @@ export function renderReadings(
     if (activity?.todos) {
       const { done, total, current } = activity.todos;
       const label = current ? `${current} (${done}/${total})` : `${done}/${total}`;
-      row.push({ key: "todo", color: "sapphire", text: ` ${g.todo} ${label} ` });
+      row.push({ key: "todo", color: ROLE.cold, text: ` ${g.todo} ${label} ` });
     }
     // The editor's vim mode, beside what the session is doing. Absent unless
     // vim mode is on (specs/027-bar-polish).
     const vimMode = shows("vim") ? readings.vim?.value : null;
-    if (vimMode) row.push({ key: "vim", color: "lavender", text: ` ${g.vim} ${vimMode} ` });
+    if (vimMode) row.push({ key: "vim", color: ROLE.neutral, text: ` ${g.vim} ${vimMode} ` });
     if (activity) {
       const mark = activity.working ? g.working : g.idle;
       // How many background jobs the session is waiting on, said whenever
@@ -1148,7 +1152,8 @@ export function renderReadings(
       const waiting = activity.working && bg > 0 ? ` · ${bg} bg` : "";
       row.push({
         key: "activity",
-        color: activity.working ? "green" : "surface2",
+        color: ROLE.neutral,
+        ...(activity.working ? { icon: ROLE.healthy } : {}),
         text: activity.working ? ` ${mark} working${waiting} ` : ` ${mark} idle `,
       });
     }
@@ -1176,7 +1181,8 @@ export function renderReadings(
     const l2 = [
       {
         key: "skills",
-        color: changes.colourFor("skills", "green", palette),
+        color: ROLE.skills,
+        emphasis: changes.isChanged("skills"),
         text: ` ${g.skills} ${skills.join(", ")}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
       },
     ];
@@ -1242,15 +1248,15 @@ export function renderReadings(
   // labelled `5h` and `7d`, with the date the month resets: it is the only
   // window Copilot has, and calling it anything shorter would invent one.
   const copilotQuota = shows("premiumQuota", "copilotQuota") ? readings.copilotQuota?.value : null;
-  const quotaChip = (name, colour) => {
+  const quotaChip = (name) => {
     const q = copilotQuota?.quotas?.[name];
     if (!q) return null;
     const full = q.full || q.usedPct >= 100 ? " full" : "";
     const level = ` ${g.calendar} month ${name} ${q.usedPct}%${bandMark(q.usedPct)}${full}`;
     const date = formatQuotaDate(copilotQuota.resetDate);
     return date
-      ? { color: rampColour(q.usedPct, colour), text: `${level} · ${date} `, variants: [`${level} `] }
-      : { color: rampColour(q.usedPct, colour), text: `${level} ` };
+      ? { ...gaugeChip(q.usedPct), text: `${level} · ${date} `, variants: [`${level} `] }
+      : { ...gaugeChip(q.usedPct), text: `${level} ` };
   };
 
   const line3Content = {
@@ -1259,13 +1265,14 @@ export function renderReadings(
       // and "(auto)" is the first thing it gives up for width.
       const routed = shows("model", "modelRouted") ? readings.modelRouted.value : null;
       return {
-        color: changes.colourFor("model", "red", palette),
+        color: ROLE.identity,
+        emphasis: changes.isChanged("model"),
         text: ` ${g.model} ${modelName} `,
         ...(routed ? { variants: [` ${g.model} ${routed} `] } : {}),
       };
     },
-    premiumQuota: () => quotaChip("premium", "green"),
-    chatQuota: () => quotaChip("chat", "sapphire"),
+    premiumQuota: () => quotaChip("premium"),
+    chatQuota: () => quotaChip("chat"),
     // Copilot CLI's AI credits. The ramp colour has a level to show only once
     // a session limit is set; until then it keeps its own.
     aiCredits: () => {
@@ -1275,19 +1282,19 @@ export function renderReadings(
       // drawn as sent rather than given a second unit.
       const bare = /^[\d.,]+$/.test(c.formatted);
       const amount = bare ? `${c.formatted} AIC` : c.formatted;
-      if (c.pct === null) return { color: "teal", text: ` ${g.spend} ${amount} ` };
+      if (c.pct === null) return { color: ROLE.money, text: ` ${g.spend} ${amount} ` };
       const level = `${c.pct}%${bandMark(c.pct)}${fullMark(c.pct)}`;
       const against = bare ? `${c.formatted}/${creditCount(c.max)} AIC` : `${c.formatted} of ${creditCount(c.max)}`;
       return {
-        color: rampColour(c.pct, "teal"),
+        ...gaugeChip(c.pct),
         text: ` ${g.spend} ${against} · ${level} `,
         variants: [` ${g.spend} ${amount} · ${level} `],
       };
     },
-    effort: () => (effort ? { color: "peach", text: ` ${g.effort} ${effort} ` } : null),
+    effort: () => (effort ? { color: ROLE.neutral, text: ` ${g.effort} ${effort} ` } : null),
     // Fast mode spends faster, so it sits with the model and effort that say
     // what is spending. Drawn only when on (specs/027-bar-polish).
-    fastMode: () => (shows("fastMode") && readings.fastMode?.value ? { color: "peach", text: ` ${g.fast} fast ` } : null),
+    fastMode: () => (shows("fastMode") && readings.fastMode?.value ? { color: ROLE.neutral, text: ` ${g.fast} fast ` } : null),
     // The three ramped segments. Colour says which band the level is in, and
     // the bar's own characters say it again, because colour may not be the
     // only carrier (E6). An unknown level keeps the segment's own colour and
@@ -1303,7 +1310,7 @@ export function renderReadings(
     // 5-hour and 7-day figures beside it still mark their band, and they
     // are the ones with a consequence you cannot undo.
     context: () => ({
-      color: rampColour(ctxPct, "yellow"),
+      ...gaugeChip(ctxPct),
       text: ` ${g.context} Context ${ctxPct ?? "?"}% `,
     }),
     // Each window says how much of it is gone and when it comes back, in one
@@ -1323,7 +1330,7 @@ export function renderReadings(
       // guard reaches before it drops anything essential (specs/027).
       const resets = shortCountdown(fiveHourResetsAt, now) ?? "?";
       const level = ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)}${fullMark(fiveHourPct)}`;
-      return { color: rampColour(fiveHourPct, "green"), text: `${level} \u00b7 ${resets} `, variants: [`${level} `] };
+      return { ...gaugeChip(fiveHourPct), text: `${level} \u00b7 ${resets} `, variants: [`${level} `] };
     },
     sevenDay: () => {
       if (noSevenDay) return null;
@@ -1335,7 +1342,7 @@ export function renderReadings(
       // used to be covered by the merged segment, and now lives here.
       const moment = farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?";
       const level = ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${fullMark(sevenDayPct)}`;
-      return { color: rampColour(sevenDayPct, "sapphire"), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
+      return { ...gaugeChip(sevenDayPct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
     },
     // The allowance a gateway reports once an administrator sets a spend
     // limit. It is drawn as reported, past 100% included, because that is how
@@ -1354,19 +1361,19 @@ export function renderReadings(
       const counts = formatResetCountdown(at, now, bound) !== null;
       const moment = !counts ? "?" : at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
       const level = ` ${g.calendar} ${w.label} ${pct}%${bandMark(pct)}${fullMark(pct)}`;
-      return { color: rampColour(pct, "sapphire"), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
+      return { ...gaugeChip(pct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
     },
     // Codex's credit balance, drawn as Codex writes it.
     codexCredits: () => {
       const c = shows("codexCredits") ? readings.codexCredits?.value : null;
-      return c ? { color: "teal", text: ` ${g.spend} credits ${c.balance} ` } : null;
+      return c ? { color: ROLE.money, text: ` ${g.spend} credits ${c.balance} ` } : null;
     },
     spendLimit: () => {
       if (noLimits) return null;
       if (spendLimitPct === null) return null;
       const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
       const level = ` ${g.spend} spend ${spendLimitPct}%${bandMark(spendLimitPct)}`;
-      return { color: rampColour(spendLimitPct, "teal"), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
+      return { ...gaugeChip(spendLimitPct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
     },
     // The prompt cache, drawn only when its state changes what you do next:
     // cold, or warm inside its closing window. A warm cache with time to
@@ -1377,13 +1384,13 @@ export function renderReadings(
       if (!promptCache?.observed) return null;
       if (promptCache.state === "warm") {
         if (!promptCache.closing) return null;
-        return { color: "yellow", text: ` ${g.cacheWarm} cache warm \u00b7 ${cacheMinutesLeft(promptCache.secondsLeft)} ` };
+        return { color: ROLE.neutral, icon: ROLE.modified, text: ` ${g.cacheWarm} cache warm \u00b7 ${cacheMinutesLeft(promptCache.secondsLeft)} ` };
       }
       const tokens = promptCache.recacheTokens !== null ? abbreviate(promptCache.recacheTokens) : null;
       const chip = (...parts) => ` ${g.cacheCold} cache cold${parts.filter(Boolean).map((t) => ` \u00b7 ${t}`).join("")} `;
       const text = chip(tokens, promptCache.cause);
       const variants = [chip(tokens), chip()].filter((v, i, all) => v !== text && all.indexOf(v) === i);
-      return { color: "red", text, ...(variants.length ? { variants } : {}) };
+      return { color: ROLE.cold, text, ...(variants.length ? { variants } : {}) };
     },
     // C5 asked for this figure to render only once it had moved five points,
     // on the reasoning that a number repeating itself every redraw is a
@@ -1399,7 +1406,7 @@ export function renderReadings(
     // cross.
     rtk: () => {
       if (rtkPct === null) return null;
-      return { color: "mauve", text: ` ${g.rtk} rtk ${rtkPct}% saved ` };
+      return { color: ROLE.money, text: ` ${g.rtk} rtk ${rtkPct}% saved ` };
     },
 
     // B1: a percentage says where you are; a rate says whether you get there
@@ -1409,7 +1416,7 @@ export function renderReadings(
       const rate = ratePerHour(sampleHistory, "fiveHourPct");
       if (rate === null || rate <= 0) return null;
       return {
-        color: rampColour(fiveHourPct, "peach"),
+        color: ROLE.neutral,
         text: ` ${g.burn} ${rate.toFixed(rate < 10 ? 1 : 0)}%/h `,
       };
     },
@@ -1434,20 +1441,20 @@ export function renderReadings(
       const d = new Date(at);
       const hh = String(d.getHours()).padStart(2, "0");
       const mm = String(d.getMinutes()).padStart(2, "0");
-      return { color: "red", text: ` 5h limit ~${hh}:${mm} ` };
+      return { color: ROLE.attention, text: ` 5h limit ~${hh}:${mm} ` };
     },
     // A4, A5, A6: what the session has spent, in time and in lines.
     // Copilot's premium requests this session, and whether every tool now runs
     // without asking. Neither exists in Claude Code's payload.
     premiumRequests: () => {
       const n = shows("premiumRequests") ? readings.premiumRequests?.value : null;
-      return n ? { color: "mauve", text: ` ${g.premium} ${n} premium ` } : null;
+      return n ? { color: ROLE.neutral, text: ` ${g.premium} ${n} premium ` } : null;
     },
-    allowAll: () => (shows("allowAll") && readings.allowAll?.value ? { color: "red", text: ` ${g.allowAll} allow all ` } : null),
+    allowAll: () => (shows("allowAll") && readings.allowAll?.value ? { color: ROLE.attention, text: ` ${g.allowAll} allow all ` } : null),
     duration: () => {
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       const label = formatDuration(c?.durationMs);
-      return label ? { color: "surface2", text: ` ${g.duration} ${label} ` } : null;
+      return label ? { color: ROLE.neutral, text: ` ${g.duration} ${label} ` } : null;
     },
   };
 
@@ -1501,8 +1508,28 @@ export function renderReadings(
     return out;
   };
 
+  /**
+   * Red is the loudest thing on the bar, so it is used once. Among gauges in
+   * the critical band the highest percentage keeps the red background, the
+   * first in line order on a tie. The others stay critical in the text: red
+   * on the neutral fill, with the band mark they already carry. Run on every
+   * built segment before shedding, so a gauge that is shed cannot pass the
+   * red to another by being absent.
+   */
+  const leaveOneRed = (segs) => {
+    const order = new Map(SEGMENTS.map((s) => [s.key, s.line * 1000 + s.order]));
+    const critical = segs
+      .filter((s) => s.band === "critical" && typeof s.pct === "number")
+      .sort((a, b) => b.pct - a.pct || (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
+    for (const seg of critical.slice(1)) {
+      seg.color = ROLE.neutral;
+      seg.tone = ROLE.critical;
+    }
+  };
+
   const assemble = () => {
     const built = [...content, ...buildLine3()];
+    leaveOneRed(built);
     collect(built);
     const byLineNumber = new Map([1, 2, 3, 4].map((n) => [n, []]));
     for (const seg of built) {
