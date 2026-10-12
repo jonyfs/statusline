@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
-import { PALETTES } from "../../src/theme.js";
+import { PALETTES, colour256Hex } from "../../src/theme.js";
 import { contrastRatio, chipColours, toOklch, lightenOklch } from "../../src/contrast.js";
 
 await test("contrast ratio follows WCAG 2.2", () => {
@@ -88,7 +88,12 @@ function pairs(ansi) {
         if (n === 0 || m[1] === "") (fg = null), (bg = null);
         else if (n === 39) fg = null;
         else if (n === 49) bg = null;
-        else if ((n === 38 || n === 48) && p[i + 1] === "2") {
+        else if ((n === 38 || n === 48) && p[i + 1] === "5") {
+          const hex = colour256Hex(Number(p[i + 2]));
+          if (n === 38) fg = hex;
+          else bg = hex;
+          i += 2;
+        } else if ((n === 38 || n === 48) && p[i + 1] === "2") {
           const hex = `#${[p[i + 2], p[i + 3], p[i + 4]].map((c) => Number(c).toString(16).padStart(2, "0")).join("")}`;
           if (n === 38) fg = hex;
           else bg = hex;
@@ -183,4 +188,92 @@ await test("the repository sits on the directory chip's background, in a quieter
   const between = beforeRepo.slice(dirAt);
   const backgrounds = [...between.matchAll(/\x1b\[48;2;[0-9;]+m/g)].map((m) => m[0]);
   assert.equal(new Set(backgrounds).size, 1, "one background from the directory to the repository");
+});
+
+// The terminal's own background decides the flavor only when nobody chose.
+import { resolveSettings, terminalFlavor } from "../../src/config.js";
+import { flavorStatus } from "../../src/doctor.js";
+import { colourDepth, renderRow } from "../../src/theme.js";
+
+await test("COLORFGBG picks latte on a light terminal and mocha otherwise", () => {
+  assert.equal(terminalFlavor({ COLORFGBG: "0;15" }), "latte");
+  assert.equal(terminalFlavor({ COLORFGBG: "0;default;15" }), "latte");
+  assert.equal(terminalFlavor({ COLORFGBG: "0;7" }), "latte");
+  assert.equal(terminalFlavor({ COLORFGBG: "15;0" }), null);
+  assert.equal(terminalFlavor({ COLORFGBG: "15;8" }), null);
+  assert.equal(terminalFlavor({ COLORFGBG: "garbage" }), null);
+  assert.equal(terminalFlavor({ COLORFGBG: "15" }), null, "one field is not a pair");
+  assert.equal(terminalFlavor({}), null);
+});
+
+await test("a flavor that was set always wins over the terminal", () => {
+  const light = { COLORFGBG: "0;15" };
+  assert.equal(resolveSettings("/does/not/exist", { ...light }).flavor, "latte");
+  assert.equal(resolveSettings("/does/not/exist", { ...light, CLAUDE_STATUSLINE_FLAVOR: "nord" }).flavor, "nord");
+  assert.equal(resolveSettings("/does/not/exist", {}).flavor, "mocha");
+});
+
+await test("doctor says when the flavor came from the terminal background", () => {
+  const line = flavorStatus("/does/not/exist", { COLORFGBG: "0;15" });
+  assert.equal(line.name, "latte");
+  assert.match(line.line, /from the terminal background \(COLORFGBG\)/);
+});
+
+const withEnv = (vars, fn) => {
+  const before = {};
+  for (const k of Object.keys(vars)) {
+    before[k] = process.env[k];
+    if (vars[k] === undefined) delete process.env[k];
+    else process.env[k] = vars[k];
+  }
+  try {
+    return fn();
+  } finally {
+    for (const k of Object.keys(vars)) {
+      if (before[k] === undefined) delete process.env[k];
+      else process.env[k] = before[k];
+    }
+  }
+};
+
+await test("colour depth follows COLORTERM, and Apple Terminal draws 256", () => {
+  assert.equal(colourDepth({ COLORTERM: "truecolor" }), "truecolor");
+  assert.equal(colourDepth({ COLORTERM: "24bit" }), "truecolor");
+  assert.equal(colourDepth({ COLORTERM: "256color" }), "256");
+  assert.equal(colourDepth({ TERM_PROGRAM: "Apple_Terminal" }), "256");
+  assert.equal(colourDepth({}), "truecolor", "an unset variable is not evidence of less");
+});
+
+await test("at 256 colours no 24-bit sequence is emitted and the floor still holds", () => {
+  const failures = [];
+  withEnv({ COLORTERM: "256color" }, () => {
+    for (const flavor of FLAVORS) {
+      for (const scenario of [...SCENARIOS, FLAVOR_SCENARIO]) {
+        const ansi = renderPayload(scenario.payload, {
+          flavor,
+          sources: scenario.sources,
+          trackChanges: false,
+          layout: NO_ARRANGEMENT,
+          maxWidth: scenario.width ?? 120,
+          maxHeight: 40,
+        });
+        assert.ok(!/\x1b\[(38|48);2;/.test(ansi), `${flavor} ${scenario.file} emitted truecolor`);
+        assert.ok(/\x1b\[48;5;\d+m/.test(ansi), `${flavor} ${scenario.file} emitted no 256-colour background`);
+        const read = pairs(ansi);
+        assert.ok(read.length > 0, `${flavor} ${scenario.file} has pairs to check`);
+        for (const p of read) {
+          const ratio = contrastRatio(p.fg, p.bg);
+          if (ratio < 4.5) failures.push(`${flavor} ${p.fg} on ${p.bg} ${ratio.toFixed(2)} "${p.text.trim()}"`);
+        }
+      }
+    }
+  });
+  assert.deepEqual([...new Set(failures)], []);
+});
+
+await test("NO_COLOR wins over any depth", () => {
+  withEnv({ NO_COLOR: "1", COLORTERM: "256color" }, () => {
+    const out = renderRow(PALETTES.mocha, [{ color: "red", text: " x " }]);
+    assert.ok(!/\x1b\[(38|48);/.test(out));
+  });
 });

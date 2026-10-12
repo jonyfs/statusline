@@ -132,13 +132,32 @@ export function resolveLayout(cwd = process.cwd(), env = process.env) {
 }
 
 /**
+ * The flavor the terminal's own background suggests, or null.
+ *
+ * `COLORFGBG` is `foreground;background`, sometimes with a middle field, and
+ * a background of 7 or 15 is the light end of the ANSI palette. Only a light
+ * answer is acted on: a dark one is what the default already draws, and a
+ * missing or malformed value says nothing. The render path does not ask the
+ * terminal (OSC 11), because the command's output is captured, not typed
+ * into, and a reply could not be read inside the redraw budget.
+ */
+export function terminalFlavor(env = process.env) {
+  const parts = String(env.COLORFGBG || "").split(";");
+  if (parts.length < 2) return null;
+  const background = Number(parts[parts.length - 1]);
+  return background === 7 || background === 15 ? "latte" : null;
+}
+
+/**
  * The settings a render should use: an environment variable when one is
  * set, then the repository's file, then the default.
  */
 export function resolveSettings(cwd = process.cwd(), env = process.env) {
   const file = repoConfig(cwd);
+  const chosen = env.CLAUDE_STATUSLINE_FLAVOR || file.flavor;
+  const terminal = chosen ? null : terminalFlavor(env);
   return {
-    flavor: env.CLAUDE_STATUSLINE_FLAVOR || file.flavor || "mocha",
+    flavor: chosen || terminal || "mocha",
     asciiArrows: env.CLAUDE_STATUSLINE_ASCII === "1" || file.ascii === true,
     separator: env.CLAUDE_STATUSLINE_SEPARATOR || file.separator || null,
     skillWindowMin: env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN || file.skillWindowMin || null,

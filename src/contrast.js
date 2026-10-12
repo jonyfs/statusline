@@ -119,9 +119,11 @@ const memo = new WeakMap();
  *
  * The candidate with the highest contrast wins, `crust` first so a tie keeps
  * the colour the bar always used. When none reaches 4.5:1 the background is
- * darkened in OKLCH, a step at a time, until one does.
+ * darkened in OKLCH, a step at a time, until one does. `snap` rounds each
+ * darkened colour to what the terminal can draw, so the ratio that is checked
+ * is the ratio that is shown; the memo is per palette, which is one snap.
  */
-export function chipColours(palette, bg) {
+export function chipColours(palette, bg, snap = (hex) => hex) {
   let byBg = memo.get(palette);
   if (!byBg) memo.set(palette, (byBg = new Map()));
   const hit = byBg.get(bg);
@@ -133,7 +135,9 @@ export function chipColours(palette, bg) {
   if (ratio < MIN_RATIO) {
     const { L, C, h } = toOklch(bg);
     for (let level = L - STEP; level > -STEP; level -= STEP) {
-      drawn = fromOklch({ L: Math.max(0, level), C, h });
+      // `snap` is the terminal's own rounding: a darker colour that rounds
+      // back to the one that failed is no step at all.
+      drawn = snap(fromOklch({ L: Math.max(0, level), C, h }));
       ({ fg, ratio } = best(candidates, drawn));
       if (ratio >= MIN_RATIO || level <= 0) break;
     }

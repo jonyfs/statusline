@@ -19,7 +19,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { PALETTES, displayWidth, colourEnabled } from "./theme.js";
+import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
 import { bar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
@@ -32,11 +32,7 @@ const RESET = "\x1b[0m";
 // terminal was told not to expect.
 const reset = () => (colourEnabled() ? RESET : "");
 
-function fg(hex) {
-  if (!colourEnabled() || !hex) return "";
-  const n = parseInt(hex.slice(1), 16);
-  return `\x1b[38;2;${(n >> 16) & 255};${(n >> 8) & 255};${n & 255}m`;
-}
+const fg = (hex) => (hex ? fgSeq(hex) : "");
 
 /**
  * The earliest instant a subagent could plausibly have started.

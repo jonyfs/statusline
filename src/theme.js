@@ -168,6 +168,11 @@ function nearest256(hex) {
   return pick;
 }
 
+/** The hex a 256-colour index stands for, for reading a rendered bar back. */
+export function colour256Hex(index) {
+  return palette256().find((e) => e.index === index)?.hex ?? null;
+}
+
 /** The colour as this terminal will draw it, as hex. Truecolor is the colour itself. */
 export function drawnColour(hex, depth = colourDepth()) {
   return depth === "256" ? nearest256(hex).hex : hex;
@@ -265,7 +270,7 @@ export function resolveColour(palette, colour) {
 function chipOf(palette, colour) {
   const wanted = resolveColour(palette, colour);
   if (colourDepth() !== "256") return chipColours(palette, wanted);
-  const drawn = chipColours(quantised(palette), drawnColour(wanted, "256"));
+  const drawn = chipColours(quantised(palette), drawnColour(wanted, "256"), (hex) => drawnColour(hex, "256"));
   return { fg: drawn.fg, bg: drawn.bg };
 }
 
