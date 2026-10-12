@@ -142,8 +142,11 @@ export function eighthsBar(pct, cells = 8) {
 export function gaugeChip(pct, bandName = null) {
   const name = bandName ?? bandFor(pct)?.name ?? null;
   if (!name) return { color: ROLE.neutral };
-  if (name === "ok") return { color: ROLE.neutral, icon: ROLE.healthy, pct, band: "ok" };
-  if (name === "warn") return { color: ROLE.attention, pct, band: "warn" };
+  // `CLAUDE_STATUSLINE_RAMP=cvd`: no green against red. A blue icon, a yellow
+  // fill and a red one differ in hue and in lightness (specs/049).
+  const cvd = String(process.env.CLAUDE_STATUSLINE_RAMP ?? "").toLowerCase() === "cvd";
+  if (name === "ok") return { color: ROLE.neutral, icon: cvd ? "blue" : ROLE.healthy, pct, band: "ok" };
+  if (name === "warn") return { color: cvd ? "yellow" : ROLE.attention, pct, band: "warn" };
   return { color: ROLE.critical, pct, band: "critical" };
 }
 

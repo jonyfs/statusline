@@ -26,13 +26,26 @@ const MAX_COLUMN = { hook: 14, worktree: 28, branch: 30, step: 44 };
 // says, not one character by assumption.
 const cut = cutToWidth;
 
+/**
+ * One icon per kind of hook: the commit glyph for `pre-commit`, the push
+ * arrow for `pre-push`, the waiting glyph for a run queued behind the gate
+ * lock, and the running glyph for anything else (specs/049-rows-themes-docs).
+ */
+function hookGlyph(run, glyphs) {
+  if (run.state === "waiting") return glyphs.gateWaiting;
+  const hook = String(run.hook ?? "").toLowerCase();
+  if (/pre-?commit/.test(hook)) return glyphs.commit ?? glyphs.gateRunning;
+  if (/pre-?push/.test(hook)) return glyphs.push ?? glyphs.gateRunning;
+  return glyphs.gateRunning;
+}
+
 function cellsFor(run, { here, glyphs, now }) {
   const waiting = run.state === "waiting";
   const hook = plainText(run.hook) ?? "hook";
   const tree = plainText(run.worktree) ?? "?";
   return {
     waiting,
-    hook: `${waiting ? glyphs.gateWaiting : glyphs.gateRunning} ${cut(hook, MAX_COLUMN.hook - 2)}`,
+    hook: `${hookGlyph(run, glyphs)} ${cut(hook, MAX_COLUMN.hook - 2)}`,
     worktree: `${run.path && run.path === here ? "* " : "  "}${cut(tree, MAX_COLUMN.worktree - 2)}`,
     branch: run.branch ? `${glyphs.branch} ${cut(plainText(run.branch) ?? "", MAX_COLUMN.branch - 2)}` : "",
     step: cut(waiting ? "waiting for gates.lock" : plainText(run.step) ?? "", MAX_COLUMN.step),

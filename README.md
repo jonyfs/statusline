@@ -687,6 +687,30 @@ around them. Neither is the default:
 |---|---|
 | `nord` | ![nord](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-nord.svg) |
 | `gruvbox` | ![gruvbox](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-gruvbox.svg) |
+| `tokyonight` | ![tokyonight](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-tokyonight.svg) |
+| `rosepine` | ![rosepine](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-rosepine.svg) |
+| `dracula` | ![dracula](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-dracula.svg) |
+| `solarized` | ![solarized](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-solarized.svg) |
+| `onedark` | ![onedark](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/flavor-onedark.svg) |
+
+`terminal` draws with the terminal's own 16 colours, so it cannot clash with a theme it does
+not know. Its colours are unknown when the bar is drawn, which is why it is the one palette the
+contrast test does not cover. Every other palette passes 4.5:1 on every chip.
+
+Two accessibility modes sit beside the palettes:
+
+- `CLAUDE_STATUSLINE_CONTRAST=high` draws pure black or white text and raises the floor to 7:1.
+- `CLAUDE_STATUSLINE_RAMP=cvd` draws a healthy gauge's icon in blue, the warn band in yellow
+  and the critical band in red, so a person who cannot separate red from green is not asked to.
+
+The [composer page](#arranging-the-bar-yourself) has a theme, an icon tier and a separator
+control and prints the variables for the choice.
+
+![The bar, drawn from the real renderer](docs/images/bar.png)
+
+The picture above and the animation `docs/images/bar.gif` (the spinner turning, then a branch
+switch marked) come from `node scripts/generate-images.js`, which paints the renderer's own
+output with Python and Pillow and needs no browser.
 
 Each colour means one thing. `doctor --explain` ends with the legend.
 
@@ -1122,7 +1146,7 @@ can also carry its own settings in a file, which is the next section.
 
 | Variable | What it does |
 |---|---|
-| `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato`, `latte`, `nord` or `gruvbox`. An unknown name draws `mocha`, and `doctor` says so on its `flavor:` line. With no flavor set anywhere, a terminal that reports a light background through `COLORFGBG` (7 or 15) gets `latte`, and `doctor` says the choice came from the terminal |
+| `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato`, `latte`, `nord`, `gruvbox`, `tokyonight`, `rosepine`, `dracula`, `solarized`, `onedark` or `terminal` (the terminal's own 16 colours). An unknown name draws `mocha`, and `doctor` says so on its `flavor:` line. With no flavor set anywhere, a terminal that reports a light background through `COLORFGBG` (7 or 15) gets `latte`, and `doctor` says the choice came from the terminal |
 | `COLORTERM` | `truecolor` or `24bit` draws 24-bit colour. Any other value, or none in Apple Terminal, draws the nearest of the 256 colours. An unset value elsewhere keeps 24-bit, since Windows Terminal and some SSH setups draw it and do not set the variable |
 | `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_ICONS` | `nerd` (default), `emoji` or `plain`. The emoji tier draws pictures and takes the plain separator unless one is named |
@@ -1750,11 +1774,11 @@ Font glyphs are baked in as extracted outlines from
 `src/preview/glyphs.json`, which is why the SVGs render correctly for people
 with no Nerd Font installed, GitHub's README renderer included.
 
-The PNG copies under `docs/images/` are for Medium, which won't render SVG.
-They come from `scripts/generate-article-images.js` and are generated on
-demand: rasterising depends on the installed Chrome and the host's fonts, so
-unlike the SVGs they are not byte-reproducible and are not checked for
-staleness.
+`docs/images/` holds the two raster images `scripts/generate-images.js` draws, a PNG and an
+animated GIF of the real bar. They depend on the font on the machine that drew them, so unlike
+the SVGs they are not byte-reproducible and are not checked for staleness.
+`scripts/generate-article-images.js` turns the SVGs into PNGs for Medium, which won't render
+SVG, and writes them to `docs/article-images/` on demand; they are not committed.
 
 One more generated page lives beside its spec rather than in `docs/`:
 

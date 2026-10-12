@@ -114,17 +114,18 @@ await test("the tier is read from an id, a display name or an object alike", () 
 
 await test("colour is the projection of the tier, so each tier gets its own", () => {
   const colour = (m, e) => taskTier({ model: m, effort: e }).colour;
-  assert.equal(colour("claude-opus-5", "xhigh"), "red");
-  assert.equal(colour("claude-opus-5", "high"), "peach");
-  assert.equal(colour("claude-sonnet-5", "high"), "yellow");
-  assert.equal(colour("claude-sonnet-5", "medium"), "green");
+  // By family, whatever the effort (specs/049-rows-themes-docs).
+  assert.equal(colour("claude-opus-5", "xhigh"), "mauve");
+  assert.equal(colour("claude-opus-5", "high"), "mauve");
+  assert.equal(colour("claude-sonnet-5", "high"), "lavender");
+  assert.equal(colour("claude-sonnet-5", "medium"), "lavender");
   assert.equal(colour("claude-haiku-4-5", "low"), "teal");
 });
 
 await test("the name itself carries the tier colour, so a trimmed row still reads", () => {
   const row = renderTaskRow(task({ model: "claude-opus-5", effort: "xhigh" }), { columns: 120, now: NOW });
-  // Catppuccin mocha red, the tier colour, applied to the first segment.
-  assert.match(row.content, /^\x1b\[38;2;243;139;168m/);
+  // Catppuccin mocha mauve, Opus's colour, applied to the first segment.
+  assert.match(row.content, /^\x1b\[38;2;203;166;247m/);
 });
 
 await test("a task whose model has not resolved gets no tier rather than a guessed one", () => {
@@ -215,10 +216,10 @@ await test("the tier leads the row and the skills come before the brief", async 
     });
     const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
     assert.ok(
-      row.indexOf("opus") < row.indexOf("explore") &&
-        row.indexOf("explore") < row.indexOf("humanizer") &&
-        row.indexOf("humanizer") < row.indexOf("Locating money.ts"),
-      `expected tier, name, skills, brief in that order: ${row}`
+      row.indexOf("Locating money.ts") < row.indexOf("opus") &&
+        row.indexOf("opus") < row.indexOf("explore") &&
+        row.indexOf("explore") < row.indexOf("humanizer"),
+      `expected brief, tier, name, skills in that order: ${row}`
     );
   });
 });
@@ -420,7 +421,7 @@ await test("a sparse column keeps its room once the session has shown it", async
         input: JSON.stringify({ session_id: "held", columns: 200, tasks: [task("a", "running"), task("b", status)] }),
       });
       const row = stripAnsi(JSON.parse(out.split("\n")[0]).content);
-      return row.indexOf("Brief for a");
+      return row.indexOf("Step for a");
     };
 
     const quiet = await at("running");
