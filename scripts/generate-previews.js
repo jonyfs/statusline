@@ -107,6 +107,33 @@ function main() {
     written.push(file);
   }
 
+  // The emoji tier (specs/043-emoji-tier): the same bar as flavor-mocha with
+  // `CLAUDE_STATUSLINE_ICONS=emoji`, so the two can be read side by side.
+  const priorIcons = process.env.CLAUDE_STATUSLINE_ICONS;
+  process.env.CLAUDE_STATUSLINE_ICONS = "emoji";
+  try {
+    const emojiAnsi = withFrozenClock(() =>
+      renderPayload(FLAVOR_SCENARIO.payload, {
+        sources: FLAVOR_SCENARIO.sources,
+        trackChanges: false,
+        layout: NO_ARRANGEMENT,
+        maxWidth: PREVIEW_WIDTH,
+        maxHeight: PREVIEW_HEIGHT,
+      })
+    );
+    writeFileSync(
+      path.join(OUT_DIR, "emoji-tier.svg"),
+      ansiToSvg(emojiAnsi, {
+        title: "CLAUDE_STATUSLINE_ICONS=emoji, no Nerd Font required",
+        background: PALETTES.mocha.base,
+      })
+    );
+    written.push("emoji-tier.svg");
+  } finally {
+    if (priorIcons === undefined) delete process.env.CLAUDE_STATUSLINE_ICONS;
+    else process.env.CLAUDE_STATUSLINE_ICONS = priorIcons;
+  }
+
   const asciiAnsi = withFrozenClock(() =>
     renderPayload(FLAVOR_SCENARIO.payload, {
       asciiArrows: true,

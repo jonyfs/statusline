@@ -67,9 +67,12 @@ const BANDS = [
  * against the ten to sixteen a bar costs. The safe band gets nothing, since
  * "nothing is wrong" needs no symbol.
  */
-export function bandMark(pct) {
+export function bandMark(pct, tier = "nerd") {
   const band = bandFor(pct);
   if (!band || band.name === "ok") return "";
+  // The emoji tier marks a band with a coloured circle, which carries the
+  // level without colour in the palette because it is a picture.
+  if (tier === "emoji") return band.name === "warn" ? "\u{1F7E1}" : "\u{1F534}";
   // Both marks are East Asian Narrow. They were `U+25B4` and `U+25B2` until
   // 2026-09-07, and those are Narrow and Ambiguous respectively: crossing 85%
   // widened the mark by a column on a terminal that draws Ambiguous wide, and
