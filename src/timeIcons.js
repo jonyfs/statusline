@@ -16,6 +16,7 @@
 
 // Lowercase: the words the bar writes itself share one casing (specs/044).
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
 /**
  * How the reset moment reads to a human: the weekday when it lands on a
@@ -42,14 +43,16 @@ export function resetMomentLabel(resetsAtSeconds, now = new Date()) {
     d.getMonth() === tomorrow.getMonth() &&
     d.getDate() === tomorrow.getDate();
 
-  if (isTomorrow) return `tomorrow ${hhmm}`;
+  if (isTomorrow) return `tmrw ${hhmm}`;
 
   // A weekday name only identifies a day inside the coming week. Seven days
   // out it is today's own name, which reads as today and makes a reset a
   // week away look imminent. Past six days the date says it instead.
   const daysAhead = Math.floor((d - now) / (24 * 60 * 60 * 1000));
   if (daysAhead >= 6) {
-    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")} ${hhmm}`;
+    // The month is spelled, because `05/09` is 5 September to one reader and
+    // 9 May to another (specs/047-time-reset).
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
   }
   return `${WEEKDAYS[d.getDay()]} ${hhmm}`;
 }

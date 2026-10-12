@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import { realpathSync } from "node:fs";
-import { PALETTES, renderRow, displayWidth, separatorStyle, STRONG, QUIET, MARK_OFF } from "./theme.js";
+import { PALETTES, renderRow, displayWidth, separatorStyle, STRONG, QUIET, MARK_OFF, GOOD } from "./theme.js";
 import {
   getDirLabel,
   getDirUrl,
@@ -142,7 +142,7 @@ const NF_PR = "\u{F407}";        // nf-oct-git_pull_request
 // draws a fixed date on that glyph (Apple renders "17"), so beside a real
 // expiry day it reads as a date that never changes and contradicts the
 // text next to it. Unicode has no per-date emoji, so the day is text.
-const NF_CALENDAR = "\u{F455}";  // nf-oct-calendar
+const NF_CALENDAR = "\u{F0A33}";  // a calendar with a week bar: the 7-day window (specs/047)
 
 // GitHub's own diff and sync markers, so the working-tree state reads in
 // the vocabulary anyone who uses GitHub already knows. Each glyph was
@@ -164,7 +164,7 @@ const NF_HOME = "\u{F02DC}";     // nf-md-home: the working directory when it is
 const NF_REPO = "\u{F401}";      // nf-oct-repo: the repository
 const NF_WORKTREE = "\u{E5FB}";  // nf-custom-folder_git_branch: a linked worktree
 const NF_REMOVED = "\u{F458}";   // nf-oct-diff_removed: boxed minus
-const NF_RESET = "\u{F06B0}";    // a clock with a circular arrow: when the window comes back
+const NF_RESET = "\u{F04E6}";    // two circular arrows: the window comes back
 const NF_PR_DRAFT = "\u{F4DD}";  // nf-oct-git_pull_request_draft
 const NF_PR_MERGED = "\u{F419}"; // nf-oct-git_merge
 const NF_PR_CLOSED = "\u{F4DC}"; // nf-oct-git_pull_request_closed
@@ -217,7 +217,9 @@ const NF_WALLET = "\u{F0584}";  // nf-md-wallet
 // (Principle X). Rendered before adoption (specs/025-prompt-cache-chip/
 // glyph-evidence.png): F09A2, listed as a database refresh, draws a speaker
 // with a Bluetooth mark, and F06B0 draws a clock with an arrow.
-const NF_THERMOMETER = "\u{F050F}"; // nf-md-thermometer: warm
+const NF_HOURGLASS_FULL = "\u{F078C}";  // a warm cache with most of its life left
+const NF_HOURGLASS_HALF = "\u{F051F}";  // about half of it
+const NF_HOURGLASS_EMPTY = "\u{F06AD}"; // the last third
 const NF_SNOWFLAKE = "\u{F0717}";   // nf-md-snowflake: cold
 // The statusline's own updates, one icon per direction (specs/026-update-
 // check/glyph-evidence.png). F0CE0, listed as an up arrow in a circle, points
@@ -305,7 +307,9 @@ export const GLYPHS = {
     burn: NF_BURN,
     rtk: NF_RUST,
     spend: NF_WALLET,
-    cacheWarm: NF_THERMOMETER,
+    cacheWarm: NF_HOURGLASS_FULL,
+    cacheWarmHalf: NF_HOURGLASS_HALF,
+    cacheWarmLow: NF_HOURGLASS_EMPTY,
     cacheCold: NF_SNOWFLAKE,
     updateReady: NF_DOWNLOAD,
     updateDone: NF_ARROW_UP_BOLD,
@@ -340,7 +344,7 @@ export const GLYPHS = {
     worktree: "\u{1F333}",       // 🌳
     removed: "\u2796",           // ➖
     untracked: "\u2754",         // ❔
-    reset: "\u{1F501}",          // 🔁
+    reset: "\u{1F504}",          // 🔄
     trackEmptyStart: "\u2B1C",    // ⬜ the track is drawn from the plain set in this tier
     trackEmptyMid: "\u2B1C",
     trackEmptyEnd: "\u2B1C",
@@ -375,7 +379,9 @@ export const GLYPHS = {
     burn: "\u{1F525}",           // 🔥
     rtk: "\u{1FA99}",            // 🪙 savings
     spend: "\u{1F4B0}",          // 💰
-    cacheWarm: "\u{1F375}",      // 🍵
+    cacheWarm: "\u23F3",         // ⏳
+    cacheWarmHalf: "\u23F3",
+    cacheWarmLow: "\u231B",      // ⌛
     cacheCold: "\u{1F9CA}",      // 🧊
     updateReady: "\u{1F195}",     // 🆕
     updateDone: "\u{1F680}",      // 🚀
@@ -432,7 +438,7 @@ export const GLYPHS = {
     worktree: "\u2387",  // ⎇ the branch sign, as for a branch
     removed: "-",
     untracked: "?",
-    reset: "\u21BA",     // ↺
+    reset: "\u21BB",     // ↻
     trackEmptyStart: ".",
     trackEmptyMid: ".",
     trackEmptyEnd: ".",
@@ -476,7 +482,9 @@ export const GLYPHS = {
     // Both East Asian Narrow. `U+2744` has an emoji form, but its default
     // presentation is text and the bar never sends the selector that asks
     // for the other one.
-    cacheWarm: "\u21BB",  // ↻ still reusable
+    cacheWarm: "\u29D7",  // ⧗ an hourglass: still reusable
+    cacheWarmHalf: "\u29D7",
+    cacheWarmLow: "\u29D7",
     cacheCold: "\u2744",  // ❄
     // Both East Asian Narrow, and not the doubled arrows push and pull use.
     updateReady: "\u2913", // ⤓
@@ -1049,6 +1057,11 @@ export function renderReadings(
   // and colour; the pool and the width measure see none of them.
   const strong = (s) => `${STRONG}${s}${MARK_OFF}`;
   const quiet = (s) => `${QUIET}${s}${MARK_OFF}`;
+  // A reset under ten minutes away on a window that is nearly gone is good
+  // news, and is the one countdown drawn in the healthy colour.
+  const good = (s) => `${GOOD}${s}${MARK_OFF}`;
+  const minutesToReset = (resetsAtSeconds) =>
+    typeof resetsAtSeconds === "number" ? (resetsAtSeconds * 1000 - now) / 60_000 : null;
   const figure = (n) => strong(`${pad3(n)}%`);
   // A gauge's own pieces (specs/046-gauges). The track needs a Nerd Font, so
   // the other two tiers draw it from the plain set. The band is a mark before
@@ -1084,12 +1097,14 @@ export function renderReadings(
    * and the pace, then (when there is one) its reset. The width guard drops
    * the track first, then the reset; the figure is last to go.
    */
-  const gaugeChipText = ({ icon, label, pct, band, pace, reset = null, full = "" }) => {
+  const gaugeChipText = ({ icon, label, pct, band, pace, reset = null, full = "", resetsAt = null }) => {
     const head = ` ${icon} ${label ? `${label} ` : ""}`;
     const fig = `${gaugeFigure(pct, band)}${full}${paceNote(pace, pct)}`;
     const withTrack = `${head}${track(pct, trackSet)} ${fig}`;
     const noTrack = `${head}${fig}`;
-    const tail = reset ? ` ${quiet(`${g.reset} ${reset}`)}` : "";
+    const left = minutesToReset(resetsAt);
+    const relief = band === "critical" && left !== null && left > 0 && left < 10;
+    const tail = reset ? ` ${(relief ? good : quiet)(`${g.reset} ${reset}`)}` : "";
     const variants = reset ? [`${noTrack}${tail} `, `${noTrack} `] : [`${noTrack} `];
     return { text: `${withTrack}${tail} `, variants };
   };
@@ -1582,7 +1597,7 @@ export function renderReadings(
       const { band, pace } = paceBand(fiveHourPct, elapsedPct(fiveHourResetsAt, 300));
       return {
         ...gaugeChip(fiveHourPct, band),
-        ...gaugeChipText({ icon: g.timer, label: "5h", pct: fiveHourPct, band, pace, reset: resets, full: fullMark(fiveHourPct) }),
+        ...gaugeChipText({ icon: g.timer, label: "5h", pct: fiveHourPct, band, pace, reset: resets, full: fullMark(fiveHourPct), resetsAt: fiveHourResetsAt }),
       };
     },
     sevenDay: () => {
@@ -1597,7 +1612,7 @@ export function renderReadings(
       const { band, pace } = paceBand(sevenDayPct, elapsedPct(sevenDayResetsAt, 10080));
       return {
         ...gaugeChip(sevenDayPct, band),
-        ...gaugeChipText({ icon: g.calendar, label: "7d", pct: sevenDayPct, band, pace, reset: moment, full: fullMark(sevenDayPct) }),
+        ...gaugeChipText({ icon: g.calendar, label: "7d", pct: sevenDayPct, band, pace, reset: moment, full: fullMark(sevenDayPct), resetsAt: sevenDayResetsAt }),
       };
     },
     // The allowance a gateway reports once an administrator sets a spend
@@ -1619,7 +1634,7 @@ export function renderReadings(
       const { band, pace } = paceBand(pct, elapsedPct(at, w.window_minutes));
       return {
         ...gaugeChip(pct, band),
-        ...gaugeChipText({ icon: g.calendar, label: w.label, pct, band, pace, reset: moment, full: fullMark(pct) }),
+        ...gaugeChipText({ icon: g.calendar, label: w.label, pct, band, pace, reset: moment, full: fullMark(pct), resetsAt: at }),
       };
     },
     // Codex's credit balance, drawn as Codex writes it.
@@ -1634,7 +1649,7 @@ export function renderReadings(
       const band = bandFor(spendLimitPct)?.name ?? null;
       return {
         ...gaugeChip(spendLimitPct, band),
-        ...gaugeChipText({ icon: g.spend, label: "spend", pct: spendLimitPct, band, reset: moment }),
+        ...gaugeChipText({ icon: g.spend, label: "spend", pct: spendLimitPct, band, reset: moment, resetsAt: spendLimitResetsAt }),
       };
     },
     // The prompt cache, drawn only when its state changes what you do next:
@@ -1646,7 +1661,17 @@ export function renderReadings(
       if (!promptCache?.observed) return null;
       if (promptCache.state === "warm") {
         if (!promptCache.closing) return null;
-        return { color: ROLE.neutral, icon: ROLE.modified, text: ` ${g.cacheWarm} cache warm \u00b7 ${cacheMinutesLeft(promptCache.secondsLeft)} `, variants: [` ${g.cacheWarm} ${cacheMinutesLeft(promptCache.secondsLeft)} `] };
+        // An hourglass that empties by thirds of the cache's own TTL.
+        const ttlS = promptCache.ttl === "1h" ? 3600 : 300;
+        const left = promptCache.secondsLeft / ttlS;
+        const glyph = left > 2 / 3 ? g.cacheWarm : left > 1 / 3 ? g.cacheWarmHalf : g.cacheWarmLow;
+        const minutes = cacheMinutesLeft(promptCache.secondsLeft);
+        return {
+          color: ROLE.neutral,
+          icon: ROLE.modified,
+          text: ` ${glyph} cache warm \u00b7 ${minutes} `,
+          variants: [` ${glyph} ${minutes} `],
+        };
       }
       const tokens = promptCache.recacheTokens !== null ? abbreviate(promptCache.recacheTokens) : null;
       const chip = (...parts) => ` ${g.cacheCold} cache cold${parts.filter(Boolean).map((t) => ` \u00b7 ${t}`).join("")} `;
@@ -1713,7 +1738,8 @@ export function renderReadings(
     allowAll: () => (shows("allowAll") && readings.allowAll?.value ? { color: ROLE.attention, text: ` ${g.allowAll} allow all ` } : null),
     duration: () => {
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
-      const label = formatDuration(c?.durationMs);
+      // Not before half an hour: a session two minutes old is not news.
+      const label = (c?.durationMs ?? 0) >= 30 * 60_000 ? formatDuration(c.durationMs) : null;
       return label ? { color: ROLE.neutral, text: ` ${g.duration} ${strong(label)} ` } : null;
     },
   };

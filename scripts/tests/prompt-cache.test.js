@@ -110,7 +110,7 @@ await test("a warm cache with time to spare draws nothing", () => {
 });
 
 await test("a warm cache inside its closing window counts whole minutes down", () => {
-  assert.match(render(payloadWith(warm(110))), re`${G.cacheWarm} cache warm · 1m`);
+  assert.match(render(payloadWith(warm(110))), re`${G.cacheWarmHalf} cache warm · 1m`);
   assert.match(render(payloadWith(warm(40))), /cache warm · <1m/);
   assert.match(render(payloadWith(warm(540, "1h"))), /cache warm · 9m/);
 });
@@ -132,9 +132,9 @@ await test("no block, or caching not observed, leaves line 3 exactly as it was",
 });
 
 await test("plain mode draws both states with their substitutes", () => {
-  assert.equal(PLAIN.cacheWarm, "↻");
+  assert.equal(PLAIN.cacheWarm, "⧗");
   assert.equal(PLAIN.cacheCold, "❄");
-  assert.match(render(payloadWith(warm(100)), { asciiArrows: true }), /↻ cache warm · 1m/);
+  assert.match(render(payloadWith(warm(100)), { asciiArrows: true }), /⧗ cache warm · 1m/);
   assert.match(render(payloadWith(cold()), { asciiArrows: true }), /❄ cache cold/);
 });
 

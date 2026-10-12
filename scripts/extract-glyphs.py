@@ -34,7 +34,6 @@ WANTED = {
     "E0BC": 0xE0BC,  # powerline slant, the joint of the slant style
     "F418": 0xF418,  # nf-oct-git_branch
     "F407": 0xF407,  # nf-oct-git_pull_request
-    "F455": 0xF455,  # nf-oct-calendar (blank grid, no baked-in date)
     # GitHub's own diff and sync vocabulary. Each was rendered and checked
     # by eye before being adopted: several plausibly-named codepoints draw
     # something else entirely (F433 "repo_push" is a DOWN arrow, F45D
@@ -61,7 +60,10 @@ WANTED = {
     "F4A4": 0xF4A4,    # review: approved
     "F442": 0xF442,    # review: comments
     "F441": 0xF441,    # review: requested
-    "F06B0": 0xF06B0,  # a reset: when a window comes back
+    "F04E6": 0xF04E6,  # a reset: the window comes back (specs/047)
+    "F078C": 0xF078C,  # a warm cache with most of its life left
+    "F06AD": 0xF06AD,  # a warm cache in its last third
+    "F0A33": 0xF0A33,  # a calendar with a week bar: the 7-day window
     "EE00": 0xEE00,    # gauge track: empty, start
     "EE01": 0xEE01,    # gauge track: empty, middle
     "EE02": 0xEE02,    # gauge track: empty, end
@@ -92,7 +94,6 @@ WANTED = {
     "F0238": 0xF0238,  # nf-md-fire: how fast the window is being spent
     "F0584": 0xF0584,  # nf-md-wallet: the spend limit. F0114 "cash" draws a
                        # banknote, and F00F6, listed as a cart, a calendar
-    "F050F": 0xF050F,  # nf-md-thermometer: a warm prompt cache
     "F0717": 0xF0717,  # nf-md-snowflake: a cold one. F09A2, listed as a
                        # database refresh, draws a speaker
     "E62B": 0xE62B,    # nf-custom-vim: the vim mode

@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Every reset says what it is
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items H71, H72, H75 and H77 to H80, with section 5.7 of the
 review (time). Items H73, H74 and H76 propose localised words and are rejected by Principle VI,
@@ -55,8 +55,8 @@ and assert the sync icon precedes the moment in each.
    tier) precedes the moment, and no `·` does.
 2. **Given** less than 24 hours to the reset, **When** drawn, **Then** it is relative: `22m`,
    `2h09`, with no `0h` and no trailing `m` after an hour.
-3. **Given** a reset today, **When** drawn, **Then** it is the clock time if it is 24 hours or
-   more away, and relative otherwise.
+3. **Given** a reset later today, **When** drawn, **Then** it is relative, since it is under
+   24 hours away.
 4. **Given** tomorrow, **When** drawn, **Then** it is `tmrw 09:00`.
 5. **Given** two to five days out, **When** drawn, **Then** it is the weekday and time, in
    English: `thu 18:00`.
