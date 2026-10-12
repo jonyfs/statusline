@@ -76,7 +76,7 @@ await test("a free-plan rollout draws its 30-day window, and no 5h or 7d chip", 
 
 await test("a 30-day reset more than a day out names the date", () => {
   const out = draw(payloadWith({ primary: window(43200, 8, 20 * DAY), secondary: null }));
-  assert.match(out, /30d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?8%.*\s\S+\s26\/10 12:00/);
+  assert.match(out, /30d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?8%.*\s\S+\soct 26/);
 });
 
 await test("a reset inside a day counts down", () => {

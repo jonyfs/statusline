@@ -317,6 +317,8 @@ function quantised(palette) {
 export const STRONG = "\u0001";
 export const QUIET = "\u0002";
 export const MARK_OFF = "\u0003";
+/** Good news: the text after it is drawn in the healthy colour, readable on the chip. */
+export const GOOD = "\u0004";
 
 /**
  * The colour for a chip marked `quiet`, text that is read second: the palette's `text` or
@@ -356,14 +358,16 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
     // Under `NO_COLOR` the markers are removed and nothing replaces them: the
     // bar's contract there is plain text with no escape at all, and a bold on
     // every figure would put one on every chip.
-    if (/[\u0001-\u0003]/.test(label)) {
+    if (/[\u0001-\u0004]/.test(label)) {
       if (!colourEnabled()) {
-        label = label.replace(/[\u0001-\u0003]/g, "");
+        label = label.replace(/[\u0001-\u0004]/g, "");
       } else {
         const quiet = fg(quietText(palette, seg.color));
+        const good = fg(readableOn(resolveColour(palette, "green"), segBg));
         label = label
           .replace(/\u0001/g, "\x1b[1m")
           .replace(/\u0002/g, quiet)
+          .replace(/\u0004/g, good)
           .replace(/\u0003/g, `\x1b[22m${fg(segFg)}`);
       }
     }
@@ -505,7 +509,7 @@ function isWide(cp) {
 export function displayWidth(text) {
   const plain = String(text)
     .replace(/\x1b\[[0-9;:]*m/g, "")
-    .replace(/[\u0001-\u0003]/g, "")
+    .replace(/[\u0001-\u0004]/g, "")
     .replace(/\x1b\]8;;[^\x07]*\x07/g, "");
 
   const chars = [...plain];

@@ -96,7 +96,7 @@ await test("a reset a week out reads as a date, not as today's weekday", () => {
   const sameWeekday = secondsAt("2026-09-03T13:00:00Z");
   const label = resetMomentLabel(sameWeekday, now);
   assert.doesNotMatch(label, /thu/);
-  assert.match(label, /^\d{2}\/\d{2} \d{2}:\d{2}$/);
+  assert.match(label, /^sep \d{1,2}$/, "the month is spelled and the time is gone");
 
   // Inside the week the weekday still says it best.
   assert.match(resetMomentLabel(secondsAt("2026-08-29T13:00:00Z"), now), /^sat \d{2}:\d{2}$/);
