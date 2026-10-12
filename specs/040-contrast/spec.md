@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Readable chips in every palette
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items A01 to A10. Constitution v7.10.0 (amendment K1)
 already allows choosing the text colour by contrast. The review file
@@ -245,6 +245,9 @@ than 3 degrees and lightness rises.
 - **A chip with no link under `NO_COLOR`**: only the `▏` marks it.
 - **The bar is piped**: no terminal is attached, `COLORTERM` and `COLORFGBG` come from the
   inherited environment, and the output is deterministic for a given environment.
+- **`NO_COLOR` with `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE=1`**: the `▏` replaces the chip's leading
+  space and measures two columns there, so a chip may be one column wider than the layout
+  counted. The bar is still drawn, and the redraw trims as it does for any overflow.
 - **The `terminal` palette** (amendment K11): not part of this feature.
 
 ## Requirements *(mandatory)*

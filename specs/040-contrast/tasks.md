@@ -24,26 +24,26 @@ Every code task is test first: the test is written and seen failing, then the co
 
 ## Phase 3: terminal profile (US3, US4)
 
-- [ ] T007 Test: `COLORFGBG` light, dark, malformed and unset with and without a flavor;
+- [x] T007 Test: `COLORFGBG` light, dark, malformed and unset with and without a flavor;
   `doctor` names the source. RED.
-- [ ] T008 `src/config.js`, `src/doctor.js`: flavor from the terminal background. GREEN.
-- [ ] T009 Test: `COLORTERM` truecolor, 24bit, unset, other; no `38;2` or `48;2` at 256 depth;
+- [x] T008 `src/config.js`, `src/doctor.js`: flavor from the terminal background. GREEN.
+- [x] T009 Test: `COLORTERM` truecolor, 24bit, unset, other; no `38;2` or `48;2` at 256 depth;
   every pair at 4.5:1 on the quantised values; `NO_COLOR` wins. RED.
-- [ ] T010 `src/theme.js`: depth, nearest-index palette, `fgSeq`/`bgSeq`. `src/taskRows.js`,
+- [x] T010 `src/theme.js`: depth, nearest-index palette, `fgSeq`/`bgSeq`. `src/taskRows.js`,
   `src/gateRows.js`: use them. GREEN.
 
 ## Phase 4: details (US5, US6, US7)
 
-- [ ] T011 Test: dotted underline on a supporting terminal and not on an unknown one, `NO_COLOR`
+- [x] T011 Test: dotted underline on a supporting terminal and not on an unknown one, `NO_COLOR`
   keeps it; `displayWidth` ignores `\x1b[4:4m`. RED, then `src/theme.js`. GREEN.
-- [ ] T012 Test: `NO_COLOR` chips start with `▏`, width one column, two with
+- [x] T012 Test: `NO_COLOR` chips start with `▏`, width one column, two with
   `CLAUDE_STATUSLINE_AMBIGUOUS_WIDE=1`. RED, then `src/theme.js`. GREEN.
-- [ ] T013 Test: OKLCH lighten keeps hue within 3 degrees, raises lightness, and the 4.5:1 rule
+- [x] T013 Test: OKLCH lighten keeps hue within 3 degrees, raises lightness, and the 4.5:1 rule
   holds on the result. RED, then `lighten` via `src/contrast.js`. GREEN.
 
 ## Phase 5: close
 
-- [ ] T014 `npm test`, `node scripts/bench.js` (p95 at or under 25 ms), `npm run previews`;
+- [x] T014 `npm test`, `node scripts/bench.js` (p95 at or under 25 ms), `npm run previews`;
   each changed preview explained in the commit.
-- [ ] T015 README: flavor from the terminal, `COLORTERM`, `COLORFGBG`, the `NO_COLOR` edge.
-- [ ] T016 Spec `status: done`, version bump, PR, merge.
+- [x] T015 README: flavor from the terminal, `COLORTERM`, `COLORFGBG`, the `NO_COLOR` edge.
+- [x] T016 Spec `status: done`, version bump, PR, merge.

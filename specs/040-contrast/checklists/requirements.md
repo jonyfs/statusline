@@ -30,3 +30,4 @@
 
 - U+258F is East Asian Ambiguous and is not in the Ambiguous set yet; FR-013 adds it.
 - Latte values under Evidence were computed from the WCAG formula and match the review.
+- Verified by `scripts/tests/contrast.test.js`: ratios, Latte table, every preview scenario in six palettes at both depths, neutral neighbours, `COLORFGBG`, underline, `NO_COLOR` edge.
