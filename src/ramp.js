@@ -15,6 +15,8 @@
  * limits too, as E5 asked.
  */
 
+import { ROLE } from "./colourRoles.js";
+
 const BANDS = [
   {
     name: "ok",
@@ -38,7 +40,7 @@ const BANDS = [
   {
     name: "warn",
     upTo: 85,
-    colour: "yellow",
+    colour: "peach",
     /** A lighter fill, visibly different from solid without colour. */
     filled: "\u2593",
     empty: "\u2500",
@@ -81,6 +83,23 @@ export function bandMark(pct) {
 export function bandFor(pct) {
   if (typeof pct !== "number" || !Number.isFinite(pct)) return null;
   return BANDS.find((b) => pct < b.upTo) ?? BANDS[BANDS.length - 1];
+}
+
+/**
+ * The fill, icon and band of a gauge chip (specs/041-colour-budget).
+ *
+ * A level in the ok band is a neutral chip with a green icon: nothing is
+ * wrong, so nothing is loud. The warn band is the attention colour and the
+ * critical band is red. An unknown level is neutral with no icon colour, since
+ * painting it green would be an answer the payload did not give. `pct` and
+ * `band` travel with the chip so a later pass can leave one red among several.
+ */
+export function gaugeChip(pct) {
+  const band = bandFor(pct);
+  if (!band) return { color: ROLE.neutral };
+  if (band.name === "ok") return { color: ROLE.neutral, icon: ROLE.healthy, pct, band: "ok" };
+  if (band.name === "warn") return { color: ROLE.attention, pct, band: "warn" };
+  return { color: ROLE.critical, pct, band: "critical" };
 }
 
 /**

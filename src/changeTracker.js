@@ -1,7 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { lighten } from "./theme.js";
 import { pushSample } from "./samples.js";
 
 /**
@@ -174,17 +173,16 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
   saveState(sessionId, { snapshot, changedAt, frame, samples: nextSamples });
 
   return {
-    isChanged: (key) => Object.hasOwn(changedAt, key),
+    isChanged: (key) => HIGHLIGHTED.has(key) && Object.hasOwn(changedAt, key),
     /**
      * The colour a segment renders in: its own, or a lighter version of it
      * while the change is still recent. A segment outside the highlighted
      * set always gets its own colour back.
      */
-    colourFor: (key, base, palette) => {
-      if (!HIGHLIGHTED.has(key) || !Object.hasOwn(changedAt, key)) return base;
-      const hex = palette?.[base];
-      return hex ? lighten(hex) : base;
-    },
+    // A changed segment is marked bold and underlined by the renderer
+    // (`emphasis`), not recoloured: a colour shift borrowed another role's
+    // meaning and disappeared under NO_COLOR (specs/041-colour-budget).
+    colourFor: (_key, base) => base,
     /** Kept so a caller can still ask, and always answers with the icon. */
     iconFor: (_key, staticIcon) => staticIcon,
     /** The sample ring, for whatever wants to read a direction out of it. */

@@ -111,6 +111,30 @@ function best(candidates, bg) {
   return { fg: pick, ratio: top };
 }
 
+const readableMemo = new Map();
+
+/**
+ * A colour moved in OKLCH lightness until it reaches 4.5:1 on a background,
+ * away from the background's own lightness, hue and chroma kept. A colour
+ * that already reads is returned as it is.
+ */
+export function readableOn(hex, bg) {
+  const key = `${hex}|${bg}`;
+  const hit = readableMemo.get(key);
+  if (hit) return hit;
+  let out = hex;
+  if (contrastRatio(hex, bg) < MIN_RATIO) {
+    const { L, C, h } = toOklch(hex);
+    const direction = toOklch(bg).L > 0.6 ? -1 : 1;
+    for (let level = L + direction * STEP; level >= 0 && level <= 1; level += direction * STEP) {
+      out = fromOklch({ L: level, C, h });
+      if (contrastRatio(out, bg) >= MIN_RATIO) break;
+    }
+  }
+  readableMemo.set(key, out);
+  return out;
+}
+
 const memo = new WeakMap();
 
 /**

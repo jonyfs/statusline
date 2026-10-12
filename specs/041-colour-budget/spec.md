@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: One meaning per colour
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items B11 to B20. Constitution v8.0.0 (amendments K2 and
 K8) holds the colour budget this spec applies. The review file
