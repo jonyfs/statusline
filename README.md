@@ -780,7 +780,7 @@ changes the shape of the whole bar:
 Between two chips on one background (the directory and the repository, the model and its
 effort, any healthy gauge) a solid arrow would be a shape cut out of one colour, so the bar
 draws the thin arrow there in the chip's text colour. Line 3 is read in three groups, the
-model and its effort, the usage gauges, and the money and savings, with one blank column
+model and its effort, the usage gauges (with the cache and the credit balance), and the savings, with three blank columns
 between them. The update notice sits at the right edge of line 1 and is the first thing the
 line drops.
 
@@ -1430,6 +1430,10 @@ so a clean branch in sync with its remote adds nothing at all.
 | `?` | Untracked files git isn't watching yet |
 | boxed plus | Files staged in the index |
 | boxed minus | Files removed, staged or not |
+
+A pull request read from `gh` shows its review decision (approved, changes requested, review
+required) and its comment count beside the comments mark, and keeps its state (open, draft,
+merged, closed) apart, so a merged and approved request draws both.
 | arrow up | Commits you have that the remote doesn't, waiting to be pushed |
 | arrow down | Commits the remote has that you don't, waiting to be pulled |
 | alert | Paths with merge conflicts, counted apart from ordinary changes |

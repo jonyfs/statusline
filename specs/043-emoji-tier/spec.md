@@ -28,7 +28,7 @@ that must hold at three widths, a new preview and a README section.
   server, an SSH session, a browser terminal). The plain tier is the only thing it has.
 - After feature 039 every emoji this tier draws measures two columns. Before it, 🟢 🟡 🟣 🟩
   ➕ ➖ ❔ 🆕 measured one and would have shifted every chip after them.
-- Emoji that look like emoji and are not (`⚡ ☕ ⏭ ⚠️ 🌡️ ⌨️ 🗓️ ⏱️ 📅 📆`) draw as text on some
+- Emoji that look like emoji and are not (`⚡ ☕ ⏭ ⚠️ 🌡️ ⌨️ 🗓️ ⏱️ 🛡️ 🏷️ 📅 📆`) draw as text on some
   terminals and as pictures on others. They lack `Emoji_Presentation=Yes`, and the constitution
   now rejects them by name.
 - The repository already holds a committed extract of `emoji-data.txt` with every
@@ -80,7 +80,7 @@ table.
 
 1. **Given** the emoji column, **When** the test runs, **Then** every entry is a single
    codepoint with `Emoji_Presentation=Yes` and no variation selector.
-2. **Given** `⚡ ☕ ⏭ ⚠️ 🌡️ ⌨️ 🗓️ ⏱️ 📅 📆`, **When** the test runs, **Then** none is in the
+2. **Given** `⚡ ☕ ⏭ ⚠️ 🌡️ ⌨️ 🗓️ ⏱️ 🛡️ 🏷️ 📅 📆`, **When** the test runs, **Then** none is in the
    column.
 3. **Given** the emoji column, **When** the test runs, **Then** it has exactly the keys of the
    nerd column.

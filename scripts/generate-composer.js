@@ -304,9 +304,9 @@ function composeAnsi(width, glyphMode, arrangement) {
       })
       .filter(Boolean);
     if (!row.length) continue;
-    // The pill style costs two columns a chip, which the fit has to know.
-    const costed = state.separator === "round" && glyphMode === "nerd" ? row.map((s) => ({ ...s, extra: 2 })) : row;
-    rows.push(fitToWidth(costed, width));
+    // The pill drops its inner padding, so it costs what an arrow chip costs
+    // and the page fits as the renderer does (specs/052-review-round-two).
+    rows.push(fitToWidth(row, width));
     lines.push(line);
   }
   if (!rows.length) return { ansi: "", lines: [], resolved };

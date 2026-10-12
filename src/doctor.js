@@ -553,7 +553,8 @@ export function colourStatus(env = process.env) {
         : /-256color$/.test(env.TERM || "") && !env.WT_SESSION
           ? `TERM=${env.TERM} and COLORTERM is not set`
           : "COLORTERM is not set, truecolor is assumed";
-  return { depth, line: `colour: ${depth} (${why}; set COLORTERM=truecolor to force 24-bit)` };
+  const hint = depth === "256" ? "; set COLORTERM=truecolor to force 24-bit" : "";
+  return { depth, line: `colour: ${depth} (${why}${hint})` };
 }
 
 /**

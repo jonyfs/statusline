@@ -401,6 +401,9 @@ function quantised(palette) {
   return q;
 }
 
+/** Blank columns between two groups on line 3; `src/layout.js` counts the same number (GROUP_GAP there). */
+const GROUP_SPACING = 3;
+
 /** Markers a segment builder writes into its text; `renderRow` turns them into weight and colour. */
 export const STRONG = "\u0001";
 export const QUIET = "\u0002";
@@ -503,7 +506,7 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
       const room = width - used - need;
       out += room > 0 ? `${close(prev)}${" ".repeat(room)}${open(chip)}` : `${close(prev)} ${open(chip)}`;
     } else if (chip.group && prev.group && chip.group !== prev.group) {
-      out += `${close(prev)} ${open(chip)}`;
+      out += `${close(prev)}${" ".repeat(GROUP_SPACING)}${open(chip)}`;
     } else if (chip.segBg === prev.segBg) {
       // The same colour on both sides: a solid arrow would be a shape cut out
       // of one colour, invisible. The thin one is drawn in the text colour
@@ -559,6 +562,7 @@ const AMBIGUOUS = new Set([
   0x2589, 0x258a, 0x258b, 0x258c, 0x258d, 0x258e, // ▉ to ▎ the eighths of an agent row's bar
   0x2581, 0x2582, 0x2583, 0x2584, 0x2585, 0x2586, 0x2587, // ▁ to ▇ the sparkline
   0x2014, // — an unknown figure
+  0x251c, 0x2514, // ├ └ the tree prefixes of a nested agent's row
   0x2026, // … ellipsis, where a clipped row or label is cut
   // Not drawn today, and listed anyway. These are Ambiguous per Unicode
   // whether or not this bar uses them, and every one of them was on the bar
