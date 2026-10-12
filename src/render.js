@@ -114,8 +114,8 @@ import { trackChanges, loadSamples } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
-import { resolveLayout } from "./config.js";
-import { bar, gaugeChip, bandMark } from "./ramp.js";
+import { resolveLayout, iconTier } from "./config.js";
+import { bar, gaugeChip, bandMark, bandFor } from "./ramp.js";
 import { ROLE } from "./colourRoles.js";
 import { plainText } from "./text.js";
 import { ratePerHour, projectFull, pushSample } from "./samples.js";
@@ -304,6 +304,67 @@ export const GLYPHS = {
     allowAll: NF_SHIELD_OFF,
     gateRunning: NF_GATE_RUNNING,
     gateWaiting: NF_GATE_WAITING,
+  },
+  /**
+   * The emoji tier, for a terminal that draws pictures and has no Nerd Font.
+   *
+   * Every entry is one codepoint with `Emoji_Presentation=Yes`, so Unicode
+   * draws it as a picture, two columns wide, without a variation selector.
+   * The look-alikes that draw as text on some terminals (a lightning bolt, a
+   * hot beverage, a warning sign, a keyboard) are not here, and a test reads
+   * the committed Unicode data to keep it that way (specs/043-emoji-tier).
+   */
+  emoji: {
+    branch: "\u{1F33F}",         // 🌿
+    commit: "\u{1F4CD}",         // 📍
+    pr: "\u{1F500}",             // 🔀
+    calendar: "\u{1F4CA}",       // 📊 the 7-day window; calendars are text-presentation
+    modified: "\u{1F4DD}",       // 📝
+    added: "\u2795",             // ➕
+    push: "\u{1F53C}",           // 🔼
+    pull: "\u{1F53D}",           // 🔽
+    dir: "\u{1F4C2}",            // 📂
+    home: "\u{1F3E0}",           // 🏠
+    repo: "\u{1F4E6}",           // 📦
+    worktree: "\u{1F333}",       // 🌳
+    removed: "\u2796",           // ➖
+    untracked: "\u2754",         // ❔
+    prDraft: "\u{1F6A7}",        // 🚧
+    prMerged: "\u{1F7E3}",       // 🟣
+    prClosed: "\u{1F6AB}",       // 🚫
+    reviewApproved: "\u2705",    // ✅
+    reviewComments: "\u{1F4AC}", // 💬
+    reviewRequested: "\u{1F440}", // 👀
+    effortLow: "\u{1F3AF}",      // 🎯
+    effortMedium: "\u{1F3AF}",
+    effortHigh: "\u{1F3AF}",
+    from: "\u{1F519}",           // 🔙
+    conflict: "\u{1F4A5}",       // 💥
+    ciPass: "\u2705",            // ✅
+    ciFail: "\u274C",            // ❌
+    ciRunning: "\u{1F504}",      // 🔄
+    todo: "\u{1F4CB}",           // 📋
+    working: "\u{1F528}",        // 🔨
+    idle: "\u{1F4A4}",           // 💤
+    skills: "\u{1F9E9}",         // 🧩
+    model: "\u{1F916}",          // 🤖
+    effort: "\u{1F3AF}",         // 🎯
+    context: "\u{1F9E0}",        // 🧠
+    timer: "\u23F3",             // ⏳ the 5-hour window, time that runs out
+    duration: "\u{1F550}",       // 🕐 time elapsed
+    burn: "\u{1F525}",           // 🔥
+    rtk: "\u{1FA99}",            // 🪙 savings
+    spend: "\u{1F4B0}",          // 💰
+    cacheWarm: "\u{1F375}",      // 🍵
+    cacheCold: "\u{1F9CA}",      // 🧊
+    updateReady: "\u{1F195}",     // 🆕
+    updateDone: "\u{1F680}",      // 🚀
+    vim: "\u{1F524}",            // 🔤
+    fast: "\u{1F407}",           // 🐇
+    premium: "\u{1F48E}",        // 💎
+    allowAll: "\u{1F513}",       // 🔓
+    gateRunning: "\u{1F6A6}",    // 🚦
+    gateWaiting: "\u{1F512}",    // 🔒
   },
   /**
    * The set for a terminal with no Nerd Font.
@@ -938,7 +999,18 @@ export function renderReadings(
   const sampleHistory = sampleOverride ?? readings.samples.value;
 
   const palette = PALETTES[flavor] || PALETTES.mocha;
-  const g = asciiArrows ? GLYPHS.plain : GLYPHS.nerd;
+  const { tier } = iconTier({ asciiArrows });
+  const g = { ...GLYPHS[tier] };
+  // Three events that deserve a picture even in the Nerd Font tier. Opt-in,
+  // and the emoji are the ones the constitution names (Principle X).
+  const eventEmoji = tier === "nerd" && process.env.CLAUDE_STATUSLINE_EVENT_EMOJI === "1";
+  if (eventEmoji) {
+    g.conflict = GLYPHS.emoji.conflict;
+    g.updateDone = GLYPHS.emoji.updateDone;
+  }
+  // The band mark is a coloured circle in the emoji tier, where the rest of
+  // the line is already pictures.
+  const mark = (pct) => bandMark(pct, tier);
   // Effort is a level, so its glyph fills with it. A level the table does not
   // name (`xhigh`, `max`, whatever a harness sends) is at least high.
   const effortGlyph = (level) =>
@@ -953,7 +1025,10 @@ export function renderReadings(
   const gateHere = hereOf(gateRuns, readings.cwd);
   const gateRowCount = gateRuns.length ? Math.min(gateRuns.length, GATE_ROW_CAP) + (gateRuns.length > GATE_ROW_CAP ? 1 : 0) : 0;
 
-  const opts = { asciiArrows };
+  // The Powerline arrow needs a Powerline font. Choosing the emoji tier says
+  // there may be none, so it takes the plain arrow unless a separator was
+  // named: declared rather than assumed, as the plain separator rule asks.
+  const opts = { asciiArrows: asciiArrows || (tier === "emoji" && !process.env.CLAUDE_STATUSLINE_SEPARATOR) };
   // The rows are kept as segment lists until every line exists, because
   // aligning the first column across the bar needs all of them at once.
   // Rendering each line to text as it was built is what left that alignment
@@ -1314,7 +1389,7 @@ export function renderReadings(
     const q = copilotQuota?.quotas?.[name];
     if (!q) return null;
     const full = q.full || q.usedPct >= 100 ? " full" : "";
-    const level = ` ${g.calendar} month ${name} ${q.usedPct}%${bandMark(q.usedPct)}${full}`;
+    const level = ` ${g.calendar} month ${name} ${q.usedPct}%${mark(q.usedPct)}${full}`;
     const date = formatQuotaDate(copilotQuota.resetDate);
     return date
       ? { ...gaugeChip(q.usedPct), text: `${level} · ${date} `, variants: [`${level} `] }
@@ -1345,7 +1420,7 @@ export function renderReadings(
       const bare = /^[\d.,]+$/.test(c.formatted);
       const amount = bare ? `${c.formatted} AIC` : c.formatted;
       if (c.pct === null) return { color: ROLE.money, text: ` ${g.spend} ${amount} ` };
-      const level = `${c.pct}%${bandMark(c.pct)}${fullMark(c.pct)}`;
+      const level = `${c.pct}%${mark(c.pct)}${fullMark(c.pct)}`;
       const against = bare ? `${c.formatted}/${creditCount(c.max)} AIC` : `${c.formatted} of ${creditCount(c.max)}`;
       return {
         ...gaugeChip(c.pct),
@@ -1391,7 +1466,7 @@ export function renderReadings(
       // chip's one variant is itself without the countdown, which the width
       // guard reaches before it drops anything essential (specs/027).
       const resets = shortCountdown(fiveHourResetsAt, now) ?? "?";
-      const level = ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${bandMark(fiveHourPct)}${fullMark(fiveHourPct)}`;
+      const level = ` ${g.timer} 5h ${fiveHourPct ?? "?"}%${mark(fiveHourPct)}${fullMark(fiveHourPct)}`;
       return { ...gaugeChip(fiveHourPct), text: `${level} \u00b7 ${resets} `, variants: [`${level} `] };
     },
     sevenDay: () => {
@@ -1403,7 +1478,7 @@ export function renderReadings(
       // the reasoning that a countdown three days long is noise; the near case
       // used to be covered by the merged segment, and now lives here.
       const moment = farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?";
-      const level = ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${bandMark(sevenDayPct)}${fullMark(sevenDayPct)}`;
+      const level = ` ${g.calendar} 7d ${sevenDayPct ?? "?"}%${mark(sevenDayPct)}${fullMark(sevenDayPct)}`;
       return { ...gaugeChip(sevenDayPct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
     },
     // The allowance a gateway reports once an administrator sets a spend
@@ -1422,7 +1497,7 @@ export function renderReadings(
       const at = typeof w.resets_at === "number" ? w.resets_at : null;
       const counts = formatResetCountdown(at, now, bound) !== null;
       const moment = !counts ? "?" : at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
-      const level = ` ${g.calendar} ${w.label} ${pct}%${bandMark(pct)}${fullMark(pct)}`;
+      const level = ` ${g.calendar} ${w.label} ${pct}%${mark(pct)}${fullMark(pct)}`;
       return { ...gaugeChip(pct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
     },
     // Codex's credit balance, drawn as Codex writes it.
@@ -1434,7 +1509,7 @@ export function renderReadings(
       if (noLimits) return null;
       if (spendLimitPct === null) return null;
       const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
-      const level = ` ${g.spend} spend ${spendLimitPct}%${bandMark(spendLimitPct)}`;
+      const level = ` ${g.spend} spend ${spendLimitPct}%${mark(spendLimitPct)}`;
       return { ...gaugeChip(spendLimitPct), text: `${level} \u00b7 ${moment} `, variants: [`${level} `] };
     },
     // The prompt cache, drawn only when its state changes what you do next:
@@ -1479,7 +1554,7 @@ export function renderReadings(
       if (rate === null || rate <= 0) return null;
       return {
         color: ROLE.neutral,
-        text: ` ${g.burn} ${rate.toFixed(rate < 10 ? 1 : 0)}%/h `,
+        text: ` ${eventEmoji && bandFor(fiveHourPct)?.name === "critical" ? GLYPHS.emoji.burn : g.burn} ${rate.toFixed(rate < 10 ? 1 : 0)}%/h `,
       };
     },
     // B2: the sentence you were going to say out loud anyway. It renders

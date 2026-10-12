@@ -54,7 +54,7 @@ import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } 
 import { displayWidth, PALETTES, colourEnabled, bgSeq } from "./theme.js";
 import { ROLE, LEGEND } from "./colourRoles.js";
 import { terminalFor } from "./layout.js";
-import { resolveLayout, repoConfig, terminalFlavor, resolveSettings } from "./config.js";
+import { resolveLayout, repoConfig, terminalFlavor, resolveSettings, iconTier } from "./config.js";
 import { resolveArrangement } from "./arrangement.js";
 
 /**
@@ -566,6 +566,26 @@ export function flavorStatus(cwd = process.cwd(), env = process.env) {
   };
 }
 
+/**
+ * The icon tier a render here would draw, and where the choice came from.
+ * An unknown value of `CLAUDE_STATUSLINE_ICONS` is named, because the bar
+ * falls back to the Nerd Font tier and nothing else would say so.
+ */
+export function iconStatus(env = process.env) {
+  const asciiArrows = env.CLAUDE_STATUSLINE_ASCII === "1";
+  const { tier, source, unknown } = iconTier({ env, asciiArrows });
+  const from = source === "default" ? "default" : source === "ASCII" ? "from CLAUDE_STATUSLINE_ASCII" : "from CLAUDE_STATUSLINE_ICONS";
+  const event = tier === "nerd" && env.CLAUDE_STATUSLINE_EVENT_EMOJI === "1" ? ", event emoji on" : "";
+  return {
+    tier,
+    source,
+    unknown: unknown ?? null,
+    line: unknown !== undefined
+      ? `icons: unknown "${unknown}" (CLAUDE_STATUSLINE_ICONS), using nerd`
+      : `icons: ${tier} (${from})${event}`,
+  };
+}
+
 function pad(text, width) {
   const value = String(text);
   if (value.length > width - 1) return value.slice(0, width - 2) + "… ";
@@ -633,6 +653,7 @@ export function formatReport(report) {
     ...ignoredLines,
     `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,
     ...(report.flavor ? [report.flavor.line] : []),
+    ...(report.icons ? [report.icons.line] : []),
     terminalLine(report.terminal),
     `history: ${report.samples} samples (a rate needs 5 spanning a minute)`,
     `rendered ${widths}`,
@@ -657,6 +678,7 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
   // The process directory, not the payload's: the render command resolves
   // its settings from there, and this line has to name what it used.
   report.flavor = flavorStatus(process.cwd());
+  report.icons = iconStatus();
   // A project statusLine wins over the user's, so a person in that project
   // sees another bar and this one looks broken (specs/028-cross-platform).
   report.overrides = projectOverrides(payload?.workspace?.project_dir || payload?.cwd || process.cwd());

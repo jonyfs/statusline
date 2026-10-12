@@ -132,6 +132,22 @@ export function resolveLayout(cwd = process.cwd(), env = process.env) {
 }
 
 /**
+ * Which column of the glyph table the bar draws: `nerd`, `emoji` or `plain`.
+ *
+ * `CLAUDE_STATUSLINE_ASCII=1` is the stronger request and means `plain`
+ * whatever else is set. A value that is none of the three leaves the default
+ * and is handed back as `unknown` so `doctor` can name it, rather than being
+ * guessed at (Principle X, the emoji tier).
+ */
+export function iconTier({ env = process.env, asciiArrows = false } = {}) {
+  if (asciiArrows) return { tier: "plain", source: "ASCII" };
+  const raw = String(env.CLAUDE_STATUSLINE_ICONS ?? "").trim().toLowerCase();
+  if (raw === "nerd" || raw === "emoji" || raw === "plain") return { tier: raw, source: "CLAUDE_STATUSLINE_ICONS" };
+  if (raw) return { tier: "nerd", source: "default", unknown: env.CLAUDE_STATUSLINE_ICONS };
+  return { tier: "nerd", source: "default" };
+}
+
+/**
  * The flavor the terminal's own background suggests, or null.
  *
  * `COLORFGBG` is `foreground;background`, sometimes with a middle field, and

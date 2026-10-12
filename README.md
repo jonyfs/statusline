@@ -712,7 +712,29 @@ glyph set at once, icons and Powerline separators together:
 
 ![ASCII fallback](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/ascii-fallback.svg)
 
-Every inline example below is written in that substitute set. The real bar
+## Three icon tiers
+
+`CLAUDE_STATUSLINE_ICONS` picks the icon set:
+
+| Value | Icons | Needs |
+|---|---|---|
+| `nerd` (default) | Nerd Font glyphs, one column each | a Nerd Font in the terminal |
+| `emoji` | pictures, two columns each | a terminal that draws emoji |
+| `plain` | plain Unicode, one column each | nothing |
+
+`CLAUDE_STATUSLINE_ASCII=1` still means `plain`, and wins over the variable. The emoji tier
+also takes the plain `▸` separator in place of the Powerline arrow, since a terminal with no
+Nerd Font cannot draw the arrow; name a separator with `CLAUDE_STATUSLINE_SEPARATOR` to
+choose another. Band marks are 🟡 and 🔴 there. Only emoji Unicode draws as pictures are used
+(`Emoji_Presentation=Yes`), so none of them is a column short on a terminal that would have
+drawn it as text.
+
+![Emoji tier](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/emoji-tier.svg)
+
+In the Nerd Font tier, `CLAUDE_STATUSLINE_EVENT_EMOJI=1` draws 💥 for conflicts, 🔥 for a
+critical burn rate and 🚀 for an applied update, and nothing else changes.
+
+Every inline example below is written in the plain substitute set. The real bar
 draws Nerd Font glyphs, which sit in the private use area and would show most
 readers of this file a box; [Where the icons come from](#where-the-icons-come-from)
 maps each one to its codepoint. The screenshots throughout show the real
@@ -1042,6 +1064,8 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_FLAVOR` | `mocha` (default), `frappe`, `macchiato`, `latte`, `nord` or `gruvbox`. An unknown name draws `mocha`, and `doctor` says so on its `flavor:` line. With no flavor set anywhere, a terminal that reports a light background through `COLORFGBG` (7 or 15) gets `latte`, and `doctor` says the choice came from the terminal |
 | `COLORTERM` | `truecolor` or `24bit` draws 24-bit colour. Any other value, or none in Apple Terminal, draws the nearest of the 256 colours. An unset value elsewhere keeps 24-bit, since Windows Terminal and some SSH setups draw it and do not set the variable |
 | `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
+| `CLAUDE_STATUSLINE_ICONS` | `nerd` (default), `emoji` or `plain`. The emoji tier draws pictures and takes the plain separator unless one is named |
+| `CLAUDE_STATUSLINE_EVENT_EMOJI=1` | In the Nerd Font tier, draws 💥, 🔥 and 🚀 for conflicts, a critical burn rate and an applied update |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |

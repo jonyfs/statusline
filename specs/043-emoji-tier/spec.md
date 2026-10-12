@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: An emoji icon tier
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items D31 to D39. Constitution v8.2.0 (amendment K4)
 defines the emoji column and its rules. Feature 039 made the width table correct for every emoji
@@ -188,7 +188,10 @@ icons names the three values and links it.
   a value of `CLAUDE_STATUSLINE_ICONS` it does not understand.
 - **FR-009**: The README MUST document the three tiers and both variables, and
   `npm run previews` MUST write `emoji-tier.svg`.
-- **FR-010**: Every string this feature adds to the repository MUST be in English.
+- **FR-010**: Choosing the emoji tier MUST also draw the plain `▸` separator in place of the
+  Powerline arrow, unless `CLAUDE_STATUSLINE_SEPARATOR` names one, because the tier is for a
+  terminal that may have no Nerd Font to draw the arrow.
+- **FR-011**: Every string this feature adds to the repository MUST be in English.
 
 ### Key Entities
 
