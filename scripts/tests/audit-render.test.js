@@ -74,9 +74,9 @@ await test("#2 a 7-day reset in milliseconds reads as unknown, not as a confiden
     },
   });
   const out = stripAnsi(renderPayload(payload, { sources: emptySources, trackChanges: false, now: NOW, maxWidth: 200, maxHeight: 40 }));
-  const chip = out.split("\n").find((l) => /7d\s+40%/.test(l));
+  const chip = out.split("\n").find((l) => /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?40%/.test(l));
   assert.ok(chip, "the 7-day chip is drawn");
-  assert.match(chip, /7d\s+40%\s+\S+\s+\? /, `the reset is '?': ${JSON.stringify(chip)}`);
+  assert.match(chip, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?40%\s+\S+\s+\? /, `the reset is '?': ${JSON.stringify(chip)}`);
 });
 
 // #3 -------------------------------------------------------------------------

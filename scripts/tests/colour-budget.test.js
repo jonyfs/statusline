@@ -60,8 +60,10 @@ await test("the skill chip is flamingo and the model is lavender", () => {
 });
 
 await test("red is for the critical band and conflicts only", () => {
+  // The fixture's 7-day window is 77% used with about half of it gone, which
+  // is 24 points ahead of pace: critical by feature 046's rule.
   const reds = pool().filter((e) => e.color === "red").map((e) => e.key);
-  assert.deepEqual(reds, ["conflicts"]);
+  assert.deepEqual(reds, ["conflicts", "sevenDay"]);
 });
 
 await test("a healthy gauge is neutral with a green icon, a warn gauge peach", () => {

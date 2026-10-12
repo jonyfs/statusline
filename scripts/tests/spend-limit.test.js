@@ -32,39 +32,39 @@ const line3 = (text) => text.split("\n").find((l) => l.includes(" 5h ")) ?? "";
 
 await test("a spend limit in the payload renders as its own chip with its reset", () => {
   const out = render(payloadWith({ spend_limit: { used_percentage: 12, resets_at: SEC + 5 * 3600 } }));
-  assert.match(out, re`${G.spend} spend\s+12%\s+\S+\s+5h00`);
+  assert.match(out, re`${G.spend} spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?12%\s+\S+\s+5h00`);
 });
 
 await test("the spend figure follows the payload from one redraw to the next", () => {
   const first = render(payloadWith({ spend_limit: { used_percentage: 12, resets_at: SEC + 3600 } }));
   const second = render(payloadWith({ spend_limit: { used_percentage: 30, resets_at: SEC + 3600 } }));
-  assert.match(first, /spend\s+12%/);
-  assert.match(second, /spend\s+30%/);
+  assert.match(first, /spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?12%/);
+  assert.match(second, /spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?30%/);
 });
 
 await test("a spend limit past 100% is shown as reported, in the critical band", () => {
   const out = render(payloadWith({ spend_limit: { used_percentage: 115.2, resets_at: SEC + 3600 } }));
-  assert.match(out, /spend\s+115%\u25B4/);
+  assert.match(out, /spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?115%/);
 });
 
 await test("a spend limit without a reset says ? for the reset", () => {
   const out = render(payloadWith({ spend_limit: { used_percentage: 30 } }));
-  assert.match(out, /spend\s+30%\s+\S+\s+\?/);
+  assert.match(out, /spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?30%\s+\S+\s+\?/);
 });
 
 await test("a spend reset beyond a day names the day, as the 7-day chip does", () => {
   const out = render(payloadWith({ spend_limit: { used_percentage: 30, resets_at: SEC + 3 * 86400 } }));
-  assert.doesNotMatch(out, /spend\s+30%\s+\S+\s+\?/);
-  assert.match(out, /spend\s+30%\s+\S+\s+\S+ \d\d:\d\d/);
+  assert.doesNotMatch(out, /spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?30%\s+\S+\s+\?/);
+  assert.match(out, /spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?30%\s+\S+\s+\S+ \d\d:\d\d/);
 });
 
 await test("a monthly spend period is plausible; one past 32 days is not", () => {
   assert.notEqual(formatResetCountdown(SEC + 31 * 86400, NOW, { maxMs: 32 * 86400000 }), null);
   assert.equal(formatResetCountdown(SEC + 33 * 86400, NOW, { maxMs: 32 * 86400000 }), null);
   const far = render(payloadWith({ spend_limit: { used_percentage: 30, resets_at: SEC + 40 * 86400 } }));
-  assert.match(far, /spend\s+30%\s+\S+\s+\?/);
+  assert.match(far, /spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?30%\s+\S+\s+\?/);
   const month = render(payloadWith({ spend_limit: { used_percentage: 30, resets_at: SEC + 31 * 86400 } }));
-  assert.doesNotMatch(month, /spend\s+30%\s+\S+\s+\?/);
+  assert.doesNotMatch(month, /spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?30%\s+\S+\s+\?/);
 });
 
 await test("a missing or unusable spend entry draws no chip at all", () => {
@@ -88,30 +88,30 @@ await test("without a spend entry or an exhausted window, line 3 is unchanged", 
   // SC-005: the chip and the word add nothing when they have nothing to say.
   const out = line3(render(payloadWith({})));
   assert.doesNotMatch(out, /spend|full/);
-  assert.match(out, re`${G.timer} 5h\s+20%\s+\S+\s+1h00`);
+  assert.match(out, re`${G.timer} 5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%\s+\S+\s+1h00`);
 });
 
 await test("plain mode draws the spend chip with its substitute", () => {
   const out = render(payloadWith({ spend_limit: { used_percentage: 12, resets_at: SEC + 3600 } }), { asciiArrows: true });
   assert.equal(PLAIN.spend, "$");
-  assert.match(out, /\$ spend\s+12%/);
+  assert.match(out, /\$ spend\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?12%/);
 });
 
 // Story 2 -----------------------------------------------------------------
 
 await test("an exhausted 5-hour window says full before its countdown", () => {
   const out = render(payloadWith({ five_hour: { used_percentage: 100, resets_at: SEC + 7200 } }));
-  assert.match(out, re`${G.timer} 5h\s+100%\u25B4 full\s+\S+\s+2h00`);
+  assert.match(out, re`${G.timer} 5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full\s+\S+\s+2h00`);
 });
 
 await test("an exhausted 7-day window says full before its day", () => {
   const out = render(payloadWith({ seven_day: { used_percentage: 100, resets_at: SEC + 3 * 86400 } }));
-  assert.match(out, re`${G.calendar} 7d 100%\u25B4 full\s+\S+\s+`);
+  assert.match(out, re`${G.calendar} 7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full\s+\S+\s+`);
 });
 
 await test("99% is a high reading, not a full one; 99.6% rounds to full", () => {
   assert.doesNotMatch(render(payloadWith({ five_hour: { used_percentage: 99, resets_at: SEC + 60 } })), /full/);
-  assert.match(render(payloadWith({ five_hour: { used_percentage: 99.6, resets_at: SEC + 60 } })), /5h\s+100%\u25B4 full/);
+  assert.match(render(payloadWith({ five_hour: { used_percentage: 99.6, resets_at: SEC + 60 } })), /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full/);
 });
 
 await test("full survives when a narrow line sheds the reset text", () => {
@@ -120,7 +120,7 @@ await test("full survives when a narrow line sheds the reset text", () => {
     seven_day: { used_percentage: 100, resets_at: SEC + 3 * 86400 },
   });
   const narrow = render(payload, { maxWidth: 70 });
-  assert.match(narrow, /5h\s+100%\u25B4 full/);
+  assert.match(narrow, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full/);
 });
 
 await test("a full window gets no run-out forecast beside it", () => {
@@ -130,7 +130,7 @@ await test("a full window gets no run-out forecast beside it", () => {
   const samples = [80, 85, 90, 95, 100].map((fiveHourPct, i) => ({ at: NOW - (4 - i) * 2 * 60000, fiveHourPct }));
   const payload = payloadWith({ five_hour: { used_percentage: 100, resets_at: SEC + 7200 } });
   const out = render(payload, { samples });
-  assert.match(out, /5h\s+100%\u25B4 full/);
+  assert.match(out, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full/);
   assert.match(out, /%\/h/, "the history is enough for a rate, so a projection would have been drawn");
   assert.doesNotMatch(out, /5h limit ~/);
 });

@@ -85,8 +85,8 @@ await test("an unknown reset renders as text, not as a blank or a guess", () => 
   const plain = stripAnsi(
     renderPayload({}, { sources: emptySources, trackChanges: false, maxWidth: 200, maxHeight: 40 })
   );
-  assert.match(plain, /5h\s+\?%\s+\S+\s+\?/);
-  assert.match(plain, /7d\s+\?%\s+\S+\s+\?/);
+  assert.match(plain, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—\s+\S+\s+\?/);
+  assert.match(plain, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—\s+\S+\s+\?/);
 });
 
 await test("a reset a week out reads as a date, not as today's weekday", () => {

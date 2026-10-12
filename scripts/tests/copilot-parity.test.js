@@ -116,8 +116,8 @@ await test("the context falls back to Copilot's current figure, then to tokens o
   assert.equal(getContextPercent({ context_window: { used_percentage: null, current_context_tokens: 5, displayed_context_limit: 0 } }), null);
   assert.equal(getContextPercent({ context_window: { used_percentage: 31, current_context_used_percentage: 12 } }), 31, "the payload's own figure wins");
   assert.equal(getContextTokens(fixture).size, 200_000, "the displayed limit stands in for a null window size");
-  assert.match(render(copilot()), /context\s+0%/);
-  assert.match(render(fullPayload({ now: NOW })), /context\s+26%/, "Claude Code is unchanged");
+  assert.match(render(copilot()), /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?0%/);
+  assert.match(render(fullPayload({ now: NOW })), /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?26%/, "Claude Code is unchanged");
 });
 
 // Item 3: the effort -------------------------------------------------------------
@@ -341,12 +341,12 @@ await test("the quota chips sit where the windows sit, labelled monthly, with th
   });
   const out = render(copilot(), {}, { getCopilotQuota: () => quota });
   const line3 = out.split("\n").find((l) => l.includes("context"));
-  assert.match(line3, new RegExp(`${G.calendar} month premium\\s+76%\u25B5 \\S nov 1 `, "u"));
-  assert.match(line3, new RegExp(`${G.calendar} month chat\\s+3%\\s+\\S+\\s+nov 1 `, "u"));
+  assert.match(line3, new RegExp(`${G.calendar} month premium\\s+[\uEE00-\uEE05]{5}\\s+76%\\s+\\S+\\s+nov 1 `, "u"));
+  assert.match(line3, new RegExp(`${G.calendar} month chat\\s+[\uEE00-\uEE05]{5}\\s+3%\\s+\\S+\\s+nov 1 `, "u"));
   assert.ok(line3.indexOf("context") < line3.indexOf("premium") && line3.indexOf("premium") < line3.indexOf("chat"));
   assert.doesNotMatch(out, / 5h | 7d /, "still no windows Copilot does not have");
-  const narrow = render(copilot(), { maxWidth: 128 }, { getCopilotQuota: () => quota, getRtkSavings: () => 81 });
-  assert.match(narrow, /month chat\s+3%/, "the figure stays");
+  const narrow = render(copilot(), { maxWidth: 150 }, { getCopilotQuota: () => quota, getRtkSavings: () => 81 });
+  assert.match(narrow, /month chat\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?3%/, "the figure stays");
   assert.doesNotMatch(narrow, /month chat 3%\s+\S+\s+/, "the date goes before the figure does");
 });
 

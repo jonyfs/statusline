@@ -79,7 +79,7 @@ await test("the tier follows CLAUDE_STATUSLINE_ICONS, and ASCII wins", () => {
 
 await test("the emoji tier draws the emoji of each key", () => {
   withEnv({ CLAUDE_STATUSLINE_ICONS: "emoji" }, () => {
-    const out = strip(render({}, 360));
+    const out = strip(render({}, 520));
     for (const key of ["dir", "repo", "worktree", "model", "context", "duration", "allowAll", "fast"]) {
       assert.ok(out.includes(GLYPHS.emoji[key]), `${key} ${GLYPHS.emoji[key]} is on the bar`);
     }
@@ -138,7 +138,7 @@ await test("event emoji are drawn in the nerd tier only when asked for", () => {
 await test("the pool still carries one entry per segment in the emoji tier", () => {
   withEnv({ CLAUDE_STATUSLINE_ICONS: "emoji" }, () => {
     const pool = renderReadings(gather(PAYLOAD, { ...SOURCES }, { now: FIXED_NOW * 1000 }), PAYLOAD, {
-      ...RENDER_OPTIONS, maxWidth: 360, maxHeight: 40, asPool: true,
+      ...RENDER_OPTIONS, maxWidth: 520, maxHeight: 40, asPool: true,
     });
     assert.ok(pool.length >= 30);
   });

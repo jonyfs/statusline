@@ -92,7 +92,6 @@ export const SEGMENTS = [
   { key: "context", line: 3, group: "gauges", order: 30, priority: 100, colour: "ramp", source: "payload" },
   { key: "fiveHour", line: 3, group: "gauges", order: 40, priority: 94, colour: "ramp", source: "payload" },
   { key: "burnRate", line: 3, group: "gauges", order: 42, priority: 66, colour: "ramp", source: "samples" },
-  { key: "projection", line: 3, group: "gauges", order: 44, priority: 64, colour: "identity", source: "samples" },
   { key: "sevenDay", line: 3, group: "gauges", order: 50, priority: 90, colour: "ramp", source: "payload" },
   // Codex only (specs/037-codex-windows). A window that is neither 5 hours nor
   // 7 days, such as the free plan's 30 days, stands beside the 7-day slot it
@@ -193,7 +192,6 @@ export const SEGMENT_ABOUT = {
   context: "How full the context window is. The one figure that carries its level in colour alone, at the owner's decision.",
   fiveHour: "The five-hour usage window and when it comes back. It counts down, because inside a day a reset is something you wait out.",
   burnRate: "How fast the five-hour window is being spent, measured across recent samples. A percentage says where you are; a rate says whether you arrive before the reset.",
-  projection: "When the five-hour window would run out, shown only when that lands before it resets — which is the only case where it changes what you do.",
   codexWindow: "Codex CLI only: a usage window that is neither five hours nor seven days, named by its length, such as the free plan's `30d`, with its reset. Absent when Codex reports no such window.",
   codexCredits: "Codex CLI only: the credit balance Codex reports. Absent when the account has no credits, or unlimited ones.",
   sevenDay: "The seven-day usage window and when it comes back. It names the day, because beyond a day a reset is something you plan around.",

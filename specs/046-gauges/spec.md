@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Gauges that show a level and a pace
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-12
 
-**Status**: Draft
+**Status**: Done
 
 **Input**: Design review of 2026-10, items G61 to G70, with sections 5.6 of the review (the gauge
 rules). Constitution v8.4.0 (amendment K6) names the band marks. Features 041 (colour budget),
@@ -61,8 +61,8 @@ and assert the five cells.
 1. **Given** a percentage, **When** drawn, **Then** the track is five cells, the first drawn
    with `EE03` or `EE00`, the middle three with `EE04` or `EE01`, the last with `EE05` or
    `EE02`, and cell `i` (counting from 0) is full when `pct >= (i + 0.5) * 20`.
-2. **Given** 0, 10, 50, 90 and 100 percent, **When** drawn, **Then** the full cells are 0, 0,
-   2, 4 and 5 (0% and 10% have none: 10 is below 10 for cell 0's threshold).
+2. **Given** 0, 10, 50, 90 and 100 percent, **When** drawn, **Then** the full cells are 0, 1,
+   3, 5 and 5, since the thresholds are 10, 30, 50, 70 and 90.
 3. **Given** an unknown figure, **When** drawn, **Then** the track is `EE00 EE01 EE01 EE01
    EE02` and the figure is a dim `—`.
 4. **Given** the plain and emoji tiers, **When** drawn, **Then** the track is `|` and `.`
@@ -148,8 +148,8 @@ chip carries both; render one that does not and assert it is only the rate.
    reads the rate and the moment.
 2. **Given** a rate and no projected moment, **When** drawn, **Then** the chip is the rate.
 3. **Given** no rate, **When** drawn, **Then** neither is drawn.
-4. **Given** an arrangement that addresses `projection`, **When** drawn, **Then** the key is
-   still valid and draws nothing of its own.
+4. **Given** an arrangement that names `projection`, **When** drawn, **Then** the key is
+   ignored as any unknown key is, and `doctor` says so.
 
 ---
 
@@ -197,8 +197,9 @@ characters from `▁` to `█`; unset, assert none.
 - **`—` and the width table**: U+2014 is East Asian Ambiguous and joins the set.
 - **The sparkline's characters**: U+2581 to U+2587 are Ambiguous and join the set.
 - **Copilot's monthly quota** has no elapsed fraction in the data, so it keeps absolute bands.
-- **Arrangements**: no key is removed. `projection` stays valid and draws nothing once its
-  fact is in the burn chip.
+- **Arrangements**: `projection` is removed from the registry, because the pool test requires
+  that every row draws something. An arrangement that names it is ignored with the note
+  `doctor` already gives for an unknown key.
 - **`NO_COLOR`**: the track, the alert glyph and the bold stay; the bold is dropped as in
   feature 044, so the alert glyph carries the band.
 
@@ -215,8 +216,8 @@ characters from `▁` to `█`; unset, assert none.
   known, with the thresholds in User Story 3, and MUST show `+Npp` when `pace > 5`.
 - **FR-004**: The context MUST be banded at 70 and 85 by default and from `contextBands` in
   `.statusline.json` when valid.
-- **FR-005**: The burn rate and the projection MUST be one chip, and an arrangement key
-  `projection` MUST remain valid.
+- **FR-005**: The burn rate and the projection MUST be one chip, and the `projection` key MUST
+  leave the registry.
 - **FR-006**: An optional 8-sample sparkline MUST follow the rate with
   `CLAUDE_STATUSLINE_SPARKLINE=1`.
 - **FR-007**: The agent rows MUST draw an eight-cell bar with eighth blocks, and U+2589 to

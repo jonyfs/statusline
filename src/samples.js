@@ -128,3 +128,24 @@ export function projectFull(samples, field, now) {
 }
 
 
+
+
+const SPARK = "\u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588";
+
+/**
+ * The last `count` readings of one field as a sparkline, or null when there
+ * are fewer. Scaled to the field's own range in the window, so a flat line is
+ * flat and a climb is a staircase; a field that never moved is the lowest cell.
+ */
+export function sparkline(samples, field, count = 8) {
+  const values = (Array.isArray(samples) ? samples : [])
+    .map((s) => s?.[field])
+    .filter((v) => typeof v === "number" && Number.isFinite(v))
+    .slice(-count);
+  if (values.length < count) return null;
+  const lo = Math.min(...values);
+  const hi = Math.max(...values);
+  return values
+    .map((v) => SPARK[hi === lo ? 0 : Math.round(((v - lo) / (hi - lo)) * (SPARK.length - 1))])
+    .join("");
+}

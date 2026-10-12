@@ -40,7 +40,7 @@ await test("the 7-day window counts down inside a day and names the day beyond o
       },
     })
   );
-  assert.match(soon, /7d\s+20%\s+\S+\s+6h/, "inside a day it is something you wait out");
+  assert.match(soon, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%\s+\S+\s+6h/, "inside a day it is something you wait out");
 
   const later = render(
     fullPayload({
@@ -50,7 +50,7 @@ await test("the 7-day window counts down inside a day and names the day beyond o
       },
     })
   );
-  assert.match(later, /7d\s+20%\s+\S+\s+\w{3} \d{2}:\d{2}/, "days out it is a date you plan around");
+  assert.match(later, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%\s+\S+\s+\w{3} \d{2}:\d{2}/, "days out it is a date you plan around");
 });
 
 // C6 -----------------------------------------------------------------------
@@ -68,8 +68,8 @@ await test("each window carries its own reset, on its own chip", () => {
   // 7-day pair. Until 2026-09-06 both resets shared a third segment reading
   // `1h30m / 3d`, which asked the reader to know which half belonged to
   // which figure, and read as a fraction beside the session duration.
-  assert.match(out, /5h\s+10%\s+\S+\s+1h30/);
-  assert.match(out, /7d\s+20%\s+\S+\s+/);
+  assert.match(out, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?10%\s+\S+\s+1h30/);
+  assert.match(out, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%\s+\S+\s+/);
   assert.doesNotMatch(out, /1h30m \/ /, "the merged countdown is gone");
   assert.equal((out.match(/resets in/g) || []).length, 0, "the words stay off the line");
 });
@@ -80,8 +80,8 @@ await test("a window with no reset in the payload says so rather than going quie
   const out = render(
     fullPayload({ rate_limits: { five_hour: { used_percentage: 10 }, seven_day: { used_percentage: 20 } } })
   );
-  assert.match(out, /5h\s+10%\s+\S+\s+\?/);
-  assert.match(out, /7d\s+20%\s+\S+\s+\?/);
+  assert.match(out, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?10%\s+\S+\s+\?/);
+  assert.match(out, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%\s+\S+\s+\?/);
 });
 
 await test("shortCountdown drops the words and keeps the number", () => {

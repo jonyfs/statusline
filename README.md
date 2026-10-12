@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run, and the statusline's own update state |
 | 2 | Skills used recently, as one list, then todo progress, whether Claude is working or idle, and the vim mode while vim mode is on |
-| 3 | Model and effort level, `fast` while fast mode is on, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the prompt cache when it is about to go cold or has, burn rate and projection, session duration, rtk savings |
+| 3 | Model and effort level, `fast` while fast mode is on, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -376,11 +376,11 @@ Codex reports a window of that length. A window of any other length gets a
 chip named by its length instead. On the free plan Codex reports one 30-day
 window, so the pane shows `30d 8% · 05/11 13:46` where the 5-hour and 7-day
 chips would be, and leaves those two out. The bar never draws a missing
-window as `?%` or puts a window under a label it does not have. A reset more
+window as `—` or puts a window under a label it does not have. A reset more
 than a day away names the date, and one further out than the window itself
 is shown as `?`. When the account has a credit balance that is not
 unlimited, a `credits 12.5` chip shows it as Codex writes it. Until
-Codex sends token counts, the context chip reads `?%`. The file is Codex's
+Codex sends token counts, the context chip reads `—`. The file is Codex's
 internal format, so a field Codex renames drops out of the bar rather than
 being guessed. Codex's own `context-used` item may differ from the pane by a
 point or two, since Codex subtracts a baseline of its own.
@@ -440,7 +440,7 @@ picked, the todo list, whether it is working, the lines changed and when the
 session started. The context share is OpenCode's own figure, the last
 answer's tokens over the model's context limit, so it matches the number in
 OpenCode's sidebar. OpenCode reports no usage windows, so the 5-hour and
-7-day chips are absent, not `?%`. On the home screen, before a session, the
+7-day chips are absent, not `—`. On the home screen, before a session, the
 bar shows the directory and git lines.
 
 The bar is drawn by the same renderer as in Claude Code, run by `node` in a
@@ -482,8 +482,8 @@ and OpenCode 1.18.35. "Codex footer" is Codex's own items, from `install
 | Git gates running in other worktrees | yes | yes | no | yes, when the pane has room | yes |
 | Gate scripts run without a hook | yes, on Linux and macOS | yes, on Linux and macOS | no | yes, when the pane has room | yes, on Linux and macOS |
 
-Under Copilot the 5-hour and 7-day chips are absent, not `?%`: Copilot has no
-such limits, and `?%` would say a value exists and is unknown. What Copilot
+Under Copilot the 5-hour and 7-day chips are absent, not `—`: Copilot has no
+such limits, and `—` would say a value exists and is unknown. What Copilot
 does meter is a month, so the bar shows that instead, where those two chips
 would be: `month premium 24% · Sep 1` and `month chat 3% · Sep 1`, the share
 of this month's allowance used and the day it resets. The figures come from
@@ -609,7 +609,7 @@ estimated, and nothing is turned into a price. The `doctor` row adds the hit
 ratio and the miss count.
 
 **An older Claude Code that doesn't send rate-limit fields.** Unknown values
-show `?%` and `reset time unknown`. Nothing gets estimated to fill the gap:
+show `—` and `reset time unknown`. Nothing gets estimated to fill the gap:
 
 ![Missing payload fields](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/missing-fields.svg)
 
@@ -639,7 +639,7 @@ up. Measured in this repository:
 | 160 and up | nothing |
 | 140 | on line 1, the repository name |
 | 130 | the session duration, and on line 1 the lines-changed count |
-| 120 | the projection, and on line 1 the CI tick |
+| 120 | the run-out time inside the burn chip, and on line 1 the CI tick |
 | 110 | on line 1, the pull request |
 | 100 | the burn rate |
 | 90 | the rtk figure, and on line 1 the tree counters |
@@ -650,7 +650,7 @@ branch and the model. Reset text is the one thing that shortens instead of
 going: before anything essential would be dropped, the 7-day reset goes, then
 the 5-hour countdown, then the spend reset, and only then the lowest essential
 segment. In this layout the 5-hour countdown was still there at 60 columns.
-The rtk figure outlasts the session duration, the projection and the burn
+The rtk figure outlasts the session duration and the burn
 rate, the three things on the line that something else already implies.
 
 ![Eighty columns](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/narrow.svg)
@@ -781,45 +781,43 @@ they have. A few rules keep the line from moving as figures change:
 
 ## Reading a level at a glance
 
-The context figure, the 5-hour window, the 7-day window and the spend limit
-all colour themselves by level. Below 60% the chip is neutral and only its icon
-is green, so a healthy bar is quiet. Up to 85% the chip is peach, and above it
-red. Same thresholds on all of them, so a glance reads them the same way. When
-several gauges are past 85%, only the highest keeps the red background and the
-rest show red text on the neutral fill.
+Each gauge is a five-cell track and a figure: `󰔟 5h [track] 62%`. A cell turns on at the
+middle of the fifth it stands for, so 10% already shows one and 90% shows all five. A figure
+the payload did not carry is the empty track and a dash, not `—`. Without a Nerd Font the
+track is `|||..`.
 
-Colour is not the only carrier, because around one man in twelve cannot
-separate red from green. Each band past the first adds a mark:
+The chip colours itself by band. Below the warn threshold it is neutral and only its icon is
+green, so a healthy bar is quiet. In the warn band the chip is peach and the number is bold.
+In the critical band it is red, with the alert glyph (`!` in the plain tier) before the number.
+When several gauges are critical, only the highest keeps the red background and the rest show
+red text on the neutral fill.
 
-| Band | Renders as |
-|---|---|
-| below 60% | `5h 41%` |
-| 60% to 85% | `5h 72%▵` |
-| above 85% | `5h 94%▴` |
-| 100% or more | `5h 100%▴ full` |
+Which band a figure is in depends on the gauge:
 
-Nothing is wrong needs no symbol, which is why the safe band has none.
+- The 5-hour, 7-day and Codex windows are banded by pace, `used - elapsed`, when the reset is
+  known. On or behind the clock is fine, up to 15 points ahead is warn, more than that is
+  critical, and 90% used is critical whatever the clock says. A window more than five points
+  ahead shows how far: `5h 62% +42pp`. With no known reset the bands are 60% and 85%.
+- The context warns at 70% and is critical at 85%. A repository can change both in
+  `.statusline.json`: `{ "contextBands": { "warn": 60, "critical": 80 } }`.
+- The spend limit and the Copilot quotas use 60% and 85%.
 
-The context figure is the exception: it takes the colour and not the mark,
-so on that one segment the level is carried by colour alone. The two rate
-limits keep theirs, and they are the ones whose consequence you cannot
-undo.
+Colour is not the only carrier, because around one man in twelve cannot separate red from
+green: the critical band has the glyph, the warn band the bold number, and the track says how
+full it is.
 
 ![Close to the limit](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/near-compaction.svg)
 
-The two marks are the small triangles `▵` and `▴`, outline then
-filled. They were `▴` and `▲` until 2026-09-07, and those are East
-Asian Narrow and Ambiguous respectively: crossing 85% widened the mark by a
-column on a terminal configured for East Asian text, and shifted every segment
-after it. Both are Narrow now, so the band changes and the line does not move.
+One chip says how fast the 5-hour window is going and when that runs it out: `󰈸 35%/h full
+~13:05`, the moment shown only when the window would be full before it resets.
+`CLAUDE_STATUSLINE_SPARKLINE=1` adds the last eight samples beside the rate. The `projection`
+segment that used to say the moment on its own is gone.
 
-There is no progress bar. An earlier version drew one beside the context
-figure, and it cost ten to sixteen columns on the widest line to say what
-the number already said in three. The bar survives where there is room for
-it: each running subagent gets one on its own row.
+Each running subagent gets a bar of its own on its row: eight cells in eighths, so 12% and 50%
+look different.
 
-Each window carries its own reset, beside its own level: `󰔛 5h 62%▴ · 2h09m`
-and ` 7d 77%▴ · Thu 18:00`. They shared one dimmed segment reading
+Each window carries its own reset, beside its own level: `󰔟 5h 62% 󰚰 2h09`
+and ` 7d 77% 󰚰 thu 18:00`. They shared one dimmed segment reading
 `1h29m / 3d` until 2026-09-06, which asked the reader to know which half
 belonged to which figure several chips away, and read as a fraction beside
 the session duration.
@@ -828,7 +826,7 @@ Near and far are told differently, and that is the rule rather than an
 inconsistency: a window resetting within a day counts down, because it is
 something you wait out; one resetting beyond a day names the day, because it
 is something you plan around. A reset the payload did not carry shows `?`, in
-the same vocabulary as the `?%` beside it, so you can tell an absent figure
+the same spirit as the dash beside it, so you can tell an absent figure
 from one a narrow terminal shed.
 
 The weekday beside the 7-day figure appears only when the reset is more than
@@ -1133,7 +1131,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts thirty-five segments on three lines, and it is a default
+The default puts thirty-four segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:
@@ -1595,7 +1593,7 @@ command: install Git for Windows, or put `node` on the PATH and run `install`
 again. Installs from before 1.23 wrote a quoted form PowerShell cannot run at
 all; `update` or `install` rewrites it.
 
-**A percentage shows `?%`.** Claude Code didn't send that field this time,
+**A percentage shows a dash.** Claude Code didn't send that field this time,
 either because it's an older version or because the session hasn't used
 anything yet. The "missing payload fields" screenshot above shows exactly
 how that looks.

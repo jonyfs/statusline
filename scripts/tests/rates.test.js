@@ -41,7 +41,7 @@ await test("no burn rate in the first minute of a session", () => {
     { at: 12000, context: 12, fiveHour: 12 },
   ]);
   assert.doesNotMatch(early, /%\/h/, "not enough history to claim a rate");
-  assert.doesNotMatch(early, /5h limit ~/, "and none to project from");
+  assert.doesNotMatch(early, /full ~/, "and none to project from");
 });
 
 await test("a burn rate appears once the ring has enough", () => {
@@ -56,7 +56,7 @@ await test("a falling window has no rate and no projection", () => {
   for (let i = 0; i < 8; i++) steps.push({ at: i * 20_000, context: 50 - i, fiveHour: 50 - i });
   const falling = overTime(`rate-falling-${process.pid}`, steps);
   assert.doesNotMatch(falling, /%\/h/, "a window that is emptying is not burning");
-  assert.doesNotMatch(falling, /5h limit ~/);
+  assert.doesNotMatch(falling, /full ~/);
 });
 
 await test("the projection only renders when it lands before the reset", () => {
@@ -64,11 +64,11 @@ await test("the projection only renders when it lands before the reset", () => {
   // resets first, which is the good outcome.
   const gentle = [];
   for (let i = 0; i < 8; i++) gentle.push({ at: i * 20_000, context: 10, fiveHour: 10 + i * 0.1 });
-  assert.doesNotMatch(overTime(`proj-gentle-${process.pid}`, gentle), /5h limit ~/);
+  assert.doesNotMatch(overTime(`proj-gentle-${process.pid}`, gentle), /full ~/);
 
   const steep = [];
   for (let i = 0; i < 8; i++) steep.push({ at: i * 20_000, context: 10, fiveHour: 50 + i * 3 });
-  assert.match(overTime(`proj-steep-${process.pid}`, steep), /5h limit ~\d\d:\d\d/);
+  assert.match(overTime(`proj-steep-${process.pid}`, steep), /full ~\d\d:\d\d/);
 });
 
 await test("no sparkline: the trend segment was removed", () => {
@@ -83,7 +83,7 @@ await test("no sparkline: the trend segment was removed", () => {
 await test("the compaction warning was removed on 2026-08-26", () => {
   const near = overTime(`compact-near-${process.pid}`, [{ at: 0, context: 92, fiveHour: 10 }]);
   assert.doesNotMatch(near, /compacting soon/);
-  assert.match(near, /context\s+92%/, "the figure itself still says how close it is");
+  assert.match(near, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?92%/, "the figure itself still says how close it is");
 });
 
 await test("a clock renders in 24-hour form", () => {

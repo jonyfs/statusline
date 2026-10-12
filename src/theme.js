@@ -448,6 +448,9 @@ const AMBIGUOUS = new Set([
   0x2500, // ─ the empty cell of a gauge
   0x2588, 0x2592, 0x2593, // █ ▒ ▓ its fills
   0x258f, // ▏ the left edge of a chip when NO_COLOR removes its background
+  0x2589, 0x258a, 0x258b, 0x258c, 0x258d, 0x258e, // ▉ to ▎ the eighths of an agent row's bar
+  0x2581, 0x2582, 0x2583, 0x2584, 0x2585, 0x2586, 0x2587, // ▁ to ▇ the sparkline
+  0x2014, // — an unknown figure
   0x2026, // … ellipsis, where a clipped row or label is cut
   // Not drawn today, and listed anyway. These are Ambiguous per Unicode
   // whether or not this bar uses them, and every one of them was on the bar

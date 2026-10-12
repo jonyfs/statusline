@@ -118,6 +118,8 @@ await test("the no-Nerd-Font glyph set is one column wide, with no emoji", async
   assert.ok(entries.length >= 20, "the substitute set should cover the bar");
 
   for (const [name, glyph] of entries) {
+    // A band the bar marks with weight and not with a glyph has an empty one.
+    if (glyph === "") continue;
     for (const ch of glyph) {
       const cp = ch.codePointAt(0);
       assert.ok(cp < 0x1f000, `${name} uses an emoji (U+${cp.toString(16).toUpperCase()})`);

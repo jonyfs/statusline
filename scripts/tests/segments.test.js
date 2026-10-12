@@ -129,24 +129,24 @@ await test("outputStyle: taken off the bar on 2026-08-26", () => {
 
 await test("context, fiveHour, sevenDay: present, and ?% rather than absent", () => {
   const full = render(payload, everything);
-  assert.match(full, /context\s+26%/);
-  assert.match(full, /5h\s+20%/);
-  assert.match(full, /7d\s+77%/);
+  assert.match(full, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?26%/);
+  assert.match(full, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%/);
+  assert.match(full, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?77%/);
 
   const empty = render({}, emptySources);
-  assert.match(empty, /context\s+\?%/);
-  assert.match(empty, /5h\s+\?%/);
-  assert.match(empty, /7d\s+\?%/);
+  assert.match(empty, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
+  assert.match(empty, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
+  assert.match(empty, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
 });
 
 await test("each window carries its own reset, and says so when it has none", () => {
   // One subject, one chip: the level and when it comes back are read
   // together, so they are drawn together.
   const full = render(payload, everything);
-  assert.match(full, /5h\s+\d+%[\u25b4\u25b5]?\s+\S+\s+1h00/);
-  assert.match(full, /7d\s+\d+%[\u25b4\u25b5]?\s+\S+\s+/);
+  assert.match(full, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?\d+%\s+\S+\s+1h00/);
+  assert.match(full, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?\d+%\s+\S+\s+/);
   const empty = render({}, emptySources);
-  assert.match(empty, /5h\s+\?%\s+\S+\s+\?/);
+  assert.match(empty, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—\s+\S+\s+\?/);
   assert.doesNotMatch(empty, /\d+h\d+m/, "no countdown without a reset time");
 });
 
