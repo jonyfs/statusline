@@ -206,15 +206,20 @@ await test("a remembered terminal background picks latte only after COLORFGBG an
   mkdirSync(path.join(home, ".claude", "statusline"), { recursive: true });
   const env = { TERM_PROGRAM: "iTerm.app", TERM: "xterm-256color" };
   writeFileSync(path.join(home, ".claude", "statusline", "terminal-background.json"), JSON.stringify({ light: true, terminal: terminalId(env) }));
-  const before = process.env.HOME;
+  // `os.homedir()` reads USERPROFILE on Windows and HOME elsewhere.
+  const before = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
   process.env.HOME = home;
+  process.env.USERPROFILE = home;
   try {
     assert.equal(cachedBackgroundIsLight(env), true);
     assert.equal(terminalFlavor(env), "latte");
     assert.equal(terminalFlavor({ ...env, COLORFGBG: "15;0" }), null, "COLORFGBG says dark and goes first");
     assert.equal(cachedBackgroundIsLight({ TERM_PROGRAM: "WezTerm" }), null, "another terminal does not reuse it");
   } finally {
-    process.env.HOME = before;
+    for (const [k, v] of Object.entries(before)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
   }
 });
 
