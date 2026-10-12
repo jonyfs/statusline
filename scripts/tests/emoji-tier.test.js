@@ -47,7 +47,7 @@ const EMOJI_PRESENTATION = (() => {
   return (cp) => ranges.some(([a, b]) => cp >= a && cp <= b);
 })();
 
-const REJECTED = ["⚡", "☕", "⏭", "⚠", "\u{1F321}", "⌨", "\u{1F5D3}", "⏱", "\u{1F4C5}", "\u{1F4C6}"];
+const REJECTED = ["⚡", "☕", "⏭", "⚠", "\u{1F321}", "⌨", "\u{1F5D3}", "⏱", "\u{1F6E1}", "\u{1F3F7}", "\u{1F4C5}", "\u{1F4C6}"];
 
 await test("the emoji column has the keys of the other two", () => {
   assert.deepEqual(Object.keys(GLYPHS.emoji).sort(), Object.keys(GLYPHS.nerd).sort());

@@ -78,7 +78,7 @@ await test("the terminal palette draws only the 16 ANSI colours", () => {
 await test("high contrast draws pure black or white at 7:1", () => {
   withEnv({ CLAUDE_STATUSLINE_CONTRAST: "high" }, () => {
     const failures = [];
-    for (const flavor of ["mocha", "latte", "nord", "dracula", "solarized"]) {
+    for (const flavor of Object.keys(PALETTES).filter((name) => name !== "terminal")) {
       for (const p of pairs(draw(flavor))) {
         if (!["#000000", "#ffffff"].includes(p.fg) && !p.text.includes("%") ) continue;
         const r = contrastRatio(p.fg, p.bg);

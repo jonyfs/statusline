@@ -79,6 +79,8 @@ await test("normalizePr reads both shapes into one", () => {
     number: 1,
     url: "u",
     review: "approved",
+    prState: null,
+    comments: null,
     kind: "pr",
     labels: [],
     source: "payload",
@@ -87,10 +89,19 @@ await test("normalizePr reads both shapes into one", () => {
     number: 2,
     url: "u",
     review: "draft",
+    prState: "draft",
+    comments: null,
     kind: "pr",
     labels: [],
     source: "gh",
   });
+  // gh's review decision maps onto the payload's words, and the state is kept apart
+  const decided = normalizePr({ number: 3, url: "u", state: "MERGED", isDraft: false, reviewDecision: "APPROVED", comments: 4 }, "gh");
+  assert.equal(decided.review, "approved");
+  assert.equal(decided.prState, "merged");
+  assert.equal(decided.comments, 4);
+  assert.equal(normalizePr({ number: 4, state: "OPEN", reviewDecision: "CHANGES_REQUESTED" }, "gh").review, "changes_requested");
+  assert.equal(normalizePr({ number: 5, state: "OPEN", reviewDecision: "" }, "gh").review, "open");
   assert.equal(normalizePr(null, "payload"), null);
 });
 

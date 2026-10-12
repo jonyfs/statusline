@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, stripAnsi } from "../test-harness.js";
-import { renderPayload } from "../../src/render.js";
+import { renderPayload, GLYPHS } from "../../src/render.js";
 import { displayWidth } from "../../src/theme.js";
 import { emptySources, gitSources, fullPayload } from "./fixtures/sources.js";
 
@@ -145,7 +145,8 @@ await test("the savings figure outlives what is derived from the line", () => {
   )
     .split("\n")
     .pop();
-  assert.match(line, /rtk/, "the savings figure is kept at 120 columns");
+  // In its short form (icon and figure) once the group gaps are counted.
+  assert.ok(line.includes(GLYPHS.nerd.rtk), "the savings figure is kept at 120 columns");
   assert.doesNotMatch(line, /\dh\d\dm\s*$/, "the session duration went first");
 });
 

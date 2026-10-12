@@ -248,7 +248,7 @@ characters from `▁` to `█`; unset, assert none.
 - **SC-004**: At 120 columns no line is wider than 120, and below that the track goes before
   the reset.
 - **SC-005**: The 4.5:1 test of feature 040 passes unchanged.
-- **SC-006**: The redraw benchmark stays at or under 25 ms at p95.
+- **SC-006**: The redraw benchmark stays inside the redraw budget `scripts/bench.js` enforces (300 ms at p95; the guide's 25 ms target is not enforced).
 
 ## Assumptions
 

@@ -81,7 +81,8 @@ await test("line 3 is three groups with a blank column between them", () => {
   const out = strip(draw({}, PAYLOAD)).split("\n")[2];
   // identity -> gauges: `allow all` then two spaces before the context icon
   const afterAllowAll = out.slice(out.indexOf("allow all") + "allow all".length);
-  assert.match(afterAllowAll, /^\s\S+\s{2}\S/, `the gap after the identity group: ${JSON.stringify(afterAllowAll.slice(0, 8))}`);
+  // chip padding, the closing glyph, three blank columns, the next chip's padding
+  assert.match(afterAllowAll, /^\s\S+\s{4}\S/, `the gap after the identity group: ${JSON.stringify(afterAllowAll.slice(0, 9))}`);
 });
 
 await test("group gaps are counted by the width guard", () => {
@@ -91,7 +92,7 @@ await test("group gaps are counted by the width guard", () => {
     { text: " c ", group: "gauges" },
   ];
   const flat = row.map((s) => ({ ...s, group: undefined }));
-  assert.equal(rowWidth(row), rowWidth(flat) + 1);
+  assert.equal(rowWidth(row), rowWidth(flat) + 3, "three blank columns between groups");
 });
 
 await test("a chip steps down to its icon before it is dropped", () => {

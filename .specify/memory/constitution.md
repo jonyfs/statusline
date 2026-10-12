@@ -2,7 +2,10 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.6.0 (I and X amended on 2026-10-12: MINOR, review of features 039 to 050. The
+- Version: 8.6.1 (X clarified on 2026-10-12: PATCH. The emoji rejection list gains the shield
+  and the label, which the review's section 5.4 names and the first reading left out. No rule
+  changes. See specs/052-review-round-two/.)
+- Previously, version 8.6.0 (I and X amended on 2026-10-12: MINOR, review of features 039 to 050. The
   K1 sentence that said Mocha output does not change is corrected; the context figure's
   colour-only exception of 2026-08-26 is retired, and the progress-bar rule is marked
   superseded by the five-column track; the emoji icon-slot rule names the reset and band marks
@@ -766,7 +769,7 @@ accessibility hazard where it works.
   `Emoji_Presentation=Yes`, which Unicode draws two columns wide and in colour without a
   variation selector, and it MUST only fill the icon slot at the start of a chip, with two named exceptions: the
   reset mark before a reset, and a band mark before a figure. The ones that
-  look like emoji and are not (`⚡ ☕ ⏭ ⚠️ 🌡️ ⌨️ 🗓️ ⏱️ 📅 📆`) are rejected by name, because they
+  look like emoji and are not (`⚡ ☕ ⏭ ⚠️ 🌡️ ⌨️ 🗓️ ⏱️ 🛡️ 🏷️ 📅 📆`) are rejected by name, because they
   draw as text on some terminals and as pictures on others. In nerd mode the bar stays free of
   emoji, except that `CLAUDE_STATUSLINE_EVENT_EMOJI=1` may draw 💥 for conflicts, 🔥 for a
   critical burn and 🚀 for an applied update, which are events and not states. A glyph
@@ -901,4 +904,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.6.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.6.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12

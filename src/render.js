@@ -1386,10 +1386,12 @@ export function renderReadings(
       // request each have their own mark, and the review word carries its own
       // beside it. Where the source gave no state the request is open.
       const prGlyph =
-        { draft: g.prDraft, merged: g.prMerged, closed: g.prClosed }[pr.review] ?? g.pr;
+        { draft: g.prDraft, merged: g.prMerged, closed: g.prClosed }[pr.prState ?? pr.review] ?? g.pr;
       const reviewGlyph =
         { approved: g.reviewApproved, commented: g.reviewComments, review_required: g.reviewRequested }[pr.review] ?? null;
       const reviewMark = reviewGlyph ? `${reviewGlyph} ` : "";
+      // The count of comments, beside its own glyph, where the source has one.
+      const commentMark = pr.comments ? ` ${g.reviewComments} ${pr.comments}` : "";
       // Same "show a few, count the rest" shape as the skills chip: a PR
       // with zero labels must render exactly as before this field existed
       // (specs/006, FR-003), so the suffix is only ever added, never a
@@ -1404,7 +1406,7 @@ export function renderReadings(
         key: "pr",
         color: String(pr.state).toUpperCase() === "MERGED" ? ROLE.merged : ROLE.open,
         emphasis: changes.isChanged("pr"),
-        text: ` ${prGlyph} ${label} #${pr.number}${review ? ` ${reviewMark}${review}` : ""}${labelText} `,
+        text: ` ${prGlyph} ${label} #${pr.number}${review ? ` ${reviewMark}${review}` : ""}${commentMark}${labelText} `,
         variants: [` ${prGlyph} #${pr.number}${reviewGlyph ? ` ${reviewGlyph}` : review ? ` ${review}` : ""} `],
         url: pr.url,
       });
@@ -1893,7 +1895,12 @@ export function renderReadings(
       // The pill style adds two caps to every chip, which the fit has to know.
       if (roundStyle) placed.extra = 0;
       // A sleeping session recedes: line 2 is drawn in the quiet colour.
-      if (sleeping && placed.line === 2) placed.quiet = true;
+      // A chip that has its own fill goes neutral too: a quiet text colour on a
+      // flamingo fill would change nothing a reader could see.
+      if (sleeping && placed.line === 2) {
+        placed.color = ROLE.neutral;
+        placed.quiet = true;
+      }
       byLineNumber.get(placed.line)?.push(placed);
     }
     const out = [];

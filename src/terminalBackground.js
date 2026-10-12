@@ -70,7 +70,11 @@ export async function refreshTerminalBackground({ timeoutMs = 400, stdin = proce
     };
     const onData = (chunk) => {
       buffer += chunk.toString("utf8");
-      if (/\x07|\x1b\\/.test(buffer)) {
+      // The query is followed by a device attributes request, which every
+      // terminal answers and answers in order. Its reply says the colour reply
+      // is either here or never coming, so nothing is left to arrive late and
+      // land in the prompt after this command has exited.
+      if (/\x1b\[\?[0-9;]*c/.test(buffer)) {
         const rgb = parseOsc11(buffer);
         if (!rgb) return done(null);
         const light = isLight(rgb);
@@ -88,7 +92,7 @@ export async function refreshTerminalBackground({ timeoutMs = 400, stdin = proce
       stdin.setRawMode(true);
       stdin.resume();
       stdin.on("data", onData);
-      stdout.write("\x1b]11;?\x1b\\");
+      stdout.write("\x1b]11;?\x1b\\\x1b[c");
     } catch {
       done(null);
     }

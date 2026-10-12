@@ -27,6 +27,9 @@ import { copilotPadding } from "./copilotSettings.js";
 /** What to assume when Claude Code is too old to set `COLUMNS`. */
 export const DEFAULT_WIDTH = 120;
 
+/** The blank columns between two groups on line 3 (the review's section 5.5: three). */
+export const GROUP_GAP = 3;
+
 /** A Powerline separator occupies one column between segments. */
 const SEPARATOR_COLUMNS = 1;
 
@@ -134,7 +137,7 @@ export function rowWidth(row) {
     extra += s.extra ?? 0;
     if (i > 0 && s.group && row[i - 1].group && s.group !== row[i - 1].group) gaps += 1;
   });
-  return content + row.length * SEPARATOR_COLUMNS + gaps + extra;
+  return content + row.length * SEPARATOR_COLUMNS + gaps * GROUP_GAP + extra;
 }
 
 /**

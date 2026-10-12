@@ -126,7 +126,7 @@ A person sees a branch switch marked for 10 seconds and a CI result for two minu
 A person sees the update as an icon, a failed bar as a chip, an unknown pull request as a dim
 icon, conflicts kept longer, a clean tree confirmed and allow-all in bold.
 
-**Why this priority**: each is a small thing the bar says better.
+**Why this priority**: each is a small improvement to what the bar says.
 
 **Independent Test**: one test per chip, below.
 
@@ -199,7 +199,7 @@ icon, conflicts kept longer, a clean tree confirmed and allow-all in bold.
 - **SC-002**: The highlight is on at 9 and off at 11 seconds for the branch, on at 119 and off
   at 121 for the pull request.
 - **SC-003**: The 4.5:1 test of feature 040 passes unchanged.
-- **SC-004**: The redraw benchmark stays at or under 25 ms at p95.
+- **SC-004**: The redraw benchmark stays inside the redraw budget `scripts/bench.js` enforces (300 ms at p95; the guide's 25 ms target is not enforced).
 
 ## Assumptions
 

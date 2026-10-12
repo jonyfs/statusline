@@ -701,8 +701,10 @@ Two accessibility modes sit beside the palettes:
 
 - `CLAUDE_STATUSLINE_CONTRAST=high` draws pure black or white text and raises the floor to 7:1.
 - `CLAUDE_STATUSLINE_RAMP=cvd` draws a healthy gauge's icon in blue, the warn band in yellow
-  and the critical band in red, so a person who cannot separate red from green is not asked to. Blue and yellow are the axis colour vision deficiencies keep, and red stays for critical because
-  the budget gives that band red; peach there would sit next to the warn yellow in lightness.
+  and the critical band in red, so a person who cannot separate red from green is not asked to.
+  Blue and yellow are the axis that colour vision deficiencies keep. Red stays for critical
+  because the budget gives that band red, and peach there would sit next to the warn yellow in
+  lightness.
 
 The [composer page](#arranging-the-bar-yourself) has a theme, an icon tier and a separator
 control and prints the variables for the choice.
@@ -779,9 +781,9 @@ changes the shape of the whole bar:
 
 Between two chips on one background (the directory and the repository, the model and its
 effort, any healthy gauge) a solid arrow would be a shape cut out of one colour, so the bar
-draws the thin arrow there in the chip's text colour. Line 3 is read in three groups, the
-model and its effort, the usage gauges, and the money and savings, with one blank column
-between them. The update notice sits at the right edge of line 1 and is the first thing the
+draws the thin arrow there in the chip's text colour. Line 3 is read in three groups: the
+model and its effort, the usage gauges (with the cache and the credit balance), and the
+savings. Three blank columns separate the groups. The update notice sits at the right edge of line 1 and is the first thing the
 line drops.
 
 The compact design is one line with the directory, the branch, the model, the context and the
@@ -848,8 +850,8 @@ Which band a figure is in depends on the gauge:
   `.statusline.json`: `{ "contextBands": { "warn": 60, "critical": 80 } }`.
 - The spend limit and the Copilot quotas use 60% and 85%.
 
-Colour is not the only carrier, because around one man in twelve cannot separate red from
-green: the critical band has the glyph, the warn band the bold number, and the track says how
+Colour is not the only signal. Around one man in twelve cannot separate red from green, so
+the critical band has the glyph, the warn band has the bold number, and the track says how
 full it is.
 
 ![Close to the limit](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/near-compaction.svg)
@@ -890,9 +892,9 @@ The savings figure used to wait until it had moved five points before
 rendering again, on the reasoning that a number repeating itself every redraw
 is a number nobody reads. `rtk gain` reports a lifetime average over
 thousands of commands, and a lifetime average never moves five points: the
-segment showed itself once per session and was never seen again. It renders
-whenever there is a value now, and its priority — the lowest on the bar —
-is what takes it off a line with no room.
+segment showed itself once per session and was never seen again. It now renders
+whenever there is a value. Its priority, the lowest on the bar, is what takes it
+off a line with no room.
 
 ## What it knows about the work
 
@@ -1430,6 +1432,10 @@ so a clean branch in sync with its remote adds nothing at all.
 | `?` | Untracked files git isn't watching yet |
 | boxed plus | Files staged in the index |
 | boxed minus | Files removed, staged or not |
+
+A pull request read from `gh` shows its review decision (approved, changes requested, review
+required) and its comment count beside the comments mark, and keeps its state (open, draft,
+merged, closed) apart, so a merged and approved request draws both.
 | arrow up | Commits you have that the remote doesn't, waiting to be pushed |
 | arrow down | Commits the remote has that you don't, waiting to be pulled |
 | alert | Paths with merge conflicts, counted apart from ordinary changes |
