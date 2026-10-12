@@ -347,6 +347,20 @@ export function getPrInfo(cwd, { now = Date.now(), branch = null } = {}) {
 }
 
 /**
+ * Whether the last pull request lookup failed and nothing has answered since.
+ *
+ * A failed lookup caches nothing, so without this the bar cannot tell "this
+ * branch has no pull request" from "`gh` is missing, signed out or offline",
+ * and draws the same blank for both. The refresh writes a marker when a lookup
+ * fails and clears it when one answers; the marker expires with the pull
+ * request cache itself (specs/048-state-feedback).
+ */
+export function getPrLookupFailed(cwd, { now = Date.now() } = {}) {
+  const entry = readEntry(repoKey(cwd), "prFailed");
+  return Boolean(entry?.value) && now - entry.at <= MAX_AGE_MS.pr;
+}
+
+/**
  * The branch a lookup applies to, so a cached answer can be refused once the
  * branch has moved on. `gh` always asks about the checked-out branch, and the
  * cache is keyed by repository, so without this a pull request from the branch

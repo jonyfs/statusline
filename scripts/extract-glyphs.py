@@ -60,6 +60,14 @@ WANTED = {
     "F4A4": 0xF4A4,    # review: approved
     "F442": 0xF442,    # review: comments
     "F441": 0xF441,    # review: requested
+    "EE06": 0xEE06,    # spinner frame (specs/048)
+    "EE07": 0xEE07,    # spinner frame
+    "EE09": 0xEE09,    # spinner frame
+    "EE0A": 0xEE0A,    # spinner frame
+    "F04B2": 0xF04B2,  # a session asleep
+    "F476": 0xF476,    # your turn
+    "F12CC": 0xF12CC,  # updated this session
+    "F00E8": 0xF00E8,  # the bar could not run
     "F04E6": 0xF04E6,  # a reset: the window comes back (specs/047)
     "F078C": 0xF078C,  # a warm cache with most of its life left
     "F06AD": 0xF06AD,  # a warm cache in its last third

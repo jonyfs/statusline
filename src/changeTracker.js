@@ -47,6 +47,12 @@ function sweptDirs() {
   ];
 }
 const HIGHLIGHT_MS = 30_000;
+
+/**
+ * How long each tracked value stays marked. A branch switch is over in a
+ * moment; a CI result is worth two minutes (specs/048-state-feedback).
+ */
+const HOLD_MS = { branch: 10_000, model: 10_000, pr: 120_000, ci: 120_000, skills: HIGHLIGHT_MS };
 const STALE_STATE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
@@ -64,7 +70,7 @@ const STALE_STATE_MS = 7 * 24 * 60 * 60 * 1000;
  * animate; they now hold still, because their colour has no second meaning
  * to spare and their numbers speak for themselves.
  */
-const HIGHLIGHTED = new Set(["branch", "pr", "skills", "model"]);
+const HIGHLIGHTED = new Set(["branch", "pr", "skills", "model", "ci"]);
 
 function sessionStateFile(sessionId) {
   const safe = String(sessionId || "default").replace(/[^A-Za-z0-9_-]/g, "_");
@@ -130,6 +136,7 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
       isChanged: () => false,
       colourFor: (_key, base) => base,
       iconFor: (_key, staticIcon) => staticIcon,
+      frame: 0,
       samples: [],
     };
   }
@@ -146,7 +153,7 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
   }
 
   for (const [key, at] of Object.entries(changedAt)) {
-    if (now - at > HIGHLIGHT_MS) delete changedAt[key];
+    if (now - at > (HOLD_MS[key] ?? HIGHLIGHT_MS)) delete changedAt[key];
   }
 
   // The short history four segments read: a burn rate, a projection, a
@@ -174,6 +181,8 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
 
   return {
     isChanged: (key) => HIGHLIGHTED.has(key) && Object.hasOwn(changedAt, key),
+    /** The session's own render counter, 0 to 3, advancing once per redraw. */
+    frame,
     /**
      * The colour a segment renders in: its own, or a lighter version of it
      * while the change is still recent. A segment outside the highlighted

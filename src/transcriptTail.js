@@ -219,6 +219,13 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
   const seen = new Set();
   let todos = null;
   let lastAt = null;
+  // Whether the newest message is a tool call the person has to answer. The
+  // walk is newest-first, so the first message seen decides it, and only the
+  // two calls that always wait count: a question and a plan to approve. A
+  // permission prompt leaves no trace in the transcript, and Claude Code hides
+  // the statusline while one is open (specs/048-state-feedback).
+  let newestSeen = false;
+  let awaiting = false;
   let consecutiveOld = 0;
   const OLD_ENTRY_PATIENCE = 200;
   // How far to keep walking after the first entry from outside the window.
@@ -280,6 +287,13 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
       const blocks = entry?.message?.content;
       if (!Array.isArray(blocks)) return false;
 
+      if (!newestSeen) {
+        newestSeen = true;
+        awaiting =
+          entry?.type === "assistant" &&
+          blocks.some((b) => b?.type === "tool_use" && /^(askuserquestion|exitplanmode)$/i.test(String(b.name || "")));
+      }
+
       // Skills are looked for recursively (a delegated/subagent invocation
       // may nest its blocks inside a parent block's own `content`, FR-003,
       // specs/008-skills-line-completeness); todos are not, since a todo
@@ -319,6 +333,7 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
     skillsTrueCount: skills.length,
     todos,
     lastAt,
+    awaiting,
     background: { shells: pendingShells.size, agents: pendingAgents.size },
     truncated,
     bytesRead,

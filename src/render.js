@@ -8,6 +8,7 @@ import {
   getGitInfo,
   isRepository,
   getPrInfo,
+  getPrLookupFailed,
   getRemoteUrl,
   getCiStatus,
   normalizePr,
@@ -225,7 +226,7 @@ const NF_SNOWFLAKE = "\u{F0717}";   // nf-md-snowflake: cold
 // check/glyph-evidence.png). F0CE0, listed as an up arrow in a circle, points
 // right; F4A9, listed as a rocket, draws a monitor; F06B1 draws a watch.
 const NF_DOWNLOAD = "\u{F01DA}";      // nf-md-download: ready, blocked, failed
-const NF_ARROW_UP_BOLD = "\u{F0737}"; // nf-md-arrow_up_bold: updated
+const NF_UPDATED = "\u{F12CC}";       // a cloud with a tick: updated this session
 // Two modes the payload reports (specs/027-bar-polish/glyph-evidence.png).
 const NF_VIM = "\u{E62B}";           // nf-custom-vim: the vim mode
 const NF_SPEEDOMETER = "\u{F140B}";  // a lightning bolt: fast mode
@@ -297,7 +298,15 @@ export const GLYPHS = {
     ciRunning: NF_RUNNING,
     todo: NF_TASKLIST,
     working: NF_WORKING,
+    workingFrame0: "\u{EE06}", // the spinner, one frame a redraw (specs/048)
+    workingFrame1: "\u{EE07}",
+    workingFrame2: "\u{EE09}",
+    workingFrame3: "\u{EE0A}",
     idle: NF_IDLE,
+    sleeping: "\u{F04B2}",
+    yourTurn: "\u{F476}",
+    clean: "\u{F4A4}",
+    unavailable: "\u{F00E8}",
     skills: NF_SKILLS,
     model: NF_MODEL,
     effort: NF_EFFORT,
@@ -312,7 +321,7 @@ export const GLYPHS = {
     cacheWarmLow: NF_HOURGLASS_EMPTY,
     cacheCold: NF_SNOWFLAKE,
     updateReady: NF_DOWNLOAD,
-    updateDone: NF_ARROW_UP_BOLD,
+    updateDone: NF_UPDATED,
     vim: NF_VIM,
     fast: NF_SPEEDOMETER,
     premium: NF_COPILOT,
@@ -369,7 +378,15 @@ export const GLYPHS = {
     ciRunning: "\u{1F504}",      // 🔄
     todo: "\u{1F4CB}",           // 📋
     working: "\u{1F528}",        // 🔨
+    workingFrame0: "\u{1F528}",  // the emoji tier does not animate
+    workingFrame1: "\u{1F528}",
+    workingFrame2: "\u{1F528}",
+    workingFrame3: "\u{1F528}",
     idle: "\u{1F4A4}",           // 💤
+    sleeping: "\u{1F4A4}",
+    yourTurn: "\u{1F514}",       // 🔔
+    clean: "\u2705",             // ✅
+    unavailable: "\u{1F6AB}",    // 🚫
     skills: "\u{1F9E9}",         // 🧩
     model: "\u{1F916}",          // 🤖
     effort: "\u{1F3AF}",         // 🎯
@@ -466,7 +483,15 @@ export const GLYPHS = {
     // hammer and a coffee cup, and the one CircleCI's own columnar glyph set
     // makes with a filled and a hollow circle.
     working: "\u29BF",    // ⦿ was ◎, Ambiguous
+    workingFrame0: "|",   // the plain spinner, ASCII, one column
+    workingFrame1: "/",
+    workingFrame2: "-",
+    workingFrame3: "\\",
     idle: "\u25CC",       // ◌
+    sleeping: "\u25CC",
+    yourTurn: "!",
+    clean: "\u2713",     // ✓
+    unavailable: "!",
     skills: "\u2756",     // ❖ was ◈, Ambiguous
     model: "\u25CA",      // ◊ was ◇, Ambiguous
     effort: "\u21AF",     // ↯
@@ -716,6 +741,13 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     // branch was checked out when they ran, so the branch travels with the
     // question: a pull request or a run from the branch you just left is not
     // an older answer, it is an answer about something else.
+    // A pull request lookup that failed, so a dim icon can stand where a blank
+    // would read as "no pull request" (specs/048-state-feedback).
+    prUnavailable: reading({
+      value: hasRepo && !payloadPr ? Boolean(probe.getPrLookupFailed?.(cwd)) : false,
+      at: now,
+      source: "cache",
+    }),
     pr: hasRepo
       ? payloadPr
         ? reading({ value: payloadPr, at: now, source: "payload" })
@@ -889,6 +921,7 @@ export function renderPayload(
     getGitInfo,
     isRepo: isRepository,
     getPrInfo,
+    getPrLookupFailed,
     getRemoteUrl,
     getActiveSkills,
     getActiveSkillsTrueCount,
@@ -1019,6 +1052,7 @@ export function renderReadings(
       ahead: git && git.ahead !== null ? String(git.ahead) : null,
       behind: git && git.behind !== null ? String(git.behind) : null,
       pr: pr ? `${pr.number}:${pr.state}:${pr.isDraft}` : null,
+      ci: readings.ci?.value ? `${readings.ci.value.status}:${readings.ci.value.conclusion}` : null,
       skills: skills.join(","),
       model: modelName,
       effort: effort ?? "",
@@ -1257,6 +1291,10 @@ export function renderReadings(
     if (git.behind) state.push(`${g.pull} ${git.behind}`);
     if (state.length) {
       l1.push({ key: "worktreeState", color: ROLE.neutral, text: ` ${state.join("  ")} ` });
+    } else if (git.changed === 0 && git.untracked === 0 && !git.conflicts && git.ahead !== null && git.behind !== null) {
+      // A tree that is clean and in step with its upstream says so, in the
+      // one place a failed read draws nothing (specs/048-state-feedback).
+      l1.push({ key: "worktreeState", color: ROLE.neutral, icon: ROLE.healthy, text: ` ${g.clean} ` });
     }
     // A2's chosen form: owner and repo as text. It repeats the directory in
     // a repository whose folder is named after it, and says something the
@@ -1299,6 +1337,7 @@ export function renderReadings(
         icon,
         text: ` ${mark} ${ci.workflow ?? "CI"} `,
         variants: [` ${mark} `],
+        emphasis: changes.isChanged("ci"),
         url: runs ?? undefined,
       });
     }
@@ -1326,6 +1365,11 @@ export function renderReadings(
     if (worktree) {
       const from = worktree.from ? ` ${g.from} ${worktree.from}` : "";
       l1.push({ key: "worktree", color: ROLE.neutral, text: ` ${g.worktree} ${worktree.name}${from} ` });
+    }
+    if (!pr && readings.prUnavailable?.value) {
+      // Dim, with no number: the lookup did not run, which is not the same
+      // answer as there being nothing to find.
+      l1.push({ key: "pr", color: ROLE.neutral, quiet: true, text: ` ${g.pr} ` });
     }
     if (pr) {
       // `changes_requested` is the one review state too long to spell out on
@@ -1369,13 +1413,9 @@ export function renderReadings(
     // At the right edge of the line, and the first chip to go. Its words are
     // the first thing it gives up, which leaves the icon: the state is the
     // glyph, and the sentence is for a line with room (specs/045).
-    l1.push({
-      key: "update",
-      color: ROLE.neutral,
-      alignRight: true,
-      text: ` ${icon} ${update.text} `,
-      variants: [` ${icon} `],
-    });
+    // The icon alone (specs/048): the sentence is in `doctor`, which prints
+    // what the check found, and the bar's line 1 is not the place for it.
+    l1.push({ key: "update", color: ROLE.neutral, alignRight: true, text: ` ${icon} ` });
   }
   // The git gates running in this repository (specs/031-git-gate-rows): a
   // count here, and a row each after the bar when the window has room.
@@ -1402,8 +1442,17 @@ export function renderReadings(
     // vim mode is on (specs/027-bar-polish).
     const vimMode = shows("vim") ? readings.vim?.value : null;
     if (vimMode) row.push({ key: "vim", color: ROLE.neutral, text: ` ${g.vim} ${vimMode} `, variants: [` ${g.vim} `] });
-    if (activity) {
-      const mark = activity.working ? g.working : g.idle;
+    if (activity?.awaiting) {
+      // The session is waiting for a person: a question or a plan, answered
+      // by nobody yet. It replaces the working chip, which the same recent
+      // entry would otherwise keep lit.
+      row.push({ key: "activity", color: ROLE.attention, text: ` ${g.yourTurn} your turn ` });
+    } else if (activity) {
+      // The spinner advances on the session's own render counter, never on the
+      // clock, and the quiet clock turns idle into sleeping after five minutes.
+      const frames = [g.workingFrame0, g.workingFrame1, g.workingFrame2, g.workingFrame3];
+      const asleep = !activity.working && typeof activity.idleMs === "number" && activity.idleMs >= 5 * 60_000;
+      const mark = activity.working ? frames[((changes.frame ?? 0) % 4 + 4) % 4] : asleep ? g.sleeping : g.idle;
       // How many background jobs the session is waiting on, said whenever
       // there are any: "working" alone would not tell a quiet session
       // waiting on a gate from one producing output.
@@ -1413,7 +1462,7 @@ export function renderReadings(
         key: "activity",
         color: ROLE.neutral,
         ...(activity.working ? { icon: ROLE.healthy } : {}),
-        text: activity.working ? ` ${mark} working${waiting} ` : ` ${mark} idle `,
+        text: activity.working ? ` ${mark} working${waiting} ` : asleep ? ` ${mark} sleeping ` : ` ${mark} idle `,
         variants: [` ${mark} `],
       });
     }
@@ -1735,7 +1784,7 @@ export function renderReadings(
       const n = shows("premiumRequests") ? readings.premiumRequests?.value : null;
       return n ? { color: ROLE.neutral, text: ` ${g.premium} ${n} premium ` } : null;
     },
-    allowAll: () => (shows("allowAll") && readings.allowAll?.value ? { color: ROLE.attention, text: ` ${g.allowAll} allow all ` } : null),
+    allowAll: () => (shows("allowAll") && readings.allowAll?.value ? { color: ROLE.attention, text: ` ${g.allowAll} ${strong("allow all")} ` } : null),
     duration: () => {
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       // Not before half an hour: a session two minutes old is not news.

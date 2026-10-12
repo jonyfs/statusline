@@ -20,7 +20,14 @@ const [, , subcommand, ...rest] = process.argv;
  * which a person runs on purpose.
  */
 function renderFallback() {
-  return " statusline unavailable ";
+  // A copy of `src/unavailable.js`, which cannot be imported here: this runs
+  // when imports are what failed.
+  const plain = process.env.CLAUDE_STATUSLINE_ASCII === "1";
+  const text = ` ${plain ? "!" : "\u{F00E8}"} statusline unavailable `;
+  const noColour = process.env.NO_COLOR !== undefined && process.env.NO_COLOR !== "";
+  if (noColour) return text;
+  const cap = plain ? "\u25B8" : "\u{E0B0}";
+  return `\x1b[48;2;49;50;68m\x1b[38;2;255;255;255m${text}\x1b[0m\x1b[38;2;49;50;68m${cap}\x1b[0m`;
 }
 
 /**
