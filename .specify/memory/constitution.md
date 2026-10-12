@@ -2,7 +2,13 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.5.0 (I amended on 2026-10-12: MINOR, the terminal palette. Item K11 of the
+- Version: 8.6.0 (I and X amended on 2026-10-12: MINOR, review of features 039 to 050. The
+  K1 sentence that said Mocha output does not change is corrected; the context figure's
+  colour-only exception of 2026-08-26 is retired, and the progress-bar rule is marked
+  superseded by the five-column track; the emoji icon-slot rule names the reset and band marks
+  as exceptions; the unknown mark is the dash, not `?%`. Templates: no change needed. See
+  specs/051-review-fixes/.)
+- Previously, version 8.5.0 (I amended on 2026-10-12: MINOR, the terminal palette. Item K11 of the
   2026-10 design review. A palette that maps tokens to the 16 ANSI colours is allowed and is
   exempt from the contrast test, since its colours are unknown at render time. K9, the
   localised text the review proposed, stays rejected by Principle VI. Templates: no change
@@ -289,7 +295,8 @@ reference — not a vague "Starship-like" aspiration:
   `#11111b` and `#ffffff`, and it MUST reach 4.5:1. When no candidate does, the background is
   darkened in OKLCH, lightness lowered in steps, until one does. This replaces the fixed
   `fg:crust` rule, which fails 4.5:1 on most Latte accents and on some Nord and Gruvbox ones;
-  `crust` stays the first candidate, so Mocha output does not change.
+  `crust` is the first candidate and wins ties, so a Mocha accent keeps it; the neutral chips
+  (`surface0` to `surface2`) take `#ffffff`, which has the higher ratio there.
 - **Powerline separators**: segments MUST be joined with the arrow/triangle glyph `` (U+E0B0,
   Nerd Font "powerline" glyph), transitioning `fg:<previous_bg> bg:<next_bg>` between segments,
   exactly as `[](bg:peach fg:red)` chains directory→git in the reference config. A plain
@@ -428,7 +435,9 @@ rather than what happened to be first.
 spent ten to sixteen columns on the widest line saying what the figure said in three, and was
 removed on 2026-08-26; the same bar still earns its place on a subagent row, which has a whole
 line and no other number competing for it. Width on a shared line goes to something the reader
-cannot already read beside it.
+cannot already read beside it. Superseded on 2026-10-12 (design review item G61): each gauge
+carries a five-column track, built from one glyph a cell, which is the first thing a narrow
+line gives up, before the reset and long before the figure.
 
 ### III. Token Tracking Grounded in Real Data
 
@@ -444,19 +453,19 @@ window usage, 5-hour window usage, 7-day window usage, plus a reset countdown co
 7-day window's `resets_at`. A fourth, the spend limit, is shown only where the payload carries
 it. Its period may be a month, and that is the one exception to the rule above: it is a
 figure Claude Code reports, not one the statusline invented. If a field is absent from the payload (older Claude Code version,
-or a render before the session has usage), the segment MUST show `?%` rather than a guessed
+or a render before the session has usage), the segment MUST show the unknown mark (an empty track and a dash, `—`) rather than a guessed
 value, and MUST NOT break the rest of the line.
 
 The spend limit is different in two ways. Claude Code sends it only behind a Claude gateway
 with spend limits, so its absence is the normal state for most accounts: the segment MUST be
-omitted when the entry is absent rather than shown as `?%`. And its `used_percentage` goes
+omitted when the entry is absent rather than shown as the unknown dash. And its `used_percentage` goes
 above 100 once the limit is exceeded, so the statusline MUST show it as reported rather than
 capping it. A granted allowance the payload does not carry MUST NOT be displayed at all: no
 figure may be derived from spend, message count or elapsed time to stand in for it.
 
 The same rule holds in every harness that runs this renderer: the bar reads the payload that
 harness sends, and nothing invented to stand in for a field it lacks. GitHub Copilot CLI sends
-no rate limits, so under Copilot the 5-hour, 7-day and spend chips are absent rather than `?%`,
+no rate limits, so under Copilot the 5-hour, 7-day and spend chips are absent rather than the unknown dash,
 which would claim an unknown value for a limit that does not exist there. Its own fields,
 `cost.total_premium_requests` and `allow_all_enabled`, are read as reported. OpenAI Codex CLI
 runs no external command; in its own footer the plugin only chooses Codex's built-in status line
@@ -469,7 +478,7 @@ its own right: the model and effort from `turn_context`, the window size from `t
 windows from `token_count.rate_limits`, and working while a `task_started` has no later
 `task_complete` or `turn_aborted`. A window MUST map to the 5-hour chip only when Codex says it
 is 300 minutes long and to the 7-day chip only at 10080 minutes, and a chip whose window the
-plan lacks is absent rather than `?%`. Any other window, such as the free plan's 30 days, MUST
+plan lacks is absent rather than the unknown dash. Any other window, such as the free plan's 30 days, MUST
 NOT be drawn under a label it does not have: it gets a chip of its own, labelled by its
 `window_minutes` alone (`30d`, `1d`, `2h`, `45m`), with its reset bounded by that length plus a
 day (specs/037-codex-windows). That window is Codex's own figure, the one its `/status` shows,
@@ -489,7 +498,7 @@ session's `cost`, `time.created` and `summary` line counts, its status (`busy` o
 working) and its todo list. The context share MUST be OpenCode's own figure: the last assistant
 message with output, its input, output, reasoning and cache tokens over the model's
 `limit.context`, and absent without that limit. OpenCode reports no usage windows, so the 5-hour,
-7-day and spend chips are absent there, not `?%`. The renderer runs in a child process with a
+7-day and spend chips are absent there, not the unknown dash. The renderer runs in a child process with a
 deadline, so it never blocks OpenCode's screen.
 
 Under Copilot the bar MAY also show figures Copilot or GitHub report outside the payload, each
@@ -711,10 +720,10 @@ accessibility hazard where it works.
   `F40C` (plain `!`) before the number, and the warn band draws the number in bold, with no
   glyph, because a mark that appears at 60% and one at 85% were two marks for one scale. The
   ▴ and ▵ marks this rule used to name are retired with this amendment. The context
-  figure is the one declared exception, carrying its level in colour alone at the owner's decision
-  of 2026-08-26. The 5-hour and 7-day figures MUST keep their marks: those are the limits whose
-  consequence a reader cannot undo. Any further exception MUST be recorded here rather than
-  decided in a render function.
+  figure was a declared exception, carrying its level in colour alone at the owner's decision
+  of 2026-08-26; that exception is retired on 2026-10-12, since the review's gauge rule covers
+  every gauge and the context is the one whose limit is a cliff. Any further exception MUST be
+  recorded here rather than decided in a render function.
 - **Colour is a preference the reader may withdraw**: `NO_COLOR`, set to anything non-empty,
   MUST turn colour off. It is a cross-tool convention rather than this project's invention, and
   a bar that ignores it is one a person cannot turn off without uninstalling it. Nothing may be
@@ -755,7 +764,8 @@ accessibility hazard where it works.
   `CLAUDE_STATUSLINE_ICONS=nerd|emoji|plain` selects the column; `nerd` is the default, and
   `CLAUDE_STATUSLINE_ASCII=1` still means `plain`. An emoji entry MUST be a codepoint with
   `Emoji_Presentation=Yes`, which Unicode draws two columns wide and in colour without a
-  variation selector, and it MUST only fill the icon slot at the start of a chip. The ones that
+  variation selector, and it MUST only fill the icon slot at the start of a chip, with two named exceptions: the
+  reset mark before a reset, and a band mark before a figure. The ones that
   look like emoji and are not (`⚡ ☕ ⏭ ⚠️ 🌡️ ⌨️ 🗓️ ⏱️ 📅 📆`) are rejected by name, because they
   draw as text on some terminals and as pictures on others. In nerd mode the bar stays free of
   emoji, except that `CLAUDE_STATUSLINE_EVENT_EMOJI=1` may draw 💥 for conflicts, 🔥 for a
@@ -891,4 +901,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.5.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.6.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12

@@ -51,7 +51,7 @@ import {
 } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
-import { displayWidth, PALETTES, colourEnabled, bgSeq, SEPARATOR_STYLES } from "./theme.js";
+import { displayWidth, PALETTES, colourEnabled, bgSeq, SEPARATOR_STYLES, colourDepth } from "./theme.js";
 import { ROLE, LEGEND } from "./colourRoles.js";
 import { terminalFor } from "./layout.js";
 import { resolveLayout, repoConfig, terminalFlavor, resolveSettings, iconTier } from "./config.js";
@@ -538,6 +538,25 @@ export function terminalLine(t) {
 }
 
 /**
+ * The colour depth a render here would draw, and why. A guess from the
+ * environment is said to be one, since a terminal does not report its depth.
+ */
+export function colourStatus(env = process.env) {
+  const depth = colourDepth(env);
+  const term = env.COLORTERM;
+  const why = term
+    ? `COLORTERM=${term}`
+    : env.TMUX
+      ? "TMUX is set and COLORTERM is not, so truecolor is assumed"
+      : env.TERM_PROGRAM === "Apple_Terminal"
+        ? "Apple Terminal draws 256 colours and sets no COLORTERM"
+        : /-256color$/.test(env.TERM || "") && !env.WT_SESSION
+          ? `TERM=${env.TERM} and COLORTERM is not set`
+          : "COLORTERM is not set, truecolor is assumed";
+  return { depth, line: `colour: ${depth} (${why}; set COLORTERM=truecolor to force 24-bit)` };
+}
+
+/**
  * The colour flavor a render here would use, and where the name came from.
  *
  * The renderer falls back to mocha for a name it does not know, which is the
@@ -673,6 +692,7 @@ export function formatReport(report) {
     ...(report.flavor ? [report.flavor.line] : []),
     ...(report.icons ? [report.icons.line] : []),
     ...(report.separator ? [report.separator.line] : []),
+    ...(report.colour ? [report.colour.line] : []),
     terminalLine(report.terminal),
     `history: ${report.samples} samples (a rate needs 5 spanning a minute)`,
     `rendered ${widths}`,
@@ -699,6 +719,7 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
   report.flavor = flavorStatus(process.cwd());
   report.icons = iconStatus();
   report.separator = separatorStatus();
+  report.colour = colourStatus();
   // A project statusLine wins over the user's, so a person in that project
   // sees another bar and this one looks broken (specs/028-cross-platform).
   report.overrides = projectOverrides(payload?.workspace?.project_dir || payload?.cwd || process.cwd());

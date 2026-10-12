@@ -187,3 +187,91 @@ await test("block mode pads every line to the widest, on mantle", () => {
     else process.env.CLAUDE_STATUSLINE_BLOCK = before;
   }
 });
+
+import { parseOsc11, isLight, cachedBackgroundIsLight, terminalId } from "../../src/terminalBackground.js";
+import { terminalFlavor } from "../../src/config.js";
+import { colourStatus } from "../../src/doctor.js";
+
+await test("an OSC 11 reply is read in two and four digit channels", () => {
+  assert.deepEqual(parseOsc11("\x1b]11;rgb:ffff/ffff/ffff\x07"), { r: 255, g: 255, b: 255 });
+  assert.deepEqual(parseOsc11("\x1b]11;rgb:1e/1e/2e\x1b\\"), { r: 30, g: 30, b: 46 });
+  assert.equal(parseOsc11("nothing"), null);
+  assert.equal(isLight({ r: 239, g: 241, b: 245 }), true);
+  assert.equal(isLight({ r: 30, g: 30, b: 46 }), false);
+});
+
+await test("a remembered terminal background picks latte only after COLORFGBG and for the same terminal", () => {
+  const { mkdtempSync, mkdirSync, writeFileSync } = require_fs();
+  const home = mkdtempSync(path.join(os.tmpdir(), "bg-"));
+  mkdirSync(path.join(home, ".claude", "statusline"), { recursive: true });
+  const env = { TERM_PROGRAM: "iTerm.app", TERM: "xterm-256color" };
+  writeFileSync(path.join(home, ".claude", "statusline", "terminal-background.json"), JSON.stringify({ light: true, terminal: terminalId(env) }));
+  // `os.homedir()` reads USERPROFILE on Windows and HOME elsewhere.
+  const before = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+  process.env.HOME = home;
+  process.env.USERPROFILE = home;
+  try {
+    assert.equal(cachedBackgroundIsLight(env), true);
+    assert.equal(terminalFlavor(env), "latte");
+    assert.equal(terminalFlavor({ ...env, COLORFGBG: "15;0" }), null, "COLORFGBG says dark and goes first");
+    assert.equal(cachedBackgroundIsLight({ TERM_PROGRAM: "WezTerm" }), null, "another terminal does not reuse it");
+  } finally {
+    for (const [k, v] of Object.entries(before)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+});
+
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+function require_fs() {
+  return { mkdtempSync, mkdirSync, writeFileSync };
+}
+
+await test("tmux keeps truecolor when COLORTERM is unset, and doctor says why", () => {
+  assert.equal(colourDepth({ TERM: "tmux-256color", TMUX: "/tmp/tmux-1/default,1,0" }), "truecolor");
+  assert.equal(colourDepth({ TERM: "tmux-256color", COLORTERM: "256color" }), "256");
+  assert.match(colourStatus({ TERM: "tmux-256color", TMUX: "x" }).line, /TMUX is set/);
+  assert.match(colourStatus({ TERM: "xterm-256color" }).line, /^colour: 256/);
+});
+
+await test("the pill style drops its inner padding, since the caps are its edges", () => {
+  const before = process.env.CLAUDE_STATUSLINE_SEPARATOR;
+  process.env.CLAUDE_STATUSLINE_SEPARATOR = "round";
+  try {
+    const out = strip(renderRow(PALETTES.mocha, [{ color: "lavender", text: " main " }]));
+    assert.ok(out.includes("\u{E0B6}main\u{E0B4}"), JSON.stringify(out));
+  } finally {
+    if (before === undefined) delete process.env.CLAUDE_STATUSLINE_SEPARATOR;
+    else process.env.CLAUDE_STATUSLINE_SEPARATOR = before;
+  }
+});
+
+await test("the hairline is an overline on line 1 and adds no line", () => {
+  const before = process.env.CLAUDE_STATUSLINE_HAIRLINE;
+  process.env.CLAUDE_STATUSLINE_HAIRLINE = "1";
+  try {
+    const out = renderPayload(PAYLOAD, { sources: SOURCES, trackChanges: false, layout: NO_ARRANGEMENT, maxWidth: 200, maxHeight: 40, trailingRows: false });
+    const lines = out.split("\n");
+    assert.equal(lines.length, 3);
+    assert.ok(lines[0].startsWith("\x1b[53m"));
+    assert.ok(!lines[1].includes("\x1b[53m"));
+  } finally {
+    if (before === undefined) delete process.env.CLAUDE_STATUSLINE_HAIRLINE;
+    else process.env.CLAUDE_STATUSLINE_HAIRLINE = before;
+  }
+});
+
+await test("a sleeping session dims line 2 by colour, not only by word", () => {
+  const asleep = { working: false, background: { shells: 0, agents: 0 }, todos: null, skills: ["speckit-plan"], idleMs: 6 * 60_000 };
+  const awake = { ...asleep, idleMs: 60_000 };
+  const draw = (activity) =>
+    renderPayload(PAYLOAD, { sources: { ...SOURCES, getSessionActivity: () => activity }, trackChanges: false, layout: NO_ARRANGEMENT, maxWidth: 300, maxHeight: 40 }).split("\n")[1];
+  assert.notEqual(
+    draw(asleep).replace(/sleeping|idle/, "").replace(/[\u{E000}-\u{F8FF}\u{F0000}-\u{FFFFD}]/gu, ""),
+    draw(awake).replace(/sleeping|idle/, "").replace(/[\u{E000}-\u{F8FF}\u{F0000}-\u{FFFFD}]/gu, ""),
+    "the colour sequences differ"
+  );
+});

@@ -390,7 +390,13 @@ function colourDepth(env = process.env) {
   // reports. Terminals that draw truecolor and set neither are named, since
   // they would be served the approximation for no reason: Windows Terminal,
   // and the ones that identify themselves by `TERM_PROGRAM`.
-  const known = env.WT_SESSION || ["iTerm.app", "WezTerm", "vscode", "ghostty", "Hyper"].includes(env.TERM_PROGRAM);
+  // Inside tmux or screen `TERM` names the multiplexer's own 256-colour
+  // terminal and says nothing of the one outside, which is usually truecolor
+  // and often leaves `COLORTERM` unset inside the session.
+  const known =
+    env.WT_SESSION ||
+    env.TMUX ||
+    ["iTerm.app", "WezTerm", "vscode", "ghostty", "Hyper"].includes(env.TERM_PROGRAM);
   if (!known && /-256color$/.test(env.TERM || "")) return "256";
   return "truecolor";
 }
@@ -622,6 +628,9 @@ function renderRow(palette, segments, { asciiArrows = false, width = null } = {}
     // Without colour a chip has no edge. Its leading pad becomes a thin bar,
     // the same width, so the fit that was measured with the pad still holds.
     let label = colourEnabled() ? seg.text : `\u258f${seg.text.replace(/^ /, "")}`;
+    // A pill carries its own caps, so its inner padding goes: the chip costs
+    // what it did in the arrow style (specs/051-review-fixes, item F54).
+    if (style === "round" && colourEnabled()) label = label.replace(/^ /, "").replace(/ $/, "");
     // An icon in its own colour on a neutral chip: the first word of the
     // text, drawn in the token's colour made readable on this background,
     // then the chip's own text colour again.

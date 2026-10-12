@@ -1880,6 +1880,8 @@ export function renderReadings(
     }
   };
 
+  const sleeping =
+    Boolean(activity) && !activity.awaiting && !activity.working && typeof activity.idleMs === "number" && activity.idleMs >= 5 * 60_000;
   const assemble = () => {
     const built = [...content, ...buildLine3()];
     leaveOneRed(built);
@@ -1889,7 +1891,9 @@ export function renderReadings(
       const placed = attach(seg);
       if (placementFor(seg.key)?.on === false) continue;
       // The pill style adds two caps to every chip, which the fit has to know.
-      if (roundStyle) placed.extra = 2;
+      if (roundStyle) placed.extra = 0;
+      // A sleeping session recedes: line 2 is drawn in the quiet colour.
+      if (sleeping && placed.line === 2) placed.quiet = true;
       byLineNumber.get(placed.line)?.push(placed);
     }
     const out = [];
@@ -1933,7 +1937,16 @@ export function renderReadings(
   // `CLAUDE_STATUSLINE_BLOCK=1`: every line is padded to the widest one with
   // spaces on `mantle`, so the right edge is a block and not a ragged one.
   const block = process.env.CLAUDE_STATUSLINE_BLOCK === "1" && colourEnabled();
-  const texts = surviving.map((_, i) => renderRow(palette, aligned[i], opts));
+  // `CLAUDE_STATUSLINE_HAIRLINE=1`: an overline (SGR 53) across line 1, which
+  // is a rule above the bar without being a fourth line. A terminal that does
+  // not draw it ignores it. It is not a colour, so it stays with `NO_COLOR`
+  // only where there is no other escape to add: it is skipped there.
+  const hairline = process.env.CLAUDE_STATUSLINE_HAIRLINE === "1" && colourEnabled();
+  const texts = surviving.map((entry, i) => {
+    const text = renderRow(palette, aligned[i], opts);
+    // Every reset in the row clears the overline too, so it is set again after each.
+    return hairline && entry.line === 1 ? `\x1b[53m${text.replace(/\x1b\[0m/g, "\x1b[0m\x1b[53m")}\x1b[0m` : text;
+  });
   const widest = block ? Math.max(0, ...texts.map((text) => displayWidth(text))) : 0;
   const drawn = surviving.map((entry, i) => {
     let text = texts[i];

@@ -237,7 +237,9 @@ than 3 degrees and lightness rises.
 - **`COLORFGBG` malformed or with a single value**: treated as unset.
 - **`COLORFGBG` set by a terminal that is wrong**: the person sets a flavor, which always wins.
 - **A flavor name that is unknown**: falls back as it does today.
-- **`COLORTERM` unset**: the bar keeps 24-bit colour, as today, except in Apple Terminal, which
+- **`COLORTERM` unset**: the bar kept 24-bit colour, as before, except in Apple Terminal (feature
+  050 and the 2026-10 review then made `TERM=*-256color` 256 colours outside tmux, Windows
+  Terminal and the self-naming terminals), which
   draws 256 colours and does not set it. Windows Terminal and several SSH setups draw truecolor
   and do not set it either, so an absent variable is not read as "no truecolor".
 - **Truecolor reported by `COLORTERM` but unsupported**: not detectable; the person sets
