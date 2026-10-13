@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "../test-harness.js";
@@ -41,6 +41,34 @@ await test("the build answers --version and --print-config with the contract", (
   const c = spawnSync(process.execPath, [cli, "--print-config"], { encoding: "utf8", env: { PATH: process.env.PATH, HOME: os.tmpdir(), USERPROFILE: os.tmpdir() } });
   assert.equal(c.status, 0, c.stderr);
   assert.equal(JSON.parse(c.stdout).contract, CONTRACT);
+});
+
+await test("an import that does not resolve fails the build instead of shipping a broken copy", () => {
+  const base = mkdtempSync(path.join(os.tmpdir(), "render-only-base-"));
+  mkdirSync(path.join(base, "src"), { recursive: true });
+  writeFileSync(path.join(base, "src", "a.js"), 'import x from "./missing.js";\nexport default x;\n');
+  assert.throws(() => closure([path.join("src", "a.js")], base), /missing\.js/);
+});
+
+await test("the usage text names only the commands the copy has", () => {
+  const r = spawnSync(process.execPath, [cli, "help"], { encoding: "utf8" });
+  assert.equal(r.status, 0);
+  for (const gone of ["install", "uninstall", "doctor", "codex", "check-updates"]) {
+    assert.ok(!new RegExp(`^  ${gone}\\b`, "m").test(r.stdout), `${gone} is not advertised`);
+  }
+  assert.match(r.stdout, /render/);
+  assert.match(r.stdout, /--print-config/);
+});
+
+await test("a Copilot payload and the detached refresh run through the build", () => {
+  const home = mkdtempSync(path.join(os.tmpdir(), "render-only-home-"));
+  const env = { PATH: process.env.PATH, HOME: home, USERPROFILE: home, COLUMNS: "100", CLAUDE_STATUSLINE_NO_REFRESH: "1" };
+  const payload = readFileSync(path.join(root, "scripts", "tests", "fixtures", "copilot-payload.json"), "utf8");
+  const r = spawnSync(process.execPath, [cli], { input: payload, encoding: "utf8", env, cwd: home });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(r.stdout.length > 0);
+  const refresh = spawnSync(process.execPath, [cli, "refresh", "git", "0000000000000000"], { encoding: "utf8", env: { ...env, CLAUDE_STATUSLINE_NO_REFRESH: "" }, cwd: home });
+  assert.equal(refresh.status, 0, refresh.stderr);
 });
 
 await test("VERSION names the version, the contract and the build", () => {

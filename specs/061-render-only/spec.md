@@ -32,14 +32,17 @@ calls. This builds the smaller copy from the import graph.
 - **FR-004**: A command that was left out (`install`, `doctor`, `codex`) fails with the missing
   module and a non-zero exit; the render path is unaffected.
 - **FR-005**: `dist/` is not committed.
+- **FR-006**: An import in the closure that does not resolve fails the build.
 
 ## Measured
 
-On 1.57.0 the build is 39 of 52 modules and 446 KB of 605 KB of source (74%): the Copilot and
+At the time of writing the build is 39 of 52 modules and 74% of the source's bytes (`VERSION`
+records the module count, so the figure is checked by building): the Copilot and
 Codex readers, the gate and task rows and the transcript tail are part of the render path, so
 they stay. What goes is the installer, the doctor, the Codex launcher and pane, the OpenCode glue
 and the preview converter (13 modules, 26%). A host that wants less has to drop a harness, which
-is a separate decision.
+is a separate decision. The usage text of the build lists only the commands it has, and a
+specifier that does not resolve fails the build.
 
 ## Success criteria
 

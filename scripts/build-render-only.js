@@ -34,7 +34,9 @@ export function closure(entries = ENTRIES, base = root) {
   const stack = [...entries];
   while (stack.length) {
     const rel = stack.pop();
-    if (seen.has(rel) || !rel.startsWith("src") || !existsSync(path.join(base, rel))) continue;
+    if (seen.has(rel) || !rel.startsWith("src")) continue;
+    // A specifier that does not resolve would ship a copy that fails at the import: fail the build.
+    if (!existsSync(path.join(base, rel))) throw new Error(`render-only: ${rel} is imported but does not exist`);
     seen.add(rel);
     const text = readFileSync(path.join(base, rel), "utf8");
     for (const m of text.matchAll(IMPORT)) stack.push(path.normalize(path.join(path.dirname(rel), m[1])));
@@ -51,7 +53,12 @@ export function buildRenderOnly(outDir = path.join(root, "dist", "render-only"))
     mkdirSync(path.dirname(path.join(outDir, rel)), { recursive: true });
     cpSync(path.join(root, rel), path.join(outDir, rel));
   }
-  cpSync(path.join(root, "bin", "cli.js"), path.join(outDir, "bin", "cli.js"));
+  // The usage text drops the commands this copy does not have.
+  const cli = readFileSync(path.join(root, "bin", "cli.js"), "utf8")
+    .split("\n")
+    .filter((line) => !/^\s*"  (install|uninstall|update|updates|check-updates|codex|codex-pane|doctor)\b/.test(line))
+    .join("\n");
+  writeFileSync(path.join(outDir, "bin", "cli.js"), cli);
   cpSync(path.join(root, "package.json"), path.join(outDir, "package.json"));
   if (existsSync(path.join(root, "LICENSE"))) cpSync(path.join(root, "LICENSE"), path.join(outDir, "LICENSE"));
   const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
