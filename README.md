@@ -1349,6 +1349,16 @@ flavor `mocha`, truecolor, `TZ=UTC`). A program that embeds a copy of the render
 payloads and compare. `node scripts/make-host-fixtures.js` rewrites the expected files, and the
 test suite fails when they move without it.
 
+### A render-only copy for a host
+
+`node scripts/build-render-only.js [outDir]` writes a copy of the renderer without the installer, the
+doctor, the Codex launcher and pane and the preview converter: `bin/cli.js`, the 39 modules the
+render, refresh, `--print-config` and `--version` paths reach (read from the import graph, so a
+module the renderer starts to need is included), `package.json` and a `VERSION` file with the
+version, the commit and the contract number. It draws the shared fixtures exactly as the full copy
+does; a command that was left out fails as a missing module. It is about three quarters of the
+source's size, because the readers for every harness are part of a render.
+
 ### Passive mode for a host
 
 A host that runs the renderer on every redraw can ask to be certain it touches nothing it was not

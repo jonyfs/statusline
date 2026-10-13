@@ -8,3 +8,6 @@ node_modules/
 # Local-only skill, not part of the published project
 .claude/skills/publish-to-medium/
 docs/article-images/
+
+# Built by scripts/build-render-only.js
+/dist/
