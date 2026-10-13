@@ -278,7 +278,7 @@ await test("the real renderer draws a Codex rollout with Claude's segments", () 
   const out = draw(rolloutPayload(state, { now: NOW }), { getSessionActivity: () => rolloutActivity(state) });
   assert.match(out, /gpt-5\.5/);
   assert.match(out, /medium/);
-  assert.match(out, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%/);
+  assert.match(out, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%/);
   assert.match(out, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?11%/);
   assert.match(out, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?2%/);
   assert.match(out, /idle/);
@@ -289,7 +289,7 @@ await test("a window Codex does not report is absent, not ?%", () => {
   const out = draw(payloadOf(fixture("free")));
   assert.doesNotMatch(out, /5h /);
   assert.doesNotMatch(out, /7d /);
-  assert.match(out, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?34%/);
+  assert.match(out, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?34%/);
 });
 
 await test("before the first turn the model chip says Codex, never Claude", () => {

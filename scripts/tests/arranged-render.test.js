@@ -56,14 +56,14 @@ await test("a segment switched off leaves the bar", () => {
   const after = draw({ version: 1, segments: { rtk: { on: false } } });
   assert(/rtk 81% saved/.test(before), "the baseline has no savings segment to remove");
   assert(!/rtk 81% saved/.test(after), "the savings segment survived being switched off");
-  assert(/context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(after), "something else was removed along with it");
+  assert(/󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(after), "something else was removed along with it");
 });
 
 await test("a segment switched off leaves whatever its priority", () => {
   // Context carries the highest priority on the bar. If anything ignores an
   // off switch, it is this.
   const after = draw({ version: 1, segments: { context: { on: false } } });
-  assert(!/context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(after), "the highest-priority segment ignored being switched off");
+  assert(!/󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(after), "the highest-priority segment ignored being switched off");
 });
 
 await test("a segment moved to another line renders there", () => {

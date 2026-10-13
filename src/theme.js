@@ -410,6 +410,10 @@ export const QUIET = "\u0002";
 export const MARK_OFF = "\u0003";
 /** Good news: the text after it is drawn in the healthy colour, readable on the chip. */
 export const GOOD = "\u0004";
+/** A modified count: the text after it is drawn in the modified (yellow) colour, readable on the chip. */
+export const WARM = "\u0005";
+/** Commits behind upstream: the text after it is drawn in the cold (sapphire) colour. */
+export const BEHIND = "\u0006";
 
 /**
  * The colour for a chip marked `quiet`, text that is read second: the palette's `text` or
@@ -449,9 +453,10 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
     // Without colour a chip has no edge. Its leading pad becomes a thin bar,
     // the same width, so the fit that was measured with the pad still holds.
     let label = colourEnabled() ? seg.text : `\u258f${seg.text.replace(/^ /, "")}`;
-    // A pill carries its own caps, so its inner padding goes: the chip costs
-    // what it did in the arrow style (specs/051-review-fixes, item F54).
-    if (style === "round" && colourEnabled()) label = label.replace(/^ /, "").replace(/ $/, "");
+    // A pill carries its own caps, so its leading pad goes and one column of
+    // trailing padding stays: 0 before, 1 after, as the guide draws it
+    // (specs/054-guide-gaps, owner decision of 2026-10-12).
+    if (style === "round" && colourEnabled()) label = label.replace(/^ /, "");
     // `CLAUDE_STATUSLINE_PADDING=wide`: two columns before the icon of every
     // chip that follows an arrow (the review's section 5.5). Opt-in, because it
     // costs a column a chip and the track already costs about six a gauge.
@@ -471,19 +476,23 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
     // Under `NO_COLOR` the markers are removed and nothing replaces them: the
     // bar's contract there is plain text with no escape at all, and a bold on
     // every figure would put one on every chip.
-    if (/[\u0001-\u0004]/.test(label)) {
+    if (/[\u0001-\u0006]/.test(label)) {
       if (!colourEnabled()) {
-        label = label.replace(/[\u0001-\u0004]/g, "");
+        label = label.replace(/[\u0001-\u0006]/g, "");
       } else {
         // `CLAUDE_STATUSLINE_DIM=sgr` asks for the terminal's own dim (SGR 2)
         // where the default is a quieter text colour that keeps 4.5:1.
         const sgrDim = String(process.env.CLAUDE_STATUSLINE_DIM ?? "").toLowerCase() === "sgr";
         const quiet = sgrDim ? "\x1b[2m" : fg(quietText(palette, seg.color));
         const good = fg(readable(resolveColour(palette, "green"), segBg));
+        const warm = fg(readable(resolveColour(palette, "yellow"), segBg));
+        const behind = fg(readable(resolveColour(palette, "sapphire"), segBg));
         label = label
           .replace(/\u0001/g, "\x1b[1m")
           .replace(/\u0002/g, quiet)
           .replace(/\u0004/g, good)
+          .replace(/\u0005/g, warm)
+          .replace(/\u0006/g, behind)
           .replace(/\u0003/g, `\x1b[22m${fg(segFg)}`);
       }
     }
@@ -626,7 +635,7 @@ function isWide(cp) {
 export function displayWidth(text) {
   const plain = String(text)
     .replace(/\x1b\[[0-9;:]*m/g, "")
-    .replace(/[\u0001-\u0004]/g, "")
+    .replace(/[\u0001-\u0006]/g, "")
     .replace(/\x1b\]8;;[^\x07]*\x07/g, "");
 
   const chars = [...plain];

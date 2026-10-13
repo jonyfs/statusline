@@ -801,8 +801,12 @@ they have. A few rules keep the line from moving as figures change:
   take the same width and the chips after them stay put.
 - A duration under an hour is `45m`, and an hour or more is `2h09`, with no trailing `m`.
 - A reset is introduced by its own icon instead of a dot.
-- A chip that has a short form (`context 46%` is `46%` with its icon, `rtk 81% saved` is
-  `81%`) shows it before the width guard drops the chip.
+- A chip that has a short form (`rtk 81% saved` is `81%`) shows it before the width guard drops
+  the chip. The context chip has no word at all: its icon and the figure. The directory, branch,
+  skills and effort chips end in their icon alone, so a narrow line shortens them before it
+  drops them; the model chip has no icon-only form, since an icon names no model.
+- The modified count is yellow, the staged count green and the behind count sapphire in the
+  working-tree chip. The pill style keeps no leading pad and one trailing column.
 - The model and its effort share one background and read as one block.
 - A branch prefix is abbreviated (`feature/` is `f/`, `fix/` is `x/`), and a name longer than
   28 columns is cut in the middle with `…`. A directory cut from the left begins with `…/`.
@@ -1502,9 +1506,9 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-md-format_list_checks` | `U+F0756` | the todo list |
 | `nf-md-hammer` / `nf-md-coffee` | `U+F08EA` / `U+F0176` | working, idle |
 | `nf-md-puzzle` | `U+F0431` | active skills |
-| `nf-md-creation` | `U+F167A` | model |
+| `nf-md-robot_outline` | `U+F167A` | model |
 | `nf-md-gauge_low` / `nf-md-gauge` / `nf-md-gauge_full` | `U+F0875` / `U+F029A` / `U+F0874` | effort: low, medium, high |
-| `nf-md-chart_donut` | `U+F09D1` | context window |
+| `nf-md-brain` | `U+F09D1` | context window |
 | `nf-md-timer_sand` | `U+F051F` | the 5-hour window, an hourglass: time that runs out |
 | `nf-md-sync` | `U+F04E6` | a reset: the window comes back |
 | `nf-oct-stopwatch` | `U+F520` | session duration, a stopwatch: time elapsed |
@@ -1512,7 +1516,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-md-piggy_bank` | `U+F1679` | rtk, what it saves |
 | `nf-md-wallet` | `U+F0584` | the spend limit |
 | `nf-md-timer_sand_full` / `_half` / `_empty` and `nf-md-snowflake` | `U+F078C` / `U+F051F` / `U+F06AD` and `U+F0717` | the prompt cache: warm with most, half and the last third of its life left, and cold |
-| `nf-md-gift` / `nf-md-arrow_up_bold` | `U+F0394` / `U+F0737` | an update waiting, and one applied |
+| `nf-md-new_box` / `nf-md-arrow_up_bold` | `U+F0394` / `U+F0737` | an update waiting, and one applied |
 | `nf-custom-vim` | `U+E62B` | the vim mode, while vim mode is on |
 | `nf-md-lightning_bolt` | `U+F140B` | fast mode, while it is on |
 

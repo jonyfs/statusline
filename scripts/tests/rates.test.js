@@ -83,7 +83,7 @@ await test("no sparkline: the trend segment was removed", () => {
 await test("the compaction warning was removed on 2026-08-26", () => {
   const near = overTime(`compact-near-${process.pid}`, [{ at: 0, context: 92, fiveHour: 10 }]);
   assert.doesNotMatch(near, /compacting soon/);
-  assert.match(near, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?92%/, "the figure itself still says how close it is");
+  assert.match(near, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?92%/, "the figure itself still says how close it is");
 });
 
 await test("a clock renders in 24-hour form", () => {

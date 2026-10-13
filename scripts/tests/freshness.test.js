@@ -56,7 +56,7 @@ await test("usage segments keep their slot and show ?% instead of disappearing",
   // has nothing; these five must not, or a reader cannot tell "unknown"
   // from "the segment moved".
   const plain = stripAnsi(renderPayload({}, { sources: emptySources }));
-  assert.match(plain, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
+  assert.match(plain, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
   assert.match(plain, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—\s+\S+\s+\?/);
   assert.match(plain, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—\s+\S+\s+\?/);
   assert.doesNotMatch(plain, /NaN|undefined|null/);
@@ -69,7 +69,7 @@ await test("a partial payload leaves the present figures alone", () => {
       { sources: emptySources }
     )
   );
-  assert.match(plain, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?41%/);
+  assert.match(plain, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?41%/);
   assert.match(plain, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
   assert.match(plain, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
 });
