@@ -117,7 +117,7 @@ import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
 import { resolveLayout, iconTier, repoConfig } from "./config.js";
 import { abbreviateBranch, cutMiddle, DEFAULT_BRANCH_PREFIXES, BRANCH_COLUMNS } from "./names.js";
-import { bar, gaugeChip, bandFor, track, paceBand, contextBand } from "./ramp.js";
+import { gaugeChip, bandFor, track, paceBand, contextBand } from "./ramp.js";
 import { ROLE } from "./colourRoles.js";
 import { plainText } from "./text.js";
 import { ratePerHour, projectFull, pushSample, sparkline } from "./samples.js";

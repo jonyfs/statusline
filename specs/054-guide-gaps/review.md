@@ -30,3 +30,23 @@ marked confirmed against the 1.49.0 baseline. The findings and what was done wit
 FR-003 (colour of the skipped mark), FR-005 (the cut marker's colour and the return to the chip
 colour), FR-006 (variants), FR-008 (another flavor) and FR-010 (failed state, all tiers) have
 tests in `scripts/tests/guide-gaps.test.js`.
+
+## Confirmation of the head that resolved the findings
+
+The same reviewer checked `git diff 1011024..e92ca0f` on 2026-10-13, re-ran its narrow-width
+and pill sweeps on a clean extract, and ran `npm test` (1010 of 1011 on the extract, where the
+one failure needs a git clone; 1011 of 1011 in the repository).
+
+| # | Result | Disposition |
+|---|---|---|
+| 1 | Resolved | None |
+| 2 | Resolved | None |
+| 3 | Resolved | None |
+| 4 | Resolved | None |
+| 5 | Partial: `asciiArrows` reached `harnessAgentRows` but not `alignTaskRows` | Fixed in feature 055 and tested |
+| 6 | Resolved; one orphan comment line left in the extractor | Comment rewritten in feature 055 |
+| 7 | Resolved | None |
+
+The reviewer's sweeps also showed arrow, slant and thin overflowing by one column at 197 and 213
+columns, a defect older than 054. Feature 055 fixes it.
+

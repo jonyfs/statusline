@@ -100,9 +100,8 @@ WANTED = {
     "F0176": 0xF0176,  # nf-md-coffee: idle
     "F0431": 0xF0431,  # nf-md-puzzle: the active skills
     "F06A9": 0xF06A9,  # nf-md-robot: the model
-    # Replaced by F09D1 in specs/054; F09DA is listed as
-                       # "brain" and draws a boxed chevron
-                       # "stopwatch" and draws three flat bars
+    # Names that lied: F09DA is listed as "brain" and draws a boxed chevron,
+    # and F44E is listed as "stopwatch" and draws three flat bars.
     "F0238": 0xF0238,  # nf-md-fire: how fast the window is being spent
     "F0584": 0xF0584,  # nf-md-wallet: the spend limit. F0114 "cash" draws a
                        # banknote, and F00F6, listed as a cart, a calendar
