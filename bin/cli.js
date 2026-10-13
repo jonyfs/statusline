@@ -114,7 +114,7 @@ const USAGE = [
   "  uninstall [--harness copilot|codex|opencode]",
   "  codex [codex arguments]      Codex CLI with the bar in a tmux pane under it",
   "  codex-pane [--cwd <dir>] [--rollout <file>] [--session <id>] [--pid <n>] [--once]",
-  "  render",
+  "  render [--format runs|ansi]   the bar; runs prints it as JSON for a host (see the README)",
   "  doctor [--json|--explain]",
   "  help",
 ].join("\n");

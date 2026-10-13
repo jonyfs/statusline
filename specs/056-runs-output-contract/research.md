@@ -27,7 +27,8 @@
 ## Decision 3: colours without a hex value are left out
 
 - **Decision**: the `terminal` palette draws `ansi:N` tokens, which have no hex. In runs mode
-  they become SGR default (`39`, `49`) so a run carries no `fg` or `bg`. The same holds for
+  are written as basic colour codes (`30` to `37`, `40` to `47`, `90` to `97`, `100` to `107`),
+  which the converter reads as clearing `fg` or `bg`, so a run carries neither. The same holds for
   `NO_COLOR`, where the renderer emits no escape and runs carry only `text`.
 - **Rationale**: inventing a hex for the terminal's own colour would be a guess the host cannot
   tell from a measurement (Principle III, by analogy).

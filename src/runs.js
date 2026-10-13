@@ -79,8 +79,8 @@ export function ansiToRuns(line) {
       else if (c === 4) state.underline = !(sub.length && Number(sub[0]) === 0);
       else if (c === 22) state.bold = state.dim = false;
       else if (c === 24) state.underline = false;
-      else if (c === 39) state.fg = null;
-      else if (c === 49) state.bg = null;
+      else if (c === 39 || (c >= 30 && c <= 37) || (c >= 90 && c <= 97)) state.fg = null;
+      else if (c === 49 || (c >= 40 && c <= 47) || (c >= 100 && c <= 107)) state.bg = null;
       else if (c === 38 || c === 48) {
         const slot = c === 38 ? "fg" : "bg";
         // `38;2;r;g;b` and `38;5;n` use following tokens; `38:2::r:g:b` is one.
