@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
 import { GLYPHS, renderPayload, renderReadings, gather } from "../../src/render.js";
 import { renderTaskRow } from "../../src/taskRows.js";
+import { displayWidth } from "../../src/theme.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
 import { PAYLOAD, SOURCES, FIXED_NOW, RENDER_OPTIONS } from "../composer-fixture.js";
 
@@ -160,4 +161,21 @@ await test("the tree counts keep their own colours: modified, added, behind (sec
   assert.ok(raw.includes(`${seq(249, 226, 175)}${G.modified}`), "modified in yellow");
   assert.ok(raw.includes(`${seq(166, 227, 161)}${G.added}`), "added in green");
   assert.ok(raw.includes(`${seq(116, 199, 236)}${G.pull}`), "behind in sapphire");
+});
+
+await test("a blocked update draws its own glyph, not the waiting one", () => {
+  for (const tier of ["nerd", "emoji", "plain"]) assert.ok(GLYPHS[tier].updateBlocked, tier);
+  assert.notEqual(GLYPHS.nerd.updateBlocked, GLYPHS.nerd.updateReady);
+});
+
+await test("the pill's trailing column is counted: no line is wider than the window", () => {
+  const now = FIXED_NOW * 1000;
+  withEnv({ CLAUDE_STATUSLINE_SEPARATOR: "round" }, () => {
+    for (const width of [60, 80, 120, 200]) {
+      const out = strip(
+        renderReadings(gather(PAYLOAD, { ...SOURCES }, { now }), PAYLOAD, { ...RENDER_OPTIONS, maxWidth: width, maxHeight: 40, trailingRows: false })
+      );
+      for (const line of out.split("\n")) assert.ok(displayWidth(line) <= width, `${width}: ${displayWidth(line)} columns in "${line.slice(0, 40)}"`);
+    }
+  });
 });
