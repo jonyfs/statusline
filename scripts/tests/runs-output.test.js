@@ -67,6 +67,11 @@ await test("a link keeps its target and drops its id; an unknown scheme keeps th
   assert.deepEqual(bad, [{ text: "text" }]);
 });
 
+await test("a basic colour code clears a truecolor value set earlier on the line", () => {
+  const runs = ansiToRuns("\x1b[38;2;1;2;3m\x1b[48;2;4;5;6mA\x1b[31m\x1b[42mB\x1b[38;2;7;8;9mC");
+  assert.deepEqual(runs, [{ text: "A", fg: "#010203", bg: "#040506" }, { text: "B" }, { text: "C", fg: "#070809" }]);
+});
+
 await test("spaces keep their background, an unstyled run has only text, a wide character is whole", () => {
   assert.deepEqual(ansiToRuns("\x1b[48;2;1;2;3m   \x1b[0m"), [{ text: "   ", bg: "#010203" }]);
   assert.deepEqual(ansiToRuns("plain"), [{ text: "plain" }]);
