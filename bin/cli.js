@@ -31,9 +31,12 @@ const [subcommand, ...rest] = argvRest;
 const isRender = subcommand === "render" || subcommand === undefined;
 const runsMode = isRender && (formatValue === "runs" || (formatValue === null && process.env.CLAUDE_STATUSLINE_OUTPUT === "runs"));
 
-// A test can lower the version the check sees, in runs mode only.
+// The commands that answer as data: a failure is the error object and exit 75.
+const dataCommand = ["--print-config", "print-config", "--version", "version"].includes(subcommand);
+
+// A test can lower the version the check sees, in runs mode and for the data commands only.
 const nodeMajor =
-  runsMode && process.env.CLAUDE_STATUSLINE_TEST_NODE_MAJOR
+  (runsMode || dataCommand) && process.env.CLAUDE_STATUSLINE_TEST_NODE_MAJOR
     ? Number.parseInt(process.env.CLAUDE_STATUSLINE_TEST_NODE_MAJOR, 10)
     : Number.parseInt(process.versions.node.split(".")[0], 10);
 const nodeTooOld = !(nodeMajor >= MIN_NODE_MAJOR);
@@ -183,7 +186,8 @@ const runRuns = runsMain;
 async function main() {
   ignoreClosedOutput();
   if (nodeTooOld) {
-    if (runsMode) {
+    // The data commands answer in the failure contract too.
+    if (runsMode || dataCommand) {
       runsFailure("node-version", `statusline needs Node ${MIN_NODE_MAJOR} or newer`);
       return;
     }
@@ -202,8 +206,9 @@ async function main() {
     case "print-config": {
       // Resolved configuration as data, for a host (specs/059-print-config).
       try {
+        const eq = rest.find((a) => String(a).startsWith("--cwd="));
         const cwdAt = rest.indexOf("--cwd");
-        const dir = cwdAt !== -1 && rest[cwdAt + 1] ? rest[cwdAt + 1] : process.cwd();
+        const dir = eq ? eq.slice("--cwd=".length) || process.cwd() : cwdAt !== -1 && rest[cwdAt + 1] ? rest[cwdAt + 1] : process.cwd();
         const { resolvedConfig } = await import("../src/printConfig.js");
         process.stdout.write(JSON.stringify(resolvedConfig(dir)) + "\n");
       } catch {

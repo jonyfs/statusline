@@ -25,7 +25,9 @@ host's original request (the contract version).
   `contract`, `version`, `flavor` and its `flavorSource` (`env`, `repo`, `terminal` or
   `default`), `ramp` (`default` or `cvd`), `contrast` (`normal` or `high`), `glyphs` (`nerd`,
   `emoji` or `plain`), `ascii`, `separator`, `colourDepth` (`truecolor`, `256` or `none`),
-  `layout` (`origin`, `path`, `omitted`), and `passive` with `cacheDir`.
+  `layout` (`origin`, `path`, `omitted`), and `passive` with `cacheDir`. Each value is the one a render
+  would use: an unknown flavor reports `mocha` and, as `flavorRequested`, what was asked for; the
+  emoji tier reports the ASCII separator unless one was named.
 - **FR-002**: It honours the same environment, repository file and person's settings the renderer
   would, for the directory it is run in (or `--cwd <dir>`), and reads nothing a render does not.
 - **FR-003**: `--version` (also `version`) prints `statusline <version> (contract <n>)`, and

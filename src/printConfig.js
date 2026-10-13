@@ -7,7 +7,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolveSettings, resolveLayout, iconTier, repoConfig, terminalFlavor, omittedKeys } from "./config.js";
-import { separatorStyle, contrastHigh, colourDepth, colourEnabled } from "./theme.js";
+import { PALETTES, separatorStyle, contrastHigh, colourDepth, colourEnabled } from "./theme.js";
 import { CONTRACT } from "./runs.js";
 import { isPassive, cacheRoot } from "./paths.js";
 
@@ -35,13 +35,19 @@ export function resolvedConfig(cwd = process.cwd(), env = process.env) {
   return {
     contract: CONTRACT,
     version: packageVersion(),
-    flavor: settings.flavor,
+    // A name no palette has is drawn as mocha, and says so.
+    flavor: PALETTES[settings.flavor] ? settings.flavor : "mocha",
+    ...(PALETTES[settings.flavor] ? {} : { flavorRequested: String(settings.flavor) }),
     flavorSource,
     ramp: String(env.CLAUDE_STATUSLINE_RAMP ?? "").toLowerCase() === "cvd" ? "cvd" : "default",
     contrast: contrastHigh(env) ? "high" : "normal",
     glyphs: tier.tier,
     ascii: settings.asciiArrows === true,
-    separator: separatorStyle({ asciiArrows: settings.asciiArrows, style: settings.separator ?? env.CLAUDE_STATUSLINE_SEPARATOR }),
+    // The render swaps the emoji tier to the ASCII separator unless one was named.
+    separator: separatorStyle({
+      asciiArrows: settings.asciiArrows || (tier.tier === "emoji" && !env.CLAUDE_STATUSLINE_SEPARATOR && !settings.separator),
+      style: settings.separator ?? env.CLAUDE_STATUSLINE_SEPARATOR,
+    }),
     colourDepth: colourEnabled() ? colourDepth(env) : "none",
     layout: { origin: layout.origin, path: layout.path ?? null, omitted: omittedKeys(env) },
     passive: isPassive(env),

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -102,4 +102,35 @@ await test("the contract number is the one a runs object carries", () => {
     cwd: ROOT,
   });
   assert.equal(JSON.parse(r.stdout).contract, JSON.parse(run(["--version", "--json"]).r.stdout).contract);
+});
+
+await test("the emoji tier reports the ASCII separator a render draws unless one is named", () => {
+  assert.equal(resolvedConfig(ROOT, envWith({ CLAUDE_STATUSLINE_ICONS: "emoji" }).env).separator, "ascii");
+  assert.equal(resolvedConfig(ROOT, envWith({ CLAUDE_STATUSLINE_ICONS: "emoji", CLAUDE_STATUSLINE_SEPARATOR: "slant" }).env).separator, "slant");
+});
+
+await test("a flavor no palette has is reported as the one drawn", () => {
+  const c = resolvedConfig(ROOT, envWith({ CLAUDE_STATUSLINE_FLAVOR: "nope" }).env);
+  assert.equal(c.flavor, "mocha");
+  assert.equal(c.flavorRequested, "nope");
+});
+
+await test("--cwd works in both spellings", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "print-config-repo-"));
+  writeFileSync(path.join(dir, ".statusline.json"), JSON.stringify({ flavor: "latte" }));
+  for (const args of [["--print-config", "--cwd", dir], ["--print-config", `--cwd=${dir}`]]) {
+    const c = JSON.parse(run(args).r.stdout);
+    assert.equal(c.flavor, "latte");
+    assert.equal(c.flavorSource, "repo");
+  }
+});
+
+await test("on a Node that is too old both commands answer with the error object and exit 75", () => {
+  for (const args of [["--print-config"], ["--version"]]) {
+    const { r } = run(args, { CLAUDE_STATUSLINE_TEST_NODE_MAJOR: "14" });
+    assert.equal(r.status, 75, `${args[0]}: ${r.stderr}`);
+    const doc = JSON.parse(r.stdout);
+    assert.equal(doc.error.code, "node-version");
+    assert.ok(!/\n\s+at /.test(r.stdout + r.stderr), "no stack trace");
+  }
 });

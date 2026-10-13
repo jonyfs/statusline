@@ -1336,7 +1336,10 @@ node bin/cli.js --version [--json]
 (`origin`, `path` and the `omitted` keys) and `passive` with `cacheDir`. It reads the same
 environment, repository file and settings a render does. `--version` prints
 `statusline <version> (contract <n>)`, or the same two fields as JSON; `contract` is the number a
-runs object carries and rises only when a host could notice a change in its shape.
+runs object carries and rises only when a host could notice a change in its shape. Both answer a
+failure with the error object and exit code 75. `colourDepth` is the environment's: the runs form
+always uses truecolor, and `flavor` is the palette drawn (`flavorRequested` names a value no palette
+has).
 
 ### Passive mode for a host
 
