@@ -23,6 +23,7 @@ import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
 import { eighthsBar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
+import { iconTier } from "./config.js";
 import { readSkillsByAgent } from "./skillEvents.js";
 
 const RESET = "\x1b[0m";
@@ -33,6 +34,12 @@ const RESET = "\x1b[0m";
 const reset = () => (colourEnabled() ? RESET : "");
 
 const fg = (hex) => (hex ? fgSeq(hex) : "");
+
+// The alert glyph the gauges use for a critical band, where the tier has one
+// (specs/054). The other tiers keep the plain mark, which is one column too.
+function criticalMark() {
+  return iconTier().tier === "nerd" ? "\u{F40C}" : "!";
+}
 
 /**
  * The earliest instant a subagent could plausibly have started.
@@ -188,7 +195,7 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   // Eight cells in eighths (specs/046-gauges): sixty-four steps in the same
   // columns, where the nine shade cells it replaced had ten.
   const gauge =
-    pct === null ? null : `${eighthsBar(pct)} ${pct >= 85 ? "!" : ""}${Math.round(Math.min(100, pct))}%`;
+    pct === null ? null : `${eighthsBar(pct)} ${pct >= 85 ? criticalMark() : ""}${Math.round(Math.min(100, pct))}%`;
 
   // What the agent was asked to do leads (specs/049-rows-themes-docs): it is what a
   // reader scans for. It replaces the order the owner chose on 2026-09-08, which led with what

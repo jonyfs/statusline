@@ -20,6 +20,7 @@ requirements sit in the spec of the feature named in each row.
 | I81 to I90 | 048 state feedback | Sleeping line 2 corrected in 051. |
 | J91 to J100 | 049 rows, themes, docs | J98 kept blue, yellow, red, reason in 051. |
 | Sections 5.4 to 5.7 | 052 | Second diff against the guide's drawings. |
+| Section 5.3 rows, F57, G64, E49 | 054 | From the item-by-item audit of 2026-10-12. |
 
 ## Amendments
 

@@ -161,5 +161,7 @@ await test("a CI result renders as a mark and a workflow name", () => {
   assert.match(render({ conclusion: "success", status: "completed", workflow: "CI" }), re`${G.ciPass} CI`);
   assert.match(render({ conclusion: "failure", status: "completed", workflow: "CI" }), re`${G.ciFail} CI`);
   assert.match(render({ conclusion: null, status: "in_progress", workflow: "CI" }), re`${G.ciRunning} CI`);
-  assert.doesNotMatch(render(null), re`[${G.ciPass}${G.ciFail}${G.ciRunning}]`);
+  // F4A4 is also the clean-tree mark (specs/054), so the glyph alone no longer
+  // tells a CI chip from a clean tree; the workflow name does.
+  assert.doesNotMatch(render(null), /\bCI\b/);
 });

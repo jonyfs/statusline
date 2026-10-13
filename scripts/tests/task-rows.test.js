@@ -38,7 +38,7 @@ await test("the context bar uses the same ramp as the statusline", () => {
   // 95% is seven whole cells and most of the eighth.
   assert.match(calm, /[\u2589-\u258f]/, "the safe band shows the fill in eighths");
   assert.match(hot, /█{7}/, "the critical band is nearly full");
-  assert.match(hot, /!/, "and carries the mark colour cannot lose");
+  assert.match(hot, /[!\uF40C]/u, "and carries the mark colour cannot lose");
 });
 
 await test("a task whose model has not resolved renders without a bar", () => {
