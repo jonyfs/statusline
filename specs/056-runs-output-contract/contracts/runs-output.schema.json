@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Statusline runs output, contract 1",
+  "type": "object",
+  "required": ["contract"],
+  "properties": {
+    "contract": { "const": 1 },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/$defs/run" }
+      }
+    },
+    "error": { "$ref": "#/$defs/error" }
+  },
+  "oneOf": [
+    { "required": ["lines"], "not": { "required": ["error"] } },
+    { "required": ["error"], "not": { "required": ["lines"] } }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "run": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000-\\u001f\\u007f]+$" },
+        "fg": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+        "bg": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+        "bold": { "const": true },
+        "dim": { "const": true },
+        "underline": { "const": true },
+        "href": { "type": "string", "pattern": "^(https?|file)://" }
+      },
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "enum": ["node-version", "bad-payload", "internal"] },
+        "message": { "type": "string", "minLength": 1, "pattern": "^[^\\n\\r]+$" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
