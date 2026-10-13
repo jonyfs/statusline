@@ -195,3 +195,92 @@ await test("the bar draws the glyph of the update's state on line 1", () => {
   assert.ok(draw("blocked").includes(G.updateBlocked));
   assert.ok(!draw("blocked").includes(G.updateReady));
 });
+
+await test("every update state has its own mark in the Nerd and emoji tiers, and blocked differs from waiting in all three", () => {
+  const draw = (state, opts = {}) =>
+    strip(
+      renderPayload(fullPayload({ now: NOW }), {
+        sources: { ...gitSources(), getUpdateNotice: () => ({ state, text: `update ${state}` }) },
+        trackChanges: false,
+        now: NOW,
+        maxWidth: 600,
+        maxHeight: 40,
+        ...opts,
+      })
+    ).split("\n")[0];
+  assert.ok(draw("failed").includes(G.updateBlocked), "failed is the download mark");
+  assert.ok(!draw("failed").includes(G.updateReady), "and never the new box");
+  for (const tier of ["nerd", "emoji", "plain"]) {
+    assert.notEqual(GLYPHS[tier].updateBlocked, GLYPHS[tier].updateReady, tier);
+  }
+  assert.ok(draw("blocked", { asciiArrows: true }).includes(GLYPHS.plain.updateBlocked));
+});
+
+await test("the skills chip gives up its words before line 2 overflows", () => {
+  const now = FIXED_NOW * 1000;
+  for (const width of [40, 30, 24]) {
+    const out = strip(
+      renderReadings(gather(PAYLOAD, { ...SOURCES }, { now }), PAYLOAD, { ...RENDER_OPTIONS, maxWidth: width, maxHeight: 40, trailingRows: false })
+    );
+    for (const line of out.split("\n")) assert.ok(displayWidth(line) <= width, `${width}: "${line}" is ${displayWidth(line)}`);
+  }
+});
+
+await test("one essential going to its icon does not take the other names with it", () => {
+  const now = FIXED_NOW * 1000;
+  const out = strip(
+    renderReadings(gather(PAYLOAD, { ...SOURCES }, { now }), PAYLOAD, { ...RENDER_OPTIONS, maxWidth: 40, maxHeight: 40, trailingRows: false })
+  );
+  const first = out.split("\n")[0];
+  assert.ok(/[A-Za-z]{4}/.test(first), `line 1 keeps a name at 40 columns: "${first}"`);
+});
+
+await test("an agent row follows the caller's ASCII choice, not only the settings", () => {
+  const task = { id: "t1", name: "explore", type: "agent", startTime: NOW - 60_000, model: "claude-haiku-4-5", contextWindowSize: 200000, tokenCount: 190000 };
+  const row = (asciiArrows) =>
+    withEnv({ CLAUDE_STATUSLINE_ICONS: undefined, CLAUDE_STATUSLINE_ASCII: undefined }, () =>
+      strip(renderTaskRow(task, { columns: 100, now: NOW, asciiArrows }).content)
+    );
+  assert.ok(row(true).includes("!") && !row(true).includes("\u{F40C}"));
+  assert.ok(row(false).includes("\u{F40C}"));
+});
+
+await test("a skipped run is in the chip's text colour; the cut marker is the quiet colour", () => {
+  const raw = renderPayload(fullPayload(), {
+    sources: { ...gitSources(), getCiStatus: () => ({ conclusion: "skipped", status: "completed", workflow: "CI" }) },
+    trackChanges: false,
+    now: NOW,
+    maxWidth: 600,
+    maxHeight: 40,
+  });
+  const at = raw.indexOf(G.ciSkipped);
+  assert.ok(at > 0);
+  const before = raw.slice(Math.max(0, at - 24), at);
+  assert.ok(!/38;2;243;139;168m$/.test(before), "not the failure red");
+  const cut = renderPayload(fullPayload({ cwd: "/tmp/projects/a-very-long-directory-name-for-the-test" }), {
+    sources: gitSources(),
+    trackChanges: false,
+    maxWidth: 40,
+    maxHeight: 40,
+  });
+  const i = cut.indexOf("…/");
+  const quietBefore = cut.slice(i - 24, i);
+  const afterEnd = cut.slice(i + 2, i + 30);
+  assert.match(quietBefore, /38;2;\d+;\d+;\d+m$/, "the marker has its own colour");
+  assert.match(afterEnd, /^\x1b\[22m\x1b\[38;2;/, "and the name returns to the chip colour");
+});
+
+await test("the working-tree colours hold in another flavor", () => {
+  const raw = withEnv({ CLAUDE_STATUSLINE_FLAVOR: "latte" }, () =>
+    renderPayload(fullPayload(), {
+      sources: gitSources({ changed: 3, staged: 2, behind: 4 }),
+      trackChanges: false,
+      now: NOW,
+      maxWidth: 600,
+      maxHeight: 40,
+      flavor: "latte",
+    })
+  );
+  assert.match(raw, new RegExp(`38;2;\\d+;\\d+;\\d+m${G.modified}`, "u"));
+  assert.match(raw, new RegExp(`38;2;\\d+;\\d+;\\d+m${G.pull}`, "u"));
+});

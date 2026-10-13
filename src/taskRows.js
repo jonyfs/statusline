@@ -37,14 +37,11 @@ const fg = (hex) => (hex ? fgSeq(hex) : "");
 
 // The alert glyph the gauges use for a critical band, where the tier has one
 // (specs/054). The other tiers keep the plain mark, which is one column too.
-function criticalMark() {
-  let asciiArrows = false;
-  try {
-    asciiArrows = resolveSettings().asciiArrows;
-  } catch {
-    // An unreadable repository file is the plain bar, not a failed row.
-  }
-  return iconTier({ asciiArrows }).tier === "nerd" ? "\u{F40C}" : "!";
+function criticalMark(asciiArrows) {
+  // The caller's choice when it made one; otherwise the settings the CLI
+  // would resolve, which is what the bar itself uses.
+  const ascii = typeof asciiArrows === "boolean" ? asciiArrows : resolveSettings().asciiArrows;
+  return iconTier({ asciiArrows: ascii }).tier === "nerd" ? "\u{F40C}" : "!";
 }
 
 /**
@@ -155,7 +152,7 @@ const MAX_COLUMN = 48;
  * row and the token count on the next, and padding them to a common width
  * lines up things that are not the same thing.
  */
-function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [], treePrefix = "" } = {}) {
+function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [], treePrefix = "", asciiArrows } = {}) {
   // Text, or the placeholder. A name that arrives as an object interpolates
   // as the literal `[object Object]` into the column a reader uses to tell
   // one agent from another.
@@ -201,7 +198,7 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   // Eight cells in eighths (specs/046-gauges): sixty-four steps in the same
   // columns, where the nine shade cells it replaced had ten.
   const gauge =
-    pct === null ? null : `${eighthsBar(pct)} ${pct >= 85 ? criticalMark() : ""}${Math.round(Math.min(100, pct))}%`;
+    pct === null ? null : `${eighthsBar(pct)} ${pct >= 85 ? criticalMark(asciiArrows) : ""}${Math.round(Math.min(100, pct))}%`;
 
   // What the agent was asked to do leads (specs/049-rows-themes-docs): it is what a
   // reader scans for. It replaces the order the owner chose on 2026-09-08, which led with what

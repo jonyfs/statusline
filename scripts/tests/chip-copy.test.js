@@ -142,11 +142,11 @@ await test("the figure is bold and the reset quiet, and the markup adds no colum
     else process.env.NO_COLOR = before;
   }
   assert.equal(displayWidth("\u0001ab\u0003"), 2);
-  assert.ok(!/[\u0001-\u0003]/.test(chip("context").text), "the pool carries plain text");
+  assert.ok(!/[\u0001-\u0006]/.test(chip("context").text), "the pool carries plain text");
 });
 
 await test("data cannot carry the markers", () => {
-  assert.ok(!/[\u0001-\u0003]/.test(plainText("a\u0001b\u0002c\u0003d")));
+  assert.ok(!/[\u0001-\u0006]/.test(plainText("a\u0001b\u0002c\u0003d\u0005e\u0006f")));
 });
 
 import { parsePorcelainV2 } from "../../src/git.js";

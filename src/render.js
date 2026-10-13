@@ -519,7 +519,7 @@ export const GLYPHS = {
     cacheCold: "\u2744",  // ❄
     // Both East Asian Narrow, and not the doubled arrows push and pull use.
     updateReady: "\u2913", // ⤓
-    updateBlocked: "\u2913",
+    updateBlocked: "\u21E9", // ⇩
     updateDone: "\u2912",  // ⤒
     vim: "\u2328",        // ⌨
     fast: "\u21F6",       // ⇶ three arrows
@@ -1237,6 +1237,7 @@ export function renderReadings(
         // shorter forms travel with it or the page would drop what the
         // terminal only shortens.
         ...(seg.variants ? { variants: seg.variants.map(plain) } : {}),
+        ...(seg.iconLast ? { iconLast: true } : {}),
       });
     }
   };
@@ -1258,6 +1259,7 @@ export function renderReadings(
     text: ` ${dirGlyph} ${label} `,
     // Last step: the icon alone, so the chip never has to disappear (F57).
     variants: [` ${dirGlyph} `],
+    iconLast: true,
     url: dirUrl,
   });
   const l1 = [dirSegment(dirLabel)];
@@ -1294,6 +1296,7 @@ export function renderReadings(
         emphasis: changes.isChanged("branch"),
       text: ` ${detached ? g.commit : g.branch} ${label} `,
       variants: [` ${detached ? g.commit : g.branch} `],
+      iconLast: true,
       url: branchUrl,
     });
     // Working-tree state and divergence from upstream, right after the
@@ -1436,7 +1439,10 @@ export function renderReadings(
   // the channel is identity; the icon and the words say which state it is.
   const update = shows("update") ? readings.update?.value : null;
   if (update?.text) {
-    const icon = update.state === "updated" ? g.updateDone : update.state === "blocked" ? g.updateBlocked : g.updateReady;
+    // Only a waiting update is the new box: blocked and failed are the
+    // download mark, so a failed install never reads as good news (specs/054).
+    const icon =
+      update.state === "updated" ? g.updateDone : update.state === "ready" ? g.updateReady : g.updateBlocked;
     // At the right edge of the line, and the first chip to go. Its words are
     // the first thing it gives up, which leaves the icon: the state is the
     // glyph, and the sentence is for a line with room (specs/045).
@@ -1520,9 +1526,12 @@ export function renderReadings(
         color: ROLE.skills,
         emphasis: changes.isChanged("skills"),
         text: ` ${g.skills} ${skills.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
-        // The newest skill alone, then the icon (F57).
+        // The newest skill with how many more there are, then the icon (F57).
+        iconLast: true,
         variants: [
-          ...(skills.length > 1 || hidden > 0 || skillsSuffix ? [` ${g.skills} ${skills[0]} `] : []),
+          ...(skills.length + hidden > 1 || skillsSuffix
+            ? [` ${g.skills} ${skills[0]}${skills.length + hidden > 1 ? ` +${skills.length + hidden - 1}` : ""} `]
+            : []),
           ` ${g.skills} `,
         ],
       },
@@ -1638,7 +1647,7 @@ export function renderReadings(
     },
     effort: () =>
       effort
-        ? { color: ROLE.identity, text: ` ${effortGlyph(effort)} ${effort} `, variants: [` ${effortGlyph(effort)} `] }
+        ? { color: ROLE.identity, text: ` ${effortGlyph(effort)} ${effort} `, variants: [` ${effortGlyph(effort)} `], iconLast: true }
         : null,
     // Fast mode spends faster, so it sits with the model and effort that say
     // what is spending. Drawn only when on (specs/027-bar-polish).
@@ -2002,7 +2011,7 @@ export function renderReadings(
   // count toward the three, and the per-line view above never sees them
   // (Principle II, specs/030-copilot-agent-rows).
   if (!trailingRows) return drawn.map((entry) => entry.text).join("\n");
-  const agentRows = isCopilot ? harnessAgentRows(agentList, { columns: maxWidth, palette, now, cap: AGENT_ROW_CAP }) : [];
+  const agentRows = isCopilot ? harnessAgentRows(agentList, { columns: maxWidth, palette, now, cap: AGENT_ROW_CAP, asciiArrows }) : [];
   // The gates, in Claude Code and Copilot alike, unless the arrangement
   // switched them off. They are the first thing a short window gives up,
   // before any of the bar's own lines; the line 1 chip still counts them.
