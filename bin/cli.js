@@ -115,6 +115,8 @@ const USAGE = [
   "  codex [codex arguments]      Codex CLI with the bar in a tmux pane under it",
   "  codex-pane [--cwd <dir>] [--rollout <file>] [--session <id>] [--pid <n>] [--once]",
   "  render [--format runs|ansi]   the bar; runs prints it as JSON for a host (see the README)",
+  "  --print-config [--cwd <dir>]  the resolved configuration as JSON",
+  "  --version [--json]            the version and the contract number",
   "  doctor [--json|--explain]",
   "  help",
 ].join("\n");
@@ -196,6 +198,30 @@ async function main() {
     return;
   }
   switch (subcommand) {
+    case "--print-config":
+    case "print-config": {
+      // Resolved configuration as data, for a host (specs/059-print-config).
+      try {
+        const cwdAt = rest.indexOf("--cwd");
+        const dir = cwdAt !== -1 && rest[cwdAt + 1] ? rest[cwdAt + 1] : process.cwd();
+        const { resolvedConfig } = await import("../src/printConfig.js");
+        process.stdout.write(JSON.stringify(resolvedConfig(dir)) + "\n");
+      } catch {
+        runsFailure("internal", "statusline could not resolve its configuration");
+      }
+      break;
+    }
+    case "--version":
+    case "version": {
+      try {
+        const { versionDocument } = await import("../src/printConfig.js");
+        const v = versionDocument();
+        process.stdout.write((rest.includes("--json") ? JSON.stringify(v) : `statusline ${v.version} (contract ${v.contract})`) + "\n");
+      } catch {
+        runsFailure("internal", "statusline could not read its version");
+      }
+      break;
+    }
     case "help":
     case "--help":
     case "-h":
