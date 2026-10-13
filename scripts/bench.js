@@ -21,6 +21,7 @@ import { getDirUrl, getGitInfo, getPrInfo, getRemoteUrl } from "../src/git.js";
 import { getActiveSkills, getActiveSkillsTrueCount, subagentActivity } from "../src/skills.js";
 import { getRtkSavings } from "../src/rtk.js";
 import { SOURCE_BUDGET_MS } from "../src/freshness.js";
+import { runsDocument } from "../src/runs.js";
 
 const BUDGET_MS = 300;
 
@@ -103,6 +104,17 @@ for (const row of perSource) {
   const limit = budget ? `, budget ${budget} ms` : "";
   console.log(`    ${row.key.padEnd(14)} ${String(row.tookMs).padStart(4)} ms  (${row.source}${limit})`);
 }
+
+// The data output (specs/056-runs-output-contract) is the same render plus a
+// conversion, so its overhead is the conversion over the render. The spec
+// asks for no more than 10%.
+const rendered = renderPayload(payload, { trackChanges: false });
+const converts = [];
+for (let i = 0; i < runs; i++) {
+  converts.push(hrms(() => JSON.stringify(runsDocument(rendered))));
+}
+const overhead = percentile(converts, 50) / p50;
+console.log(`\n  runs output: +${(percentile(converts, 50)).toFixed(2)} ms, ${(overhead * 100).toFixed(1)}% over the render (${overhead <= 0.1 ? "within" : "over"} the 10% target)`);
 
 const verdict = p95 <= BUDGET_MS;
 console.log(`\n  ${verdict ? "within budget" : "OVER BUDGET"}`);

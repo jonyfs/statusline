@@ -1267,6 +1267,48 @@ between lines, check the result at 80 columns and in the plain-text form, then
 copy the arrangement out. It draws through the same layout and palette code
 the terminal uses, so a bar it shows is a bar you will get.
 
+## The footer as data, for a host that draws it itself
+
+A program that runs the renderer as a child process and draws the result in its own pane can
+ask for runs instead of escape text. Set `CLAUDE_STATUSLINE_OUTPUT=runs`, or pass
+`--format runs` (the flag wins over the variable, and `--format ansi` asks for the default).
+The command then prints one JSON object and nothing else:
+
+```json
+{
+  "contract": 1,
+  "lines": [
+    [
+      { "text": " ⌂ app    ", "fg": "#ffffff", "bg": "#313244", "underline": true, "href": "file:///tmp/app" },
+      { "text": "\ue0b0", "fg": "#313244" }
+    ]
+  ]
+}
+```
+
+That example is the first line of `echo '{"cwd":"/tmp/app"}' | CLAUDE_STATUSLINE_ICONS=plain
+node bin/cli.js --format runs`, cut after two runs. A run is `text` and, when they apply, `fg`
+and `bg` as `#rrggbb`, `bold`, `dim` and `underline` as `true`, and `href` (`http`, `https` or
+`file` only). Colours are always the resolved truecolor value. With `NO_COLOR` or the `terminal`
+palette a run has no `fg` or `bg`. The runs of a line join to the same text as the ANSI output.
+`contract` is `1` for this shape and rises only when a host could notice a change in it.
+
+A failure in this mode is exit code `75` and one object:
+
+```json
+{ "contract": 1, "error": { "code": "bad-payload", "message": "the status payload is not a JSON object" } }
+```
+
+| `error.code` | When |
+|---|---|
+| `node-version` | Node is older than 18 |
+| `bad-payload` | stdin is empty, is not JSON, or its top level is not an object |
+| `internal` | any other exception; no stack trace is printed |
+
+An empty status is `{"contract":1,"lines":[]}` with exit 0, and an object with unknown or missing
+fields is drawn as well as it can be. Without the variable or the flag nothing changes: the
+output is the ANSI text, and a failure is exit 0 with a line that says so.
+
 ## Platform support
 
 Runs on Linux, macOS and Windows. The test suite covers path handling, URL

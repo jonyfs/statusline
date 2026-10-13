@@ -544,13 +544,19 @@ async function readStdinAsync() {
   });
 }
 
-export async function render({ asciiArrows = false, flavor = "mocha" } = {}) {
+export async function render({ asciiArrows = false, flavor = "mocha", strict = false } = {}) {
   const raw = await readStdinAsync();
   let payload = {};
   try {
     payload = raw ? JSON.parse(raw) : {};
   } catch {
     payload = {};
+    // A host that asked for the data contract is told, where the bar a person
+    // reads draws what it can (specs/056-runs-output-contract, decision 7).
+    if (strict) throw Object.assign(new Error("the status payload is not a JSON object"), { code: "bad-payload" });
+  }
+  if (strict && (!raw.trim() || payload === null || typeof payload !== "object" || Array.isArray(payload))) {
+    throw Object.assign(new Error("the status payload is not a JSON object"), { code: "bad-payload" });
   }
 
   if (process.env.CLAUDE_STATUSLINE_DEBUG === "1") {

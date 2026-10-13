@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Runs output and failure contract for a host
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-13
 
-**Status**: In progress
+**Status**: Done
 
 **Input**: A host (Astrolabe) runs this renderer as a child process and draws its output in its
 own pane. Today it reads the ANSI text and rebuilds the styled runs, and it tells a failure
