@@ -27,3 +27,14 @@ available to a person who wants the guide's form.
 ## Not changed
 
 - The defaults. A bar with none of these set draws what feature 052 drew.
+
+## Owner decisions, 2026-10-12
+
+- **25 ms target**: informational. The bench reports it; the 300 ms budget is the enforced one.
+  Measured p95 is 26 to 30 ms in this repository and 16 to 18 ms in a directory that is not a
+  git repository, so the cost above the target is the git probe.
+- **Hairline (F59)**: opt-in overline with `CLAUDE_STATUSLINE_HAIRLINE=1`. Principle II forbids a
+  fourth line.
+- **Proof images**: generated locally with Pillow and the installed Nerd Font. CI does not
+  generate them.
+- **SGR 2 dim and wide padding**: both stay off by default.
