@@ -576,7 +576,7 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
 const AMBIGUOUS = new Set([
   // Drawn today:
   0x00b7, // · middle dot, the separator between a row's columns
-  0x2500, // ─ the empty cell of a gauge
+  0x2500, // ─ the tree prefixes of a nested agent's row
   0x2588, // █ the full cell of the eighths bar and the sparkline
   0x258f, // ▏ the left edge of a chip when NO_COLOR removes its background
   0x2589, 0x258a, 0x258b, 0x258c, 0x258d, 0x258e, // ▉ to ▎ the eighths of an agent row's bar
