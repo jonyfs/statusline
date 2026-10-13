@@ -12,14 +12,13 @@ const CLI = path.join(ROOT, "bin", "cli.js");
 const RECORDER = path.join(ROOT, "scripts", "tests", "fixtures", "passive-recorder.mjs");
 
 /** The `git` commands a passive render may run: reads only, and `status` never takes the index lock. */
-const READ_ONLY_GIT = new Set(["status", "remote", "rev-parse", "rev-list", "log", "worktree", "config", "symbolic-ref", "show-ref"]);
+const READ_ONLY_GIT = new Set(["status", "remote"]);
 function assertReadOnlyGit(child) {
   assert.equal(path.basename(child.file), "git", `child: ${JSON.stringify(child)}`);
   const args = child.args.filter((a) => a !== "--no-optional-locks");
   assert.ok(READ_ONLY_GIT.has(args[0]), `not a read-only git command: ${JSON.stringify(child)}`);
   if (args[0] === "status") assert.ok(child.args.includes("--no-optional-locks"), "status without --no-optional-locks");
   if (args[0] === "remote") assert.equal(args[1], "get-url", "only remote get-url");
-  if (args[0] === "worktree") assert.equal(args[1], "list", "only worktree list");
 }
 
 /** Renders once with the recorder loaded; returns what it started and wrote. */
@@ -142,6 +141,55 @@ await test("passive mode refuses a refresh and an update check at the source", a
     assert.equal(maybeStartUpdateCheck(), false);
     process.env.TERM_PROGRAM = "iTerm.app";
     assert.equal(getOpenTabUrl(ROOT), null, "no open-tab script is written");
+  } finally {
+    for (const k of Object.keys(process.env)) if (!(k in before)) delete process.env[k];
+    Object.assign(process.env, before);
+  }
+});
+
+await test("a passive render does not start sqlite3 for the Copilot todo list", async () => {
+  if (process.platform === "win32") return;
+  const { readCopilotTodos } = await import("../../src/copilotTodos.js");
+  const { writeFileSync, mkdirSync, chmodSync } = await import("node:fs");
+  const bin = mkdtempSync(path.join(os.tmpdir(), "fake-sqlite-"));
+  const marker = path.join(bin, "ran");
+  writeFileSync(path.join(bin, "sqlite3"), `#!/bin/sh\necho ran > "${marker}"\necho '[]'\n`);
+  chmodSync(path.join(bin, "sqlite3"), 0o755);
+  const session = mkdtempSync(path.join(os.tmpdir(), "copilot-session-"));
+  writeFileSync(path.join(session, "session.db"), "");
+  mkdirSync(session, { recursive: true });
+  const before = { ...process.env };
+  try {
+    process.env.PATH = `${bin}${path.delimiter}${before.PATH}`;
+    process.env.CLAUDE_STATUSLINE_PASSIVE = "1";
+    readCopilotTodos(session, { drivers: ["cli"], platform: "linux" });
+    assert.equal(existsSync(marker), false, "passive mode ran sqlite3");
+    delete process.env.CLAUDE_STATUSLINE_PASSIVE;
+    // A slow runner can take longer than the 100 ms the reader allows to start a shell script.
+    readCopilotTodos(session, { drivers: ["cli"], platform: "linux", timeout: 5000 });
+    assert.equal(existsSync(marker), true, "the default mode still reads the list through sqlite3");
+  } finally {
+    for (const k of Object.keys(process.env)) if (!(k in before)) delete process.env[k];
+    Object.assign(process.env, before);
+  }
+});
+
+await test("a render with a cache directory still reads what the hooks wrote under the home directory", async () => {
+  const { readablePath } = await import("../../src/paths.js");
+  const { writeFileSync, mkdirSync } = await import("node:fs");
+  const home = mkdtempSync(path.join(os.tmpdir(), "passive-home-"));
+  const dir = mkdtempSync(path.join(os.tmpdir(), "passive-cache-"));
+  mkdirSync(path.join(home, ".claude", "statusline", "skills"), { recursive: true });
+  writeFileSync(path.join(home, ".claude", "statusline", "skills", "s1.jsonl"), "{}\n");
+  const before = { ...process.env };
+  try {
+    process.env.HOME = home;
+    process.env.USERPROFILE = home;
+    process.env.CLAUDE_STATUSLINE_CACHE_DIR = dir;
+    assert.equal(readablePath("skills", "s1.jsonl"), path.join(home, ".claude", "statusline", "skills", "s1.jsonl"));
+    mkdirSync(path.join(dir, "skills"), { recursive: true });
+    writeFileSync(path.join(dir, "skills", "s1.jsonl"), "{}\n");
+    assert.equal(readablePath("skills", "s1.jsonl"), path.join(dir, "skills", "s1.jsonl"), "the cache directory wins when it has the file");
   } finally {
     for (const k of Object.keys(process.env)) if (!(k in before)) delete process.env[k];
     Object.assign(process.env, before);

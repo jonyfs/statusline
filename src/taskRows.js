@@ -17,7 +17,7 @@
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { canWrite, stateRoot } from "./paths.js";
+import { canWrite, stateRoot, readablePath } from "./paths.js";
 import path from "node:path";
 import os from "node:os";
 import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
@@ -377,7 +377,8 @@ const REMEMBERED_COLUMNS = [2, 3, 4];
 
 function readWidthMemory(sessionId) {
   try {
-    const raw = JSON.parse(readFileSync(widthMemoryPath(sessionId), "utf8"));
+    const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
+    const raw = JSON.parse(readFileSync(readablePath("tasks", `${safe}.widths.json`), "utf8"));
     return Array.isArray(raw?.widths) ? raw.widths.map((n) => (typeof n === "number" && n >= 0 ? n : 0)) : [];
   } catch {
     return [];

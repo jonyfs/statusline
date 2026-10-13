@@ -17,6 +17,7 @@
  * directory in every mode and a render never writes it.
  */
 
+import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -39,4 +40,20 @@ export function stateRoot(env = process.env) {
 /** Whether a render may write a file: always, except passive without a cache directory. */
 export function canWrite(env = process.env) {
   return !isPassive(env) || cacheRoot(env) !== null;
+}
+
+/**
+ * The file to read for `<sub>/<name>`: the one under the state root when it
+ * exists, else the one under the home directory, else the state-root path.
+ *
+ * Skill events and task snapshots are written by Claude Code's own hooks,
+ * which run with their own environment and so keep writing under the home
+ * directory. A host that names a cache directory for its renders still has to
+ * see what those hooks recorded.
+ */
+export function readablePath(sub, name, env = process.env) {
+  const primary = path.join(stateRoot(env), sub, name);
+  if (existsSync(primary)) return primary;
+  const fallback = path.join(os.homedir(), ".claude", "statusline", sub, name);
+  return existsSync(fallback) ? fallback : primary;
 }

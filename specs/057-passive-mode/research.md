@@ -25,6 +25,14 @@ The layout file, `updates.json` and `terminal-background.json` are the person's 
 only by `install`, `updates` and `doctor`. A render reads them from the home directory in every
 mode and never writes them.
 
+## Decision 4b: hook-written inputs are read from the home directory too
+
+Skill events and task snapshots come from Claude Code's own hooks, which run with their own
+environment and keep writing under the home directory. A host that sets a cache directory for
+its renders would otherwise lose the subagent skills and the task rows. A render reads them from
+the cache directory when the file is there and from the home directory otherwise (`readablePath`).
+The Copilot todo reader's `sqlite3` fallback is a child process, so passive mode skips it.
+
 ## Decision 5: read-only `git` stays
 
 `getGitInfo` runs `git --no-optional-locks status`, and `getRemoteUrl` runs `git remote get-url

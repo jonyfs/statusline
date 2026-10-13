@@ -78,7 +78,8 @@ reads what the first wrote. Compare the default output with the hashes of the pr
 - **FR-003**: `CLAUDE_STATUSLINE_CACHE_DIR` MUST also work without passive mode: when it is set to
   an absolute path, the cache, the session state, the task snapshots, the skill events and the
   Copilot event cache live under it instead of `~/.claude/statusline`. Reads follow the same
-  root. User configuration (the layout file, the update mode, the remembered terminal
+  root, except that the skill events and the task snapshots, which Claude Code's own hooks write
+  under the home directory, are read from there when the cache directory has no such file. User configuration (the layout file, the update mode, the remembered terminal
   background) stays where it is and is only ever read on a render.
 - **FR-004**: In passive mode the macOS open-tab script MUST NOT be written; the directory link is
   the plain `file://` URL.
