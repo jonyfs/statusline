@@ -42,8 +42,6 @@ WANTED = {
     "F459": 0xF459,  # nf-oct-diff_modified: boxed dot, GitHub's modified marker
     "F457": 0xF457,  # nf-oct-diff_added: boxed plus, GitHub's added marker
     "F417": 0xF417,  # nf-oct-git_commit: a detached HEAD, which is not a branch
-    "F42E": 0xF42E,  # nf-oct-check: the CI run passed
-    "F467": 0xF467,  # nf-oct-x: the CI run failed
     "F4A4": 0xF4A4,  # nf-oct-check_circle_fill: CI passed (guide 5.3)
     "F530": 0xF530,  # nf-oct-x_circle_fill: CI failed
     "F517": 0xF517,  # nf-oct-skip: CI skipped or cancelled
@@ -52,8 +50,6 @@ WANTED = {
     "F0756": 0xF0756,  # nf-md-format_list_checks: todos
     "F09D1": 0xF09D1,  # nf-md-brain: context
     "F167A": 0xF167A,  # nf-md-robot_outline: model
-    "F4A0": 0xF4A0,  # nf-oct-tasklist: the todo list. F0BE is listed as
-                     # "checklist" and draws the App Store logo
     # specs/042-glyph-refresh: the icons whose picture said another thing.
     # Each was rendered from the installed FiraCode Nerd Font Mono and kept on
     # specs/042-glyph-refresh/glyph-evidence.png before it was adopted.
@@ -104,7 +100,7 @@ WANTED = {
     "F0176": 0xF0176,  # nf-md-coffee: idle
     "F0431": 0xF0431,  # nf-md-puzzle: the active skills
     "F06A9": 0xF06A9,  # nf-md-robot: the model
-    "F035B": 0xF035B,  # nf-md-memory: the context window. F09DA is listed as
+    # Replaced by F09D1 in specs/054; F09DA is listed as
                        # "brain" and draws a boxed chevron
                        # "stopwatch" and draws three flat bars
     "F0238": 0xF0238,  # nf-md-fire: how fast the window is being spent

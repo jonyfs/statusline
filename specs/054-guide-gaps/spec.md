@@ -45,6 +45,10 @@ colours and the pill's 0/1 padding as the guide writes them, and kept the J98 ra
 - **FR-011**: the colour budget in the constitution (8.7.0), the `ROLE` comments and the
   `doctor` legend say which roles colour an icon and which colour text.
 
+- **FR-012**: an icon-only last form is tried when the width guard reaches its chip, not in the
+  pass that shortens every essential chip, and the one chip left tries its shorter forms before
+  the line overflows. Review findings are in `review.md`.
+
 ## Left as recorded
 
 - `projection`, `linesChanged` and `credits` have no key of their own: the burn chip carries the

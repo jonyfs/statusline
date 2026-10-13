@@ -50,3 +50,5 @@ wording by a recorded decision, F fixed by 054.
 | `projection`, `linesChanged`, `credits` as their own keys | not added: the burn chip carries the projection, the lines chip is text, credits reuse `spend` |
 | Yellow modified, green added, sapphire behind | F, 054 FR-008 |
 | Emoji 🪙 for rtk, 🍵 for cache, text for vim mode | D, the emoji tier's rules (043) |
+
+The code review that followed is in [`review.md`](review.md).

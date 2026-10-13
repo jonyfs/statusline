@@ -302,7 +302,7 @@ function composeAnsi(width, glyphMode, arrangement) {
         const built = byKey.get(p.key);
         // The pill keeps one trailing column, which the renderer counts as
         // extra; the page fits as the renderer does (specs/054-guide-gaps).
-        return built ? { ...p, ...built, extra: state.separator === "round" ? 1 : 0 } : null;
+        return built ? { ...p, ...built, extra: state.separator === "round" && glyphMode === "nerd" ? 1 : 0 } : null;
       })
       .filter(Boolean);
     if (!row.length) continue;
