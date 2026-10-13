@@ -27,19 +27,23 @@ colours and the pill's 0/1 padding as the guide writes them, and kept the J98 ra
   `scripts/extract-glyphs.py` and `src/preview/glyphs.json`, rendered from the installed
   FiraCode Nerd Font Mono.
 - **FR-003** (section 5.3): a new `ciSkipped` key (F517, `⏩`, `-`). A skipped, cancelled or
-  neutral run draws it in the neutral icon colour instead of the failure mark.
+  neutral run draws it in the chip's text colour instead of the failure mark.
 - **FR-004** (G64): agent rows mark a window at 85% or more with F40C in the Nerd tier, as the
   gauges do. The other tiers keep `!`.
 - **FR-005** (E49): the `…/` that marks a cut directory name is drawn in the quiet colour.
-
 - **FR-006** (E41): the context chip names itself by its icon and carries no word, in every
   form.
 - **FR-007** (B14): the closing-window cache chip draws its hourglass in peach.
 - **FR-008** (section 5.2): the modified count is drawn in yellow, the staged count in green and
-  the behind count in sapphire, inside the working-tree chip. Three markers carry the colour, as
-  `GOOD` does for a reset.
+  the behind count in sapphire, inside the working-tree chip. Two new text markers carry the yellow and the sapphire; the green is `GOOD`, the marker a
+  reset already uses.
 - **FR-009** (section 5.5): the pill keeps no leading pad and one trailing column, so a chip
   costs one column more than before. The composer page counts the same column.
+- **FR-010** (section 5.3): a blocked update draws its own `updateBlocked` glyph (F01DA, the
+  download arrow) and a waiting update draws `updateReady` (F0394), so the new-box mark never
+  sits on a failed install.
+- **FR-011**: the colour budget in the constitution (8.7.0), the `ROLE` comments and the
+  `doctor` legend say which roles colour an icon and which colour text.
 
 ## Left as recorded
 
@@ -54,7 +58,7 @@ colours and the pill's 0/1 padding as the guide writes them, and kept the J98 ra
 
 - **SC-001**: `npm test` passes, including the glyph-key and extractor tests and the golden bar.
 - **SC-002**: Each requirement has a test in `scripts/tests/guide-gaps.test.js`.
-- **SC-003**: `glyph-evidence.png` shows the eight changed codepoints, drawn from the installed
+- **SC-003**: `glyph-evidence.png` shows the eight changed codepoints and F40C, drawn from the installed
   font, with the names the font's own table gives them.
 - **SC-004**: `F4A4` is now both the passed-CI mark and the clean-tree mark, as section 5.3 draws
   it; the CI chip is told apart by its workflow name.

@@ -179,3 +179,19 @@ await test("the pill's trailing column is counted: no line is wider than the win
     }
   });
 });
+
+await test("the bar draws the glyph of the update's state on line 1", () => {
+  const draw = (state) =>
+    strip(
+      renderPayload(fullPayload({ now: NOW }), {
+        sources: { ...gitSources(), getUpdateNotice: () => ({ state, text: `update ${state}` }) },
+        trackChanges: false,
+        now: NOW,
+        maxWidth: 600,
+        maxHeight: 40,
+      })
+    ).split("\n")[0];
+  assert.ok(draw("ready").includes(G.updateReady));
+  assert.ok(draw("blocked").includes(G.updateBlocked));
+  assert.ok(!draw("blocked").includes(G.updateReady));
+});

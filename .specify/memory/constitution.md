@@ -2,10 +2,10 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.6.2 (I clarified on 2026-10-12: PATCH. The colour budget names three uses the owner
-  approved the same day: the modified, staged and behind counts keep their own colours in the
-  working-tree chip, and the closing warm-cache icon is peach. No new role. See
-  specs/054-guide-gaps/.)
+- Version: 8.7.0 (I extended on 2026-10-12: MINOR. The colour budget now says which roles colour
+  an icon and which colour text. Yellow, green and sapphire may colour the text of a count
+  inside the working-tree chip (modified, staged, behind), and the closing warm-cache icon is
+  peach. Added lines keep green. No new role. See specs/054-guide-gaps/.)
 - Previously, version 8.6.1 (X clarified on 2026-10-12: PATCH. The emoji rejection list gains the shield
   and the label, which the review's section 5.4 names and the first reading left out. No rule
   changes. See specs/052-review-round-two/.)
@@ -279,17 +279,19 @@ reference — not a vague "Starship-like" aspiration:
   `surface2`, `text`) are defined in every palette too. A colour MUST mean one thing wherever
   it appears: the semantic colour budget below replaces the earlier red → peach → yellow →
   green → sapphire → lavender progression, which gave one colour several roles.
-  "Background" is a chip's fill; "icon" is the colour of the glyph alone on a neutral chip.
+  "Background" is a chip's fill; "icon" is the colour of the glyph alone on a neutral chip;
+  "text" is the colour of a figure or count inside a neutral chip.
   - `red`: background of the critical band and of merge conflicts.
   - `peach`: background of the attention band, allow-all, and "your turn"; the icon of a warm
     cache that is about to close.
-  - `yellow`: icon only, for CI running; the text of the modified file count.
-  - `green`: icon only, for passed and healthy; the text of the staged file count.
+  - `yellow`: icon, CI running; text, the modified file count.
+  - `green`: icon, passed, healthy and lines added; text, the staged file count and a reset that
+    is about to come back.
   - `mauve`: pull request merged.
   - `lavender`: identity, the branch and the model.
   - `blue`: pull request open.
   - `teal`: money and savings, spend, credits and rtk.
-  - `sapphire`: cold and late, a cold cache, todo; the text of the behind count.
+  - `sapphire`: background, a cold cache and todo; text, the behind count.
   - `flamingo`: skills, all of them alike.
   - `surface0`: the neutral fill of every healthy gauge, the directory and repository chips and
     the working-tree state.
@@ -909,4 +911,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.6.2 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.7.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
