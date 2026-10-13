@@ -47,11 +47,11 @@ WANTED = {
     "F4A4": 0xF4A4,  # nf-oct-check_circle_fill: CI passed (guide 5.3)
     "F530": 0xF530,  # nf-oct-x_circle_fill: CI failed
     "F517": 0xF517,  # nf-oct-skip: CI skipped or cancelled
-    "F52E": 0xF52E,  # nf-oct-clock_fill: a gate is running
-    "F0394": 0xF0394,  # nf-md-gift: an update is waiting
+    "F52E": 0xF52E,  # nf-oct-workflow: a gate is running
+    "F0394": 0xF0394,  # nf-md-new_box: an update is waiting
     "F0756": 0xF0756,  # nf-md-format_list_checks: todos
-    "F09D1": 0xF09D1,  # nf-md-chart_donut: context
-    "F167A": 0xF167A,  # nf-md-creation: model
+    "F09D1": 0xF09D1,  # nf-md-brain: context
+    "F167A": 0xF167A,  # nf-md-robot_outline: model
     "F4A0": 0xF4A0,  # nf-oct-tasklist: the todo list. F0BE is listed as
                      # "checklist" and draws the App Store logo
     # specs/042-glyph-refresh: the icons whose picture said another thing.

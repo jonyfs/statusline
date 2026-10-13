@@ -23,7 +23,7 @@ import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
 import { eighthsBar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
-import { iconTier } from "./config.js";
+import { iconTier, resolveSettings } from "./config.js";
 import { readSkillsByAgent } from "./skillEvents.js";
 
 const RESET = "\x1b[0m";
@@ -38,7 +38,13 @@ const fg = (hex) => (hex ? fgSeq(hex) : "");
 // The alert glyph the gauges use for a critical band, where the tier has one
 // (specs/054). The other tiers keep the plain mark, which is one column too.
 function criticalMark() {
-  return iconTier().tier === "nerd" ? "\u{F40C}" : "!";
+  let asciiArrows = false;
+  try {
+    asciiArrows = resolveSettings().asciiArrows;
+  } catch {
+    // An unreadable repository file is the plain bar, not a failed row.
+  }
+  return iconTier({ asciiArrows }).tier === "nerd" ? "\u{F40C}" : "!";
 }
 
 /**

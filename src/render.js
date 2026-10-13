@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
 import { realpathSync } from "node:fs";
-import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD } from "./theme.js";
+import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
 import {
   getDirLabel,
   getDirUrl,
@@ -189,7 +189,7 @@ const NF_RUNNING = "\u{F0996}";  // nf-md-progress_clock: still going
 // two columns each where a private-use glyph costs one: eight of them were
 // spending eight columns of a bar whose segments already compete for the
 // width COLUMNS reports (Principle I, Glyphs).
-const NF_TASKLIST = "\u{F0756}";  // nf-oct-tasklist. F0BE, listed as
+const NF_TASKLIST = "\u{F0756}";  // nf-md-format_list_checks (was nf-oct-tasklist). F0BE, listed as
                                  // "checklist", draws the App Store logo
 // A hammer and a coffee cup, chosen by the owner on 2026-09-06 from a sheet
 // of twelve candidate pairs rendered from the installed font. What they
@@ -200,9 +200,9 @@ const NF_TASKLIST = "\u{F0756}";  // nf-oct-tasklist. F0BE, listed as
 const NF_WORKING = "\u{F08EA}";  // nf-md-hammer
 const NF_IDLE = "\u{F0176}";     // nf-md-coffee
 const NF_SKILLS = "\u{F0431}";   // nf-md-puzzle
-const NF_MODEL = "\u{F167A}";    // nf-md-creation (was nf-md-robot)
+const NF_MODEL = "\u{F167A}";    // nf-md-robot_outline (was nf-md-robot)
 const NF_EFFORT = NF_EFFORT_HIGH;
-const NF_CONTEXT = "\u{F09D1}";  // nf-md-chart_donut: the share of the window used.
+const NF_CONTEXT = "\u{F09D1}";  // nf-md-brain: the context window (guide section 5.3)
                                  // F09DA, listed as "brain", draws a boxed
                                  // chevron in this build
 const NF_TIMER = "\u{F051F}";    // an hourglass: a window that runs out, time remaining. F44E, listed as "stopwatch",
@@ -226,7 +226,7 @@ const NF_SNOWFLAKE = "\u{F0717}";   // nf-md-snowflake: cold
 // The statusline's own updates, one icon per direction (specs/026-update-
 // check/glyph-evidence.png). F0CE0, listed as an up arrow in a circle, points
 // right; F4A9, listed as a rocket, draws a monitor; F06B1 draws a watch.
-const NF_DOWNLOAD = "\u{F0394}";      // nf-md-gift: an update is waiting
+const NF_DOWNLOAD = "\u{F0394}";      // nf-md-new_box: an update is waiting
 const NF_UPDATED = "\u{F12CC}";       // a cloud with a tick: updated this session
 // Two modes the payload reports (specs/027-bar-polish/glyph-evidence.png).
 const NF_VIM = "\u{E62B}";           // nf-custom-vim: the vim mode
@@ -240,7 +240,7 @@ const NF_SHIELD_OFF = "\u{F099E}";   // nf-md-shield_off: allow all
 // "waiting on a lock". F0299 md-gate draws a fence and F0E86 md-boom_gate a
 // crane at one cell. A gate still running and a CI run still going are the
 // same fact, so they share the clock.
-const NF_GATE_RUNNING = "\u{F52E}";  // nf-oct-clock_fill: a gate is running (guide section 5.3)
+const NF_GATE_RUNNING = "\u{F52E}";  // nf-oct-workflow: a gate is running (guide section 5.3)
 const NF_GATE_WAITING = "\u{F097F}"; // nf-md-lock_clock
 
 /**
@@ -1221,7 +1221,7 @@ export function renderReadings(
     for (const seg of segs) {
       if (pooled.has(seg.key)) continue;
       pooled.add(seg.key);
-      const plain = (s) => String(s).replace(/[\u0001-\u0003]/g, "");
+      const plain = (s) => String(s).replace(/[\u0001-\u0006]/g, "");
       pool.push({
         key: seg.key,
         text: plain(seg.text),
@@ -1299,15 +1299,15 @@ export function renderReadings(
     const state = [];
     // File counts are not animated: they change on every save, and
     // Principle X reserves animation for state that changes discretely.
-    if (git.changed) state.push(`${g.modified} ${git.changed}`);
+    if (git.changed) state.push(`${WARM}${g.modified} ${git.changed}${MARK_OFF}`);
     // Staged and removed files, from the same status read (specs/050).
-    if (git.staged) state.push(`${g.added} ${git.staged}`);
+    if (git.staged) state.push(`${GOOD}${g.added} ${git.staged}${MARK_OFF}`);
     if (git.removed) state.push(`${g.removed} ${git.removed}`);
     if (git.untracked) state.push(`${g.untracked} ${git.untracked}`);
     // A null ahead/behind means there is no upstream at all, which is not
     // the same as being in sync with one (FR-012).
     if (git.ahead) state.push(`${g.push} ${git.ahead}`);
-    if (git.behind) state.push(`${g.pull} ${git.behind}`);
+    if (git.behind) state.push(`${BEHIND}${g.pull} ${git.behind}${MARK_OFF}`);
     if (state.length) {
       l1.push({ key: "worktreeState", color: ROLE.neutral, text: ` ${state.join("  ")} ` });
     } else if (git.changed === 0 && git.untracked === 0 && !git.conflicts && git.ahead !== null && git.behind !== null) {
@@ -1344,7 +1344,7 @@ export function renderReadings(
       // own mark instead of drawing the failure (specs/054).
       const skipped = !running && ["skipped", "cancelled", "neutral"].includes(ci.conclusion);
       const mark = running ? g.ciRunning : passed ? g.ciPass : skipped ? g.ciSkipped : g.ciFail;
-      const icon = running ? ROLE.modified : passed ? ROLE.healthy : skipped ? ROLE.neutral : ROLE.critical;
+      const icon = running ? ROLE.modified : passed ? ROLE.healthy : skipped ? undefined : ROLE.critical;
       // The runs for the branch you are on, not the repository's most recent:
       // scoping the link the same way the segment scopes its answer is what
       // stops a click landing on main's green tick from a branch you never
@@ -1656,13 +1656,13 @@ export function renderReadings(
     // are the ones with a consequence you cannot undo.
     context: () => {
       const { band } = contextBand(ctxPct, repoConfig(readings.cwd || process.cwd()).contextBands);
-      const built = gaugeChipText({ icon: g.context, label: "context", pct: ctxPct, band });
+      const built = gaugeChipText({ icon: g.context, label: "", pct: ctxPct, band });
       // The last eight context readings, when asked for and when there are that
       // many: whether it is climbing or flat (specs/050-catalog-gaps).
       const spark = process.env.CLAUDE_STATUSLINE_SPARKLINE === "1" ? sparkline(sampleHistory, "contextPct", 8) : null;
       if (spark) {
         const fig = gaugeFigure(ctxPct, band);
-        const longer = ` ${g.context} context ${track(ctxPct, trackSet)} ${fig} ${quiet(spark)} `;
+        const longer = ` ${g.context} ${track(ctxPct, trackSet)} ${fig} ${quiet(spark)} `;
         return {
           ...gaugeChip(ctxPct, band),
           text: longer,
@@ -1671,7 +1671,9 @@ export function renderReadings(
       }
       // The word is the next thing to go after the track.
       const bare = ` ${g.context} ${gaugeFigure(ctxPct, band)} `;
-      return { ...gaugeChip(ctxPct, band), text: built.text, variants: [...built.variants, bare] };
+      // With no word to give up the figure-only form is the one already there.
+      const steps = [...built.variants, bare].filter((v, i, all) => all.indexOf(v) === i);
+      return { ...gaugeChip(ctxPct, band), text: built.text, variants: steps };
     },
     // Each window says how much of it is gone and when it comes back, in one
     // chip. Until 2026-09-06 the two resets shared a segment two places away
@@ -1763,7 +1765,7 @@ export function renderReadings(
         const minutes = cacheMinutesLeft(promptCache.secondsLeft);
         return {
           color: ROLE.neutral,
-          icon: ROLE.modified,
+          icon: ROLE.attention,
           text: ` ${glyph} cache warm \u00b7 ${minutes} `,
           variants: [` ${glyph} ${minutes} `],
         };
@@ -1919,7 +1921,7 @@ export function renderReadings(
       const placed = attach(seg);
       if (placementFor(seg.key)?.on === false) continue;
       // The pill style adds two caps to every chip, which the fit has to know.
-      if (roundStyle) placed.extra = 0;
+      if (roundStyle) placed.extra = 1;
       // The wide padding adds one column to every chip after the first.
       if (widePadding && !roundStyle) placed.extra = 1;
       // A sleeping session recedes: line 2 is drawn in the quiet colour.

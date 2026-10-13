@@ -31,7 +31,7 @@ await test("the composer page fits the pill as the renderer does", async () => {
       const rows = [];
       for (const line of [1, 2, 3, 4]) {
         const row = placementsForLine(resolved, line)
-          .map((p) => (byKey.has(p.key) ? { ...p, ...byKey.get(p.key) } : null))
+          .map((p) => (byKey.has(p.key) ? { ...p, ...byKey.get(p.key), extra: 1 } : null))
           .filter(Boolean);
         if (row.length) rows.push(fitToWidth(row, width));
       }

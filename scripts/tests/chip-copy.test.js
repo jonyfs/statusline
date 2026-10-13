@@ -34,8 +34,7 @@ await test("long and short forms of the chips", () => {
     return g[`track${pct >= (i + 0.5) * 20 ? "Full" : "Empty"}${edge}`];
   }).join("");
   assert.deepEqual(forms("context"), [
-    `${g.context} context ${trackAt(46)} ${FIGURE_SPACE}46%`,
-    `${g.context} context ${FIGURE_SPACE}46%`,
+    `${g.context} ${trackAt(46)} ${FIGURE_SPACE}46%`,
     `${g.context} ${FIGURE_SPACE}46%`,
   ]);
   assert.deepEqual(forms("rtk"), [`${g.rtk} rtk 81% saved`, `${g.rtk} 81%`]);
@@ -237,12 +236,12 @@ await test("tmux keeps truecolor when COLORTERM is unset, and doctor says why", 
   assert.match(colourStatus({ TERM: "xterm-256color" }).line, /^colour: 256/);
 });
 
-await test("the pill style drops its inner padding, since the caps are its edges", () => {
+await test("the pill style drops its leading pad and keeps one trailing column, 0 and 1", () => {
   const before = process.env.CLAUDE_STATUSLINE_SEPARATOR;
   process.env.CLAUDE_STATUSLINE_SEPARATOR = "round";
   try {
     const out = strip(renderRow(PALETTES.mocha, [{ color: "lavender", text: " main " }]));
-    assert.ok(out.includes("\u{E0B6}main\u{E0B4}"), JSON.stringify(out));
+    assert.ok(out.includes("\u{E0B6}main \u{E0B4}"), JSON.stringify(out));
   } finally {
     if (before === undefined) delete process.env.CLAUDE_STATUSLINE_SEPARATOR;
     else process.env.CLAUDE_STATUSLINE_SEPARATOR = before;

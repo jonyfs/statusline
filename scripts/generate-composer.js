@@ -300,12 +300,12 @@ function composeAnsi(width, glyphMode, arrangement) {
     const row = placementsForLine(resolved, line)
       .map((p) => {
         const built = byKey.get(p.key);
-        return built ? { ...p, ...built } : null;
+        // The pill keeps one trailing column, which the renderer counts as
+        // extra; the page fits as the renderer does (specs/054-guide-gaps).
+        return built ? { ...p, ...built, extra: state.separator === "round" ? 1 : 0 } : null;
       })
       .filter(Boolean);
     if (!row.length) continue;
-    // The pill drops its inner padding, so it costs what an arrow chip costs
-    // and the page fits as the renderer does (specs/052-review-round-two).
     rows.push(fitToWidth(row, width));
     lines.push(line);
   }

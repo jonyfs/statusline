@@ -13,8 +13,8 @@ status: done
 
 **Input**: An audit of every catalog item (A01 to J100) and section 5.3 against the code on
 main at 1.49.0. No catalog item was wholly absent. The gaps were section 5.3 glyph rows and
-three smaller deviations. The owner chose F57 to be applied as the guide writes it and kept the
-J98 ramp.
+three smaller deviations. The owner chose, on 2026-10-12, to apply F57, E41, B14, the section 5.2
+colours and the pill's 0/1 padding as the guide writes them, and kept the J98 ramp.
 
 ## Requirements
 
@@ -32,16 +32,29 @@ J98 ramp.
   gauges do. The other tiers keep `!`.
 - **FR-005** (E49): the `…/` that marks a cut directory name is drawn in the quiet colour.
 
+- **FR-006** (E41): the context chip names itself by its icon and carries no word, in every
+  form.
+- **FR-007** (B14): the closing-window cache chip draws its hourglass in peach.
+- **FR-008** (section 5.2): the modified count is drawn in yellow, the staged count in green and
+  the behind count in sapphire, inside the working-tree chip. Three markers carry the colour, as
+  `GOOD` does for a reset.
+- **FR-009** (section 5.5): the pill keeps no leading pad and one trailing column, so a chip
+  costs one column more than before. The composer page counts the same column.
+
 ## Left as recorded
 
 - `projection`, `linesChanged` and `credits` have no key of their own: the burn chip carries the
   projection, the lines chip is text, and credits reuse `spend`.
-- A09, E41, E42, E47 and the pill's 0/1 padding stay as 040, 044 and 045 decided.
+- A09, E42 and E47 stay as 040 and 044 decided; the owner was asked about E41, B14, section 5.2
+  and the pill padding only.
 - J98 keeps blue, yellow and red (owner, 2026-10-12).
 - `ramp.bar()` stays: the ramp tests exercise it.
 
 ## Success criteria
 
 - **SC-001**: `npm test` passes, including the glyph-key and extractor tests and the golden bar.
-- **SC-002**: `F4A4` is now both the passed-CI mark and the clean-tree mark, as section 5.3 draws
+- **SC-002**: Each requirement has a test in `scripts/tests/guide-gaps.test.js`.
+- **SC-003**: `glyph-evidence.png` shows the eight changed codepoints, drawn from the installed
+  font, with the names the font's own table gives them.
+- **SC-004**: `F4A4` is now both the passed-CI mark and the clean-tree mark, as section 5.3 draws
   it; the CI chip is told apart by its workflow name.

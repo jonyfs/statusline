@@ -129,12 +129,12 @@ await test("outputStyle: taken off the bar on 2026-08-26", () => {
 
 await test("context, fiveHour, sevenDay: present, and ?% rather than absent", () => {
   const full = render(payload, everything);
-  assert.match(full, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?26%/);
+  assert.match(full, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?26%/);
   assert.match(full, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%/);
   assert.match(full, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?77%/);
 
   const empty = render({}, emptySources);
-  assert.match(empty, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
+  assert.match(empty, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
   assert.match(empty, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
   assert.match(empty, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
 });

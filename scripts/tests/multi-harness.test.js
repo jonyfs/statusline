@@ -44,7 +44,7 @@ await test("under Copilot there are no chips for limits Copilot does not have", 
   const out = render(copilot());
   assert.doesNotMatch(out, / 5h | 7d |spend|%\/h|limit ~/, out);
   assert.match(out, /Auto/, "the model");
-  assert.match(out, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?31%/, "the context figure");
+  assert.match(out, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?31%/, "the context figure");
   assert.doesNotMatch(out, /12m/, "a session under half an hour draws no duration");
 });
 

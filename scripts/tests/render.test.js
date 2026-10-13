@@ -10,14 +10,14 @@ await test("renders with a fully populated payload", () => {
   const out = renderPayload(fullPayload({ cwd: process.cwd() }), { sources: emptySources });
   const plain = stripAnsi(out);
   assert.match(plain, /Sonnet 5/);
-  assert.match(plain, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?26%/);
+  assert.match(plain, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?26%/);
   assert.match(plain, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?20%/);
   assert.match(plain, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?77%/);
 });
 
 await test("degrades to ?% instead of inventing numbers", () => {
   const plain = stripAnsi(renderPayload({}, { sources: emptySources }));
-  assert.match(plain, /context\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
+  assert.match(plain, /󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
   assert.match(plain, /5h\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?—/);
   assert.doesNotMatch(plain, /NaN|undefined|null/);
 });
