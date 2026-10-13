@@ -1321,6 +1321,26 @@ An empty status is `{"contract":1,"lines":[]}` with exit 0, and an object with u
 fields is drawn as well as it can be. Without the variable or the flag nothing changes: the
 output is the ANSI text, and a failure is exit 0 with a line that says so.
 
+### Asking the renderer what it will use
+
+A program that draws beside the footer can ask, without a payload and without starting anything:
+
+```sh
+node bin/cli.js --print-config [--cwd <dir>]
+node bin/cli.js --version [--json]
+```
+
+`--print-config` prints one JSON object: `contract`, `version`, `flavor` and its `flavorSource`
+(`env`, `repo`, `terminal` or `default`), `ramp` (`default` or `cvd`), `contrast` (`normal` or
+`high`), `glyphs` (`nerd`, `emoji` or `plain`), `ascii`, `separator`, `colourDepth`, `layout`
+(`origin`, `path` and the `omitted` keys) and `passive` with `cacheDir`. It reads the same
+environment, repository file and settings a render does. `--version` prints
+`statusline <version> (contract <n>)`, or the same two fields as JSON; `contract` is the number a
+runs object carries and rises only when a host could notice a change in its shape. Both answer a
+failure with the error object and exit code 75. `colourDepth` is the environment's: the runs form
+always uses truecolor, and `flavor` is the palette drawn (`flavorRequested` names a value no palette
+has).
+
 ### Passive mode for a host
 
 A host that runs the renderer on every redraw can ask to be certain it touches nothing it was not
