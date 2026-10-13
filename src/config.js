@@ -119,7 +119,10 @@ function withOmitted(layout, env) {
   // A file the arrangement code would step aside from as a whole (not an
   // object, or a version this build does not know) would take the omit list
   // with it. The list stands alone then, and the reason is kept for `doctor`.
-  const usable = isObject(layout.arrangement) && (layout.arrangement.version === undefined || layout.arrangement.version === 1);
+  const usable =
+    isObject(layout.arrangement) &&
+    (layout.arrangement.version === undefined || layout.arrangement.version === 1) &&
+    (layout.arrangement.segments === undefined || isObject(layout.arrangement.segments));
   const base = usable ? layout.arrangement : { version: 1 };
   // No prototype, so a name like `__proto__` is an entry like any other and
   // `doctor` reports it as no such segment.

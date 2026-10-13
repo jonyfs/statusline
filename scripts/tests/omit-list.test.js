@@ -133,3 +133,22 @@ await test("an omitted segment's source is not read (FR-002)", async () => {
   gather({ cwd: process.cwd(), session_id: "omit-1" }, { ...probe, getRtkSavings: () => (control.push("rtk"), null) }, { now: FIXED_NOW * 1000 });
   assert.ok(control.includes("rtk"), "without the list it is read");
 });
+
+await test("a segment a layout file hides still has its update check; only the omit list stops it", async () => {
+  const { gather } = await import("../../src/render.js");
+  const run = (off, omit) => {
+    const calls = [];
+    const before = process.env.CLAUDE_STATUSLINE_OMIT;
+    if (omit) process.env.CLAUDE_STATUSLINE_OMIT = omit;
+    else delete process.env.CLAUDE_STATUSLINE_OMIT;
+    try {
+      gather({ cwd: process.cwd(), session_id: "omit-2" }, { ...SOURCES, maybeStartUpdateCheck: () => calls.push("check") }, { now: FIXED_NOW * 1000, off });
+    } finally {
+      if (before === undefined) delete process.env.CLAUDE_STATUSLINE_OMIT;
+      else process.env.CLAUDE_STATUSLINE_OMIT = before;
+    }
+    return calls;
+  };
+  assert.deepEqual(run(new Set(["update"]), null), ["check"], "hidden by a layout: the check still runs");
+  assert.deepEqual(run(new Set(["update"]), "update"), [], "omitted by the host: it does not");
+});

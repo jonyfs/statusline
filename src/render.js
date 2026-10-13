@@ -116,7 +116,7 @@ import { trackChanges, loadSamples } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
 import { byLine, segment, inChannel, SEGMENTS } from "./segments.js";
 import { resolveArrangement } from "./arrangement.js";
-import { resolveLayout, iconTier, repoConfig } from "./config.js";
+import { resolveLayout, iconTier, repoConfig, omittedKeys } from "./config.js";
 import { abbreviateBranch, cutMiddle, DEFAULT_BRANCH_PREFIXES, BRANCH_COLUMNS } from "./names.js";
 import { gaugeChip, bandFor, track, paceBand, contextBand } from "./ramp.js";
 import { ROLE } from "./colourRoles.js";
@@ -659,7 +659,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   // is two cache reads and, once a day, a detached process; reading its
   // result is one more read. Neither can fail the redraw.
   try {
-    if (!off?.has("update")) probe.maybeStartUpdateCheck?.({ now });
+    // Hidden by a layout file, the chip still has an update check behind it
+    // that applies updates in `auto` mode; only the host's own omit list stops it.
+    if (!omittedKeys().includes("update")) probe.maybeStartUpdateCheck?.({ now });
   } catch {
     // a check that cannot start is tried again on the next redraw
   }

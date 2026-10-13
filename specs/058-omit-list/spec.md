@@ -29,7 +29,8 @@ specs named in spec 056.
   lists it.
 - **FR-002**: The list is applied before layout, so the width a segment would have taken goes to
   the others. A segment that starts a lookup when read (`pr`, `ci`, `rtk`, `update`, the Copilot
-  quota pair and `gates`) is not read when it is omitted, so no refresh process starts for it.
+  quota pair and `gates`) is not read when it is omitted, so no refresh process starts for it. The automatic update check is
+  stopped only by the list itself: a layout file that merely hides the update chip keeps it.
 - **FR-003**: It applies on top of whichever arrangement is in force (the environment file, the
   repository, the person's own, or the default) and wins over an entry that says `on: true`. It
   changes nothing else about that arrangement: lines and order stay. A file the renderer would set
