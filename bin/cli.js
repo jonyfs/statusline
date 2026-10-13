@@ -11,11 +11,22 @@ const MIN_NODE_MAJOR = 18;
 // read here, before anything is imported, so the error object can be printed
 // even when most modules cannot load. The flag wins over the variable, and
 // `--format ansi` asks for the default whatever the variable says.
+// Only the render command takes the flag; every other command keeps its
+// arguments as they were (`codex` passes its own through to Codex).
 const argv = process.argv.slice(2);
-const formatAt = argv.findIndex((a) => a === "--format" || a.startsWith("--format="));
+const isFormat = (a) => a === "--format" || String(a).startsWith("--format=");
+const rendering = argv.length === 0 || argv[0] === "render" || isFormat(argv[0]);
+const formatAt = rendering ? argv.findIndex(isFormat) : -1;
 const formatValue =
-  formatAt === -1 ? null : argv[formatAt].includes("=") ? argv[formatAt].split("=")[1] : argv[formatAt + 1];
-const argvRest = argv.filter((a, i) => i !== formatAt && !(argv[formatAt] === "--format" && i === formatAt + 1));
+  formatAt === -1
+    ? null
+    : argv[formatAt].includes("=")
+      ? argv[formatAt].split("=")[1]
+      : (argv[formatAt + 1] ?? null);
+const argvRest =
+  formatAt === -1
+    ? argv
+    : argv.filter((a, i) => i !== formatAt && !(argv[formatAt] === "--format" && i === formatAt + 1 && formatValue !== null));
 const [subcommand, ...rest] = argvRest;
 const isRender = subcommand === "render" || subcommand === undefined;
 const runsMode = isRender && (formatValue === "runs" || (formatValue === null && process.env.CLAUDE_STATUSLINE_OUTPUT === "runs"));

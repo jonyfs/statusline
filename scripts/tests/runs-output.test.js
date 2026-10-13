@@ -199,3 +199,87 @@ await test("NO_COLOR gives runs with no colour, and the terminal palette none ei
     assert.ok(!("fg" in run) && !("bg" in run), JSON.stringify(run));
   }
 });
+
+await test("the picture matches a second reading of the ANSI output, character by character (SC-002)", () => {
+  // A deliberately plain second reader: it walks the string once and keeps the
+  // style of every visible code point. The converter has to agree with it on
+  // foreground, background, bold, dim, underline and link.
+  const cells = (ansi) => {
+    const out = [];
+    let fg = null, bg = null, bold = false, dim = false, underline = false, href = null;
+    for (let i = 0; i < ansi.length; ) {
+      if (ansi[i] === "\x1b" && ansi[i + 1] === "[") {
+        const end = ansi.indexOf("m", i);
+        const codes = ansi.slice(i + 2, end).split(";");
+        for (let k = 0; k < codes.length; k++) {
+          const [c, sub] = codes[k].split(":");
+          if (c === "0" || c === "") { fg = bg = null; bold = dim = underline = false; }
+          else if (c === "1") bold = true;
+          else if (c === "2") dim = true;
+          else if (c === "22") bold = dim = false;
+          else if (c === "4") underline = sub !== "0";
+          else if (c === "24") underline = false;
+          else if (c === "39") fg = null;
+          else if (c === "49") bg = null;
+          else if ((c === "38" || c === "48") && codes[k + 1] === "2") {
+            const v = "#" + codes.slice(k + 2, k + 5).map((n) => Number(n).toString(16).padStart(2, "0")).join("");
+            if (c === "38") fg = v; else bg = v;
+            k += 4;
+          }
+        }
+        i = end + 1;
+      } else if (ansi[i] === "\x1b" && ansi[i + 1] === "]") {
+        const bel = ansi.indexOf("\x07", i);
+        const st = ansi.indexOf("\x1b\\", i);
+        const end = bel !== -1 && (st === -1 || bel < st) ? bel : st;
+        const body = ansi.slice(i + 2, end);
+        const target = body.split(";").slice(2).join(";");
+        href = target || null;
+        i = end + (end === st ? 2 : 1);
+      } else {
+        const ch = String.fromCodePoint(ansi.codePointAt(i));
+        i += ch.length;
+        if (ch === "\n") out.push("\n");
+        else if (!/[\u0000-\u001f\u007f-\u009f]/.test(ch)) out.push({ ch, fg, bg, bold, dim, underline, href });
+      }
+    }
+    return out;
+  };
+  for (const extra of [{}, { CLAUDE_STATUSLINE_ASCII: "1" }]) {
+    for (const width of WIDTHS) {
+      const ansi = ansiAt(width, extra);
+      const expected = cells(ansi).filter((c) => c === "\n" || c.ch !== undefined);
+      const doc = runsDocument(ansi);
+      const got = [];
+      doc.lines.forEach((line, n) => {
+        if (n) got.push("\n");
+        for (const r of line) {
+          for (const ch of r.text) {
+            got.push({ ch, fg: r.fg ?? null, bg: r.bg ?? null, bold: !!r.bold, dim: !!r.dim, underline: !!r.underline, href: r.href ?? null });
+          }
+        }
+      });
+      // Trailing newlines are not lines of the bar.
+      while (expected.length && expected[expected.length - 1] === "\n") expected.pop();
+      assert.equal(got.length, expected.length, `${width} ${JSON.stringify(extra)}: cell count`);
+      for (let i = 0; i < got.length; i++) {
+        assert.deepEqual(got[i], expected[i], `${width} ${JSON.stringify(extra)}: cell ${i}`);
+      }
+    }
+  }
+});
+
+await test("a scheme in capitals is written in lower case; an unknown CSI leaves no text behind", () => {
+  assert.deepEqual(ansiToRuns("\x1b]8;;HTTPS://X.COM/a\x07t\x1b]8;;\x07"), [{ text: "t", href: "https://X.COM/a" }]);
+  assert.deepEqual(ansiToRuns("x\x1b[2Jy"), [{ text: "xy" }]);
+  assert.deepEqual(ansiToRuns("a\x1b\u{1F600}b"), [{ text: "ab" }]);
+});
+
+await test("--format belongs to render: other commands keep their arguments", () => {
+  const r = runCli(["help", "--format", "runs"], "", {});
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /Usage:/);
+  const bare = runCli(["--format"], "{}", { CLAUDE_STATUSLINE_OUTPUT: "runs" });
+  assert.equal(bare.status, 0);
+  assert.ok(bare.stdout.trim().startsWith("{"), "a bare --format keeps the variable");
+});

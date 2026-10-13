@@ -19,7 +19,10 @@ const ALLOWED_SCHEMES = /^(https?|file):\/\//i;
 
 // CSI ... m, and OSC 8 with a BEL or ST terminator. Anything else that starts
 // with ESC is dropped without effect.
-const TOKEN = /\x1b\[([0-9;:]*)m|\x1b\]8;([^;\x07\x1b]*);([^\x07\x1b]*)(?:\x07|\x1b\\)|\x1b[\s\S]?/g;
+const TOKEN = /\x1b\[([0-9;:]*)m|\x1b\]8;([^;\x07\x1b]*);([^\x07\x1b]*)(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -\/]*[@-~]|\x1b./gsu;
+
+/** The scheme in lower case, which is the only form the contract allows. */
+const normaliseHref = (href) => href.replace(/^[a-z]+(?=:\/\/)/i, (s) => s.toLowerCase());
 
 const hex = (n) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, "0");
 
@@ -104,7 +107,7 @@ export function ansiToRuns(line) {
     push(source.slice(last, m.index));
     last = m.index + m[0].length;
     if (m[1] !== undefined) sgr(m[1]);
-    else if (m[3] !== undefined) state.href = m[3] && ALLOWED_SCHEMES.test(m[3]) ? m[3] : null;
+    else if (m[3] !== undefined) state.href = m[3] && ALLOWED_SCHEMES.test(m[3]) ? normaliseHref(m[3]) : null;
   }
   push(source.slice(last));
   return runs;

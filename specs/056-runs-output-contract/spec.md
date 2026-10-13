@@ -121,7 +121,7 @@ When the renderer cannot produce lines, in runs mode it MUST exit with code `75`
 JSON object on stdout:
 
 ```json
-{ "contract": 1, "error": { "code": "node-version", "message": "statusline needs Node 20 or newer" } }
+{ "contract": 1, "error": { "code": "node-version", "message": "statusline needs Node 18 or newer" } }
 ```
 
 - `code` is one of a documented, stable set: `node-version`, `bad-payload`, `internal`.
@@ -145,7 +145,8 @@ JSON object on stdout:
 
 ## Success criteria
 
-- **SC-001**: For each fixture payload, at 80, 100, 144 and 200 columns, the runs joined line
+- **SC-001**: For the composer fixture payload (the one session that draws every segment),
+  at 80, 100, 144 and 200 columns, in the Nerd and the ASCII glyph sets, the runs joined line
   by line equal the plain text of the ANSI output.
 - **SC-002**: Replaying the runs as SGR and OSC 8 escapes gives the same picture as the ANSI
   output on the fixtures (colors, bold, dim, underline, links).
