@@ -105,5 +105,9 @@ for (const row of perSource) {
 }
 
 const verdict = p95 <= BUDGET_MS;
-console.log(`\n  ${verdict ? "within budget" : "OVER BUDGET"}\n`);
+console.log(`\n  ${verdict ? "within budget" : "OVER BUDGET"}`);
+// The design review asked for 25 ms at p95. It is a target the machine either
+// meets or does not, so it is reported and never fails the run.
+const TARGET_MS = 25;
+console.log(`  target ${TARGET_MS} ms: ${p95 <= TARGET_MS ? "met" : "not met"} (p95 ${p95.toFixed(1)} ms)\n`);
 process.exit(verdict ? 0 : 1);

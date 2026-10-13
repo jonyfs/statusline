@@ -144,3 +144,53 @@ await test("the emoji tier's rejection list includes the shield and the label", 
   for (const banned of ["\u{1F6E1}", "\u{1F3F7}"]) assert.ok(!used.has(banned));
   assert.ok(existsSync(new URL("../../specs/043-emoji-tier/glyph-evidence.png", import.meta.url)), "the emoji column has a rendered proof sheet");
 });
+
+import { renderRow, PALETTES } from "../../src/theme.js";
+
+const withEnv = (vars, fn) => {
+  const before = {};
+  for (const k of Object.keys(vars)) {
+    before[k] = process.env[k];
+    if (vars[k] === undefined) delete process.env[k];
+    else process.env[k] = vars[k];
+  }
+  try {
+    return fn();
+  } finally {
+    for (const k of Object.keys(vars)) {
+      if (before[k] === undefined) delete process.env[k];
+      else process.env[k] = before[k];
+    }
+  }
+};
+
+await test("the terminal's own dim is available for units and resets, and the default is unchanged", () => {
+  const seg = [{ color: "surface0", text: ` x \u0002quiet\u0003 ` }];
+  assert.ok(!renderRow(PALETTES.mocha, seg).includes("\x1b[2m"), "off by default");
+  assert.ok(withEnv({ CLAUDE_STATUSLINE_DIM: "sgr" }, () => renderRow(PALETTES.mocha, seg)).includes("\x1b[2m"));
+});
+
+await test("wide padding adds a column before every chip after an arrow, and only then", () => {
+  const rows = [
+    { color: "lavender", text: " one " },
+    { color: "peach", text: " two " },
+  ];
+  const plain = strip(renderRow(PALETTES.mocha, rows));
+  const wide = withEnv({ CLAUDE_STATUSLINE_PADDING: "wide" }, () => strip(renderRow(PALETTES.mocha, rows)));
+  assert.equal(displayWidth(wide), displayWidth(plain) + 1);
+  assert.ok(wide.includes("  two"), "two spaces before the second chip's text");
+  const pill = withEnv({ CLAUDE_STATUSLINE_PADDING: "wide", CLAUDE_STATUSLINE_SEPARATOR: "round" }, () => strip(renderRow(PALETTES.mocha, rows)));
+  assert.ok(!pill.includes("  two"), "the pill has no inner padding to widen");
+});
+
+await test("the wide padding still fits the window it was asked for", () => {
+  withEnv({ CLAUDE_STATUSLINE_PADDING: "wide" }, () => {
+    for (const width of [80, 120, 200]) {
+      for (const line of strip(
+        renderPayload(PAYLOAD, { sources: SOURCES, trackChanges: false, layout: NO_ARRANGEMENT, maxWidth: width, maxHeight: 40, trailingRows: false })
+      ).split("\n")) {
+        assert.ok(displayWidth(line) <= width, `${width}: ${displayWidth(line)}`);
+      }
+    }
+  });
+});
