@@ -112,7 +112,7 @@ await test("the cut marker of a directory name is drawn in its own colour", () =
 
 await test("every glyph feature 054 changed is one column, with and without Ambiguous wide", async () => {
   const { displayWidth } = await import("../../src/theme.js");
-  const keys = ["ciPass", "ciFail", "ciSkipped", "gateRunning", "updateReady", "todo", "context", "model"];
+  const keys = ["ciPass", "ciFail", "ciSkipped", "gateRunning", "updateReady", "updateBlocked", "todo", "context", "model"];
   for (const wide of [undefined, "1"]) {
     withEnv({ CLAUDE_STATUSLINE_AMBIGUOUS_WIDE: wide }, () => {
       for (const key of keys) {
