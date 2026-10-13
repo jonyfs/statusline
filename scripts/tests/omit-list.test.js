@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import { test } from "../test-harness.js";
 import { renderReadings, gather } from "../../src/render.js";
 import { resolveLayout, omittedKeys } from "../../src/config.js";
@@ -49,7 +50,7 @@ await test("an omitted segment is off, and nothing else in the arrangement moves
 
 await test("it wins over an arrangement that says on, and keeps that arrangement's other entries", () => {
   const dir = process.cwd();
-  const layoutEnvFile = new URL("./fixtures/omit-layout.json", import.meta.url).pathname;
+  const layoutEnvFile = fileURLToPath(new URL("./fixtures/omit-layout.json", import.meta.url));
   const layout = resolveLayout(dir, { CLAUDE_STATUSLINE_LAYOUT: layoutEnvFile, CLAUDE_STATUSLINE_OMIT: "model" });
   const resolved = resolveArrangement(SEGMENTS, layout.arrangement, layout.origin);
   const by = new Map(resolved.placements.map((p) => [p.key, p]));
