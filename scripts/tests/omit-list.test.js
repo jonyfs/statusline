@@ -128,7 +128,8 @@ await test("an omitted segment's source is not read (FR-002)", async () => {
     maybeStartUpdateCheck: () => calls.push("check"),
   };
   gather({ cwd: process.cwd(), session_id: "omit-1" }, probe, { now: FIXED_NOW * 1000, off: new Set(["pr", "ci", "rtk", "update"]) });
-  assert.deepEqual(calls.filter((c) => ["pr", "ci", "rtk", "update", "check"].includes(c)), []);
+  // The update check itself is stopped by the omit list, not by `off` (see the test below).
+  assert.deepEqual(calls.filter((c) => ["pr", "ci", "rtk", "update"].includes(c)), []);
   const control = [];
   gather({ cwd: process.cwd(), session_id: "omit-1" }, { ...probe, getRtkSavings: () => (control.push("rtk"), null) }, { now: FIXED_NOW * 1000 });
   assert.ok(control.includes("rtk"), "without the list it is read");
