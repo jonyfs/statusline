@@ -49,6 +49,8 @@ independent: the renderer resets at the end of each, so state does not carry ove
 | `38;2;r;g;b` / `39` | set / clear fg |
 | `48;2;r;g;b` / `49` | set / clear bg |
 | `53`, `55` | ignored (overline is not in the contract) |
-| `38;5;n`, `48;5;n`, `3x`, `4x`, `9x`, `10x` | not emitted in runs mode, ignored if met |
+| `38;5;n`, `48;5;n` | clear fg or bg: a palette index has no resolved value |
+| `30` to `37`, `90` to `97` | clear fg: the `terminal` palette writes these, and they carry no value |
+| `40` to `47`, `100` to `107` | clear bg, for the same reason |
 | OSC 8 with a target | set href, if the scheme is allowed |
 | OSC 8 with no target | clear href |

@@ -1163,6 +1163,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_ICONS` | `nerd` (default), `emoji` or `plain`. The emoji tier draws pictures and takes the plain separator unless one is named |
 | `CLAUDE_STATUSLINE_UNDERLINE=0` | Turns off the dotted underline on linked text |
 | `CLAUDE_STATUSLINE_HAIRLINE=1` | Draws an overline on line 1, a rule above the bar without a fourth line. A terminal that does not draw overlines ignores it |
+| `CLAUDE_STATUSLINE_OUTPUT=runs` | Prints the footer as one JSON object of styled runs, and a failure as exit code 75 and one error object, for a program that draws the bar itself. The flag `--format runs` does the same. See [the footer as data](#the-footer-as-data-for-a-host-that-draws-it-itself) |
 | `CLAUDE_STATUSLINE_DIM=sgr` | Draws units, resets and the repository with the terminal's own dim (SGR 2) instead of a quieter text colour. The default colour keeps 4.5:1, which SGR 2 cannot promise |
 | `CLAUDE_STATUSLINE_PADDING=wide` | Two columns before the icon of every chip that follows an arrow, as the review's section 5.5 draws it. It costs a column a chip, so it is off by default |
 | `CLAUDE_STATUSLINE_BLOCK=1` | Pads every line to the widest with spaces on the `mantle` colour, so the right edge is a block |

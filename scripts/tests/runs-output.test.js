@@ -193,10 +193,12 @@ await test("the default mode keeps its failure lines and exit 0", () => {
 });
 
 await test("NO_COLOR gives runs with no colour, and the terminal palette none either", () => {
-  const r = runCli(["--format", "runs"], JSON.stringify({ cwd: ROOT }), { NO_COLOR: "1" });
-  const doc = JSON.parse(r.stdout);
-  for (const run of doc.lines.flat()) {
-    assert.ok(!("fg" in run) && !("bg" in run), JSON.stringify(run));
+  for (const env of [{ NO_COLOR: "1" }, { CLAUDE_STATUSLINE_FLAVOR: "terminal" }]) {
+    const r = runCli(["--format", "runs"], JSON.stringify({ cwd: ROOT }), env);
+    const doc = JSON.parse(r.stdout);
+    for (const run of doc.lines.flat()) {
+      assert.ok(!("fg" in run) && !("bg" in run), `${JSON.stringify(env)}: ${JSON.stringify(run)}`);
+    }
   }
 });
 
@@ -219,8 +221,8 @@ await test("the picture matches a second reading of the ANSI output, character b
           else if (c === "22") bold = dim = false;
           else if (c === "4") underline = sub !== "0";
           else if (c === "24") underline = false;
-          else if (c === "39") fg = null;
-          else if (c === "49") bg = null;
+          else if (c === "39" || (Number(c) >= 30 && Number(c) <= 37) || (Number(c) >= 90 && Number(c) <= 97)) fg = null;
+          else if (c === "49" || (Number(c) >= 40 && Number(c) <= 47) || (Number(c) >= 100 && Number(c) <= 107)) bg = null;
           else if ((c === "38" || c === "48") && codes[k + 1] === "2") {
             const v = "#" + codes.slice(k + 2, k + 5).map((n) => Number(n).toString(16).padStart(2, "0")).join("");
             if (c === "38") fg = v; else bg = v;
@@ -245,9 +247,17 @@ await test("the picture matches a second reading of the ANSI output, character b
     }
     return out;
   };
-  for (const extra of [{}, { CLAUDE_STATUSLINE_ASCII: "1" }]) {
+  const variants = [
+    [{}, {}],
+    [{ CLAUDE_STATUSLINE_ASCII: "1" }, {}],
+    // The terminal palette writes basic colour codes, which carry no value.
+    [{}, { flavor: "terminal" }],
+    // SGR 2, so `dim` is compared as true as well as false.
+    [{ CLAUDE_STATUSLINE_DIM: "sgr" }, {}],
+  ];
+  for (const [extra, options] of variants) {
     for (const width of WIDTHS) {
-      const ansi = ansiAt(width, extra);
+      const ansi = ansiAt(width, extra, options);
       const expected = cells(ansi).filter((c) => c === "\n" || c.ch !== undefined);
       const doc = runsDocument(ansi);
       const got = [];

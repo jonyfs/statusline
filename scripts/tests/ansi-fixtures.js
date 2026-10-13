@@ -33,7 +33,7 @@ export function pinned(fn, extra = {}) {
 }
 
 /** The raw ANSI output of the fixture at `width`. */
-export function ansiAt(width, extra = {}) {
+export function ansiAt(width, extra = {}, options = {}) {
   // `renderReadings` takes the ASCII choice as an option; only the command
   // resolves it from the environment.
   const asciiArrows = extra.CLAUDE_STATUSLINE_ASCII === "1";
@@ -44,6 +44,7 @@ export function ansiAt(width, extra = {}) {
         maxWidth: width,
         maxHeight: 40,
         asciiArrows,
+        ...options,
       }),
     extra
   );
