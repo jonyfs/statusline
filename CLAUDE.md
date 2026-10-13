@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current feature's
-spec at specs/060-host-fixtures/spec.md
+spec at specs/061-render-only/spec.md
 <!-- SPECKIT END -->
 
 ## Skill routing
