@@ -115,16 +115,25 @@ export function omittedKeys(env = process.env) {
 function withOmitted(layout, env) {
   const keys = omittedKeys(env);
   if (!keys.length) return layout;
-  const base = layout.arrangement && typeof layout.arrangement === "object" && !Array.isArray(layout.arrangement) ? layout.arrangement : {};
-  const segments = { ...(base.segments && typeof base.segments === "object" && !Array.isArray(base.segments) ? base.segments : {}) };
+  const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  // A file the arrangement code would step aside from as a whole (not an
+  // object, or a version this build does not know) would take the omit list
+  // with it. The list stands alone then, and the reason is kept for `doctor`.
+  const usable = isObject(layout.arrangement) && (layout.arrangement.version === undefined || layout.arrangement.version === 1);
+  const base = usable ? layout.arrangement : { version: 1 };
+  // No prototype, so a name like `__proto__` is an entry like any other and
+  // `doctor` reports it as no such segment.
+  const segments = Object.assign(Object.create(null), isObject(base.segments) ? base.segments : {});
   for (const key of keys) {
-    const entry = segments[key] && typeof segments[key] === "object" && !Array.isArray(segments[key]) ? segments[key] : {};
+    const entry = isObject(segments[key]) ? segments[key] : {};
     segments[key] = { ...entry, on: false };
   }
+  const hadFile = layout.arrangement !== null && layout.arrangement !== undefined;
   return {
     ...layout,
     arrangement: { ...base, segments },
-    origin: layout.origin === "default" ? "env" : layout.origin,
+    origin: layout.origin === "default" ? "CLAUDE_STATUSLINE_OMIT" : layout.origin,
+    error: layout.error ?? (hadFile && !usable ? "the arrangement was not understood; CLAUDE_STATUSLINE_OMIT still applies" : null),
   };
 }
 

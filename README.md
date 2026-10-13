@@ -1246,7 +1246,10 @@ merge.
 `CLAUDE_STATUSLINE_OMIT=dir,branch` sits on top of whichever of these is in
 force: the named segments go off, and lines and order stay as that
 arrangement had them. It is for a program that draws some of the facts
-itself and has no file of its own to point at.
+itself and has no file of its own to point at. A segment that would start a
+lookup (`pr`, `ci`, `rtk`, `update`, `gates`) starts none when it is omitted.
+It does not reach Claude Code's own agent rows, which come from the
+`task-rows` command.
 
 A missing, unreadable or invalid file is not an error: the bar draws the
 default and the diagnostic says which file it could not use and why. The same

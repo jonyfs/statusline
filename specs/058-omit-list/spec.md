@@ -28,20 +28,24 @@ specs named in spec 056.
   rest of that table). The set is the registry: a key is added there, in a diff, and the README
   lists it.
 - **FR-002**: The list is applied before layout, so the width a segment would have taken goes to
-  the others, and a source that only an omitted segment reads is not read.
+  the others. A segment that starts a lookup when read (`pr`, `ci`, `rtk`, `update`, the Copilot
+  quota pair and `gates`) is not read when it is omitted, so no refresh process starts for it.
 - **FR-003**: It applies on top of whichever arrangement is in force (the environment file, the
   repository, the person's own, or the default) and wins over an entry that says `on: true`. It
-  changes nothing else about that arrangement: lines and order stay.
+  changes nothing else about that arrangement: lines and order stay. A file the renderer would set
+  aside whole (not an object, or a version it does not know) does not take the list with it; the
+  list applies to the default arrangement and `doctor` says the file was not understood.
 - **FR-004**: Whitespace around a name is ignored and an empty list is no list. A name that is
-  not a segment is ignored, and `doctor` names it.
+  not a segment (including `__proto__` and `constructor`) is ignored, and `doctor` names it.
 - **FR-005**: Without the variable nothing changes.
 
 ## Edge cases
 
 - Omitting every segment leaves an empty bar, which the renderer already handles (it prints no
   lines; in runs mode `{"contract":1,"lines":[]}`).
-- The `gates` rows are a segment of line 3 and are omitted by `gates`; the agent rows follow
-  `activity`'s registry entry, so a host that draws its own rows omits those keys.
+- The gate rows are the segment `gates` (registered on line 1) and are omitted by that key. Copilot's
+  agent rows are not a segment of their own: `activity` hides the chip, not the rows. Claude Code's
+  own agent rows come from the `task-rows` command, which the list does not reach.
 
 ## Success criteria
 

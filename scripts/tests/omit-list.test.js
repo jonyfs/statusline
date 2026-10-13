@@ -98,3 +98,38 @@ await test("without the variable the layout is untouched (FR-005)", () => {
   assert.deepEqual(resolveLayout(process.cwd(), { CLAUDE_STATUSLINE_OMIT: "" }), none);
   assert.deepEqual(resolveLayout(process.cwd(), { CLAUDE_STATUSLINE_OMIT: " , " }), none);
 });
+
+await test("a layout file the arrangement would reject does not take the omit list with it", () => {
+  const file = fileURLToPath(new URL("./fixtures/omit-layout-v2.json", import.meta.url));
+  const layout = resolveLayout(process.cwd(), { CLAUDE_STATUSLINE_LAYOUT: file, CLAUDE_STATUSLINE_OMIT: "dir" });
+  const resolved = resolveArrangement(SEGMENTS, layout.arrangement, layout.origin);
+  assert.deepEqual(resolved.placements.filter((p) => !p.on).map((p) => p.key), ["dir"]);
+  assert.match(String(layout.error), /not understood/);
+});
+
+await test("a name that is an object property is reported, not swallowed", () => {
+  const layout = resolveLayout(process.cwd(), { CLAUDE_STATUSLINE_OMIT: "__proto__,constructor,dir" });
+  const resolved = resolveArrangement(SEGMENTS, layout.arrangement, layout.origin);
+  const names = resolved.ignored.map((i) => i.key).sort();
+  assert.deepEqual(names, ["__proto__", "constructor"]);
+  assert.deepEqual(resolved.placements.filter((p) => !p.on).map((p) => p.key), ["dir"]);
+  assert.equal(({}).on, undefined, "nothing leaked onto Object.prototype");
+});
+
+await test("an omitted segment's source is not read (FR-002)", async () => {
+  const { gather } = await import("../../src/render.js");
+  const calls = [];
+  const probe = {
+    ...SOURCES,
+    getPrInfo: () => (calls.push("pr"), null),
+    getCiStatus: () => (calls.push("ci"), null),
+    getRtkSavings: () => (calls.push("rtk"), null),
+    getUpdateNotice: () => (calls.push("update"), null),
+    maybeStartUpdateCheck: () => calls.push("check"),
+  };
+  gather({ cwd: process.cwd(), session_id: "omit-1" }, probe, { now: FIXED_NOW * 1000, off: new Set(["pr", "ci", "rtk", "update"]) });
+  assert.deepEqual(calls.filter((c) => ["pr", "ci", "rtk", "update", "check"].includes(c)), []);
+  const control = [];
+  gather({ cwd: process.cwd(), session_id: "omit-1" }, { ...probe, getRtkSavings: () => (control.push("rtk"), null) }, { now: FIXED_NOW * 1000 });
+  assert.ok(control.includes("rtk"), "without the list it is read");
+});

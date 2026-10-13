@@ -645,7 +645,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   const ctxPct = getContextPercent(payload);
   // RTK is needed both for its segment and for the sample history, so read it
   // once and reuse the timed reading.
-  const rtkReading = timed("rtk", () => probe.getRtkSavings(cwd));
+  // A segment the arrangement or the omit list switched off reads nothing
+  // that would start a lookup (specs/058-omit-list, FR-002).
+  const rtkReading = off?.has("rtk") ? missing("rtk", "switched off") : timed("rtk", () => probe.getRtkSavings(cwd));
   const sampleHistory = pushSample(loadSamples(payload?.session_id), {
     at: now,
     contextPct: payload?.context_window?.used_percentage ?? ctxPct,
@@ -657,11 +659,13 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   // is two cache reads and, once a day, a detached process; reading its
   // result is one more read. Neither can fail the redraw.
   try {
-    probe.maybeStartUpdateCheck?.({ now });
+    if (!off?.has("update")) probe.maybeStartUpdateCheck?.({ now });
   } catch {
     // a check that cannot start is tried again on the next redraw
   }
-  const updateReading = timed("update", () => probe.getUpdateNotice?.(payload?.session_id ?? null, { now }) ?? null);
+  const updateReading = off?.has("update")
+    ? missing("cache", "switched off")
+    : timed("update", () => probe.getUpdateNotice?.(payload?.session_id ?? null, { now }) ?? null);
 
   const git = timed("git", () => probe.getGitInfo(cwd));
   // Two questions, kept apart. Line 1's own git segments need the snapshot,
@@ -762,7 +766,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
       at: now,
       source: "cache",
     }),
-    pr: hasRepo
+    pr: off?.has("pr")
+      ? missing("gh", "switched off")
+      : hasRepo
       ? payloadPr
         ? reading({ value: payloadPr, at: now, source: "payload" })
         : timed("gh", () => normalizePr(probe.getPrInfo(cwd, { branch: namedBranch }), "gh"))
@@ -784,9 +790,11 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
         : probe.getGateRuns
           ? timed("cache", () => probe.getGateRuns(cwd, { now }))
           : missing("cache", "no reader"),
-    ci: hasRepo
-      ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
-      : missing("gh", "not a repository"),
+    ci: off?.has("ci")
+      ? missing("gh", "switched off")
+      : hasRepo
+        ? timed("gh", () => probe.getCiStatus(cwd, { branch: namedBranch }))
+        : missing("gh", "not a repository"),
     model: reading({
       value: routedModel ? `${routedModel} (auto)` : modelName,
       at: now,
@@ -841,7 +849,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     // The account's monthly quota, from the cache the detached refresh fills.
     // Never read under Claude Code: reading it is what starts the lookup.
     copilotQuota: isCopilot
-      ? probe.getCopilotQuota
+      ? off?.has("premiumQuota") && off?.has("chatQuota")
+        ? missing("cache", "switched off")
+        : probe.getCopilotQuota
         ? timed("cache", () => probe.getCopilotQuota({ now }))
         : missing("cache", "no reader")
       : missing("cache", "Copilot CLI only"),
