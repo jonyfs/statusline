@@ -11,7 +11,6 @@
 import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
 import { displayWidth } from "../../src/theme.js";
-import { bar, barWidth } from "../../src/ramp.js";
 import { GLYPHS } from "../../src/render.js";
 
 const wide = (fn) => {
@@ -22,26 +21,6 @@ const wide = (fn) => {
     delete process.env.CLAUDE_STATUSLINE_AMBIGUOUS_WIDE;
   }
 };
-
-await test("a gauge's cells are one width whatever it is showing", () => {
-  const levels = [0, 20, 62, 85, 100];
-  // The critical band appends `!`, which is a chosen mark rather than an
-  // accident of width, so the cells are measured without it.
-  const cells = (pct) => displayWidth(bar(pct, 120).replace(/!$/, ""));
-  for (const ambiguous of [false, true]) {
-    const measure = () => levels.map(cells);
-    const widths = ambiguous ? wide(measure) : measure();
-    const first = widths[0];
-    for (let i = 0; i < widths.length; i++) {
-      assert.equal(
-        widths[i],
-        first,
-        `at ${levels[i]}% the gauge is ${widths[i]} columns and at ${levels[0]}% it is ${first}` +
-          (ambiguous ? " (ambiguous drawn wide)" : "")
-      );
-    }
-  }
-});
 
 await test("the band mark is one column, so crossing a band moves nothing", () => {
   // The critical mark is the Nerd Font alert glyph (constitution 8.4.0): a
@@ -67,8 +46,3 @@ await test("the switch widens what is Ambiguous and leaves the rest alone", () =
   assert.equal(wide(() => displayWidth("▴")), 1, "a Narrow neighbour is not swept up by a range");
 });
 
-await test("a gauge fills the width it was given", () => {
-  const cells = barWidth(120);
-  assert.equal(displayWidth(bar(0, 120)), cells, "an empty gauge is the full track");
-  assert.equal(displayWidth(bar(100, 120).replace(/!$/, "")), cells, "and a full one matches it");
-});

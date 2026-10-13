@@ -522,7 +522,9 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
       const used = displayWidth(out) + displayWidth(glyphs.close);
       const need = displayWidth(chip.text) + displayWidth(glyphs.open) + displayWidth(glyphs.close);
       const room = width - used - need;
-      out += room > 0 ? `${close(prev)}${" ".repeat(room)}${open(chip)}` : `${close(prev)} ${open(chip)}`;
+      // With no room it follows as usual: the width fit counts one end glyph
+      // between two chips and no space, so adding one overflowed an exact fit.
+      out += room > 0 ? `${close(prev)}${" ".repeat(room)}${open(chip)}` : `${close(prev)}${open(chip)}`;
     } else if (chip.group && prev.group && chip.group !== prev.group) {
       out += `${close(prev)}${" ".repeat(GROUP_SPACING)}${open(chip)}`;
     } else if (chip.segBg === prev.segBg) {
