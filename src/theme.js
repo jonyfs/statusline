@@ -577,7 +577,7 @@ const AMBIGUOUS = new Set([
   // Drawn today:
   0x00b7, // · middle dot, the separator between a row's columns
   0x2500, // ─ the empty cell of a gauge
-  0x2588, 0x2592, 0x2593, // █ ▒ ▓ its fills
+  0x2588, // █ the full cell of the eighths bar and the sparkline
   0x258f, // ▏ the left edge of a chip when NO_COLOR removes its background
   0x2589, 0x258a, 0x258b, 0x258c, 0x258d, 0x258e, // ▉ to ▎ the eighths of an agent row's bar
   0x2581, 0x2582, 0x2583, 0x2584, 0x2585, 0x2586, 0x2587, // ▁ to ▇ the sparkline
@@ -596,6 +596,7 @@ const AMBIGUOUS = new Set([
   0x2190, 0x2191, 0x2193, // ← ↑ ↓
   0x25b2, 0x25b3, // ▲ △
   0x25c6, 0x25cb, 0x25cf, 0x25d0, // ◆ ○ ● ◐
+  0x2592, 0x2593, // ▒ ▓ the fills of the band bar that feature 055 removed
 ]);
 
 /**
