@@ -75,8 +75,8 @@ await test("an impossible token count is unknown, not negative", () => {
   assert.doesNotMatch(row, /-100/, "nor is a negative token count");
 });
 
-// `bar()` clamps to 0-100; the figure beside it has to agree, or a task over
-// its own window reads as `500%` against a bar that stops at full.
+// The eighths bar clamps to 0-100; the figure beside it has to agree, or a task
+// over its own window reads as `500%` against a bar that stops at full.
 await test("a task past its own window reads as full, not as 500%", () => {
   const rows = alignTaskRows(
     [{ id: "a", description: "x", tokenCount: 5000, contextWindowSize: 1000 }],

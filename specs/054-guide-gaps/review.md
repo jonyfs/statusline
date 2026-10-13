@@ -43,10 +43,10 @@ one failure needs a git clone; 1011 of 1011 in the repository).
 | 2 | Resolved | None |
 | 3 | Resolved | None |
 | 4 | Resolved | None |
-| 5 | Partial: `asciiArrows` reached `harnessAgentRows` but not `alignTaskRows` | Fixed in feature 055 and tested |
+| 5 | Partial: `render.js` passed `asciiArrows`, but `harnessAgentRows` never read it | Fixed in feature 055 and tested |
 | 6 | Resolved; one orphan comment line left in the extractor | Comment rewritten in feature 055 |
 | 7 | Resolved | None |
 
-The reviewer's sweeps also showed arrow, slant and thin overflowing by one column at 197 and 213
-columns, a defect older than 054. Feature 055 fixes it.
+The reviewer's sweeps also showed arrow, slant and thin overflowing by one column at widths up
+to 78 and 85 and at 197 and 213 columns, a defect older than 054. Feature 055 fixes it.
 
