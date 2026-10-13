@@ -26,7 +26,8 @@ removes the guess.
   runs form at 80, 100, 144 and 200 columns, trailing blanks trimmed, one file per pair.
 - **FR-003**: The environment the rows were made in is written in `scripts/host-fixtures.js`
   (`fixtureEnv`) and documented in `fixtures/host/README.md`: passive mode, updates off, flavor
-  `mocha`, truecolor, `TZ=UTC`, `COLUMNS` and a throwaway `HOME`.
+  `mocha`, truecolor, `TZ=UTC`, `COLUMNS`, a throwaway `HOME` and `USERPROFILE`, the glyph,
+  separator, ramp and contrast choices pinned, and a working directory outside any project.
 - **FR-004**: `node scripts/make-host-fixtures.js` rewrites the expected files. The suite renders
   every pair through `bin/cli.js` and fails when a row differs, when a file is missing or
   orphaned, when a row is wider than its width, or when a fixture names this machine.

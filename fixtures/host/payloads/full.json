@@ -9,7 +9,7 @@
     "five_hour": { "used_percentage": 72 },
     "seven_day": { "used_percentage": 84 }
   },
-  "cost": { "total_duration_ms": 4140000, "total_lines_added": 214, "total_lines_removed": 87 },
+  "cost": { "total_duration_ms": 4140000 },
   "fast_mode": true,
   "vim": { "mode": "NORMAL" }
 }

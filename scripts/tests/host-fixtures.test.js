@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { test } from "../test-harness.js";
+import { displayWidth } from "../../src/theme.js";
 import { fixturesDir, payloads, WIDTHS, plainRows, render, root } from "../host-fixtures.js";
 
 await test("every payload at every width draws the rows the fixture records", () => {
@@ -25,13 +26,13 @@ await test("a row never overflows its width, and no row names this machine", () 
       const doc = render(name, width);
       assert.equal(doc.contract, 1);
       for (const row of doc.lines.map((l) => l.map((r) => r.text).join(""))) {
-        assert.ok([...row].length <= width, `${name} at ${width}`);
+        assert.ok(displayWidth(row) <= width, `${name} at ${width}: ${displayWidth(row)} columns`);
       }
     }
   }
   const text = readdirSync(path.join(fixturesDir, "expected")).map((f) => readFileSync(path.join(fixturesDir, "expected", f), "utf8")).join("\n");
   assert.ok(!text.includes(root), "the repository path is not in a fixture");
-  assert.ok(!/\/Users\/|\/home\/|C:\\\\/.test(text), "no home directory is in a fixture");
+  assert.ok(!/\/Users\/|\/home\/|[A-Za-z]:\\/.test(text), "no home directory is in a fixture");
 });
 
 await test("the payloads need no repository, transcript or clock", () => {

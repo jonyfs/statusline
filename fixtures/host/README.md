@@ -11,7 +11,9 @@ embeds the renderer and wants to check its copy against this one.
 
 The environment they were made in is in `scripts/host-fixtures.js`
 (`fixtureEnv`): passive mode, updates off, flavor `mocha`, truecolor, `TZ=UTC`,
-`COLUMNS` set to the width and a throwaway `HOME`. A host that renders the same
+`COLUMNS` set to the width, a throwaway `HOME` (and `USERPROFILE`), and a working directory
+of its own outside any project. The git-dependent chips (branch, working tree, lines changed,
+pull request) are not drawn: the payloads name a directory that is not a repository. A host that renders the same
 payloads in that environment with its copy of `bin/cli.js` must get the same
 rows. `node scripts/make-host-fixtures.js` rewrites the expected files, and the
 suite fails when they move without it.
