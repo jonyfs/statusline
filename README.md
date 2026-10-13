@@ -1496,15 +1496,15 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-oct-alert_fill` | `U+F40C` | merge conflicts |
 | `nf-oct-git_pull_request_draft` / `_merged` / `_closed` | `U+F4DD` / `U+F419` / `U+F4DC` | pull request: draft, merged, closed |
 | `nf-oct-check_circle_fill` / `nf-oct-comment_discussion` / `nf-oct-eye` | `U+F4A4` / `U+F442` / `U+F441` | review: approved, comments, requested |
-| `nf-oct-check` / `nf-oct-x` / `nf-md-progress_clock` | `U+F42E` / `U+F467` / `U+F0996` | CI passed, failed, still running |
+| `nf-oct-check_circle_fill` / `nf-oct-x_circle_fill` / `nf-oct-skip` / `nf-md-progress_clock` | `U+F4A4` / `U+F530` / `U+F517` / `U+F0996` | CI passed, failed, skipped or cancelled, still running |
 | `nf-md-calendar_week` | `U+F0A33` | the 7-day window and the other calendar windows |
 | `nf-md-arrow_left` | `U+F004D` | where a directory or a worktree came from |
-| `nf-oct-tasklist` | `U+F4A0` | the todo list |
+| `nf-md-format_list_checks` | `U+F0756` | the todo list |
 | `nf-md-hammer` / `nf-md-coffee` | `U+F08EA` / `U+F0176` | working, idle |
 | `nf-md-puzzle` | `U+F0431` | active skills |
-| `nf-md-robot` | `U+F06A9` | model |
+| `nf-md-creation` | `U+F167A` | model |
 | `nf-md-gauge_low` / `nf-md-gauge` / `nf-md-gauge_full` | `U+F0875` / `U+F029A` / `U+F0874` | effort: low, medium, high |
-| `nf-md-memory` | `U+F035B` | context window |
+| `nf-md-chart_donut` | `U+F09D1` | context window |
 | `nf-md-timer_sand` | `U+F051F` | the 5-hour window, an hourglass: time that runs out |
 | `nf-md-sync` | `U+F04E6` | a reset: the window comes back |
 | `nf-oct-stopwatch` | `U+F520` | session duration, a stopwatch: time elapsed |
@@ -1512,7 +1512,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-md-piggy_bank` | `U+F1679` | rtk, what it saves |
 | `nf-md-wallet` | `U+F0584` | the spend limit |
 | `nf-md-timer_sand_full` / `_half` / `_empty` and `nf-md-snowflake` | `U+F078C` / `U+F051F` / `U+F06AD` and `U+F0717` | the prompt cache: warm with most, half and the last third of its life left, and cold |
-| `nf-md-download` / `nf-md-arrow_up_bold` | `U+F01DA` / `U+F0737` | an update waiting or blocked, and one applied |
+| `nf-md-gift` / `nf-md-arrow_up_bold` | `U+F0394` / `U+F0737` | an update waiting, and one applied |
 | `nf-custom-vim` | `U+E62B` | the vim mode, while vim mode is on |
 | `nf-md-lightning_bolt` | `U+F140B` | fast mode, while it is on |
 

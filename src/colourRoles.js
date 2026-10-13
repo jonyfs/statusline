@@ -37,7 +37,7 @@ export const SEGMENT_COLOURS = {
   worktreeState: { fill: ["neutral"], icon: ["healthy"] },
   linesChanged: { fill: ["neutral"], icon: ["healthy"] },
   pr: { fill: ["open", "merged", "neutral"] },
-  ci: { fill: ["neutral"], icon: ["healthy", "modified", "critical"] },
+  ci: { fill: ["neutral"], icon: ["healthy", "modified", "critical", "neutral"] },
   update: { fill: ["neutral"] },
   gates: { fill: ["attention"] },
   skills: { fill: ["skills"] },

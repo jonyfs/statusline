@@ -177,8 +177,9 @@ const NF_EFFORT_MEDIUM = "\u{F029A}"; // nf-md-gauge
 const NF_EFFORT_HIGH = "\u{F0874}";   // nf-md-gauge_full
 const NF_FROM = "\u{F004D}";     // nf-md-arrow_left: what this came from
 const NF_ALERT = "\u{F40C}";     // nf-oct-alert_fill: unmerged paths
-const NF_CHECK = "\u{F42E}";     // nf-oct-check: the run passed
-const NF_X = "\u{F467}";         // nf-oct-x: the run failed
+const NF_CHECK = "\u{F4A4}";     // nf-oct-check_circle_fill: the run passed
+const NF_CI_SKIPPED = "\u{F517}"; // nf-oct-skip: a skipped or cancelled run
+const NF_X = "\u{F530}";         // nf-oct-x_circle_fill: the run failed
 // F0997 was here until 2026-10-06, under the name progress_clock, and it
 // draws md-progress_download: a CI run still going read as a download
 // (specs/031-git-gate-rows/glyph-evidence.png shows both side by side).
@@ -188,7 +189,7 @@ const NF_RUNNING = "\u{F0996}";  // nf-md-progress_clock: still going
 // two columns each where a private-use glyph costs one: eight of them were
 // spending eight columns of a bar whose segments already compete for the
 // width COLUMNS reports (Principle I, Glyphs).
-const NF_TASKLIST = "\u{F4A0}";  // nf-oct-tasklist. F0BE, listed as
+const NF_TASKLIST = "\u{F0756}";  // nf-oct-tasklist. F0BE, listed as
                                  // "checklist", draws the App Store logo
 // A hammer and a coffee cup, chosen by the owner on 2026-09-06 from a sheet
 // of twelve candidate pairs rendered from the installed font. What they
@@ -199,9 +200,9 @@ const NF_TASKLIST = "\u{F4A0}";  // nf-oct-tasklist. F0BE, listed as
 const NF_WORKING = "\u{F08EA}";  // nf-md-hammer
 const NF_IDLE = "\u{F0176}";     // nf-md-coffee
 const NF_SKILLS = "\u{F0431}";   // nf-md-puzzle
-const NF_MODEL = "\u{F06A9}";    // nf-md-robot
+const NF_MODEL = "\u{F167A}";    // nf-md-creation (was nf-md-robot)
 const NF_EFFORT = NF_EFFORT_HIGH;
-const NF_CONTEXT = "\u{F035B}";  // nf-md-memory: a context window is memory.
+const NF_CONTEXT = "\u{F09D1}";  // nf-md-chart_donut: the share of the window used.
                                  // F09DA, listed as "brain", draws a boxed
                                  // chevron in this build
 const NF_TIMER = "\u{F051F}";    // an hourglass: a window that runs out, time remaining. F44E, listed as "stopwatch",
@@ -225,7 +226,7 @@ const NF_SNOWFLAKE = "\u{F0717}";   // nf-md-snowflake: cold
 // The statusline's own updates, one icon per direction (specs/026-update-
 // check/glyph-evidence.png). F0CE0, listed as an up arrow in a circle, points
 // right; F4A9, listed as a rocket, draws a monitor; F06B1 draws a watch.
-const NF_DOWNLOAD = "\u{F01DA}";      // nf-md-download: ready, blocked, failed
+const NF_DOWNLOAD = "\u{F0394}";      // nf-md-gift: an update is waiting
 const NF_UPDATED = "\u{F12CC}";       // a cloud with a tick: updated this session
 // Two modes the payload reports (specs/027-bar-polish/glyph-evidence.png).
 const NF_VIM = "\u{E62B}";           // nf-custom-vim: the vim mode
@@ -239,7 +240,7 @@ const NF_SHIELD_OFF = "\u{F099E}";   // nf-md-shield_off: allow all
 // "waiting on a lock". F0299 md-gate draws a fence and F0E86 md-boom_gate a
 // crane at one cell. A gate still running and a CI run still going are the
 // same fact, so they share the clock.
-const NF_GATE_RUNNING = NF_RUNNING;  // nf-md-progress_clock
+const NF_GATE_RUNNING = "\u{F52E}";  // nf-oct-clock_fill: a gate is running (guide section 5.3)
 const NF_GATE_WAITING = "\u{F097F}"; // nf-md-lock_clock
 
 /**
@@ -295,6 +296,7 @@ export const GLYPHS = {
     conflict: NF_ALERT,
     ciPass: NF_CHECK,
     ciFail: NF_X,
+    ciSkipped: NF_CI_SKIPPED,
     ciRunning: NF_RUNNING,
     todo: NF_TASKLIST,
     working: NF_WORKING,
@@ -375,6 +377,7 @@ export const GLYPHS = {
     conflict: "\u{1F4A5}",       // 💥
     ciPass: "\u2705",            // ✅
     ciFail: "\u274C",            // ❌
+    ciSkipped: "\u23E9",         // ⏩
     ciRunning: "\u{1F504}",      // 🔄
     todo: "\u{1F4CB}",           // 📋
     working: "\u{1F528}",        // 🔨
@@ -477,6 +480,7 @@ export const GLYPHS = {
     conflict: "\u2716",   // ✖
     ciPass: "\u2713",     // ✓
     ciFail: "\u2717",     // ✗
+    ciSkipped: "-",        // a skipped or cancelled run
     ciRunning: "\u229A",  // ⊚
     todo: "\u25B8",       // ▸
     // Filled against broken: the same distinction the Nerd set draws with a
@@ -1245,7 +1249,14 @@ export function renderReadings(
     }
   })();
   const dirGlyph = atHome ? g.home : g.dir;
-  const dirSegment = (label) => ({ key: "dir", color: ROLE.neutral, text: ` ${dirGlyph} ${label} `, url: dirUrl });
+  const dirSegment = (label) => ({
+    key: "dir",
+    color: ROLE.neutral,
+    text: ` ${dirGlyph} ${label} `,
+    // Last step: the icon alone, so the chip never has to disappear (F57).
+    variants: [` ${dirGlyph} `],
+    url: dirUrl,
+  });
   const l1 = [dirSegment(dirLabel)];
 
   // A17: Claude can move during a session, and then the directory on the bar
@@ -1279,6 +1290,7 @@ export function renderReadings(
       color: ROLE.identity,
         emphasis: changes.isChanged("branch"),
       text: ` ${detached ? g.commit : g.branch} ${label} `,
+      variants: [` ${detached ? g.commit : g.branch} `],
       url: branchUrl,
     });
     // Working-tree state and divergence from upstream, right after the
@@ -1328,8 +1340,11 @@ export function renderReadings(
     if (ci) {
       const running = ci.status && ci.status !== "completed";
       const passed = ci.conclusion === "success";
-      const mark = running ? g.ciRunning : passed ? g.ciPass : g.ciFail;
-      const icon = running ? ROLE.modified : passed ? ROLE.healthy : ROLE.critical;
+      // A run that was skipped or cancelled did not fail: it says so in its
+      // own mark instead of drawing the failure (specs/054).
+      const skipped = !running && ["skipped", "cancelled", "neutral"].includes(ci.conclusion);
+      const mark = running ? g.ciRunning : passed ? g.ciPass : skipped ? g.ciSkipped : g.ciFail;
+      const icon = running ? ROLE.modified : passed ? ROLE.healthy : skipped ? ROLE.neutral : ROLE.critical;
       // The runs for the branch you are on, not the repository's most recent:
       // scoping the link the same way the segment scopes its answer is what
       // stops a click landing on main's green tick from a branch you never
@@ -1502,6 +1517,11 @@ export function renderReadings(
         color: ROLE.skills,
         emphasis: changes.isChanged("skills"),
         text: ` ${g.skills} ${skills.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
+        // The newest skill alone, then the icon (F57).
+        variants: [
+          ...(skills.length > 1 || hidden > 0 || skillsSuffix ? [` ${g.skills} ${skills[0]} `] : []),
+          ` ${g.skills} `,
+        ],
       },
     ];
     pushLine2Extras(l2);
@@ -1587,6 +1607,8 @@ export function renderReadings(
         color: ROLE.identity,
         emphasis: changes.isChanged("model"),
         text: ` ${g.model} ${modelName} `,
+        // No icon-only form: a model glyph alone names nothing, so the chip
+        // goes whole when the line runs out of room (specs/054).
         ...(routed ? { variants: [` ${g.model} ${routed} `] } : {}),
       };
     },
@@ -1611,7 +1633,10 @@ export function renderReadings(
         variants: [` ${g.spend} ${amount} · ${level} `],
       };
     },
-    effort: () => (effort ? { color: ROLE.identity, text: ` ${effortGlyph(effort)} ${effort} ` } : null),
+    effort: () =>
+      effort
+        ? { color: ROLE.identity, text: ` ${effortGlyph(effort)} ${effort} `, variants: [` ${effortGlyph(effort)} `] }
+        : null,
     // Fast mode spends faster, so it sits with the model and effort that say
     // what is spending. Drawn only when on (specs/027-bar-polish).
     fastMode: () => (shows("fastMode") && readings.fastMode?.value ? { color: ROLE.neutral, text: ` ${g.fast} fast ` } : null),
@@ -2038,5 +2063,6 @@ function trimFromLeft(label, columns) {
     kept.unshift(chars[i]);
     width = next;
   }
-  return kept.length ? `…/${kept.join("")}` : null;
+  // The cut is said in the quiet colour (E49): what is left is the name.
+  return kept.length ? `${QUIET}…/${MARK_OFF}${kept.join("")}` : null;
 }
