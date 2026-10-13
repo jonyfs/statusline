@@ -1164,6 +1164,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_UNDERLINE=0` | Turns off the dotted underline on linked text |
 | `CLAUDE_STATUSLINE_HAIRLINE=1` | Draws an overline on line 1, a rule above the bar without a fourth line. A terminal that does not draw overlines ignores it |
 | `CLAUDE_STATUSLINE_OUTPUT=runs` | Prints the footer as one JSON object of styled runs, and a failure as exit code 75 and one error object, for a program that draws the bar itself. The flag `--format runs` does the same. See [the footer as data](#the-footer-as-data-for-a-host-that-draws-it-itself) |
+| `CLAUDE_STATUSLINE_OMIT=dir,branch` | Switches the named segments off, as an arrangement entry `{ "on": false }` would, on top of whichever arrangement is in force. The names are the segment keys in [Arranging the bar yourself](#arranging-the-bar-yourself). For a program that draws some of the facts itself |
 | `CLAUDE_STATUSLINE_PASSIVE=1` | A render starts no child process but read-only `git` and writes no file outside `CLAUDE_STATUSLINE_CACHE_DIR` (none at all when that is unset). For a program that runs the renderer on every redraw. See [passive mode](#passive-mode-for-a-host) |
 | `CLAUDE_STATUSLINE_CACHE_DIR=<absolute path>` | Keeps the cache, the session state, the task snapshots and the skill events there instead of `~/.claude/statusline`. Works with or without passive mode |
 | `CLAUDE_STATUSLINE_DIM=sgr` | Draws units, resets and the repository with the terminal's own dim (SGR 2) instead of a quieter text colour. The default colour keeps 4.5:1, which SGR 2 cannot promise |
@@ -1241,6 +1242,14 @@ merge.
 | 2 | The `layout` key in a repository's `.statusline.json` | A bar that this project needs, for everyone who clones it |
 | 3 | `~/.claude/statusline/layout.json` | Your bar, everywhere |
 | 4 | Nothing | The default |
+
+`CLAUDE_STATUSLINE_OMIT=dir,branch` sits on top of whichever of these is in
+force: the named segments go off, and lines and order stay as that
+arrangement had them. It is for a program that draws some of the facts
+itself and has no file of its own to point at. A segment that would start a
+lookup (`pr`, `ci`, `rtk`, `update`, `gates`) starts none when it is omitted.
+It does not reach Claude Code's own agent rows, which come from the
+`task-rows` command.
 
 A missing, unreadable or invalid file is not an error: the bar draws the
 default and the diagnostic says which file it could not use and why. The same
