@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "segments": {
+    "model": { "on": true },
+    "effort": { "line": 2, "order": 1 }
+  }
+}

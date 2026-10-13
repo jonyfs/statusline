@@ -98,6 +98,37 @@ function readJson(file) {
  * has the environment variable above it.
  */
 export function resolveLayout(cwd = process.cwd(), env = process.env) {
+  return withOmitted(resolveLayoutFile(cwd, env), env);
+}
+
+/** The keys `CLAUDE_STATUSLINE_OMIT` names, in order, without blanks or repeats. */
+export function omittedKeys(env = process.env) {
+  const raw = String(env.CLAUDE_STATUSLINE_OMIT ?? "");
+  return [...new Set(raw.split(",").map((s) => s.trim()).filter(Boolean))];
+}
+
+/**
+ * Puts the omit list on top of the arrangement in force, as `{ on: false }`
+ * entries. It wins over `on: true` and leaves lines and order alone, so the
+ * rest of the bar is what the arrangement already drew (specs/058-omit-list).
+ */
+function withOmitted(layout, env) {
+  const keys = omittedKeys(env);
+  if (!keys.length) return layout;
+  const base = layout.arrangement && typeof layout.arrangement === "object" && !Array.isArray(layout.arrangement) ? layout.arrangement : {};
+  const segments = { ...(base.segments && typeof base.segments === "object" && !Array.isArray(base.segments) ? base.segments : {}) };
+  for (const key of keys) {
+    const entry = segments[key] && typeof segments[key] === "object" && !Array.isArray(segments[key]) ? segments[key] : {};
+    segments[key] = { ...entry, on: false };
+  }
+  return {
+    ...layout,
+    arrangement: { ...base, segments },
+    origin: layout.origin === "default" ? "env" : layout.origin,
+  };
+}
+
+function resolveLayoutFile(cwd, env) {
   if (env.CLAUDE_STATUSLINE_LAYOUT) {
     const read = readJson(env.CLAUDE_STATUSLINE_LAYOUT);
     // The path is kept even when nothing was read, so the diagnostic can say
