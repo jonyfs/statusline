@@ -17,6 +17,7 @@
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { canWrite, stateRoot } from "./paths.js";
 import path from "node:path";
 import os from "node:os";
 import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
@@ -341,7 +342,7 @@ function taskStatus(task) {
  */
 function widthMemoryPath(sessionId) {
   const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
-  return path.join(os.homedir(), ".claude", "statusline", "tasks", `${safe}.widths.json`);
+  return path.join(stateRoot(), "tasks", `${safe}.widths.json`);
 }
 
 /**
@@ -384,6 +385,7 @@ function readWidthMemory(sessionId) {
 }
 
 function writeWidthMemory(sessionId, widths) {
+  if (!canWrite()) return;
   try {
     mkdirSync(path.dirname(widthMemoryPath(sessionId)), { recursive: true });
     writeFileSync(widthMemoryPath(sessionId), JSON.stringify({ widths }));
@@ -408,7 +410,7 @@ function writeWidthMemory(sessionId, widths) {
  */
 function snapshotPath(sessionId) {
   const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
-  return path.join(os.homedir(), ".claude", "statusline", "tasks", `${safe}.json`);
+  return path.join(stateRoot(), "tasks", `${safe}.json`);
 }
 
 /**
@@ -433,6 +435,7 @@ function writeTaskSnapshot(tasks, now, sessionId) {
         return { id: t.id, label };
       })
       .filter(Boolean);
+    if (!canWrite()) return;
     mkdirSync(path.dirname(snapshotPath(sessionId)), { recursive: true });
     writeFileSync(snapshotPath(sessionId), JSON.stringify({ writtenAt: now, tasks: labeled }));
   } catch {

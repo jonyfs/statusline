@@ -17,6 +17,7 @@
  */
 
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
+import { stateRoot } from "./paths.js";
 import { plainText } from "./text.js";
 import path from "node:path";
 import os from "node:os";
@@ -24,7 +25,7 @@ import os from "node:os";
 const MAX_TAIL_BYTES = 64 * 1024;
 
 function skillsDir() {
-  return path.join(os.homedir(), ".claude", "statusline", "skills");
+  return path.join(stateRoot(), "skills");
 }
 
 /** The same sanitising the animation state files already use. */

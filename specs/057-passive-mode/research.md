@@ -25,10 +25,11 @@ The layout file, `updates.json` and `terminal-background.json` are the person's 
 only by `install`, `updates` and `doctor`. A render reads them from the home directory in every
 mode and never writes them.
 
-## Decision 5: `git` stays, with `--no-optional-locks`
+## Decision 5: read-only `git` stays
 
-`getGitInfo` already runs `git --no-optional-locks status`. It is the one process a passive render
-starts, and it is read-only. The other `git` calls (`worktree list`, `rev-parse`) are in the
+`getGitInfo` runs `git --no-optional-locks status`, and `getRemoteUrl` runs `git remote get-url
+origin` when no remote is cached. A recorder run of a real render saw those two and no other
+process. Both are read-only. The other `git` calls (`worktree list`, `rev-parse`) are in the
 refresh process, which passive mode never starts.
 
 ## Decision 6: the open-tab script is a write

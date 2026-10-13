@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Feature Specification: Passive mode for a host
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-13
 
-**Status**: In progress
+**Status**: Done
 
 **Input**: A host (Astrolabe) runs this renderer as a child process on every footer redraw. Today
 that starts detached refresh processes (`gh`, `rtk`, `git`), writes the cache and the per-session
@@ -47,7 +47,7 @@ writes no file.
 **Acceptance Scenarios**:
 
 1. **Given** passive mode and no cache directory, **When** a render runs, **Then** no file is
-   created or changed anywhere, and the only child process is `git` with `--no-optional-locks`.
+   created or changed anywhere, and the only child processes are read-only `git` commands.
 2. **Given** passive mode and `CLAUDE_STATUSLINE_CACHE_DIR=<dir>`, **When** a render runs,
    **Then** every file it writes is under `<dir>`, and `~/.claude/statusline` is not created.
 
@@ -82,8 +82,9 @@ reads what the first wrote. Compare the default output with the hashes of the pr
   background) stays where it is and is only ever read on a render.
 - **FR-004**: In passive mode the macOS open-tab script MUST NOT be written; the directory link is
   the plain `file://` URL.
-- **FR-005**: The `git` calls on the render path MUST be read-only: `--no-optional-locks` and no
-  command that changes the repository or its index.
+- **FR-005**: The `git` calls on the render path MUST be read-only: `status` with
+  `--no-optional-locks` and `remote get-url` today, and no command that changes the repository or
+  its index.
 - **FR-006**: Passive mode MUST NOT change what is drawn: the same payload gives the same text
   with or without it, except where a value needs a background lookup that was never made (the
   pull request, CI and `rtk` chips, which come from the cache) and which the cache directory, when
@@ -105,8 +106,9 @@ reads what the first wrote. Compare the default output with the hashes of the pr
 
 ## Success criteria
 
-- **SC-001**: A recorder test over the fixture payloads finds no child process other than
-  `git --no-optional-locks`, in passive mode, with and without a cache directory.
+- **SC-001**: A recorder test finds no child process other than read-only `git` commands
+  (`status --no-optional-locks`, `remote get-url`), in passive mode, with and without a cache
+  directory.
 - **SC-002**: The same test finds no file created or modified outside the cache directory, and
   none at all when there is no cache directory.
 - **SC-003**: The hashes of the default output at 80, 100, 144 and 200 columns equal the ones

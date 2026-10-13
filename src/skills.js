@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { stateRoot } from "./paths.js";
 import path from "node:path";
 import os from "node:os";
 import { scanTailForSkills, scanTail } from "./transcriptTail.js";
@@ -49,7 +50,7 @@ const TASK_SNAPSHOT_FRESHNESS_MS = 30 * 1000;
  */
 function taskSnapshotPath(sessionId) {
   const safe = sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest";
-  return path.join(os.homedir(), ".claude", "statusline", "tasks", `${safe}.json`);
+  return path.join(stateRoot(), "tasks", `${safe}.json`);
 }
 
 /**

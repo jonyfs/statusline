@@ -1,4 +1,5 @@
 import path from "node:path";
+import { canWrite, stateRoot } from "./paths.js";
 import os from "node:os";
 import { realpathSync } from "node:fs";
 import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
@@ -559,12 +560,12 @@ export async function render({ asciiArrows = false, flavor = "mocha", strict = f
     throw Object.assign(new Error("the status payload is not a JSON object"), { code: "bad-payload" });
   }
 
-  if (process.env.CLAUDE_STATUSLINE_DEBUG === "1") {
+  if (process.env.CLAUDE_STATUSLINE_DEBUG === "1" && canWrite()) {
     try {
       const fs = await import("node:fs");
       const path = await import("node:path");
       const os = await import("node:os");
-      const dir = path.join(os.homedir(), ".claude", "statusline");
+      const dir = stateRoot();
       fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(path.join(dir, "debug-last-payload.json"), raw || "{}");
     } catch {
