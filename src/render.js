@@ -1164,6 +1164,7 @@ export function renderReadings(
   // named: declared rather than assumed, as the plain separator rule asks.
   const opts = { asciiArrows: asciiArrows || (tier === "emoji" && !process.env.CLAUDE_STATUSLINE_SEPARATOR), width: maxWidth };
   const roundStyle = separatorStyle(opts) === "round";
+  const widePadding = String(process.env.CLAUDE_STATUSLINE_PADDING ?? "").toLowerCase() === "wide" && separatorStyle(opts) === "arrow";
   // The rows are kept as segment lists until every line exists, because
   // aligning the first column across the bar needs all of them at once.
   // Rendering each line to text as it was built is what left that alignment
@@ -1894,6 +1895,8 @@ export function renderReadings(
       if (placementFor(seg.key)?.on === false) continue;
       // The pill style adds two caps to every chip, which the fit has to know.
       if (roundStyle) placed.extra = 0;
+      // The wide padding adds one column to every chip after the first.
+      if (widePadding && !roundStyle) placed.extra = 1;
       // A sleeping session recedes: line 2 is drawn in the quiet colour.
       // A chip that has its own fill goes neutral too: a quiet text colour on a
       // flamingo fill would change nothing a reader could see.

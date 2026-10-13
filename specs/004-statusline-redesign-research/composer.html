@@ -612,7 +612,7 @@ function quietText(palette, colour) {
 function renderRow(palette, segments, { asciiArrows = false, width = null } = {}) {
   const style = separatorStyle({ asciiArrows });
   const glyphs = SEPARATOR_GLYPHS[style];
-  const chips = segments.map((seg) => {
+  const chips = segments.map((seg, i) => {
     const { fg: chipFg, bg: segBg } = chipOf(palette, seg.color);
     const readable = (c, onBg) => {
       if (isAnsi(c) || isAnsi(onBg)) return c;
@@ -634,6 +634,12 @@ function renderRow(palette, segments, { asciiArrows = false, width = null } = {}
     // A pill carries its own caps, so its inner padding goes: the chip costs
     // what it did in the arrow style (specs/051-review-fixes, item F54).
     if (style === "round" && colourEnabled()) label = label.replace(/^ /, "").replace(/ $/, "");
+    // `CLAUDE_STATUSLINE_PADDING=wide`: two columns before the icon of every
+    // chip that follows an arrow (the review's section 5.5). Opt-in, because it
+    // costs a column a chip and the track already costs about six a gauge.
+    if (i > 0 && style === "arrow" && String(process.env.CLAUDE_STATUSLINE_PADDING ?? "").toLowerCase() === "wide") {
+      label = ` ${label}`;
+    }
     // An icon in its own colour on a neutral chip: the first word of the
     // text, drawn in the token's colour made readable on this background,
     // then the chip's own text colour again.
@@ -651,7 +657,10 @@ function renderRow(palette, segments, { asciiArrows = false, width = null } = {}
       if (!colourEnabled()) {
         label = label.replace(/[\u0001-\u0004]/g, "");
       } else {
-        const quiet = fg(quietText(palette, seg.color));
+        // `CLAUDE_STATUSLINE_DIM=sgr` asks for the terminal's own dim (SGR 2)
+        // where the default is a quieter text colour that keeps 4.5:1.
+        const sgrDim = String(process.env.CLAUDE_STATUSLINE_DIM ?? "").toLowerCase() === "sgr";
+        const quiet = sgrDim ? "\x1b[2m" : fg(quietText(palette, seg.color));
         const good = fg(readable(resolveColour(palette, "green"), segBg));
         label = label
           .replace(/\u0001/g, "\x1b[1m")
