@@ -35,7 +35,7 @@ Each row below was approved by the owner on 2026-10-12 (see the 053 spec).
 
 - SGR 2 dim: `CLAUDE_STATUSLINE_DIM=sgr`. The default quiet colour keeps 4.5:1.
 - Wide arrow padding: `CLAUDE_STATUSLINE_PADDING=wide`. Costs a column a chip.
-- 25 ms redraw target: reported by `scripts/bench.js`, not enforced. p95 was 26.0 ms, so it
+- 25 ms redraw target: reported by `scripts/bench.js`, not enforced. p95 measured 26 to 30 ms in this repository, so it
   reads not met. The 300 ms budget is the enforced one.
 - Overline and rasterised proof images depend on the terminal and the machine.
 
