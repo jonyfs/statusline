@@ -67,6 +67,11 @@ await test("a Copilot payload and the detached refresh run through the build", (
   const r = spawnSync(process.execPath, [cli], { input: payload, encoding: "utf8", env, cwd: home });
   assert.equal(r.status, 0, r.stderr);
   assert.ok(r.stdout.length > 0);
+  // A missing module prints the fallback chip and still exits 0 in the default mode.
+  assert.ok(!/unavailable/.test(r.stdout), `the fallback was drawn: ${r.stdout}`);
+  const runs = spawnSync(process.execPath, [cli, "--format", "runs"], { input: payload, encoding: "utf8", env, cwd: home });
+  assert.equal(runs.status, 0, runs.stdout);
+  assert.ok(JSON.parse(runs.stdout).lines.length > 0);
   const refresh = spawnSync(process.execPath, [cli, "refresh", "git", "0000000000000000"], { encoding: "utf8", env: { ...env, CLAUDE_STATUSLINE_NO_REFRESH: "" }, cwd: home });
   assert.equal(refresh.status, 0, refresh.stderr);
 });
