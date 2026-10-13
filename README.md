@@ -1516,7 +1516,7 @@ uses GitHub already knows; Material Design and Devicon for the rest.
 | `nf-md-piggy_bank` | `U+F1679` | rtk, what it saves |
 | `nf-md-wallet` | `U+F0584` | the spend limit |
 | `nf-md-timer_sand_full` / `_half` / `_empty` and `nf-md-snowflake` | `U+F078C` / `U+F051F` / `U+F06AD` and `U+F0717` | the prompt cache: warm with most, half and the last third of its life left, and cold |
-| `nf-md-new_box` / `nf-md-arrow_up_bold` | `U+F0394` / `U+F0737` | an update waiting, and one applied |
+| `nf-md-new_box` / `nf-md-download` / `nf-md-arrow_up_bold` | `U+F0394` / `U+F01DA` / `U+F0737` | an update waiting, an update blocked, and one applied |
 | `nf-custom-vim` | `U+E62B` | the vim mode, while vim mode is on |
 | `nf-md-lightning_bolt` | `U+F140B` | fast mode, while it is on |
 
@@ -1592,6 +1592,10 @@ listed as "stopwatch" and draws three flat bars; `F0BE` is listed as
 six were wrong.
 
 ![The adopted glyphs, and the ones whose names lied](docs/glyph-evidence.png)
+
+Feature 054 replaced the CI, gate, update, todo, context and model glyphs with the guide's
+section 5.3 rows and checked their names against the font's own table; its proof sheet is
+[`specs/054-guide-gaps/glyph-evidence.png`](specs/054-guide-gaps/glyph-evidence.png).
 
 Without a Nerd Font, `CLAUDE_STATUSLINE_ASCII=1` replaces the whole set at
 once, glyphs and Powerline separators together. Every glyph the bar can emit

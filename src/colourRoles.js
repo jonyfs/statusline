@@ -12,14 +12,14 @@
 /** Role name to the one token that carries it. */
 export const ROLE = {
   critical: "red", // the critical band, merge conflicts, a failed run's icon
-  attention: "peach", // the warn band, allow-all, gates, a forecast limit
-  modified: "yellow", // icon only: CI running, a warm cache closing
+  attention: "peach", // the warn band, allow-all, gates, a forecast limit, a warm cache closing (icon)
+  modified: "yellow", // CI running (icon), the modified file count (text)
   healthy: "green", // icon only: passed, working, added, a gauge in the ok band
   merged: "mauve", // a pull request that was merged
   identity: "lavender", // the branch and the model
   open: "blue", // a pull request that is open
   money: "teal", // spend, credits, rtk savings
-  cold: "sapphire", // a cold cache, todo
+  cold: "sapphire", // a cold cache, todo, commits behind upstream (text)
   skills: "flamingo", // every skill alike
   neutral: "surface0", // the fill of everything that is only state
 };
@@ -69,14 +69,14 @@ export const SEGMENT_COLOURS = {
 /** The legend `doctor --explain` prints: role, token and the one thing it means. */
 export const LEGEND = [
   ["critical", "a gauge in its critical band, merge conflicts"],
-  ["attention", "a gauge in its warn band, allow-all, gates, a forecast limit"],
-  ["modified", "icon only: CI running, a cache about to go cold"],
-  ["healthy", "icon only: passed, working, added, a gauge with room"],
+  ["attention", "a gauge in its warn band, allow-all, gates, a forecast limit, a cache about to go cold"],
+  ["modified", "CI running, the modified file count"],
+  ["healthy", "passed, working, the staged file count, a gauge with room"],
   ["merged", "a pull request that was merged"],
   ["identity", "the branch and the model"],
   ["open", "a pull request that is open"],
   ["money", "spend, credits, rtk savings"],
-  ["cold", "a cold prompt cache, todo"],
+  ["cold", "a cold prompt cache, todo, commits behind"],
   ["skills", "every skill, alike"],
   ["neutral", "plain state: directory, repository, working tree, healthy gauges"],
 ];

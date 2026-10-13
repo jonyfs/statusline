@@ -119,7 +119,7 @@ WANTED = {
                        # 2026-10-06, draws md-progress_download
     "F097F": 0xF097F,  # nf-md-lock_clock: a git gate waiting for gates.lock
     "F099E": 0xF099E,  # nf-md-shield_off: Copilot's allow-all
-    "F01DA": 0xF01DA,  # nf-md-download: an update ready, blocked or failed
+    "F01DA": 0xF01DA,  # nf-md-download: an update blocked
     "F0737": 0xF0737,  # nf-md-arrow_up_bold: the statusline updated. F0CE0,
                        # listed as an up arrow in a circle, points right
     # Animation frames (feature 003). Each was rendered and looked at: the

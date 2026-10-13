@@ -323,6 +323,7 @@ export const GLYPHS = {
     cacheWarmLow: NF_HOURGLASS_EMPTY,
     cacheCold: NF_SNOWFLAKE,
     updateReady: NF_DOWNLOAD,
+    updateBlocked: "\u{F01DA}",   // nf-md-download: the update cannot go in
     updateDone: NF_UPDATED,
     vim: NF_VIM,
     fast: NF_SPEEDOMETER,
@@ -404,6 +405,7 @@ export const GLYPHS = {
     cacheWarmLow: "\u231B",      // ⌛
     cacheCold: "\u{1F9CA}",      // 🧊
     updateReady: "\u{1F195}",     // 🆕
+    updateBlocked: "\u23EC",      // ⏬
     updateDone: "\u{1F680}",      // 🚀
     vim: "\u{1F524}",            // 🔤
     fast: "\u{1F407}",           // 🐇
@@ -517,6 +519,7 @@ export const GLYPHS = {
     cacheCold: "\u2744",  // ❄
     // Both East Asian Narrow, and not the doubled arrows push and pull use.
     updateReady: "\u2913", // ⤓
+    updateBlocked: "\u2913",
     updateDone: "\u2912",  // ⤒
     vim: "\u2328",        // ⌨
     fast: "\u21F6",       // ⇶ three arrows
@@ -1433,7 +1436,7 @@ export function renderReadings(
   // the channel is identity; the icon and the words say which state it is.
   const update = shows("update") ? readings.update?.value : null;
   if (update?.text) {
-    const icon = update.state === "updated" ? g.updateDone : g.updateReady;
+    const icon = update.state === "updated" ? g.updateDone : update.state === "blocked" ? g.updateBlocked : g.updateReady;
     // At the right edge of the line, and the first chip to go. Its words are
     // the first thing it gives up, which leaves the icon: the state is the
     // glyph, and the sentence is for a line with room (specs/045).
