@@ -1,6 +1,6 @@
 ---
 track: quick
-status: active
+status: done
 ---
 
 # Open items left after feature 054
@@ -9,7 +9,7 @@ status: active
 
 **Created**: 2026-10-13
 
-**Status**: In progress
+**Status**: Done
 
 **Input**: What remained open once features 039 to 054 were merged: one width defect that
 predates the review, two documents that only had a read-through, the reviewer's confirmation
@@ -31,6 +31,9 @@ of the last head, and a function nothing but its tests uses.
   calls them, and their tests go with them. Nothing did: the agent rows moved to the eighths
   bar in feature 046, and `render.js` only imported `bar`. The band table loses the fill
   characters only `bar()` read.
+
+- **FR-005**: `harnessAgentRows` hands `asciiArrows` to the row builder, so an agent row on a
+  plain bar draws `!` and not the alert glyph (finding 5 of the 054 review, found partial).
 
 ## Left as decided
 

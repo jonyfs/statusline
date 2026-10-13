@@ -30,3 +30,13 @@ await test("no separator style draws a line wider than the window, update chip i
     else process.env.CLAUDE_STATUSLINE_SEPARATOR = before;
   }
 });
+
+await test("harness agent rows follow the caller's ASCII choice", async () => {
+  const { harnessAgentRows } = await import("../../src/taskRows.js");
+  const NOW = Date.parse("2026-08-26T12:00:00.000Z");
+  const agent = { id: "a1", name: "explore", type: "agent", startTime: NOW - 60_000, model: "gpt-6", contextWindowSize: 200000, tokenCount: 190000 };
+  const ascii = strip(harnessAgentRows([agent], { columns: 120, now: NOW, asciiArrows: true }).join("\n"));
+  assert.ok(ascii.includes("!") && !ascii.includes("\u{F40C}"), "ASCII draws the plain mark");
+  const nerd = strip(harnessAgentRows([agent], { columns: 120, now: NOW, asciiArrows: false }).join("\n"));
+  assert.ok(nerd.includes("\u{F40C}"), "the Nerd tier draws the alert glyph");
+});
