@@ -1164,6 +1164,8 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_UNDERLINE=0` | Turns off the dotted underline on linked text |
 | `CLAUDE_STATUSLINE_HAIRLINE=1` | Draws an overline on line 1, a rule above the bar without a fourth line. A terminal that does not draw overlines ignores it |
 | `CLAUDE_STATUSLINE_OUTPUT=runs` | Prints the footer as one JSON object of styled runs, and a failure as exit code 75 and one error object, for a program that draws the bar itself. The flag `--format runs` does the same. See [the footer as data](#the-footer-as-data-for-a-host-that-draws-it-itself) |
+| `CLAUDE_STATUSLINE_PASSIVE=1` | A render starts no child process but read-only `git` and writes no file outside `CLAUDE_STATUSLINE_CACHE_DIR` (none at all when that is unset). For a program that runs the renderer on every redraw. See [passive mode](#passive-mode-for-a-host) |
+| `CLAUDE_STATUSLINE_CACHE_DIR=<absolute path>` | Keeps the cache, the session state, the task snapshots and the skill events there instead of `~/.claude/statusline`. Works with or without passive mode |
 | `CLAUDE_STATUSLINE_DIM=sgr` | Draws units, resets and the repository with the terminal's own dim (SGR 2) instead of a quieter text colour. The default colour keeps 4.5:1, which SGR 2 cannot promise |
 | `CLAUDE_STATUSLINE_PADDING=wide` | Two columns before the icon of every chip that follows an arrow, as the review's section 5.5 draws it. It costs a column a chip, so it is off by default |
 | `CLAUDE_STATUSLINE_BLOCK=1` | Pads every line to the widest with spaces on the `mantle` colour, so the right edge is a block |
@@ -1309,6 +1311,24 @@ A failure in this mode is exit code `75` and one object:
 An empty status is `{"contract":1,"lines":[]}` with exit 0, and an object with unknown or missing
 fields is drawn as well as it can be. Without the variable or the flag nothing changes: the
 output is the ANSI text, and a failure is exit 0 with a line that says so.
+
+### Passive mode for a host
+
+A host that runs the renderer on every redraw can ask to be certain it touches nothing it was not
+told to. Set `CLAUDE_STATUSLINE_PASSIVE=1`:
+
+- No detached refresh, no update check and no other background process is started. The only
+  child processes are read-only `git` commands (`status --no-optional-locks`, `remote get-url`).
+  The pull request, CI, gates and `rtk` chips come from the cache and are never fetched.
+- No file is written outside `CLAUDE_STATUSLINE_CACHE_DIR`. Name an absolute directory to keep the
+  git snapshot and the session state there between renders; leave it unset and nothing is
+  written at all.
+- On macOS the open-tab script in the temporary directory is not written; the directory link is
+  the plain `file://` URL.
+
+Your own configuration (`layout.json`, the update mode, the remembered terminal background) is
+read from `~/.claude/statusline` in every mode and a render never writes it. Without either
+variable nothing changes.
 
 ## Platform support
 
