@@ -1341,6 +1341,14 @@ failure with the error object and exit code 75. `colourDepth` is the environment
 always uses truecolor, and `flavor` is the palette drawn (`flavorRequested` names a value no palette
 has).
 
+### Fixtures for a host
+
+`fixtures/host/` holds status payloads and the plain rows the renderer draws for them at 80, 100,
+144 and 200 columns, made in the environment written in `scripts/host-fixtures.js` (passive mode,
+flavor `mocha`, truecolor, `TZ=UTC`). A program that embeds a copy of the renderer can run the same
+payloads and compare. `node scripts/make-host-fixtures.js` rewrites the expected files, and the
+test suite fails when they move without it.
+
 ### Passive mode for a host
 
 A host that runs the renderer on every redraw can ask to be certain it touches nothing it was not
