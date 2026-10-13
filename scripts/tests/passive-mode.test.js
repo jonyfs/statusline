@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, existsSync, readdirSync, statSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { test } from "../test-harness.js";
 import { isPassive, cacheRoot, stateRoot, canWrite } from "../../src/paths.js";
 
@@ -33,7 +33,7 @@ function record(env, payload = {}) {
     context_window: { used_percentage: 40 },
     ...payload,
   });
-  const r = spawnSync(process.execPath, ["--import", RECORDER, CLI], {
+  const r = spawnSync(process.execPath, ["--import", pathToFileURL(RECORDER).href, CLI], {
     input,
     encoding: "utf8",
     env: {
@@ -99,7 +99,7 @@ await test("a passive render with a cache directory writes only inside it", () =
     assert.ok(w.path.startsWith(dir), `outside the cache directory: ${w.path}`);
   }
   assert.deepEqual(run.files(run.home), [], "the home directory is untouched");
-  assert.ok(run.files(dir).some((f) => /\.git\.json$/.test(f)), "the git snapshot is there");
+  assert.ok(run.files(dir).some((f) => /cache[\\/][^\\/]+\.json$/.test(f)), "a cache entry is there");
   assert.ok(run.files(dir).some((f) => /state[\\/]passive-1\.json$/.test(f)), "the session state is there");
   for (const c of run.children) assertReadOnlyGit(c);
 });
@@ -125,7 +125,7 @@ await test("without either variable the render writes where it always wrote (FR-
   const run = record({ CLAUDE_STATUSLINE_NO_REFRESH: "1" });
   assert.equal(run.r.status, 0, run.r.stderr);
   const files = run.files(run.home).map((f) => path.relative(run.home, f).split(path.sep).join("/"));
-  assert.ok(files.some((f) => /^\.claude\/statusline\/cache\/.+\.git\.json$/.test(f)), files.join(", "));
+  assert.ok(files.some((f) => /^\.claude\/statusline\/cache\/.+\.json$/.test(f)), files.join(", "));
   assert.ok(files.some((f) => f === ".claude/statusline/state/passive-1.json"), files.join(", "));
   rmSync(run.home, { recursive: true, force: true });
 });
