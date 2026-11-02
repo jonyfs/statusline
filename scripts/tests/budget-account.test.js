@@ -122,3 +122,18 @@ await test("amounts as numeric text and a reset in milliseconds are read as what
   assert.equal(getRateLimits(budget({ ...monthly, resets_at: (SEC + 20 * DAY) * 1000 })).spendLimitResetsAt, SEC + 20 * DAY);
   assert.equal(getRateLimits(budget(monthly)).spendLimitResetsAt, SEC + 20 * DAY);
 });
+
+// The gateway resets caps on UTC calendar boundaries and `period` can be
+// absent, so a reset near enough to be a day, a week or a month paces on no
+// scale at all rather than on a guessed one.
+await test("a payload without the period paces only when the reset can only be a month's", () => {
+  const noPeriod = (days) => render(budget({ used_percentage: 40, resets_at: SEC + days * DAY, used_usd: 200, limit_usd: 500 }));
+  assert.match(noPeriod(20), /\$[\d.]+\/d left · avg/);
+  assert.doesNotMatch(noPeriod(3), /left ·|\/d left/);
+  assert.match(noPeriod(3), /spend \$200\/\$500/); // the dollars still show
+});
+
+await test("a weekly cap with its period is paced on a week", () => {
+  const out = render(budget({ used_percentage: 50, resets_at: SEC + 3 * DAY, used_usd: 250, limit_usd: 500, period: "weekly" }));
+  assert.match(out, /\$[\d.]+\/d left · avg \$[\d.]+\/d/);
+});
