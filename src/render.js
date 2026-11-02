@@ -34,6 +34,7 @@ import {
   abbreviate,
   MAX_PLAUSIBLE_SPEND_PERIOD_MS,
   budgetPace,
+  monthPeriodMinutes,
   getPromptCache,
   cacheMinutesLeft,
 } from "./tokens.js";
@@ -1597,16 +1598,14 @@ export function renderReadings(
       : null;
 
   // The length of the spend period, for pace. A month is the calendar month
-  // that ends at the reset, since months differ by up to three days.
+  // that ends at the reset (counted in UTC), since months differ by up to
+  // three days.
   const spendPeriodMinutes = (() => {
     const period = spendUsd?.period;
     if (period === "daily") return 1440;
     if (period === "weekly") return 10080;
     if (typeof spendLimitResetsAt !== "number") return 43200;
-    const end = new Date(spendLimitResetsAt * 1000);
-    const start = new Date(end);
-    start.setMonth(start.getMonth() - 1);
-    return Math.round((end - start) / 60_000);
+    return monthPeriodMinutes(spendLimitResetsAt);
   })();
   // Whole dollars from 100 up, cents below it.
   const usd = (v) => `$${v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(1).replace(/\.0$/, "") : v.toFixed(2).replace(/0$/, "").replace(/\.$/, "")}`;
