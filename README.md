@@ -584,6 +584,10 @@ the payload's dollars and reset date. The dollars are the gateway's estimate and
 be about five minutes behind the percentage. A plan with the 5-hour and 7-day
 windows draws exactly as before.
 
+![A dollar budget: $300 of $500, the daily allowance left and the average so far](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/budget-account.svg)
+
+![A dollar budget exceeded](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/budget-over.svg)
+
 Outside a gateway setup the payload says nothing about a raised allowance, so
 the bar shows `full` and nothing more. It will not work out a remaining
 balance from what you have spent, how many messages you sent, or how long you
