@@ -48,7 +48,7 @@ export const PAYLOAD = {
     five_hour: { used_percentage: 62, resets_at: FIXED_NOW + 7740 },
     seven_day: { used_percentage: 77, resets_at: FIXED_NOW + 3 * 86400 + 21600 },
     // A gateway setup, so the composer has the spend limit to arrange too.
-    spend_limit: { used_percentage: 34, resets_at: FIXED_NOW + 12 * 86400 },
+    spend_limit: { used_percentage: 34, resets_at: FIXED_NOW + 12 * 86400, used_usd: 170, limit_usd: 500, period: "monthly" },
     // Codex's fields, so the composer has their chips to arrange
     // (specs/037-codex-windows): the free plan's 30-day window and a balance.
     other_windows: [{ label: "30d", window_minutes: 43200, used_percentage: 15, resets_at: FIXED_NOW + 20 * 86400 }],

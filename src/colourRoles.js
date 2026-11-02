@@ -60,6 +60,7 @@ export const SEGMENT_COLOURS = {
   premiumQuota: GAUGE,
   chatQuota: GAUGE,
   spendLimit: GAUGE,
+  spendPace: { fill: ["money", "attention", "critical"] },
   promptCache: { fill: ["cold", "neutral"], icon: ["attention"] },
   duration: { fill: ["neutral"] },
   aiCredits: { fill: ["money", "neutral", "attention", "critical"], icon: ["healthy"], tone: ["critical"] },

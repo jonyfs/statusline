@@ -93,6 +93,10 @@ const DESCRIBE = {
     (v, now, readings) =>
       v === null ? null : describeWindow(v, readings?.spendLimitReset?.value, now, { maxMs: MAX_PLAUSIBLE_SPEND_PERIOD_MS }),
   ],
+  spendPace: [
+    "spendLimitUsd",
+    (v) => (v ? `$${v.used} of $${v.limit}${v.period ? `, ${v.period}` : ""}` : null),
+  ],
   // One segment carrying both countdowns, so the diagnostic reports both. A
   // row that described only the 5-hour one named half of what is on the line.
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
@@ -226,6 +230,7 @@ function absenceReason(segment, reading, readings, now) {
     if (segment.key === "spendLimit") {
       return "not in the payload: Claude Code reports a spend limit only behind a Claude gateway with spend limits";
     }
+    if (segment.key === "spendPace") return "the payload carries no dollar amounts for the spend limit (needs Claude Code 2.1.284 and a gateway that sends them)";
     if (segment.key === "effort") return "the payload carries no effort level";
     if (segment.key === "outputStyle") return "no output style set";
     return "nothing to show";

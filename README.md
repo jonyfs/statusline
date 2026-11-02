@@ -572,6 +572,18 @@ because that is how the payload reports it:
 
 ![Past the 5-hour limit, spending a raised allowance](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/limit-lifted.svg)
 
+**A dollar budget instead of windows.** An account metered in dollars over a day,
+week or month (Claude Enterprise behind a gateway with spend limits) has no 5-hour
+or 7-day window, so those two chips are not drawn. The `spend` chip then carries the
+amounts the payload sends (`spend $200/$500 40%`, Claude Code 2.1.284 and a gateway
+that sends them), and a `spendPace` chip beside it says what is left per day until
+the reset next to what you have spent per day so far (`$15/d left · avg $18.2/d`).
+It turns yellow when that average would end at 85% of the limit and red at 100%, and
+reads `over by $20` once the limit is passed. Both per-day figures are arithmetic on
+the payload's dollars and reset date. The dollars are the gateway's estimate and can
+be about five minutes behind the percentage. A plan with the 5-hour and 7-day
+windows draws exactly as before.
+
 Outside a gateway setup the payload says nothing about a raised allowance, so
 the bar shows `full` and nothing more. It will not work out a remaining
 balance from what you have spent, how many messages you sent, or how long you
@@ -1200,7 +1212,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts thirty-four segments on three lines, and it is a default
+The default puts thirty-five segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:
