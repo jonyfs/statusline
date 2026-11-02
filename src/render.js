@@ -33,6 +33,7 @@ import {
   formatDuration,
   abbreviate,
   MAX_PLAUSIBLE_SPEND_PERIOD_MS,
+  budgetPace,
   getPromptCache,
   cacheMinutesLeft,
 } from "./tokens.js";
@@ -640,7 +641,7 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   };
 
   const cwd = payload?.workspace?.current_dir || payload?.cwd || process.cwd();
-  const { fiveHourPct, fiveHourResetsAt, sevenDayPct, sevenDayResetsAt, spendLimitPct, spendLimitResetsAt } =
+  const { fiveHourPct, fiveHourResetsAt, sevenDayPct, sevenDayResetsAt, spendLimitPct, spendLimitResetsAt, spendLimitUsd } =
     getRateLimits(payload);
   const ctxPct = getContextPercent(payload);
   // RTK is needed both for its segment and for the sample history, so read it
@@ -830,6 +831,7 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     sevenDayReset: reading({ value: sevenDayResetsAt, at: now, source: "payload" }),
     spendLimit: reading({ value: spendLimitPct, at: now, source: "payload" }),
     spendLimitReset: reading({ value: spendLimitResetsAt, at: now, source: "payload" }),
+    spendLimitUsd: reading({ value: spendLimitUsd, at: now, source: "payload" }),
     promptCache: reading({ value: getPromptCache(payload, now), at: now, source: "payload" }),
     update: updateReading,
     // Only present when vim mode is on; a mode that is not text is no mode.
@@ -1063,6 +1065,7 @@ export function renderReadings(
   // `?%`: most accounts have no spend limit at all (Principle III).
   const spendLimitPct = readings.spendLimit?.value ?? null;
   const spendLimitResetsAt = readings.spendLimitReset?.value ?? null;
+  const spendUsd = readings.spendLimitUsd?.value ?? null;
   const promptCache = readings.promptCache?.value ?? null;
   const fiveHourResetLabel = formatResetCountdown(fiveHourResetsAt, now) ?? "reset time unknown";
   const sevenDayResetLabel = formatResetCountdown(sevenDayResetsAt, now) ?? "reset time unknown";
@@ -1593,6 +1596,21 @@ export function renderReadings(
       ? resetMomentLabel(spendLimitResetsAt, new Date(now))
       : null;
 
+  // The length of the spend period, for pace. A month is the calendar month
+  // that ends at the reset, since months differ by up to three days.
+  const spendPeriodMinutes = (() => {
+    const period = spendUsd?.period;
+    if (period === "daily") return 1440;
+    if (period === "weekly") return 10080;
+    if (typeof spendLimitResetsAt !== "number") return 43200;
+    const end = new Date(spendLimitResetsAt * 1000);
+    const start = new Date(end);
+    start.setMonth(start.getMonth() - 1);
+    return Math.round((end - start) / 60_000);
+  })();
+  // Whole dollars from 100 up, cents below it.
+  const usd = (v) => `$${v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(1).replace(/\.0$/, "") : v.toFixed(2).replace(/0$/, "").replace(/\.$/, "")}`;
+
   // A window at its limit says so in a word. The payload keeps sending the
   // same 100 until the reset, so without it a figure that cannot move reads
   // as a statusline that stopped updating (specs/023-extra-usage-limit). The
@@ -1609,8 +1627,14 @@ export function renderReadings(
   // have, such as the 5-hour window on the free plan, is absent rather than
   // `?%`, for the same reason (specs/035-codex-pane).
   const isCodex = readings.harness?.value === "codex";
-  const noFiveHour = noLimits || (isCodex && !payload?.rate_limits?.five_hour);
-  const noSevenDay = noLimits || (isCodex && !payload?.rate_limits?.seven_day);
+  // A budget account (Claude Enterprise behind a gateway with a spend limit)
+  // is metered in dollars over a day, week or month and has no 5-hour or
+  // 7-day window. The payload then carries `spend_limit` and neither window,
+  // so their chips are absent rather than `?%` (specs/062-budget-account).
+  const budgetOnly =
+    spendLimitPct !== null && !payload?.rate_limits?.five_hour && !payload?.rate_limits?.seven_day;
+  const noFiveHour = noLimits || budgetOnly || (isCodex && !payload?.rate_limits?.five_hour);
+  const noSevenDay = noLimits || budgetOnly || (isCodex && !payload?.rate_limits?.seven_day);
 
   // Copilot CLI's monthly quota, one chip per allowance the plan meters
   // (specs/033-copilot-parity). Labelled `month` the way the windows are
@@ -1774,10 +1798,36 @@ export function renderReadings(
       if (noLimits) return null;
       if (spendLimitPct === null) return null;
       const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
-      const band = bandFor(spendLimitPct)?.name ?? null;
+      const { band, pace } = spendUsd
+        ? paceBand(spendLimitPct, elapsedPct(spendLimitResetsAt, spendPeriodMinutes))
+        : { band: bandFor(spendLimitPct)?.name ?? null, pace: null };
+      const base = { icon: g.spend, pct: spendLimitPct, band, pace, reset: moment, full: spendUsd ? fullMark(spendLimitPct) : "", resetsAt: spendLimitResetsAt };
+      const plain = gaugeChipText({ ...base, label: "spend" });
+      if (!spendUsd) return { ...gaugeChip(spendLimitPct, band), ...plain };
+      // With the dollars the payload sends: `spend $314/$500`. The track and
+      // the reset go first, then the amounts, and the percentage stays.
+      const money = gaugeChipText({ ...base, label: `spend ${usd(spendUsd.used)}/${usd(spendUsd.limit)}` });
+      return { ...gaugeChip(spendLimitPct, band), text: money.text, variants: [...money.variants, plain.variants[plain.variants.length - 1]] };
+    },
+    // What is left of a budget, spread over what is left of its period, next
+    // to what has been spent per day so far (specs/062-budget-account). Both
+    // are arithmetic on the payload's own dollars and reset, not a figure
+    // the bar makes up. Absent without the dollars.
+    spendPace: () => {
+      if (noLimits || !spendUsd || spendLimitPct === null) return null;
+      const p = budgetPace(spendUsd, spendLimitResetsAt, now, spendPeriodMinutes);
+      if (!p) return null;
+      if (p.over !== undefined) {
+        return { color: ROLE.critical, text: p.over > 0 ? ` ${g.spend} over by ${usd(p.over)} ` : ` ${g.spend} limit reached ` };
+      }
+      const unit = spendUsd.period === "daily" ? "h" : "d";
+      const left = `${usd(p.allowance)}/${unit} left`;
+      const text = p.avg === null ? ` ${g.spend} ${left} ` : ` ${g.spend} ${left} \u00b7 avg ${usd(p.avg)}/${unit} `;
       return {
-        ...gaugeChip(spendLimitPct, band),
-        ...gaugeChipText({ icon: g.spend, label: "spend", pct: spendLimitPct, band, reset: moment, resetsAt: spendLimitResetsAt }),
+        ...gaugeChip(p.projectedPct, bandFor(p.projectedPct)?.name ?? null),
+        color: p.projectedPct >= 100 ? ROLE.critical : p.projectedPct >= 85 ? ROLE.attention : ROLE.money,
+        text,
+        variants: [` ${g.spend} ${left} `],
       };
     },
     // The prompt cache, drawn only when its state changes what you do next:

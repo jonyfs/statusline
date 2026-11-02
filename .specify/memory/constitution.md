@@ -454,7 +454,7 @@ line gives up, before the reset and long before the figure.
 System MUST display token/rate-limit usage using only the exact fields Claude Code provides on
 the `statusLine` command's stdin payload (`context_window.used_percentage`,
 `rate_limits.five_hour.used_percentage`, `rate_limits.seven_day.used_percentage`,
-`rate_limits.spend_limit.used_percentage`, each entry's `resets_at`, and the `prompt_cache`
+`rate_limits.spend_limit.used_percentage`, `.used_usd`, `.limit_usd` and `.period`, each entry's `resets_at`, and the `prompt_cache`
 block) — never a locally estimated or invented figure standing in for real
 account data. Anthropic's plan limits are a 5-hour window and a 7-day window; there is no
 monthly quota, so the statusline MUST NOT display a "monthly" figure — inventing one to fill a
@@ -462,7 +462,9 @@ slot would be a fabricated number presented as real. Three percentages are shown
 window usage, 5-hour window usage, 7-day window usage, plus a reset countdown computed from the
 7-day window's `resets_at`. A fourth, the spend limit, is shown only where the payload carries
 it. Its period may be a month, and that is the one exception to the rule above: it is a
-figure Claude Code reports, not one the statusline invented. If a field is absent from the payload (older Claude Code version,
+figure Claude Code reports, not one the statusline invented. The dollars and the period of a
+spend limit are shown as sent, and the per-day figures beside them are arithmetic on those
+fields and the reset, never a number from another source (specs/062-budget-account). If a field is absent from the payload (older Claude Code version,
 or a render before the session has usage), the segment MUST show the unknown mark (an empty track and a dash, `—`) rather than a guessed
 value, and MUST NOT break the rest of the line.
 

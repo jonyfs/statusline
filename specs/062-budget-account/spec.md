@@ -1,0 +1,48 @@
+---
+track: quick
+status: done
+---
+
+# A dollar-budget account
+
+**Feature Branch**: `feat/062-budget-account`
+
+**Created**: 2026-11-03
+
+**Input**: "como funcionar com claude enterprise onde o usuário tem um limite financeiro de
+tokens e não mais limite semanal e de 5 horas": show the financial limit and the average spend
+that gets through the period, and keep working for the 5-hour and weekly model.
+
+**Track**: `quick`: one reader, one pace function, two chips.
+
+## Why this exists
+
+Behind a Claude apps gateway with spend limits the payload carries `rate_limits.spend_limit`
+with `used_percentage` and `resets_at`, and since Claude Code 2.1.284 also `used_usd`,
+`limit_usd` and `period` (`daily`, `weekly` or `monthly`). The bar drew the percentage only,
+and drew `5h —` and `7d —` placeholders for two windows such an account does not have.
+
+## Requirements
+
+- **FR-001**: `getRateLimits` reads `used_usd`, `limit_usd` and `period`. They count only as a
+  set: both amounts finite, the used one not negative, the limit above zero. An unknown period
+  is read as no period (monthly bounds apply).
+- **FR-002**: When the payload has `spend_limit` and neither `five_hour` nor `seven_day`, the 5h
+  and 7d chips are absent rather than `?`. With any window present they draw as before.
+- **FR-003**: With the dollars, the `spend` chip reads `spend $200/$500 40% ↺ reset`, the
+  percentage carrying the pace marker against the elapsed part of the period. The track and the
+  reset go first when the line is short, then the amounts.
+- **FR-004**: A new `spendPace` chip reads `$15/d left · avg $18.2/d`: what is left divided by
+  the days left (hours for a daily limit; never divided below one unit) and the spend per elapsed
+  day. Its colour follows where the average lands at the reset: attention from 85% of the limit,
+  critical from 100%. Over the limit it reads `over by $20`, at it `limit reached`.
+- **FR-005**: A month is the calendar month that ends at `resets_at`. A reset that is past or
+  further out than the period yields no pace.
+- **FR-006**: Without the dollars the bar is what it was and `spendPace` is absent.
+- **FR-007**: The per-day figures are arithmetic on payload fields (Principle III, amended).
+
+## Not done
+
+- No README image yet (Principle VIII asks for one generated from the renderer).
+- The dollars are the gateway's estimate, up to five minutes older than the percentage; the bar
+  does not say so.

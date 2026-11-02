@@ -78,6 +78,8 @@ export const MAX_AGE_MS = {
   sevenDayReset: 1_000,
   spendLimit: 1_000,
   spendLimitReset: 1_000,
+  spendLimitUsd: 1_000,
+  spendPace: 1_000,
   promptCache: 1_000,
   // The daily update check (specs/026-update-check). As a cache key this is
   // also how long its lock lasts, so a check killed part-way is retried the

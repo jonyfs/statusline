@@ -53,8 +53,17 @@ export function getRateLimits(payload) {
   const sevenDay = payload?.rate_limits?.seven_day;
   const spend = payload?.rate_limits?.spend_limit;
   const spendLimitPct = spendPercent(spend?.used_percentage);
+  // The dollar figures come on their own schedule and may be absent while the
+  // percentage is there (Claude Code 2.1.284+). One without the other is no
+  // figure: a used amount with no limit says nothing about a budget.
+  const usd = (v) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
+  const used = usd(spend?.used_usd);
+  const max = usd(spend?.limit_usd);
+  const period = ["daily", "weekly", "monthly"].includes(spend?.period) ? spend.period : null;
+  const hasUsd = spendLimitPct !== null && used !== null && max !== null && max > 0;
   return {
     spendLimitPct,
+    spendLimitUsd: hasUsd ? { used, limit: max, period } : null,
     // A reset with no figure beside it describes nothing on the bar.
     spendLimitResetsAt:
       spendLimitPct !== null && typeof spend?.resets_at === "number" ? spend.resets_at : null,
@@ -63,6 +72,29 @@ export function getRateLimits(payload) {
     sevenDayPct: typeof sevenDay?.used_percentage === "number" ? Math.round(sevenDay.used_percentage) : null,
     sevenDayResetsAt: typeof sevenDay?.resets_at === "number" ? sevenDay.resets_at : null,
   };
+}
+
+/**
+ * Where a dollar budget stands against its own period, from the payload's
+ * `used_usd`, `limit_usd` and `resets_at` alone (specs/062-budget-account):
+ * what is left per day (per hour for a daily limit) to reach the reset
+ * without passing the limit, what has been spent per day so far, and where
+ * that rate lands at the reset as a percentage of the limit. Null when the
+ * reset is unknown, past, or further out than the period is long.
+ */
+export function budgetPace(spend, resetsAt, now, periodMinutes) {
+  if (!spend || typeof resetsAt !== "number" || !Number.isFinite(resetsAt)) return null;
+  const periodMs = periodMinutes * 60_000;
+  const remainingMs = resetsAt * 1000 - now;
+  if (!(remainingMs > 0) || remainingMs > periodMs * 1.02) return null;
+  const left = spend.limit - spend.used;
+  if (left <= 0) return { over: -left };
+  const unitMs = spend.period === "daily" ? 3_600_000 : 86_400_000;
+  const allowance = left / Math.max(remainingMs / unitMs, 1);
+  const elapsedMs = Math.max(0, periodMs - remainingMs);
+  const avg = elapsedMs >= unitMs ? spend.used / (elapsedMs / unitMs) : null;
+  const projectedPct = ((avg === null ? spend.used : avg * (periodMs / unitMs)) / spend.limit) * 100;
+  return { allowance, avg, projectedPct };
 }
 
 /**
