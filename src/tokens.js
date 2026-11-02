@@ -56,7 +56,16 @@ export function getRateLimits(payload) {
   // The dollar figures come on their own schedule and may be absent while the
   // percentage is there (Claude Code 2.1.284+). One without the other is no
   // figure: a used amount with no limit says nothing about a budget.
-  const usd = (v) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
+  // A gateway or a wrapper may send the amounts as numeric text ("250.5").
+  const usd = (v) => {
+    const n = typeof v === "string" && /^\d+(\.\d+)?$/.test(v.trim()) ? Number(v) : v;
+    return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
+  };
+  // Epoch seconds are about 1.8e9 and milliseconds 1.8e12, so a value past
+  // 1e11 can only be milliseconds: read as the seconds it means.
+  const spendReset = typeof spend?.resets_at === "number" && Number.isFinite(spend.resets_at)
+    ? (spend.resets_at > 1e11 ? Math.floor(spend.resets_at / 1000) : spend.resets_at)
+    : null;
   const used = usd(spend?.used_usd);
   const max = usd(spend?.limit_usd);
   const period = ["daily", "weekly", "monthly"].includes(spend?.period) ? spend.period : null;
@@ -66,7 +75,7 @@ export function getRateLimits(payload) {
     spendLimitUsd: hasUsd ? { used, limit: max, period } : null,
     // A reset with no figure beside it describes nothing on the bar.
     spendLimitResetsAt:
-      spendLimitPct !== null && typeof spend?.resets_at === "number" ? spend.resets_at : null,
+      spendLimitPct !== null ? spendReset : null,
     fiveHourPct: typeof fiveHour?.used_percentage === "number" ? Math.round(fiveHour.used_percentage) : null,
     fiveHourResetsAt: typeof fiveHour?.resets_at === "number" ? fiveHour.resets_at : null,
     sevenDayPct: typeof sevenDay?.used_percentage === "number" ? Math.round(sevenDay.used_percentage) : null,

@@ -95,7 +95,7 @@ const DESCRIBE = {
   ],
   spendPace: [
     "spendLimitUsd",
-    (v) => (v ? `$${v.used} of $${v.limit}${v.period ? `, ${v.period}` : ""}` : null),
+    (v) => (v ? `$${v.used} of $${v.limit}${v.period ? `, ${v.period}` : ""} (the gateway's estimate, up to about 5 minutes behind the percentage)` : null),
   ],
   // One segment carrying both countdowns, so the diagnostic reports both. A
   // row that described only the 5-hour one named half of what is on the line.

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { test, stripAnsi } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { getRateLimits, budgetPace } from "../../src/tokens.js";
@@ -95,13 +96,29 @@ await test("a month is counted in UTC: the same payload paces the same in every 
   assert.equal(monthPeriodMinutes(at("2026-03-01T00:00:00Z")), 28 * 1440); // February
   assert.equal(monthPeriodMinutes(at("2028-03-01T00:00:00Z")), 29 * 1440); // leap year
   assert.equal(monthPeriodMinutes(at("2026-05-31T00:00:00Z")), 31 * 1440); // from Apr 30 (clamped), not an overflow to May 1
-  const was = process.env.TZ;
-  const draw = () => render(budget({ ...monthly, resets_at: at("2026-11-23T12:00:00Z") }));
-  try {
-    const utc = draw().match(/avg \$[\d.]+/)[0];
-    process.env.TZ = "America/Los_Angeles";
-    assert.equal(draw().match(/avg \$[\d.]+/)[0], utc);
-  } finally {
-    process.env.TZ = was;
-  }
+});
+
+// The suite pins TZ=UTC for the whole process, so the zones are tried in
+// children that draw the same payload and print the pace chip.
+await test("the pace chip reads the same in UTC, Los Angeles, Sao Paulo and Tokyo", () => {
+  const code = String.raw`
+    import { renderPayload } from ${JSON.stringify(new URL("../../src/render.js", import.meta.url).href)};
+    const NOW = Date.parse("2026-10-20T12:00:00Z");
+    const p = { model: { display_name: "Opus" }, workspace: { current_dir: "/tmp" }, context_window: { used_percentage: 10 },
+      rate_limits: { spend_limit: { used_percentage: 50, resets_at: Date.parse("2026-11-01T00:00:00Z") / 1000, used_usd: 250, limit_usd: 500, period: "monthly" } } };
+    const out = renderPayload(p, { trackChanges: false, now: NOW, maxWidth: 300, maxHeight: 20, sources: {} });
+    console.log(out.replace(/\x1b\[[0-9;:]*m/g, "").match(/\$[\d.]+\/d left · avg \$[\d.]+\/d/)[0]);`;
+  const draw = (tz) =>
+    spawnSync(process.execPath, ["--input-type=module", "-e", code], { env: { ...process.env, TZ: tz }, encoding: "utf8" }).stdout.trim();
+  const utc = draw("UTC");
+  assert.match(utc, /avg \$12\.8\/d/);
+  for (const tz of ["America/Los_Angeles", "America/Sao_Paulo", "Asia/Tokyo"]) assert.equal(draw(tz), utc, tz);
+});
+
+await test("amounts as numeric text and a reset in milliseconds are read as what they mean", () => {
+  const texty = getRateLimits(budget({ ...monthly, used_usd: "200.5", limit_usd: " 500 " }));
+  assert.deepEqual(texty.spendLimitUsd, { used: 200.5, limit: 500, period: "monthly" });
+  assert.equal(getRateLimits(budget({ ...monthly, used_usd: "abc" })).spendLimitUsd, null);
+  assert.equal(getRateLimits(budget({ ...monthly, resets_at: (SEC + 20 * DAY) * 1000 })).spendLimitResetsAt, SEC + 20 * DAY);
+  assert.equal(getRateLimits(budget(monthly)).spendLimitResetsAt, SEC + 20 * DAY);
 });
