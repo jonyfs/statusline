@@ -75,6 +75,22 @@ export function getRateLimits(payload) {
 }
 
 /**
+ * The length in minutes of the calendar month that ends at `resetsAtSeconds`,
+ * counted in UTC so the same payload gives the same figure in every time zone.
+ * The start is the same moment one month earlier, held to that month's last
+ * day (a reset on the 31st follows a 30-day month, not an overflow into the
+ * next one).
+ */
+export function monthPeriodMinutes(resetsAtSeconds) {
+  const end = new Date(resetsAtSeconds * 1000);
+  const y = end.getUTCFullYear();
+  const m = end.getUTCMonth() - 1;
+  const lastDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const start = Date.UTC(y, m, Math.min(end.getUTCDate(), lastDay), end.getUTCHours(), end.getUTCMinutes(), end.getUTCSeconds());
+  return Math.round((end.getTime() - start) / 60_000);
+}
+
+/**
  * Where a dollar budget stands against its own period, from the payload's
  * `used_usd`, `limit_usd` and `resets_at` alone (specs/062-budget-account):
  * what is left per day (per hour for a daily limit) to reach the reset

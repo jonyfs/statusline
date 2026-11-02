@@ -87,3 +87,21 @@ await test("before the first response there is no rate_limits and the windows re
   assert.match(out, /\b5h\b/);
   assert.doesNotMatch(out, /spend/);
 });
+
+await test("a month is counted in UTC: the same payload paces the same in every time zone", async () => {
+  const { monthPeriodMinutes } = await import("../../src/tokens.js");
+  const at = (iso) => Date.parse(iso) / 1000;
+  assert.equal(monthPeriodMinutes(at("2026-11-01T00:00:00Z")), 31 * 1440); // October
+  assert.equal(monthPeriodMinutes(at("2026-03-01T00:00:00Z")), 28 * 1440); // February
+  assert.equal(monthPeriodMinutes(at("2028-03-01T00:00:00Z")), 29 * 1440); // leap year
+  assert.equal(monthPeriodMinutes(at("2026-05-31T00:00:00Z")), 31 * 1440); // from Apr 30 (clamped), not an overflow to May 1
+  const was = process.env.TZ;
+  const draw = () => render(budget({ ...monthly, resets_at: at("2026-11-23T12:00:00Z") }));
+  try {
+    const utc = draw().match(/avg \$[\d.]+/)[0];
+    process.env.TZ = "America/Los_Angeles";
+    assert.equal(draw().match(/avg \$[\d.]+/)[0], utc);
+  } finally {
+    process.env.TZ = was;
+  }
+});
