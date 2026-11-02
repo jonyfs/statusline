@@ -38,6 +38,10 @@ and drew `5h —` and `7d —` placeholders for two windows such an account does
   critical from 100%. Over the limit it reads `over by $20`, at it `limit reached`.
 - **FR-005**: A month is the calendar month that ends at `resets_at`. A reset that is past or
   further out than the period yields no pace.
+- **FR-005a**: Caps reset on UTC calendar boundaries (daily 00:00, weekly Monday, monthly on the
+  1st; the gateway's spend-limits page). Without `period`, a reset more than a week away is a
+  month; nearer than that the length is ambiguous, so there is no pace marker and no `spendPace`
+  chip, only the dollars.
 - **FR-006**: Without the dollars the bar is what it was and `spendPace` is absent.
 - **FR-007**: The per-day figures are arithmetic on payload fields (Principle III, amended).
 
