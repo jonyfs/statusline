@@ -1604,8 +1604,14 @@ export function renderReadings(
     const period = spendUsd?.period;
     if (period === "daily") return 1440;
     if (period === "weekly") return 10080;
-    if (typeof spendLimitResetsAt !== "number") return 43200;
-    return monthPeriodMinutes(spendLimitResetsAt);
+    // The gateway resets caps on UTC calendar boundaries (daily at 00:00,
+    // weekly on Monday, monthly on the 1st). A payload without `period` is a
+    // month only when the reset is further off than a week can be; nearer
+    // than that it could be any of the three, and a guessed length would
+    // put the pace marker on the wrong scale, so there is none.
+    if (typeof spendLimitResetsAt !== "number") return null;
+    if (period === "monthly" || spendLimitResetsAt * 1000 - now > 7 * 86_400_000 * 1.02) return monthPeriodMinutes(spendLimitResetsAt);
+    return null;
   })();
   // Whole dollars from 100 up, cents below it.
   const usd = (v) => `$${v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(1).replace(/\.0$/, "") : v.toFixed(2).replace(/0$/, "").replace(/\.$/, "")}`;
@@ -1797,7 +1803,7 @@ export function renderReadings(
       if (noLimits) return null;
       if (spendLimitPct === null) return null;
       const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
-      const { band, pace } = spendUsd
+      const { band, pace } = spendUsd && spendPeriodMinutes
         ? paceBand(spendLimitPct, elapsedPct(spendLimitResetsAt, spendPeriodMinutes))
         : { band: bandFor(spendLimitPct)?.name ?? null, pace: null };
       const base = { icon: g.spend, pct: spendLimitPct, band, pace, reset: moment, full: spendUsd ? fullMark(spendLimitPct) : "", resetsAt: spendLimitResetsAt };
@@ -1813,7 +1819,7 @@ export function renderReadings(
     // are arithmetic on the payload's own dollars and reset, not a figure
     // the bar makes up. Absent without the dollars.
     spendPace: () => {
-      if (noLimits || !spendUsd || spendLimitPct === null) return null;
+      if (noLimits || !spendUsd || spendLimitPct === null || !spendPeriodMinutes) return null;
       const p = budgetPace(spendUsd, spendLimitResetsAt, now, spendPeriodMinutes);
       if (!p) return null;
       if (p.over !== undefined) {
