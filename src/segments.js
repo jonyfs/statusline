@@ -200,7 +200,7 @@ export const SEGMENT_ABOUT = {
   codexCredits: "Codex CLI only: the credit balance Codex reports. Absent when the account has no credits, or unlimited ones.",
   sevenDay: "The seven-day usage window and when it comes back. It names the day, because beyond a day a reset is something you plan around.",
   promptCache: "The prompt cache, shown only when it matters: warm with minutes left once it is close to expiring, or cold with the tokens the next request writes again and the likely reason it was lost. Silent while there is time to spare.",
-  spendPace: "What is left of a dollar spend limit per day until it resets, beside what you have spent per day so far. It needs the dollar amounts Claude Code 2.1.284 and a gateway send, so it is absent without them.",
+  spendPace: "What is left of a dollar spend limit per day until it resets, beside what you have spent per day so far. It needs the dollar amounts Claude Code 2.1.284 and a gateway send, so it is absent without them. The gateway sends the dollars about every five minutes, so they can be that much older than the percentage.",
   spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",
   duration: "Wall-clock time since the session started.",
   rtk: "The share of tokens rtk has saved, a lifetime average across everything it has proxied rather than a figure for this session.",
