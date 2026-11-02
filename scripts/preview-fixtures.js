@@ -350,6 +350,42 @@ export const SCENARIOS = [
     },
   },
   {
+    file: "budget-account.svg",
+    title: "A dollar budget instead of windows: $300 of $500 spent with 35% of the month gone, the daily allowance left and the average so far",
+    payload: {
+      ...basePayload,
+      context_window: { used_percentage: 44 },
+      rate_limits: {
+        spend_limit: { used_percentage: 60, resets_at: FIXED_NOW + 20 * 86400, used_usd: 300, limit_usd: 500, period: "monthly" },
+      },
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+    },
+  },
+  {
+    file: "budget-over.svg",
+    title: "A dollar budget exceeded: $520 of $500, and by how much",
+    payload: {
+      ...basePayload,
+      context_window: { used_percentage: 44 },
+      rate_limits: {
+        spend_limit: { used_percentage: 104, resets_at: FIXED_NOW + 20 * 86400, used_usd: 520, limit_usd: 500, period: "monthly" },
+      },
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+    },
+  },
+  {
     file: "prompt-cache-cold.svg",
     title: "Back from a break: the prompt cache went cold, what the next request writes again, and why",
     payload: {
