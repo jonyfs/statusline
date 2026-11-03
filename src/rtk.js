@@ -13,17 +13,16 @@ import { repoKey, readEntry, shouldRefresh, spawnRefresh } from "./cache.js";
  * appears, which is what it did before.
  */
 /**
- * `rtk gain` reports the average across everything rtk has ever proxied, not
- * across this repository, so one cache entry serves every directory. Keying
- * it per repository stored the same global number once per repository and
- * paid for a fresh lookup in each of them.
+ * `rtk gain --project` reports the figure for the directory it runs in and
+ * everything below it, so the entry is kept per project directory: one
+ * project's savings must not be shown, or cached, under another's.
  */
-export const RTK_CACHE_KEY = repoKey("rtk-global");
+export const rtkCacheKey = (dir) => repoKey(`rtk:${dir}`);
 
-export function getRtkSavings(cwd, { now = Date.now() } = {}) {
-  const key = RTK_CACHE_KEY;
+export function getRtkSavings(dir, { now = Date.now() } = {}) {
+  const key = rtkCacheKey(dir);
   const entry = readEntry(key, "rtk");
-  if (shouldRefresh("rtk", entry, now)) spawnRefresh(key, "rtk", cwd, { now });
+  if (shouldRefresh("rtk", entry, now)) spawnRefresh(key, "rtk", dir, { now });
   if (!entry || now - entry.at > MAX_AGE_MS.rtk) return null;
   return entry.value;
 }
@@ -31,14 +30,18 @@ export function getRtkSavings(cwd, { now = Date.now() } = {}) {
 /** The live call, used by the detached refresh and by `doctor`. */
 export function probeRtkSavings(cwd, timeout = REFRESH_BUDGET_MS.rtk) {
   try {
-    const out = execFileSync("rtk", ["gain", "--format", "json"], {
+    const out = execFileSync("rtk", ["gain", "--project", "--format", "json"], {
       cwd,
       timeout,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
       windowsHide: true,
     });
-    const pct = JSON.parse(out)?.summary?.avg_savings_pct;
+    const summary = JSON.parse(out)?.summary;
+    // A project rtk has never run in reports 0 commands and 0%: no history,
+    // not a saving of nothing, so the chip stays out.
+    if (!(summary?.total_commands > 0)) return null;
+    const pct = summary.avg_savings_pct;
     if (typeof pct !== "number" || !Number.isFinite(pct)) return null;
     return Math.round(pct);
   } catch {

@@ -912,11 +912,13 @@ be today's or tomorrow's name for no gain.
 
 The savings figure used to wait until it had moved five points before
 rendering again, on the reasoning that a number repeating itself every redraw
-is a number nobody reads. `rtk gain` reports a lifetime average over
-thousands of commands, and a lifetime average never moves five points: the
+is a number nobody reads. `rtk gain` reports an average over
+thousands of commands, and such an average never moves five points: the
 segment showed itself once per session and was never seen again. It now renders
 whenever there is a value. Its priority, the lowest on the bar, is what takes it
-off a line with no room.
+off a line with no room. The figure is the project's own (`rtk gain --project`, for
+the session's project directory and what is below it); a project rtk has never run
+in shows no chip.
 
 ## What it knows about the work
 

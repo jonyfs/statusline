@@ -650,7 +650,7 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   // once and reuse the timed reading.
   // A segment the arrangement or the omit list switched off reads nothing
   // that would start a lookup (specs/058-omit-list, FR-002).
-  const rtkReading = off?.has("rtk") ? missing("rtk", "switched off") : timed("rtk", () => probe.getRtkSavings(cwd));
+  const rtkReading = off?.has("rtk") ? missing("rtk", "switched off") : timed("rtk", () => probe.getRtkSavings(payload?.workspace?.project_dir || cwd));
   const sampleHistory = pushSample(loadSamples(payload?.session_id), {
     at: now,
     contextPct: payload?.context_window?.used_percentage ?? ctxPct,
@@ -1898,8 +1898,8 @@ export function renderReadings(
     // C5 asked for this figure to render only once it had moved five points,
     // on the reasoning that a number repeating itself every redraw is a
     // number nobody reads. That reasoning does not survive what the number
-    // is: `rtk gain` reports a lifetime average over thousands of commands,
-    // and a lifetime average does not move five points. The segment showed
+    // is: `rtk gain` reports an average over thousands of commands,
+    // and such an average does not move five points. The segment showed
     // itself on a session's first redraw and was never seen again.
     //
     // So it renders whenever there is a value. Its width is already governed
