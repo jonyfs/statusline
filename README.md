@@ -581,8 +581,10 @@ the reset next to what you have spent per day so far (`$15/d left · avg $18.2/d
 It turns yellow when that average would end at 85% of the limit and red at 100%, and
 reads `over by $20` once the limit is passed. Both per-day figures are arithmetic on
 the payload's dollars and reset date. The dollars are the gateway's estimate and can
-be about five minutes behind the percentage. A plan with the 5-hour and 7-day
-windows draws exactly as before.
+be about five minutes behind the percentage. The kind of account is remembered for
+30 days: once the gateway drops the spend limit (after its reset, or before the
+first response) the windows stay out and the chip reads `spend —`. A plan with the
+5-hour and 7-day windows draws exactly as before.
 
 ![A dollar budget: $300 of $500, the daily allowance left and the average so far](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/budget-account.svg)
 

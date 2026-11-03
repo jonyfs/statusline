@@ -2,7 +2,11 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.7.0 (I extended on 2026-10-12: MINOR. The colour budget now says which roles colour
+- Version: 8.8.0 (III extended on 2026-11-03: MINOR. A budget account remembers its kind for 30 days, so the
+  windows it does not have stay out and the spend chip reads `spend —` when the gateway has
+  dropped `spend_limit`; a field absent from the payload is still the unknown mark, never a
+  guess. Nothing is remembered under Codex, Copilot or OpenCode. See specs/063-account-kind/.)
+- Previously, version 8.7.0 (I extended on 2026-10-12: MINOR. The colour budget now says which roles colour
   an icon and which colour text. Yellow, green and sapphire may colour the text of a count
   inside the working-tree chip (modified, staged, behind), and the closing warm-cache icon is
   peach. Added lines keep green. No new role. See specs/054-guide-gaps/.)
@@ -913,4 +917,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.7.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-10-12
+**Version**: 8.8.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-03
