@@ -453,3 +453,19 @@ await test("a remembered width still loses to a terminal that cannot fit it", as
     }
   });
 });
+
+// A cell wider than its column is cut to it, so one row's long skill list does
+// not push that row's later columns out of line with the rows around it.
+await test("a skills list wider than its column is cut, and the columns after it stay aligned", async () => {
+  const { alignTaskRows } = await import("../../src/taskRows.js");
+  const now = Date.now();
+  const mk = (id, label) => ({ id, name: "opus-agent", description: `task ${id}`, label, status: "running", model: "claude-opus-5-5", tokenCount: 100000, contextWindowSize: 1e6, startTime: now - 60000 });
+  const skillsByAgent = new Map([
+    ["a", ["material-design-3", "frontend-design", "ui-ux-pro-max", "pr-reviewer"]],
+    ["b", ["frontend-design"]],
+  ]);
+  const rows = alignTaskRows([mk("a", "Step one"), mk("b", "Step two")], { columns: 200, now, skillsByAgent }).map((r) => r.content.replace(/\x1b\[[0-9;:]*m/g, ""));
+  assert.match(rows[0], /…/);
+  assert.equal(rows[0].indexOf("Step one"), rows[1].indexOf("Step two"));
+  assert.equal(rows[0].indexOf("█"), rows[1].indexOf("█"));
+});
