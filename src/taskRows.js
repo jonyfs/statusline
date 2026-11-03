@@ -172,7 +172,7 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
   // that both were dispatched the same way.
   const typeIdentifies = !nameIsShared && !GENERIC_TASK_NAMES.has(name);
 
-  const cell = (plain, colour) => (plain ? { plain, text: `${fg(colour)}${plain}${reset()}` } : { plain: "", text: "" });
+  const cell = (plain, colour) => (plain ? { plain, colour, text: `${fg(colour)}${plain}${reset()}` } : { plain: "", text: "" });
 
   // Both numbers have to be real and non-negative for the ratio to mean
   // anything. A negative `tokenCount` used to render as `-10%` beside an
@@ -238,11 +238,21 @@ function joinCells(cells, widths, palette) {
   let out = "";
   for (let i = 0; i <= lastFilled; i++) {
     if (!used(i)) continue;
-    out += cells[i].text;
-    if (i === lastFilled) break;
     const target = Math.min(widths?.[i] ?? displayWidth(cells[i].plain), MAX_COLUMN);
-    out += " ".repeat(Math.max(0, target - displayWidth(cells[i].plain)));
-    out += cells[i].plain ? `${fg(palette.surface1)}${SEP}${reset()}` : " ".repeat(SEP.length);
+    // A cell wider than its column is cut to it. Left to overflow it pushed
+    // every column after it to the right on that row alone, so the bar and
+    // the figures stopped lining up with the rows above and below. The brief
+    // in the first column is the exception: it is what a reader scans for, so
+    // it keeps its whole text and only the width guard cuts it.
+    let { plain, text } = cells[i];
+    if (widths && i > 0 && plain && displayWidth(plain) > target) {
+      plain = cutToWidth(plain, target);
+      text = `${fg(cells[i].colour)}${plain}${reset()}`;
+    }
+    out += text;
+    if (i === lastFilled) break;
+    out += " ".repeat(Math.max(0, target - displayWidth(plain)));
+    out += plain ? `${fg(palette.surface1)}${SEP}${reset()}` : " ".repeat(SEP.length);
   }
   return out;
 }
