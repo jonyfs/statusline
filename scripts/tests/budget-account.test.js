@@ -137,3 +137,76 @@ await test("a weekly cap with its period is paced on a week", () => {
   const out = render(budget({ used_percentage: 50, resets_at: SEC + 3 * DAY, used_usd: 250, limit_usd: 500, period: "weekly" }));
   assert.match(out, /\$[\d.]+\/d left · avg \$[\d.]+\/d/);
 });
+
+// specs/063-account-kind. The gateway drops `spend_limit` once its reset has
+// passed and rate_limits is absent before the first response, so a budget
+// account would read as a subscriber with unknown windows. The kind is
+// remembered, and the windows stay out.
+const kindSources = (kind) => ({ ...emptySources, getAccountKind: () => kind, noteAccountKind: () => {} });
+const renderWith = (payload, sources) =>
+  stripAnsi(renderPayload(payload, { sources, trackChanges: false, now: NOW, ...WIDE }));
+const noWindows = (over = {}) => fullPayload({ now: NOW, rate_limits: over });
+
+await test("a remembered budget account draws no 5h or 7d after the spend limit is gone, and says spend is unknown", async () => {
+  for (const rl of [{}, undefined]) {
+    const out = renderWith(fullPayload({ now: NOW, rate_limits: rl }), kindSources("budget"));
+    assert.doesNotMatch(out, /\b5h\b/);
+    assert.doesNotMatch(out, /\b7d\b/);
+    assert.match(out, /spend\W*—/);
+  }
+});
+
+await test("with nothing remembered the windows read ? as before", () => {
+  const out = renderWith(noWindows({}), kindSources(null));
+  assert.match(out, /\b5h\b/);
+  assert.match(out, /\b7d\b/);
+  assert.doesNotMatch(out, /spend/);
+});
+
+await test("a payload with windows wins over a remembered budget kind", () => {
+  const out = renderWith(
+    fullPayload({ now: NOW, rate_limits: { five_hour: { used_percentage: 20, resets_at: SEC + 3600 }, seven_day: { used_percentage: 40, resets_at: SEC + 3 * DAY } } }),
+    kindSources("budget")
+  );
+  assert.match(out, /\b5h\b.*20%/);
+  assert.match(out, /\b7d\b.*40%/);
+  assert.doesNotMatch(out, /spend\W*—/);
+});
+
+await test("a remembered kind is not applied to Codex, Copilot or OpenCode payloads", () => {
+  const out = renderWith({ ...noWindows(undefined), opencode: {} }, kindSources("budget"));
+  assert.doesNotMatch(out, /spend\W*—/);
+});
+
+await test("the kind is noted from the payload: windows are a subscriber, a spend limit alone is a budget, neither is nothing", async () => {
+  const { accountKindOf } = await import("../../src/accountKind.js");
+  assert.equal(accountKindOf(budget(monthly)), "budget");
+  assert.equal(accountKindOf(budget(monthly, { five_hour: { used_percentage: 1, resets_at: SEC + 60 } })), "subscriber");
+  assert.equal(accountKindOf(fullPayload({ now: NOW, rate_limits: { seven_day: { used_percentage: 1, resets_at: SEC + 60 } } })), "subscriber");
+  assert.equal(accountKindOf(noWindows({})), null);
+  assert.equal(accountKindOf(noWindows(undefined)), null);
+});
+
+await test("the kind is kept for 30 days, replaced by the latest, and never erased by a payload that says nothing", async () => {
+  const fs = await import("node:fs");
+  const os = await import("node:os");
+  const path = await import("node:path");
+  const { noteAccountKind, getAccountKind } = await import("../../src/accountKind.js");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kind-"));
+  const before = process.env.CLAUDE_STATUSLINE_CACHE_DIR;
+  process.env.CLAUDE_STATUSLINE_CACHE_DIR = dir;
+  try {
+    assert.equal(getAccountKind({ now: NOW }), null);
+    noteAccountKind("budget", { now: NOW });
+    assert.equal(getAccountKind({ now: NOW + 29 * DAY * 1000 }), "budget");
+    assert.equal(getAccountKind({ now: NOW + 31 * DAY * 1000 }), null);
+    noteAccountKind("subscriber", { now: NOW + 1000 });
+    assert.equal(getAccountKind({ now: NOW + 2000 }), "subscriber");
+    noteAccountKind(null, { now: NOW + 3000 });
+    assert.equal(getAccountKind({ now: NOW + 4000 }), "subscriber");
+  } finally {
+    if (before === undefined) delete process.env.CLAUDE_STATUSLINE_CACHE_DIR;
+    else process.env.CLAUDE_STATUSLINE_CACHE_DIR = before;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

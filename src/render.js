@@ -41,6 +41,7 @@ import {
 import { getRtkSavings } from "./rtk.js";
 import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
 import { detectHarness } from "./harness.js";
+import { accountKindOf, getAccountKind, noteAccountKind } from "./accountKind.js";
 import { copilotSessionActivity, AGENT_ROW_CAP } from "./copilotEvents.js";
 import { readGateRuns, GATE_ROW_CAP } from "./gateRuns.js";
 import { gateRows, gateChip } from "./gateRows.js";
@@ -671,6 +672,24 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     ? missing("cache", "switched off")
     : timed("update", () => probe.getUpdateNotice?.(payload?.session_id ?? null, { now }) ?? null);
 
+  // Which kind of account this is, from the payload when it can say and from
+  // the last one seen when it cannot (specs/063-account-kind). Only Claude
+  // Code's payload has these limits; the other harnesses decide their own.
+  let accountKind = null;
+  if (detectHarness(payload) === "claude") {
+    const seen = accountKindOf(payload);
+    try {
+      if (seen) probe.noteAccountKind?.(seen, { now });
+    } catch {
+      // a kind that cannot be kept is seen again on the next payload
+    }
+    try {
+      accountKind = seen ?? probe.getAccountKind?.({ now }) ?? null;
+    } catch {
+      accountKind = null;
+    }
+  }
+
   const git = timed("git", () => probe.getGitInfo(cwd));
   // Two questions, kept apart. Line 1's own git segments need the snapshot,
   // so they follow `git.value`. Whether this is a repository at all is asked
@@ -833,6 +852,7 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     spendLimit: reading({ value: spendLimitPct, at: now, source: "payload" }),
     spendLimitReset: reading({ value: spendLimitResetsAt, at: now, source: "payload" }),
     spendLimitUsd: reading({ value: spendLimitUsd, at: now, source: "payload" }),
+    accountKind: reading({ value: accountKind, at: now, source: "payload" }),
     promptCache: reading({ value: getPromptCache(payload, now), at: now, source: "payload" }),
     update: updateReading,
     // Only present when vim mode is on; a mode that is not text is no mode.
@@ -968,6 +988,8 @@ export function renderPayload(
     readTty: readTtySize,
     copilotSettings: loadCopilotSettings,
     getCopilotQuota,
+    getAccountKind,
+    noteAccountKind,
     ...sources,
   };
 
@@ -1636,8 +1658,12 @@ export function renderReadings(
   // is metered in dollars over a day, week or month and has no 5-hour or
   // 7-day window. The payload then carries `spend_limit` and neither window,
   // so their chips are absent rather than `?%` (specs/062-budget-account).
+  // The kind is remembered, because the gateway drops `spend_limit` once its
+  // reset passes and the chips would otherwise turn back into `5h — ?`.
   const budgetOnly =
-    spendLimitPct !== null && !payload?.rate_limits?.five_hour && !payload?.rate_limits?.seven_day;
+    (spendLimitPct !== null || readings.accountKind?.value === "budget") &&
+    !payload?.rate_limits?.five_hour &&
+    !payload?.rate_limits?.seven_day;
   const noFiveHour = noLimits || budgetOnly || (isCodex && !payload?.rate_limits?.five_hour);
   const noSevenDay = noLimits || budgetOnly || (isCodex && !payload?.rate_limits?.seven_day);
 
@@ -1801,7 +1827,13 @@ export function renderReadings(
     },
     spendLimit: () => {
       if (noLimits) return null;
-      if (spendLimitPct === null) return null;
+      // A budget account whose spend limit is not in this payload: the figure
+      // is unknown, not absent (Principle III).
+      if (spendLimitPct === null) {
+        if (!budgetOnly) return null;
+        const unknown = gaugeChipText({ icon: g.spend, label: "spend", pct: null, band: null, pace: null });
+        return { ...gaugeChip(null, null), ...unknown };
+      }
       const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
       const { band, pace } = spendUsd && spendPeriodMinutes
         ? paceBand(spendLimitPct, elapsedPct(spendLimitResetsAt, spendPeriodMinutes))
