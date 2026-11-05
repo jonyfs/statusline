@@ -18,6 +18,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { SEGMENTS } from "../src/segments.js";
 import { GLYPHS } from "../src/render.js";
@@ -110,6 +111,24 @@ const icon = (glyphName, extra = "") => {
 };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+/**
+ * The English text, loaded as the browser loads it, written into the page
+ * so it reads even when a script is blocked; i18next replaces it with the
+ * reader's language. Backticks become <code>, everything else is escaped.
+ */
+const EN = (() => {
+  const box = {};
+  box.globalThis = box;
+  vm.createContext(box);
+  vm.runInContext(readFileSync(path.join(ROOT, "help", "locales", "en.js"), "utf8"), box);
+  return box.HELP_I18N.resources.en.translation;
+})();
+const english = (key) => {
+  const value = key.split(".").reduce((o, k) => (o == null ? o : o[k]), EN);
+  if (typeof value !== "string") throw new Error(`no English text for ${key}`);
+  return value.split("`").map((part, i) => (i % 2 ? `<code>${esc(part)}</code>` : esc(part))).join("");
+};
+
 /** One chip: a role, then glyph/text pairs. */
 function chip(parts) {
   const [role, ...rest] = parts;
@@ -129,10 +148,11 @@ function card(key) {
   if (!ex) throw new Error(`no example for segment ${key}`);
   return `<article class="seg" id="seg-${key}">
   <div class="demo"><span class="bar">${ex.map(chip).join("")}</span></div>
-  <div class="text"><h3 data-i18n="seg.${key}.t"></h3><p data-i18n="seg.${key}.b"></p><code class="key">${key}</code></div>
+  <div class="text"><h3 data-i18n="seg.${key}.t"></h3><p data-i18n="seg.${key}.b"></p><p class="src"><span data-i18n="src.label"></span>: <span data-i18n="src.${SOURCE[key]}"></span></p><code class="key">${key}</code></div>
 </article>`;
 }
 
+const SOURCE = Object.fromEntries(SEGMENTS.map((s) => [s.key, s.source]));
 const byLine = (line) => SEGMENTS.filter((s) => s.line === line).sort((a, b) => a.order - b.order).map((s) => s.key);
 
 const sections = [1, 2, 3]
@@ -208,6 +228,7 @@ code.key { display: inline-block; margin-top: 4px; color: var(--overlay); backgr
 .seg .demo { min-width: 0; overflow-x: auto; }
 .seg .text { min-width: 0; }
 .seg p { margin: 0; color: var(--text); }
+.seg p.src { color: var(--overlay); font-size: 12px; margin-top: 4px; }
 footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid var(--surface0); color: var(--overlay); font-size: 12px; }
 @media (max-width: 720px) { .seg { grid-template-columns: 1fr; } }
 </style>
@@ -272,5 +293,7 @@ ${sections}
 </html>
 `;
 
-writeFileSync(OUT, html);
-console.log(`wrote ${path.relative(ROOT, OUT)} (${html.length} bytes, ${used.size} glyphs)`);
+// Every element with a key gets its English text now; i18next swaps it later.
+const filled = html.replace(/<(\w+)([^>]*?) data-i18n="([^"]+)"([^>]*)>[^<]*<\/\1>/g, (_, tag, before, key, after) => `<${tag}${before} data-i18n="${key}"${after}>${english(key)}</${tag}>`);
+writeFileSync(OUT, filled);
+console.log(`wrote ${path.relative(ROOT, OUT)} (${filled.length} bytes, ${used.size} glyphs)`);

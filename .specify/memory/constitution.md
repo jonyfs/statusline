@@ -2,7 +2,11 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.13.0 (III extended on 2026-11-05: MINOR. The same `/usage` cache's 5-hour, 7-day and
+- Version: 8.14.0 (IV clarified on 2026-11-05: MINOR. Files that only a browser runs, copied into
+  the repository with their licences (the help page's i18next and its language detector,
+  specs/078-help-page), are not runtime dependencies: Node never loads them, no package manager
+  installs them, and the clone stays the whole install.)
+- Previously, version 8.13.0 (III extended on 2026-11-05: MINOR. The same `/usage` cache's 5-hour, 7-day and
   per-model weekly windows MAY be drawn as written, under the same account and freshness rules as
   the credits; reading them from the cache is not fetching them. The session's own transcript MAY
   be summed incrementally (tokens, turns, tool calls, models, subagents), never estimated. MCP
@@ -599,7 +603,9 @@ node ~/.claude/statusline-plugin/bin/cli.js install
 
 This is only possible because the project has zero runtime dependencies, and it MUST stay that
 way. Adding a dependency would reintroduce a package manager into the install path and break
-this principle.
+this principle. A file only a browser runs, copied into the repository with its licence and
+loaded by a page the plugin ships (the help page's i18next, specs/078-help-page), is part of the
+clone and not a dependency: nothing installs it and Node never loads it.
 
 Install MUST:
 - Back up the user's existing `~/.claude/settings.json` to a timestamped file before touching it
@@ -967,4 +973,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.13.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-05
+**Version**: 8.14.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-05

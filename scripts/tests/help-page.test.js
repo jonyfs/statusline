@@ -31,6 +31,7 @@ await test("every segment has a title and an explanation in all four languages, 
   assert.deepEqual(Object.keys(H.resources).sort(), [...LANGS].sort());
   const en = new Map(leaves(H.resources.en.translation));
   for (const s of SEGMENTS) {
+    assert.ok(typeof H.resources.en.translation.src[s.source] === "string", `no label for the source ${s.source}`);
     for (const lang of LANGS) {
       const seg = H.resources[lang].translation.seg[s.key];
       assert.ok(seg?.t && seg?.b && seg.b.length > 40, `${lang} has no full entry for ${s.key}`);
@@ -78,6 +79,9 @@ await test("the page regenerates to the same bytes, with a card for every segmen
   const after = readFileSync(path.join(HELP, "index.html"), "utf8");
   assert.equal(after, before, "help/index.html is stale: run node scripts/generate-help.js");
   for (const s of SEGMENTS) assert.ok(after.includes(`id="seg-${s.key}"`), `no card for ${s.key}`);
+  // The English text is in the page before any script runs.
+  assert.match(after, /<h3 data-i18n="seg\.context\.t">Context window<\/h3>/);
+  assert.doesNotMatch(after, /data-i18n="[^"]+"[^>]*><\/(p|h2|h3|li|span|a)>/, "an element is left empty until a script runs");
 });
 
 await test("line 3 ends with the help chip, right-aligned and linked to the page on disk", () => {
