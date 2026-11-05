@@ -93,3 +93,15 @@ await test("the doctor names the mode and the servers", () => {
   assert.equal(by.permissionMode.value, "auto");
   assert.match(by.mcp.value, /2: github, slack/);
 });
+
+// A server's name comes from a file the repository can ship: never a control sequence.
+await test("an MCP server's name is sanitised and capped", () => {
+  const home = mkdtempSync(path.join(os.tmpdir(), "mcp-home-"));
+  const cwd = mkdtempSync(path.join(os.tmpdir(), "mcp-cwd-"));
+  writeFileSync(path.join(cwd, ".mcp.json"), JSON.stringify({ mcpServers: { ["evil\u001b[2Jx".padEnd(80, "y")]: {} } }));
+  writeFileSync(path.join(home, ".claude.json"), "{}");
+  const r = countMcpServers(cwd, { homedir: home });
+  assert.equal(r.count, 1);
+  assert.doesNotMatch(r.names[0], /[\u0000-\u001f]/);
+  assert.ok(r.names[0].length <= 40);
+});

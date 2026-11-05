@@ -113,6 +113,9 @@ export const SEGMENTS = [
   { key: "fiveHour", line: 3, group: "gauges", order: 40, priority: 94, colour: "ramp", source: "payload" },
   { key: "burnRate", line: 3, group: "gauges", order: 42, priority: 66, colour: "ramp", source: "samples" },
   { key: "sevenDay", line: 3, group: "gauges", order: 50, priority: 90, colour: "ramp", source: "payload" },
+  // The week's rate and the per-model weeks (specs/076), after the 7-day chip.
+  { key: "sevenDayRate", line: 3, group: "gauges", order: 50.3, priority: 52, colour: "identity", source: "samples" },
+  { key: "weeklyModels", line: 3, group: "gauges", order: 50.6, priority: 51, colour: "ramp", source: "cache" },
   // Codex only (specs/037-codex-windows). A window that is neither 5 hours nor
   // 7 days, such as the free plan's 30 days, stands beside the 7-day slot it
   // takes the place of. Ranked with the windows: on the free plan it is the
@@ -241,6 +244,8 @@ export const SEGMENT_ABOUT = {
   account: "The signed-in Claude account's organisation and the kind of account (subscriber, budget, credits, api); CLAUDE_STATUSLINE_ACCOUNT=email shows the address instead, off hides it. Under Codex, the plan the rollout names.",
   cacheHit: "The prompt cache's hit ratio, standing, wherever the credits chip draws: the share of input tokens read from cache rather than paid in full. Bands inverted: below 40% is critical.",
   usageCredits: "The share of your monthly usage credits used, with the day and the week when Claude Code reports them, from the figure Claude Code caches for its own /usage screen in ~/.claude.json. Percentages only, never the amounts, since a screen gets shared. Drawn while extra usage is enabled on the signed-in account: for a seat billed by usage it is the only allowance, and it has no 5-hour or 7-day window. As fresh as Claude Code's last fetch, and absent past a day. A seat with extra usage off reads credits off; a figure more than six hours old loses its band and says its age after twelve.",
+  sevenDayRate: "How fast the 7-day window is going, in points per day, measured over the last minutes the way the 5-hour burn rate is.",
+  weeklyModels: "The per-model weekly windows Claude Code caches for /usage (opus, sonnet), each with its share used, in the band of the highest.",
   spendPace: "What is left of a dollar spend limit per day until it resets, beside what you have spent per day so far. It needs the dollar amounts Claude Code 2.1.284 and a gateway send, so it is absent without them. The gateway sends the dollars about every five minutes, so they can be that much older than the percentage.",
   spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",
   duration: "Wall-clock time since the session started.",

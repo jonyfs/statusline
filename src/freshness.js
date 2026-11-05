@@ -55,6 +55,8 @@ export const MAX_AGE_MS = {
   sessionTokens: 1_000,
   toolCalls: 1_000,
   sessionTotals: 1_000,
+  sevenDayRate: 1_000,
+  weeklyModels: 1_000,
   permissionMode: REDRAW_INTERVAL_MS,
   mcp: 1_000,
   skillSessionCount: 1_000,

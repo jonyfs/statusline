@@ -12,6 +12,7 @@
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { plainText } from "./text.js";
 
 const isBlock = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
@@ -35,5 +36,8 @@ export function countMcpServers(cwd, { homedir = os.homedir() } = {}) {
   const shared = readJson(path.join(cwd, ".mcp.json"));
   for (const k of Object.keys(isBlock(shared?.mcpServers) ? shared.mcpServers : {})) if (!disabled.has(k)) names.add(k);
   for (const k of Array.isArray(project.disabledMcpServers) ? project.disabledMcpServers.map(String) : []) names.delete(k);
-  return names.size ? { count: names.size, names: [...names].sort() } : null;
+  // Names come from configuration files a repository can ship: sanitised
+  // like any other text the bar prints, and capped.
+  const clean = [...names].map((n) => plainText(n)).filter(Boolean).map((n) => n.slice(0, 40)).sort();
+  return clean.length ? { count: clean.length, names: clean } : null;
 }

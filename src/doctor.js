@@ -94,6 +94,8 @@ const DESCRIBE = {
   // both resets together; with the resets back on their own chips, the rows
   // follow (specs/017-line-legibility).
   fiveHour: ["fiveHour", (v, now, readings) => describeWindow(v, readings?.fiveHourReset?.value, now)],
+  sevenDayRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
+  weeklyModels: ["usageCredits", (v) => (v?.windows?.perModel?.length ? v.windows.perModel.map((w) => `${w.model} ${w.pct}%`).join(", ") : null)],
   burnRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   sevenDay: ["sevenDay", (v, now, readings) => describeWindow(v, readings?.sevenDayReset?.value, now)],
@@ -272,6 +274,8 @@ function absenceReason(segment, reading, readings, now) {
         ? "the payload carries no prompt_cache.hit_ratio yet"
         : "drawn only beside the credits chip (a seat billed by usage, or extra usage on)";
     }
+    if (segment.key === "sevenDayRate") return "no 7-day window, or fewer than five samples over a minute";
+    if (segment.key === "weeklyModels") return "the /usage cache carries no per-model week for this account";
     if (segment.key === "permissionMode") return "the default mode, or no permission-mode entry in the transcript's tail";
     if (segment.key === "mcp") return "no MCP server configured for this directory (~/.claude.json, .mcp.json)";
     if (segment.key === "sessionTokens" || segment.key === "toolCalls") {

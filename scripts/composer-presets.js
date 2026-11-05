@@ -179,6 +179,8 @@ export const PRESETS = [
         context: { line: 1, order: 80 },
         fiveHour: { line: 1, order: 82 },
         sevenDay: { line: 1, order: 84 },
+        sevenDayRate: { line: 1, order: 84.2 },
+        weeklyModels: { line: 1, order: 84.4 },
         spendLimit: { line: 1, order: 86 },
         spendPace: { line: 1, order: 86.5 },
         usageCredits: { line: 1, order: 86.2 },

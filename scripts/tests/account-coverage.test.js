@@ -88,7 +88,7 @@ await test("the reader returns the cached windows, the disabled reason and the s
       spend: { severity: "warning", percent: 10 },
     }));
     const r = readUsageCredits({ now: NOW });
-    assert.deepEqual(r.windows, { fiveHour: { pct: 20, resetsAt: NOW_S + 3600 }, sevenDay: { pct: 77, resetsAt: null } });
+    assert.deepEqual(r.windows, { fiveHour: { pct: 20, resetsAt: NOW_S + 3600 }, sevenDay: { pct: 77, resetsAt: null }, perModel: [] });
     assert.equal(r.hasWindows, true);
     assert.equal(r.enabled, false);
     assert.equal(r.disabledReason, "org_disabled");
@@ -104,7 +104,7 @@ await test("a cache with windows and no extra_usage block still returns the wind
     const r = readUsageCredits({ now: NOW });
     assert.equal(r.pct, null);
     assert.equal(r.enabled, false);
-    assert.deepEqual(r.windows, { fiveHour: { pct: 5, resetsAt: NOW_S + 60 }, sevenDay: null });
+    assert.deepEqual(r.windows, { fiveHour: { pct: 5, resetsAt: NOW_S + 60 }, sevenDay: null, perModel: [] });
     writeClaudeJson(home, claudeJson({ five_hour: null, seven_day: null }));
     assert.equal(readUsageCredits({ now: NOW }), null, "a cache with nothing to draw is absent");
   });

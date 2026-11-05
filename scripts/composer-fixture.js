@@ -165,7 +165,7 @@ export const SOURCES = {
   copilotSettings: () => ({}),
   // The usage credits Claude Code caches for /usage (specs/069-usage-credits),
   // so the composer has the chip to arrange without reading ~/.claude.json.
-  getUsageCredits: () => ({ pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: true, fetchedAt: NOW_MS - 3600000 }),
+  getUsageCredits: () => ({ pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: true, fetchedAt: NOW_MS - 3600000, windows: { fiveHour: null, sevenDay: null, perModel: [{ model: "opus", pct: 40, resetsAt: null }, { model: "sonnet", pct: 12, resetsAt: null }] } }),
   // Whose bar it is (specs/071): a fixed organisation, so the composer can pool the chip.
   getAccountIdentity: () => ({ org: "example-org", email: null, seatTier: null, orgType: null }),
   // The session's totals (specs/073), fixed so the chips pool.

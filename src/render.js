@@ -688,6 +688,7 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     at: now,
     contextPct: payload?.context_window?.used_percentage ?? ctxPct,
     fiveHourPct: payload?.rate_limits?.five_hour?.used_percentage ?? fiveHourPct,
+    sevenDayPct: payload?.rate_limits?.seven_day?.used_percentage ?? sevenDayPct,
     rtkPct: rtkReading.value,
   });
 
@@ -1922,6 +1923,7 @@ export function renderReadings(
   // much, so the chips that repeated their icon in words lost the word.
   // `CLAUDE_STATUSLINE_LABELS=on` brings the words back.
   const labelsOn = String(process.env.CLAUDE_STATUSLINE_LABELS ?? "").toLowerCase() === "on";
+
   // The age of a figure taken from Claude Code's `/usage` cache: past six
   // hours the chip loses its band, past twelve it says how old it is
   // (specs/070, FR-004). `withAge` puts the mark on a finished chip; the mark
@@ -1934,6 +1936,11 @@ export function renderReadings(
   // have, such as the 5-hour window on the free plan, is absent rather than
   // `?%`, for the same reason (specs/035-codex-pane).
   const isCodex = readings.harness?.value === "codex";
+  // `CLAUDE_STATUSLINE_RESET=clock`: every window's reset as a moment in the
+  // computer's zone instead of a countdown (specs/076, FR-004).
+  const clockResets = String(process.env.CLAUDE_STATUSLINE_RESET ?? "").toLowerCase() === "clock";
+  // Where a Claude window can be looked at in full (specs/076, FR-006).
+  const windowUrl = isCodex ? USAGE_PAGES.codex : USAGE_PAGES.claude;
   // The cache hit ratio draws wherever the credits chip does (specs/071);
   // decided once, since the prompt cache state chip yields to it.
   const cacheHitRatio =
@@ -2004,11 +2011,13 @@ export function renderReadings(
       const id = shows("account") ? readings.account?.value : null;
       // A probe's text goes through the same sanitiser as the file's.
       const who = plainText(!id ? null : mode === "email" ? (id.email ?? id.org) : (id.org ?? id.email));
+      // `tier`: the seat's tier beside the organisation (specs/076, FR-005).
+      const tier = mode === "tier" && id?.seatTier ? plainText(String(id.seatTier).replace(/^enterprise_/, "").replace(/_/g, " ")) : null;
       if (!who) return null;
       const kind = readings.accountKind?.value;
       // The credits chip beside it already says `credits` (specs/072).
       const implied = !labelsOn && kind === "credits" && readings.usageCredits?.value?.enabled === true;
-      const word = implied ? null : ({ subscriber: "subscriber", budget: "budget", credits: "credits", none: "api" }[kind] ?? null);
+      const word = tier ?? (implied ? null : ({ subscriber: "subscriber", budget: "budget", credits: "credits", none: "api" }[kind] ?? null));
       return {
         color: ROLE.identity,
         text: ` ${g.account} ${who}${word ? ` \u00b7 ${word}` : ""} `,
@@ -2133,13 +2142,13 @@ export function renderReadings(
       // beside it, and it is shed under width like any other reset text: the
       // chip's one variant is itself without the countdown, which the width
       // guard reaches before it drops anything essential (specs/027).
-      const resets = shortCountdown(fiveHourResetsAt, now) ?? "?";
+      const resets = (clockResets ? resetMomentLabel(fiveHourResetsAt, new Date(now)) : shortCountdown(fiveHourResetsAt, now)) ?? "?";
       const mark = cachedWindowMark("fiveHour");
       const { band, pace } = mark?.dim ? { band: null, pace: null } : paceBand(fiveHourPct, elapsedPct(fiveHourResetsAt, 300));
-      return withAge({
-        ...gaugeChip(mark?.dim ? null : fiveHourPct, band),
-        ...gaugeChipText({ icon: g.timer, label: "5h", pct: fiveHourPct, band, pace, reset: resets, full: fullMark(fiveHourPct), resetsAt: fiveHourResetsAt }),
-      }, mark);
+      // A plan with extra usage on keeps working past its windows (specs/076, FR-003).
+      const extra = readings.usageCredits?.value?.enabled && readings.usageCredits.value.hasWindows ? " +extra" : "";
+      const chip = gaugeChipText({ icon: g.timer, label: "5h", pct: fiveHourPct, band, pace, reset: resets, full: `${fullMark(fiveHourPct)}${extra}`, resetsAt: fiveHourResetsAt });
+      return withAge({ ...gaugeChip(mark?.dim ? null : fiveHourPct, band), ...chip, url: windowUrl }, mark);
     },
     sevenDay: () => {
       if (noSevenDay) return null;
@@ -2149,13 +2158,34 @@ export function renderReadings(
       // around, so it names the day. C4 chose the weekday for the far case on
       // the reasoning that a countdown three days long is noise; the near case
       // used to be covered by the merged segment, and now lives here.
-      const moment = farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?";
+      const moment = (clockResets ? resetMomentLabel(sevenDayResetsAt, new Date(now)) : farOutMoment ?? shortCountdown(sevenDayResetsAt, now)) ?? "?";
       const mark = cachedWindowMark("sevenDay");
       const { band, pace } = mark?.dim ? { band: null, pace: null } : paceBand(sevenDayPct, elapsedPct(sevenDayResetsAt, 10080));
       return withAge({
         ...gaugeChip(mark?.dim ? null : sevenDayPct, band),
         ...gaugeChipText({ icon: g.calendar, label: "7d", pct: sevenDayPct, band, pace, reset: moment, full: fullMark(sevenDayPct), resetsAt: sevenDayResetsAt }),
+        url: windowUrl,
       }, mark);
+    },
+    // How fast the week is going (specs/076, FR-001): the same rule as the
+    // 5-hour burn rate, scaled to a day.
+    sevenDayRate: () => {
+      if (noSevenDay || sevenDayPct === null) return null;
+      const rate = ratePerHour(sampleHistory, "sevenDayPct");
+      if (rate === null || rate <= 0) return null;
+      const perDay = rate * 24;
+      return { color: ROLE.neutral, text: ` ${g.burn} +${perDay.toFixed(perDay < 10 ? 1 : 0)}%/d ` };
+    },
+    // The per-model weeks the cache carries (specs/076, FR-002), in the band
+    // of the one furthest along.
+    weeklyModels: () => {
+      if (noLimits || isCodex) return null;
+      const list = shows("weeklyModels", "usageCredits") ? readings.usageCredits?.value?.windows?.perModel : null;
+      if (!Array.isArray(list) || !list.length) return null;
+      const top = Math.max(...list.map((w) => w.pct));
+      const band = bandFor(top)?.name ?? null;
+      const text = ` ${g.calendar} ${list.map((w) => `${w.model} ${w.pct}%`).join(" \u00b7 ")} `;
+      return { ...gaugeChip(top, band), text, variants: [` ${g.calendar} ${list[0].model} ${list[0].pct}% `], url: windowUrl };
     },
     // The allowance a gateway reports once an administrator sets a spend
     // limit. It is drawn as reported, past 100% included, because that is how
@@ -2172,11 +2202,12 @@ export function renderReadings(
       const bound = { maxMs: w.window_minutes * 60_000 + ONE_DAY_MS };
       const at = typeof w.resets_at === "number" ? w.resets_at : null;
       const counts = formatResetCountdown(at, now, bound) !== null;
-      const moment = !counts ? "?" : at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
+      const moment = !counts ? "?" : clockResets || at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
       const { band, pace } = paceBand(pct, elapsedPct(at, w.window_minutes));
       return {
         ...gaugeChip(pct, band),
         ...gaugeChipText({ icon: g.calendar, label: w.label, pct, band, pace, reset: moment, full: fullMark(pct), resetsAt: at }),
+        url: USAGE_PAGES.codex,
       };
     },
     // Codex's credit balance, drawn as Codex writes it.
@@ -2264,7 +2295,7 @@ export function renderReadings(
         const unknown = gaugeChipText({ icon: g.spend, label: "spend", pct: null, band: null, pace: null });
         return { ...gaugeChip(null, null), ...unknown };
       }
-      const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
+      const moment = (clockResets ? resetMomentLabel(spendLimitResetsAt, new Date(now)) : spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound)) ?? "?";
       const { band, pace } = spendUsd && spendPeriodMinutes
         ? paceBand(spendLimitPct, elapsedPct(spendLimitResetsAt, spendPeriodMinutes))
         : { band: bandFor(spendLimitPct)?.name ?? null, pace: null };

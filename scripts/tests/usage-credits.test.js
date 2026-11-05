@@ -60,7 +60,7 @@ const CREDITS = {
   pct: 10, pctExact: 9.903809523809525, daily: null, weekly: null, enabled: true, reached: false, hasWindows: false, fetchedAt: NOW - HOUR,
   // specs/070 widened the reader: the disabled reason, the cache's own word
   // for the spend, whether credits were ever on, and the cached windows.
-  disabledReason: null, severity: null, creditsEverEnabled: false, windows: { fiveHour: null, sevenDay: null },
+  disabledReason: null, severity: null, creditsEverEnabled: false, windows: { fiveHour: null, sevenDay: null, perModel: [] },
   // specs/071 FR-009: the cap's reset when the cache's limits carry one.
   resetsAt: null,
 };
