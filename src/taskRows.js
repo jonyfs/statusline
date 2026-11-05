@@ -406,6 +406,75 @@ function writeWidthMemory(sessionId, widths) {
 }
 
 /**
+ * How long a finished subagent keeps its row (specs/067-hide-finished-rows).
+ *
+ * Claude Code lists a task that has `completed`, `failed` or `killed` in every
+ * later tick, and its payload has no finish time, so a finished agent's row
+ * would stay open for the rest of the session, its age still counting. The
+ * documented way to take a row off is a line with an empty `content`. This is
+ * how long the row is left after the tick that first showed the agent
+ * finished: enough to read the outcome, the same 120 s Copilot's own panel
+ * keeps an idle agent (src/copilotEvents.js).
+ */
+export const FINISHED_ROW_MS = 120_000;
+
+const FINISHED_STATUSES = new Set(["completed", "failed", "killed"]);
+
+const isFinished = (task) => FINISHED_STATUSES.has(plainText(task?.status));
+
+/**
+ * Which of a tick's tasks are past their time on the bar.
+ *
+ * `seen` maps a task id to the time a tick first showed it finished. It is the
+ * only record of that moment, so without one (a read-only run, a first tick)
+ * nothing is hidden: a row that stays is the safe error. A task that is
+ * running again is forgotten, and so is one the tick no longer lists. Returns
+ * the tasks to draw, the ids to hide, and the memory to keep.
+ */
+export function splitFinished(tasks, seen, now, graceMs = FINISHED_ROW_MS) {
+  const next = {};
+  const visible = [];
+  const hidden = [];
+  for (const task of tasks) {
+    const id = task?.id;
+    if (!id || !isFinished(task)) {
+      visible.push(task);
+      continue;
+    }
+    const since = typeof seen?.[id] === "number" ? seen[id] : now;
+    next[id] = since;
+    if (now - since >= graceMs) hidden.push(id);
+    else visible.push(task);
+  }
+  return { visible, hidden, next };
+}
+
+const sessionKey = (sessionId) => (sessionId ? String(sessionId).replace(/[^A-Za-z0-9_-]/g, "_") : "latest");
+
+function finishedMemoryPath(sessionId) {
+  return path.join(stateRoot(), "tasks", `${sessionKey(sessionId)}.finished.json`);
+}
+
+function readFinishedMemory(sessionId) {
+  try {
+    const raw = JSON.parse(readFileSync(readablePath("tasks", `${sessionKey(sessionId)}.finished.json`), "utf8"));
+    return raw && typeof raw.seen === "object" && raw.seen ? raw.seen : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeFinishedMemory(sessionId, seen) {
+  if (!canWrite()) return;
+  try {
+    mkdirSync(path.dirname(finishedMemoryPath(sessionId)), { recursive: true });
+    writeFileSync(finishedMemoryPath(sessionId), JSON.stringify({ seen }));
+  } catch {
+    // Without the memory a row simply stays, which is where it started.
+  }
+}
+
+/**
  * Where a tick's roster is written.
  *
  * Keyed by the session that produced it. It was a single `latest.json` until
@@ -494,9 +563,18 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   // nothing recorded simply shows no skills.
   const skillsByAgent = readSkillsByAgent(sessionId);
 
+  // A finished agent keeps its row for FINISHED_ROW_MS, then the row is taken
+  // off with an empty `content`. Hidden agents are left out of the alignment,
+  // so they do not size the columns of the rows that remain.
+  const before = readFinishedMemory(sessionId);
+  const { visible, hidden, next: finished } = splitFinished(tasks, before, now);
+  if (JSON.stringify(finished) !== JSON.stringify(before)) writeFinishedMemory(sessionId, finished);
+  const hideLines = hidden.map((id) => ({ id, content: "" }));
+  if (!visible.length) return hideLines.map((row) => JSON.stringify(row)).join("\n");
+
   const remembered = readWidthMemory(sessionId);
   let used = [];
-  const rows = alignTaskRows(tasks, {
+  const rows = alignTaskRows(visible, {
     columns,
     palette,
     now,
@@ -512,7 +590,7 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   }
   if (next.some((w, i) => w !== remembered[i])) writeWidthMemory(sessionId, next);
 
-  return rows.map((row) => JSON.stringify(row)).join("\n");
+  return [...rows, ...hideLines].map((row) => JSON.stringify(row)).join("\n");
 }
 
 /**

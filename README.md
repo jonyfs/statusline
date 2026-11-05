@@ -964,6 +964,11 @@ was given, the step it is on, a context gauge, the token count and the age.
 That order was picked on 2026-09-08 from rendered examples rather than argued
 for on paper.
 
+A subagent that has finished (`completed`, `failed` or `killed`) keeps its row for
+two minutes after the bar first sees it finished, then the row is closed
+(specs/067-hide-finished-rows). Claude Code lists a finished agent in every tick
+and gives no finish time, so the bar remembers when it first saw it.
+
 ![Three subagent rows](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/agent-rows.svg)
 
 The three leading columns are sparse, and the blank they leave on most rows is
