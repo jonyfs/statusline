@@ -166,3 +166,12 @@ await test("Copilot's payload names no transcript, so the reader is asked for no
   assert.match(by.sessionTokens.value, /42 turns/);
   assert.match(by.toolCalls.value, /Bash 30/);
 });
+
+await test("a passive render with nowhere to keep the offset reads nothing and draws no sum", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "totals-"));
+  const file = path.join(dir, "s4.jsonl");
+  writeFileSync(file, turn({ tools: ["Bash"] }) + "\n");
+  const env = { ...process.env, CLAUDE_STATUSLINE_PASSIVE: "1" };
+  delete env.CLAUDE_STATUSLINE_CACHE_DIR;
+  assert.equal(getSessionTotals({ transcriptPath: file, sessionId: "s4", now: NOW, env }), null);
+});

@@ -105,3 +105,12 @@ await test("an MCP server's name is sanitised and capped", () => {
   assert.doesNotMatch(r.names[0], /[\u0000-\u001f]/);
   assert.ok(r.names[0].length <= 40);
 });
+
+await test("a request copy repeating the Skill call does not hide the answer's own run", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "skills-"));
+  const file = path.join(dir, "t.jsonl");
+  const blob = JSON.stringify({ type: "api-request-blob", timestamp: null, message: { content: [{ type: "tool_use", id: "a", name: "Skill", input: { skill: "review" } }] } });
+  writeFileSync(file, [skillCall("a", "review", 20 * MIN), result("a", 15 * MIN), blob, ""].join("\n"));
+  const scan = scanTail(file, { now: NOW, windowMs: 60 * MIN });
+  assert.deepEqual(scan.skillRuns.map((r) => [r.skill, r.finished, r.startedAt]), [["review", true, NOW - 20 * MIN]]);
+});

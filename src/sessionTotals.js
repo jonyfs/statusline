@@ -267,8 +267,15 @@ export function modelFamily(id) {
  */
 export function getSessionTotals({ transcriptPath, sessionId = null, now = Date.now(), exceeds200k = false, ownModel = null, env = process.env } = {}) {
   if (typeof transcriptPath !== "string" || !transcriptPath) return null;
+  // Without a place to keep the offset, every redraw would read the first
+  // 2 MiB again and draw a sum of part of the transcript: no figure is
+  // better than a wrong one (Principle III).
+  if (!canWrite(env)) return null;
   const totals = loadTotals(sessionId, env);
+  const before = JSON.stringify(totals);
   advanceTotals(totals, { transcriptPath, sessionId, now, exceeds200k });
-  saveTotals(sessionId, totals, env);
+  // Written only when something moved: a redraw that read nothing new
+  // writes nothing, as the git snapshot does.
+  if (JSON.stringify(totals) !== before) saveTotals(sessionId, totals, env);
   return summarize(totals, { ownModel });
 }

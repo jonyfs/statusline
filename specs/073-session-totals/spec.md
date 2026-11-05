@@ -44,8 +44,10 @@ was appended since the last redraw.
   above the threshold, measured between redraws that saw the flag.
 - **FR-005**: The doctor describes `sessionTokens` with the four counts and the turn count, and
   `toolCalls` with the three most used tools.
-- **FR-006**: Nothing is read when the payload names no transcript, under Codex, OpenCode or
-  Copilot, or when the state root cannot be written (passive render without a cache directory).
+- **FR-006**: Nothing is read when the payload names no transcript (which only Claude Code's payload
+  carries, so Codex, OpenCode and Copilot read nothing), or when the state root cannot be written
+  (a passive render without a cache directory): without a kept offset every redraw would sum part
+  of the transcript. The state is written only when an offset or a counter moved.
 
 ## Out of scope
 

@@ -316,7 +316,10 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
         for (const block of toolUseBlocksIn(entry)) {
           if (String(block.name || "").toLowerCase() !== "skill") continue;
           const skillName = block.input?.skill || block.input?.name;
-          if (skillName && typeof block.id === "string") {
+          // Only the answer itself: Claude Code also writes copies of each
+          // request (`api-request-blob`, no timestamp) that repeat the same
+          // tool calls and are newer than their results.
+          if (skillName && typeof block.id === "string" && entry?.type === "assistant") {
             const result = results.get(block.id) ?? null;
             skillRuns.push({
               skill: String(skillName),
