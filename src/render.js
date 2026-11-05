@@ -42,7 +42,7 @@ import { getRtkSavings } from "./rtk.js";
 import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
 import { detectHarness } from "./harness.js";
 import { accountKindOf, apiResponded, getAccountKind, noteAccountKind } from "./accountKind.js";
-import { readUsageCredits } from "./usageCredits.js";
+import { readUsageCredits, cacheAgeMark } from "./usageCredits.js";
 import { copilotSessionActivity, AGENT_ROW_CAP } from "./copilotEvents.js";
 import { readGateRuns, GATE_ROW_CAP } from "./gateRuns.js";
 import { gateRows, gateChip } from "./gateRows.js";
@@ -688,8 +688,18 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   } catch {
     usageCredits = null;
   }
-  if (detectHarness(payload) === "claude") {
-    const seen = accountKindOf(payload);
+  // The windows Claude Code cached for `/usage` (specs/070, FR-002): a
+  // subscriber's 5h and 7d before the session's first response, when the
+  // payload has none of its own. The payload's figure wins once it arrives.
+  // Only a Claude account has this cache behind it.
+  const isClaudeHarness = detectHarness(payload) === "claude";
+  const cachedWindows = isClaudeHarness && usageCredits?.windows ? usageCredits.windows : null;
+  const fiveHourFromCache = !payload?.rate_limits?.five_hour && cachedWindows?.fiveHour ? cachedWindows.fiveHour : null;
+  const sevenDayFromCache = !payload?.rate_limits?.seven_day && cachedWindows?.sevenDay ? cachedWindows.sevenDay : null;
+  if (isClaudeHarness) {
+    // A cache that carries a window is a subscriber's, as surely as a payload
+    // that does: noted the same way.
+    const seen = accountKindOf(payload) ?? (cachedWindows?.fiveHour || cachedWindows?.sevenDay ? "subscriber" : null);
     try {
       if (seen) probe.noteAccountKind?.(seen, { now });
     } catch {
@@ -702,7 +712,10 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
       // remembered, because the payload of such a seat never says anything,
       // and a `subscriber` remembered from another account would otherwise
       // keep `5h — ?` on the line for 30 days.
-      const fromCache = !seen && usageCredits && !usageCredits.hasWindows && usageCredits.enabled ? "credits" : null;
+      // A seat whose credits were ever on is a credits seat while they are
+      // off, too: the chip then reads `credits off` (specs/070, FR-005).
+      const fromCache =
+        !seen && usageCredits && !usageCredits.hasWindows && (usageCredits.enabled || usageCredits.creditsEverEnabled) ? "credits" : null;
       if (fromCache) probe.noteAccountKind?.(fromCache, { now });
       accountKind = seen ?? fromCache ?? remembered;
       // No window, no spend limit, nothing remembered, and a response already
@@ -873,16 +886,26 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     tokens: reading({ value: getContextTokens(payload), at: now, source: "payload" }),
     sessionCost: reading({ value: getSessionCost(payload), at: now, source: "payload" }),
     context: reading({ value: ctxPct, at: now, source: "payload" }),
-    fiveHour: reading({ value: fiveHourPct, at: now, source: "payload" }),
-    fiveHourReset: reading({ value: fiveHourResetsAt, at: now, source: "payload" }),
-    sevenDay: reading({ value: sevenDayPct, at: now, source: "payload" }),
-    sevenDayReset: reading({ value: sevenDayResetsAt, at: now, source: "payload" }),
+    fiveHour: reading({ value: fiveHourFromCache ? fiveHourFromCache.pct : fiveHourPct, at: now, source: fiveHourFromCache ? "cache" : "payload" }),
+    fiveHourReset: reading({ value: fiveHourFromCache ? fiveHourFromCache.resetsAt : fiveHourResetsAt, at: now, source: fiveHourFromCache ? "cache" : "payload" }),
+    sevenDay: reading({ value: sevenDayFromCache ? sevenDayFromCache.pct : sevenDayPct, at: now, source: sevenDayFromCache ? "cache" : "payload" }),
+    sevenDayReset: reading({ value: sevenDayFromCache ? sevenDayFromCache.resetsAt : sevenDayResetsAt, at: now, source: sevenDayFromCache ? "cache" : "payload" }),
+    // When Claude Code last fetched its `/usage` cache, and which windows the
+    // bar took from it: what the age mark and the doctor's account line read.
+    usageCache: reading({
+      value: usageCredits
+        ? { fetchedAt: usageCredits.fetchedAt, windowsFromCache: Boolean(fiveHourFromCache || sevenDayFromCache) }
+        : null,
+      at: now,
+      source: "cache",
+    }),
     spendLimit: reading({ value: spendLimitPct, at: now, source: "payload" }),
     spendLimitReset: reading({ value: spendLimitResetsAt, at: now, source: "payload" }),
     spendLimitUsd: reading({ value: spendLimitUsd, at: now, source: "payload" }),
-    // The figure draws only while extra usage is on; off, there is nothing
-    // to spend and the chip is absent (specs/069-usage-credits).
-    usageCredits: reading({ value: usageCredits?.enabled ? usageCredits : null, at: now, source: "cache" }),
+    // The figure, on or off: the chip draws the percentage while extra usage
+    // is on and `credits off` for a credits seat while it is off
+    // (specs/069-usage-credits, specs/070 FR-005).
+    usageCredits: reading({ value: usageCredits && usageCredits.pct !== null ? usageCredits : null, at: now, source: "cache" }),
     accountKind: reading({ value: accountKind, at: now, source: "payload" }),
     promptCache: reading({ value: getPromptCache(payload, now), at: now, source: "payload" }),
     update: updateReading,
@@ -1684,6 +1707,19 @@ export function renderReadings(
   // not exist (Principle III, specs/029-multi-harness).
   // OpenCode reports no usage windows either (specs/038-opencode).
   const noLimits = ["copilot", "opencode"].includes(readings.harness?.value) && !payload?.rate_limits;
+  // `CLAUDE_STATUSLINE_AMOUNTS=hide` (or `amounts` in `.statusline.json`):
+  // no money and no balance on the bar, in any harness (specs/070, FR-003).
+  // A bar is shared on screens and in screenshots; a percentage says how
+  // much is left without saying of what.
+  const hideAmounts = String(process.env.CLAUDE_STATUSLINE_AMOUNTS ?? "").toLowerCase() === "hide";
+  // The age of a figure taken from Claude Code's `/usage` cache: past six
+  // hours the chip loses its band, past twelve it says how old it is
+  // (specs/070, FR-004). `withAge` puts the mark on a finished chip; the mark
+  // is the first thing width sheds, since the variants do not carry it.
+  const cacheMark = (fetchedAt) => cacheAgeMark(fetchedAt, now);
+  const withAge = (chip, mark) =>
+    chip && mark?.label ? { ...chip, text: `${chip.text.replace(/ $/, "")} ${quiet(`· ${mark.label}`)} ` } : chip;
+  const cachedWindowMark = (key) => (readings[key]?.source === "cache" ? cacheMark(readings.usageCache?.value?.fetchedAt) : null);
   // Codex reports the windows its plan has, by length. One the plan does not
   // have, such as the 5-hour window on the free plan, is absent rather than
   // `?%`, for the same reason (specs/035-codex-pane).
@@ -1749,9 +1785,11 @@ export function renderReadings(
       // drawn as sent rather than given a second unit.
       const bare = /^[\d.,]+$/.test(c.formatted);
       const amount = bare ? `${c.formatted} AIC` : c.formatted;
-      if (c.pct === null) return { color: ROLE.money, text: ` ${g.spend} ${amount} ` };
+      if (c.pct === null) return hideAmounts ? null : { color: ROLE.money, text: ` ${g.spend} ${amount} ` };
       const band = bandFor(c.pct)?.name ?? null;
       const level = `${gaugeFigure(c.pct, band)}${fullMark(c.pct)}`;
+      // Amounts hidden: the share of the session's limit, and not the count.
+      if (hideAmounts) return { ...gaugeChip(c.pct, band), text: ` ${g.spend} AIC ${level} `, variants: [] };
       const against = bare ? `${c.formatted}/${creditCount(c.max)} AIC` : `${c.formatted} of ${creditCount(c.max)}`;
       return {
         ...gaugeChip(c.pct, band),
@@ -1817,11 +1855,12 @@ export function renderReadings(
       // chip's one variant is itself without the countdown, which the width
       // guard reaches before it drops anything essential (specs/027).
       const resets = shortCountdown(fiveHourResetsAt, now) ?? "?";
-      const { band, pace } = paceBand(fiveHourPct, elapsedPct(fiveHourResetsAt, 300));
-      return {
-        ...gaugeChip(fiveHourPct, band),
+      const mark = cachedWindowMark("fiveHour");
+      const { band, pace } = mark?.dim ? { band: null, pace: null } : paceBand(fiveHourPct, elapsedPct(fiveHourResetsAt, 300));
+      return withAge({
+        ...gaugeChip(mark?.dim ? null : fiveHourPct, band),
         ...gaugeChipText({ icon: g.timer, label: "5h", pct: fiveHourPct, band, pace, reset: resets, full: fullMark(fiveHourPct), resetsAt: fiveHourResetsAt }),
-      };
+      }, mark);
     },
     sevenDay: () => {
       if (noSevenDay) return null;
@@ -1832,11 +1871,12 @@ export function renderReadings(
       // the reasoning that a countdown three days long is noise; the near case
       // used to be covered by the merged segment, and now lives here.
       const moment = farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?";
-      const { band, pace } = paceBand(sevenDayPct, elapsedPct(sevenDayResetsAt, 10080));
-      return {
-        ...gaugeChip(sevenDayPct, band),
+      const mark = cachedWindowMark("sevenDay");
+      const { band, pace } = mark?.dim ? { band: null, pace: null } : paceBand(sevenDayPct, elapsedPct(sevenDayResetsAt, 10080));
+      return withAge({
+        ...gaugeChip(mark?.dim ? null : sevenDayPct, band),
         ...gaugeChipText({ icon: g.calendar, label: "7d", pct: sevenDayPct, band, pace, reset: moment, full: fullMark(sevenDayPct), resetsAt: sevenDayResetsAt }),
-      };
+      }, mark);
     },
     // The allowance a gateway reports once an administrator sets a spend
     // limit. It is drawn as reported, past 100% included, because that is how
@@ -1862,7 +1902,7 @@ export function renderReadings(
     },
     // Codex's credit balance, drawn as Codex writes it.
     codexCredits: () => {
-      const c = shows("codexCredits") ? readings.codexCredits?.value : null;
+      const c = shows("codexCredits") && !hideAmounts ? readings.codexCredits?.value : null;
       return c ? { color: ROLE.money, text: ` ${g.spend} credits ${c.balance} ` } : null;
     },
     // The usage credits of a seat billed by usage (specs/069-usage-credits),
@@ -1886,14 +1926,25 @@ export function renderReadings(
         const unknown = gaugeChipText({ icon: g.spend, label: "credits", pct: null, band: null, pace: null });
         return { ...gaugeChip(null, null), ...unknown };
       }
-      const band = bandFor(c.pct)?.name ?? null;
+      // Extra usage off: a credits seat says so, since the cap is the one
+      // thing it is metered by; any other account has nothing to say.
+      if (!c.enabled) {
+        if (readings.accountKind?.value !== "credits") return null;
+        return { ...gaugeChip(null, null), text: ` ${g.spend} credits off `, variants: [] };
+      }
+      const mark = cacheMark(c.fetchedAt);
+      // The cache's own word for the spend outranks the rounded percentage:
+      // `critical` is the critical band, `warning` at least the warn band
+      // (specs/070, FR-006). A figure gone dim with age has no band at all.
+      const own = bandFor(c.pct)?.name ?? null;
+      const band = mark?.dim ? null : c.severity === "critical" ? "critical" : c.severity === "warning" && own !== "critical" ? "warn" : own;
       const full = c.reached ? " full" : "";
       const month = gaugeChipText({ icon: g.spend, label: "credits", pct: c.pct, band, pace: null, full });
       const periods = [c.daily !== null ? `day ${c.daily}%` : null, c.weekly !== null ? `week ${c.weekly}%` : null].filter(Boolean);
-      if (!periods.length) return { ...gaugeChip(c.pct, band), ...month };
+      if (!periods.length) return withAge({ ...gaugeChip(mark?.dim ? null : c.pct, band), ...month }, mark);
       // The day and the week are the first to go for width, then the track.
       const tail = ` \u00b7 ${periods.join(" \u00b7 ")}`;
-      return { ...gaugeChip(c.pct, band), text: `${month.text.replace(/ $/, "")}${tail} `, variants: [month.text, ...month.variants] };
+      return withAge({ ...gaugeChip(mark?.dim ? null : c.pct, band), text: `${month.text.replace(/ $/, "")}${tail} `, variants: [month.text, ...month.variants] }, mark);
     },
     spendLimit: () => {
       if (noLimits) return null;
@@ -1910,7 +1961,7 @@ export function renderReadings(
         : { band: bandFor(spendLimitPct)?.name ?? null, pace: null };
       const base = { icon: g.spend, pct: spendLimitPct, band, pace, reset: moment, full: spendUsd ? fullMark(spendLimitPct) : "", resetsAt: spendLimitResetsAt };
       const plain = gaugeChipText({ ...base, label: "spend" });
-      if (!spendUsd) return { ...gaugeChip(spendLimitPct, band), ...plain };
+      if (!spendUsd || hideAmounts) return { ...gaugeChip(spendLimitPct, band), ...plain };
       // With the dollars the payload sends: `spend $314/$500`. The track and
       // the reset go first, then the amounts, and the percentage stays.
       const money = gaugeChipText({ ...base, label: `spend ${usd(spendUsd.used)}/${usd(spendUsd.limit)}` });
@@ -1921,7 +1972,7 @@ export function renderReadings(
     // are arithmetic on the payload's own dollars and reset, not a figure
     // the bar makes up. Absent without the dollars.
     spendPace: () => {
-      if (noLimits || !spendUsd || spendLimitPct === null || !spendPeriodMinutes) return null;
+      if (noLimits || hideAmounts || !spendUsd || spendLimitPct === null || !spendPeriodMinutes) return null;
       const p = budgetPace(spendUsd, spendLimitResetsAt, now, spendPeriodMinutes);
       if (!p) return null;
       if (p.over !== undefined) {

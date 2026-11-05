@@ -171,6 +171,7 @@ async function runsMain() {
     const settings = resolveSettings(process.cwd());
     if (settings.separator) process.env.CLAUDE_STATUSLINE_SEPARATOR = settings.separator;
     if (settings.skillWindowMin) process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN = String(settings.skillWindowMin);
+    if (settings.amounts === "hide") process.env.CLAUDE_STATUSLINE_AMOUNTS = "hide";
     const { render } = await import("../src/render.js");
     const { runsDocument } = await import("../src/runs.js");
     if (process.env.CLAUDE_STATUSLINE_TEST_THROW === "1") throw new Error("deliberate failure, for the exit-code test");
@@ -497,6 +498,7 @@ async function main() {
       if (settings.skillWindowMin) {
         process.env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN = String(settings.skillWindowMin);
       }
+      if (settings.amounts === "hide") process.env.CLAUDE_STATUSLINE_AMOUNTS = "hide";
       let out;
       try {
         if (process.env.CLAUDE_STATUSLINE_TEST_THROW === "1") {

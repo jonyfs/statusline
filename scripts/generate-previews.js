@@ -69,16 +69,28 @@ function main() {
   const written = [];
 
   for (const scenario of SCENARIOS) {
-    const ansi = withFrozenClock(() =>
-      renderPayload(scenario.payload, {
-        sources: scenario.sources,
-        trackChanges: false,
-        layout: NO_ARRANGEMENT,
-        // A scenario may pin its own size when the size is the point.
-        maxWidth: scenario.width ?? PREVIEW_WIDTH,
-        maxHeight: scenario.height ?? PREVIEW_HEIGHT,
-      })
-    );
+    // A scenario may set variables when a switch is the point; they are put
+    // back afterwards so the next scenario draws the default bar.
+    const prior = Object.fromEntries(Object.keys(scenario.env ?? {}).map((k) => [k, process.env[k]]));
+    for (const [k, v] of Object.entries(scenario.env ?? {})) process.env[k] = v;
+    let ansi;
+    try {
+      ansi = withFrozenClock(() =>
+        renderPayload(scenario.payload, {
+          sources: scenario.sources,
+          trackChanges: false,
+          layout: NO_ARRANGEMENT,
+          // A scenario may pin its own size when the size is the point.
+          maxWidth: scenario.width ?? PREVIEW_WIDTH,
+          maxHeight: scenario.height ?? PREVIEW_HEIGHT,
+        })
+      );
+    } finally {
+      for (const [k, v] of Object.entries(prior)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
     const svg = ansiToSvg(ansi, {
       title: scenario.title,
       background: PALETTES.mocha.base,

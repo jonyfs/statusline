@@ -406,6 +406,29 @@ export const SCENARIOS = [
     },
   },
   {
+    file: "amounts-hidden.svg",
+    title: "A dollar budget with CLAUDE_STATUSLINE_AMOUNTS=hide: the spend as a percentage and its reset, no money and no per-day pace",
+    env: { CLAUDE_STATUSLINE_AMOUNTS: "hide" },
+    payload: {
+      ...basePayload,
+      rate_limits: {
+        spend_limit: { used_percentage: 63, resets_at: FIXED_NOW + 4 * 86400, used_usd: 314, limit_usd: 500, period: "weekly" },
+      },
+      context_window: { used_percentage: 44 },
+      cost: { total_cost_usd: 1.2, total_api_duration_ms: 4200 },
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+      getAccountKind: () => null,
+      noteAccountKind: () => {},
+      getUsageCredits: () => null,
+    },
+  },
+  {
     file: "prompt-cache-cold.svg",
     title: "Back from a break: the prompt cache went cold, what the next request writes again, and why",
     payload: {

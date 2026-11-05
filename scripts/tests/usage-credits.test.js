@@ -56,7 +56,12 @@ const sources = (credits, kind = null) => ({
 const render = (payload, src, width = 200) =>
   stripAnsi(renderPayload(payload, { sources: src, trackChanges: false, now: NOW, maxWidth: width, maxHeight: 40 }));
 
-const CREDITS = { pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: false, fetchedAt: NOW - HOUR };
+const CREDITS = {
+  pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: false, fetchedAt: NOW - HOUR,
+  // specs/070 widened the reader: the disabled reason, the cache's own word
+  // for the spend, whether credits were ever on, and the cached windows.
+  disabledReason: null, severity: null, creditsEverEnabled: false, windows: { fiveHour: null, sevenDay: null },
+};
 
 await test("the reader takes the percentage Claude Code cached, and never the money", async () => {
   const home = makeHome();

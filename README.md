@@ -619,10 +619,44 @@ signed in. Such a seat draws no `5h` or `7d` chip, and the kind is remembered fo
 30 days the way a budget account's is, so a stale figure reads `credits —`
 rather than bringing the placeholders back. A Pro, Max or Ultra subscriber with
 extra usage enabled sees the same chip beside the windows it keeps; with extra
-usage off, nothing changes. The chip carries no reset and no per-day pace,
-because the cached figure has neither.
+usage off, nothing changes. A seat whose credits were switched off reads
+`credits off` instead, since the cap is the one thing it is metered by. The chip
+carries no reset and no per-day pace, because the cached figure has neither.
+When Claude Code's own word for the spend is `critical` or `warning`, the chip
+takes that band whatever the rounded percentage says (specs/070-account-coverage).
+
+**Before the first response.** Claude Code sends a subscriber's `5h` and `7d`
+only after the session's first API response, so a fresh session used to open
+with no window at all. The same `/usage` cache carries both windows, and the bar
+draws them from there until the payload brings its own, which then wins. Nothing
+is estimated: the cache holds the percentage and the reset instant, exactly what
+the payload carries later.
+
+**How old a cached figure is.** A chip drawn from that cache, the credits or the
+windows, is as fresh as Claude Code's last `/usage` fetch. After six hours it
+loses its colour band; after twelve it says so, `credits 11% · 14h`, and the age
+is the first thing a narrow terminal sheds. After a day the reader answers absent.
+
+**No money on the bar.** `CLAUDE_STATUSLINE_AMOUNTS=hide`, or `"amounts": "hide"`
+in `.statusline.json`, keeps every amount and balance off the bar in every
+harness: the `spend` chip draws its percentage form only, the per-day pace chip
+is not drawn, Codex's credit balance is not drawn, and Copilot's AI credits draw
+as `AIC 32%` against the session's limit, or not at all without one. The default
+is `show`, the bar as it was. `doctor` still prints the amounts it has, since
+nobody screenshots a diagnostic.
+
+**Which kind of account the bar decided on.** `statusline-plugin doctor` prints
+one line above the segment table, `account: <kind> · <evidence>`: `subscriber ·
+5h/7d in the payload`, `subscriber · 5h/7d from Claude Code's /usage cache, 3h
+old`, `budget · spend_limit in the payload, period monthly`, `credits · Claude
+Code's /usage cache, 3h old, no 5h/7d window`, `none · a response and no
+rate_limits`, a kind `remembered from an earlier session`, or `unknown · no
+response yet`. Under Codex it names the plan the rollout reports, under Copilot
+`quotas via gh`, under OpenCode `no usage windows`.
 
 ![A seat billed by usage: the monthly credits, no windows](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/usage-credits.svg)
+
+![A dollar budget with amounts hidden: the spend as a percentage only](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/amounts-hidden.svg)
 
 `/usage` in Claude Code also shows a Sonnet-only week and an Opus-only week.
 Claude Code does not send those to the status line, and fetching them would mean
@@ -1225,6 +1259,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_BLOCK=1` | Pads every line to the widest with spaces on the `mantle` colour, so the right edge is a block |
 | `CLAUDE_STATUSLINE_SPARKLINE=1` | Adds the last eight samples beside the burn rate and, with eight readings, beside the context figure |
 | `CLAUDE_STATUSLINE_EVENT_EMOJI=1` | In the Nerd Font tier, draws 💥, 🔥 and 🚀 for conflicts, a critical burn rate and an applied update |
+| `CLAUDE_STATUSLINE_AMOUNTS=hide` | Keeps money and balances off the bar in every harness: the `spend` chip as a percentage, no per-day pace, no Codex balance, Copilot's AI credits as a share of the session limit. Any other value is `show` |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
@@ -1243,10 +1278,11 @@ repository root:
 { "flavor": "gruvbox", "separator": "thin", "skillWindowMin": 60 }
 ```
 
-Seven keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin`,
-`layout`, `gates` and `branchPrefixes`. `gates` holds the patterns that name the
-repository's gate scripts (see "Gate scripts run without a hook"), and
-`branchPrefixes` maps a branch prefix to its short form. Anything else in the
+Nine keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin`,
+`layout`, `gates`, `branchPrefixes`, `contextBands` and `amounts`. `gates` holds
+the patterns that name the repository's gate scripts (see "Gate scripts run
+without a hook"), `branchPrefixes` maps a branch prefix to its short form, and
+`amounts: "hide"` keeps money and balances off the bar. Anything else in the
 file is ignored. An environment variable always
 wins, and a file in your home directory is ignored entirely, because settings
 that live in a repository travel to everyone who clones it.
@@ -1315,6 +1351,7 @@ node bin/cli.js doctor | head -5
 
 ```text
 working directory: /Users/dev/projects/statusline
+account: subscriber · 5h/7d in the payload
 arrangement: "mine" from user (/Users/dev/.claude/statusline/layout.json)
   ignored segment on notASegment: no such segment
   ignored line on branch: not a line the bar has

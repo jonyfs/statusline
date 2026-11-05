@@ -17,7 +17,7 @@ import os from "node:os";
 import { gather, renderReadings, harnessProbes } from "./render.js";
 import { detectHarness } from "./harness.js";
 import { getCopilotQuota } from "./copilotQuota.js";
-import { getAccountKind } from "./accountKind.js";
+import { getAccountKind, accountKindOf } from "./accountKind.js";
 import { readUsageCredits } from "./usageCredits.js";
 import { loadCopilotSettings, copilotPadding } from "./copilotSettings.js";
 import { checkInstall, projectOverrides, harnessStatus } from "./install.js";
@@ -97,7 +97,7 @@ const DESCRIBE = {
   ],
   usageCredits: [
     "usageCredits",
-    (v) => (v ? `${v.pct}% of the month's credits${v.daily !== null ? `, ${v.daily}% of the day` : ""}${v.weekly !== null ? `, ${v.weekly}% of the week` : ""}${v.reached ? ", cap reached" : ""}${v.enabled ? "" : ", extra usage off"} (Claude Code's own cached /usage figure)` : null),
+    (v) => (v && !v.enabled ? `extra usage off${v.disabledReason ? ` (${v.disabledReason})` : ""}` : v ? `${v.pct}% of the month's credits${v.daily !== null ? `, ${v.daily}% of the day` : ""}${v.weekly !== null ? `, ${v.weekly}% of the week` : ""}${v.reached ? ", cap reached" : ""}${v.enabled ? "" : ", extra usage off"} (Claude Code's own cached /usage figure)` : null),
   ],
   spendPace: [
     "spendLimitUsd",
@@ -431,6 +431,10 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
 
   return {
     cwd: readings.cwd,
+    // Which kind of account the bar decided on, and from what
+    // (specs/070, FR-007): the answer to "why is my chip missing" that the
+    // per-segment reasons give only one piece of at a time.
+    account: accountOf(readings, payload, now),
     elapsedMs,
     terminal,
     // Which arrangement is in force, where it came from, and every part of
@@ -651,6 +655,36 @@ function pad(text, width) {
   return value + " ".repeat(width - value.length);
 }
 
+/**
+ * The kind of account and the evidence for it, in the words the report
+ * prints: `{ kind, evidence }`. Under Codex, Copilot and OpenCode the harness
+ * is the kind, since none of them has a Claude account behind it.
+ */
+export function accountOf(readings, payload, now = Date.now()) {
+  const harness = readings?.harness?.value;
+  if (harness === "codex") {
+    const plan = payload?.codex?.plan_type;
+    return { kind: "codex", evidence: typeof plan === "string" && plan ? `plan ${plan}` : "plan not named by the rollout" };
+  }
+  if (harness === "copilot") return { kind: "copilot", evidence: "quotas via gh" };
+  if (harness === "opencode") return { kind: "opencode", evidence: "no usage windows" };
+  const kind = readings?.accountKind?.value ?? null;
+  const seen = accountKindOf(payload);
+  const cache = readings?.usageCache?.value ?? null;
+  const hours = cache ? Math.max(0, Math.round((now - cache.fetchedAt) / 3_600_000)) : null;
+  const age = hours === null ? null : hours === 0 ? "under 1h old" : `${hours}h old`;
+  if (seen === "subscriber") return { kind: "subscriber", evidence: "5h/7d in the payload" };
+  if (seen === "budget") {
+    const period = readings?.spendLimitUsd?.value?.period;
+    return { kind: "budget", evidence: `spend_limit in the payload${period ? `, period ${period}` : ""}` };
+  }
+  if (kind === "subscriber" && cache?.windowsFromCache) return { kind, evidence: `5h/7d from Claude Code's /usage cache, ${age}` };
+  if (kind === "credits" && cache && readings?.usageCredits?.value) return { kind, evidence: `Claude Code's /usage cache, ${age}, no 5h/7d window` };
+  if (kind === "none") return { kind, evidence: "a response and no rate_limits" };
+  if (kind) return { kind, evidence: "remembered from an earlier session" };
+  return { kind: "unknown", evidence: "no response yet" };
+}
+
 export function formatReport(report) {
   const header = [
     pad("segment", 17),
@@ -708,6 +742,7 @@ export function formatReport(report) {
     ...(report.harnesses ?? []).map((h) => harnessLine(h)),
     ...(report.updates ? [report.updates] : []),
     `working directory: ${report.cwd}`,
+    ...(report.account ? [`account: ${report.account.kind} \u00b7 ${report.account.evidence}`] : []),
     arrangementLine,
     ...ignoredLines,
     `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,
