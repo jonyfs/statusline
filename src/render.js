@@ -43,6 +43,19 @@ import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
 import { detectHarness } from "./harness.js";
 import { accountKindOf, apiResponded, getAccountKind, noteAccountKind } from "./accountKind.js";
 import { readUsageCredits, cacheAgeMark } from "./usageCredits.js";
+
+/**
+ * Where a credit figure can be looked at in full (specs/070, FR-009). A
+ * terminal cannot open Claude Code's own `/usage` screen from a link, so the
+ * chip opens the account's usage page on the web instead: the reader's own
+ * account, never another project's repository (specs/020). The gateway's
+ * spend limit has no page the payload names, so that chip stays unlinked.
+ */
+export const USAGE_PAGES = Object.freeze({
+  claude: "https://claude.ai/settings/usage",
+  codex: "https://chatgpt.com/codex/settings/usage",
+  copilot: "https://github.com/settings/billing",
+});
 import { copilotSessionActivity, AGENT_ROW_CAP } from "./copilotEvents.js";
 import { readGateRuns, GATE_ROW_CAP } from "./gateRuns.js";
 import { gateRows, gateChip } from "./gateRows.js";
@@ -1785,16 +1798,17 @@ export function renderReadings(
       // drawn as sent rather than given a second unit.
       const bare = /^[\d.,]+$/.test(c.formatted);
       const amount = bare ? `${c.formatted} AIC` : c.formatted;
-      if (c.pct === null) return hideAmounts ? null : { color: ROLE.money, text: ` ${g.spend} ${amount} ` };
+      if (c.pct === null) return hideAmounts ? null : { color: ROLE.money, text: ` ${g.spend} ${amount} `, url: USAGE_PAGES.copilot };
       const band = bandFor(c.pct)?.name ?? null;
       const level = `${gaugeFigure(c.pct, band)}${fullMark(c.pct)}`;
       // Amounts hidden: the share of the session's limit, and not the count.
-      if (hideAmounts) return { ...gaugeChip(c.pct, band), text: ` ${g.spend} AIC ${level} `, variants: [] };
+      if (hideAmounts) return { ...gaugeChip(c.pct, band), text: ` ${g.spend} AIC ${level} `, variants: [], url: USAGE_PAGES.copilot };
       const against = bare ? `${c.formatted}/${creditCount(c.max)} AIC` : `${c.formatted} of ${creditCount(c.max)}`;
       return {
         ...gaugeChip(c.pct, band),
         text: ` ${g.spend} ${against} · ${level} `,
         variants: [` ${g.spend} ${amount} · ${level} `],
+        url: USAGE_PAGES.copilot,
       };
     },
     effort: () =>
@@ -1903,7 +1917,7 @@ export function renderReadings(
     // Codex's credit balance, drawn as Codex writes it.
     codexCredits: () => {
       const c = shows("codexCredits") && !hideAmounts ? readings.codexCredits?.value : null;
-      return c ? { color: ROLE.money, text: ` ${g.spend} credits ${c.balance} ` } : null;
+      return c ? { color: ROLE.money, text: ` ${g.spend} credits ${c.balance} `, url: USAGE_PAGES.codex } : null;
     },
     // The usage credits of a seat billed by usage (specs/069-usage-credits),
     // as Claude Code cached them for its own `/usage` screen: the used and
@@ -1924,13 +1938,13 @@ export function renderReadings(
       if (!c) {
         if (readings.accountKind?.value !== "credits") return null;
         const unknown = gaugeChipText({ icon: g.spend, label: "credits", pct: null, band: null, pace: null });
-        return { ...gaugeChip(null, null), ...unknown };
+        return { ...gaugeChip(null, null), ...unknown, url: USAGE_PAGES.claude };
       }
       // Extra usage off: a credits seat says so, since the cap is the one
       // thing it is metered by; any other account has nothing to say.
       if (!c.enabled) {
         if (readings.accountKind?.value !== "credits") return null;
-        return { ...gaugeChip(null, null), text: ` ${g.spend} credits off `, variants: [] };
+        return { ...gaugeChip(null, null), text: ` ${g.spend} credits off `, variants: [], url: USAGE_PAGES.claude };
       }
       const mark = cacheMark(c.fetchedAt);
       // The cache's own word for the spend outranks the rounded percentage:
@@ -1941,10 +1955,10 @@ export function renderReadings(
       const full = c.reached ? " full" : "";
       const month = gaugeChipText({ icon: g.spend, label: "credits", pct: c.pct, band, pace: null, full });
       const periods = [c.daily !== null ? `day ${c.daily}%` : null, c.weekly !== null ? `week ${c.weekly}%` : null].filter(Boolean);
-      if (!periods.length) return withAge({ ...gaugeChip(mark?.dim ? null : c.pct, band), ...month }, mark);
+      if (!periods.length) return withAge({ ...gaugeChip(mark?.dim ? null : c.pct, band), ...month, url: USAGE_PAGES.claude }, mark);
       // The day and the week are the first to go for width, then the track.
       const tail = ` \u00b7 ${periods.join(" \u00b7 ")}`;
-      return withAge({ ...gaugeChip(mark?.dim ? null : c.pct, band), text: `${month.text.replace(/ $/, "")}${tail} `, variants: [month.text, ...month.variants] }, mark);
+      return withAge({ ...gaugeChip(mark?.dim ? null : c.pct, band), text: `${month.text.replace(/ $/, "")}${tail} `, variants: [month.text, ...month.variants], url: USAGE_PAGES.claude }, mark);
     },
     spendLimit: () => {
       if (noLimits) return null;

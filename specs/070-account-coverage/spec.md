@@ -76,6 +76,13 @@ between them:
   rate_limits`, `<kind> · remembered from an earlier session`, or `unknown · no response yet`.
   Codex: `codex · plan <plan_type>` when the rollout names one. Copilot: `copilot · quotas via gh`.
   OpenCode: `opencode · no usage windows`.
+- **FR-009** (a click on the figure): The `credits` chip in every form (the figure, `credits —`,
+  `credits off`) is an OSC 8 link to `https://claude.ai/settings/usage`; Codex's balance links to
+  `https://chatgpt.com/codex/settings/usage`; Copilot's AI credits link to
+  `https://github.com/settings/billing`. No URL opens Claude Code's `/usage` screen from a
+  terminal, so the account's own page is the destination. The gateway's `spend` chip stays
+  unlinked, as the payload names no page. specs/020's rule stands: a link never points at
+  another project; the account's own page is the reader's, not a repository's.
 - **FR-008**: README documents the switch, the cache-fed windows, the age mark and the doctor
   line. The constitution's Principle III amendment (8.10.0) already covers reading the cache as
   written; the windows are percentages and reset instants, nothing estimated.

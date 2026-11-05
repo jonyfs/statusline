@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { test, stripAnsi } from "../test-harness.js";
-import { renderPayload } from "../../src/render.js";
+import { renderPayload, USAGE_PAGES } from "../../src/render.js";
 import { readUsageCredits } from "../../src/usageCredits.js";
 import { buildReport, formatReport } from "../../src/doctor.js";
 import { emptySources, fullPayload } from "./fixtures/sources.js";
@@ -221,4 +221,25 @@ await test("the doctor names the account kind and its evidence", () => {
   assert.deepEqual(codex.account, { kind: "codex", evidence: "plan pro" });
   const copilot = report({ ...quiet(), ai_used: { total_nano_aiu: 0 } }, sources(null));
   assert.deepEqual(copilot.account, { kind: "copilot", evidence: "quotas via gh" });
+});
+
+// FR-009 ----------------------------------------------------------------------
+
+await test("the credit chips open the account's own usage page, and the spend chip stays unlinked", () => {
+  const linkOn = (out, word) => {
+    const i = out.indexOf(word);
+    assert.ok(i >= 0, `${word} is on the bar`);
+    const before = out.slice(Math.max(0, i - 120), i);
+    const m = [...before.matchAll(/\x1b\]8;;([^\x07]*)\x07/g)].pop();
+    return m ? m[1] : null;
+  };
+  assert.equal(linkOn(raw(answered(), sources(CREDITS)), "credits"), USAGE_PAGES.claude);
+  assert.equal(linkOn(raw(answered(), sources({ ...CREDITS, enabled: false }, "credits")), "credits off"), USAGE_PAGES.claude);
+  assert.equal(linkOn(raw(answered(), sources(null, "credits")), "credits"), USAGE_PAGES.claude, "credits — links too");
+  const codex = { cwd: "/tmp/p", codex: {}, rate_limits: { credits: { balance: "12.5" } } };
+  assert.equal(linkOn(raw(codex, emptySources), "credits 12.5"), USAGE_PAGES.codex);
+  const copilot = { ...quiet(), ai_used: { total_nano_aiu: 641_049_000, formatted: "0.64" } };
+  assert.equal(linkOn(raw(copilot, emptySources), "0.64 AIC"), USAGE_PAGES.copilot);
+  const budget = { ...answered(), rate_limits: { spend_limit: { used_percentage: 63, resets_at: NOW_S + 86400 } } };
+  assert.equal(linkOn(raw(budget, emptySources, 300), "spend"), null);
 });

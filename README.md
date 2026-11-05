@@ -1914,6 +1914,14 @@ while it pointed at this README instead, and in someone else's project most of
 the bar then linked to a repository that was not theirs — correct by
 construction, and indistinguishable from a bug.
 
+The one exception is a credit figure, which does have a page of its own: your
+account's. The `credits` chip (the figure, `credits —` and `credits off`) opens
+`claude.ai/settings/usage`, Codex's balance opens `chatgpt.com/codex/settings/usage`,
+and Copilot's AI credits open `github.com/settings/billing`. No link can open
+Claude Code's own `/usage` screen from a terminal, so the web page is the
+nearest thing. The gateway's `spend` chip stays unlinked: the payload names no
+page for it.
+
 ## Asking what a segment shows
 
 ```bash
