@@ -53,14 +53,14 @@ await test("with no arrangement the bar is what it always was", () => {
   const withEmpty = draw({ version: 1, segments: {} });
   assert(withNothing === withEmpty, "an empty arrangement changed the bar");
   assert(lines(withNothing).length === 3, "the bar no longer draws three lines");
-  assert(/rtk 81% saved/.test(withNothing), "the savings segment is missing from the baseline");
+  assert(/\u{F1679} 81%/u.test(withNothing), "the savings segment is missing from the baseline");
 });
 
 await test("a segment switched off leaves the bar", () => {
   const before = draw(null);
   const after = draw({ version: 1, segments: { rtk: { on: false } } });
-  assert(/rtk 81% saved/.test(before), "the baseline has no savings segment to remove");
-  assert(!/rtk 81% saved/.test(after), "the savings segment survived being switched off");
+  assert(/\u{F1679} 81%/u.test(before), "the baseline has no savings segment to remove");
+  assert(!/\u{F1679} 81%/u.test(after), "the savings segment survived being switched off");
   assert(/󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(after), "something else was removed along with it");
 });
 

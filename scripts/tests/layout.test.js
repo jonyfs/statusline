@@ -151,7 +151,7 @@ await test("an arranged bar still drops by priority", async () => {
   // 340: the fixture draws every harness's chips at once and grew with
   // specs/071 (the account, the cache hit ratio, the credits' reset).
   const roomy = draw(moved, 340);
-  assert.ok(/rtk 81% saved/.test(roomy), "the savings figure is missing before the squeeze");
+  assert.ok(/\u{F1679} 81%/u.test(roomy), "the savings figure is missing before the squeeze");
   assert.ok(/󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(roomy), "the context figure is missing before the squeeze");
 
   // Narrow enough that the four segments on that line cannot all fit: at 60
@@ -159,7 +159,7 @@ await test("an arranged bar still drops by priority", async () => {
   // assuming.
   const tight = draw(moved, 36);
   assert.ok(/46%/.test(tight), "the highest-priority segment was dropped");
-  assert.ok(!/rtk 81% saved/.test(tight), "the lowest-priority segment survived a 60-column window");
+  assert.ok(!/\u{F1679} 81%/u.test(tight), "the lowest-priority segment survived a 60-column window");
 });
 
 // specs/025-prompt-cache-chip: a segment's shorter forms.

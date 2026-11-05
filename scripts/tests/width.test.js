@@ -70,12 +70,12 @@ await test("a narrow line drops by priority, not by position", () => {
       .pop();
 
   const roomy = line4At(200);
-  assert.match(roomy, /rtk/, "with room, everything renders");
+  assert.match(roomy, /\u{F1679}/u, "with room, everything renders");
 
   // Line 4 has lost enough segments that it fits inside 100 columns on its
   // own, so the priority table only gets to decide below that.
   const tight = line4At(70);
-  assert.doesNotMatch(tight, /rtk/, "priority 40 is the first to go");
+  assert.doesNotMatch(tight, /\u{F1679}/u, "priority 40 is the first to go");
   assert.match(tight, /100%/, "priority 100 stays");
 
   const tighter = line4At(40);
@@ -99,7 +99,7 @@ await test("dropping a segment is preferred to shortening one", () => {
       .pop();
 
   const wide = lastLineAt(200);
-  assert.match(wide, /rtk/, "with room, the savings figure is there");
+  assert.match(wide, /\u{F1679}/u, "with room, the savings figure is there");
   assert.match(wide, /Claude Opus 5/, "and so is the model, since the merge of 2026-09-07");
   // An exhausted window says `full` (specs/023-extra-usage-limit).
   assert.match(wide, /7d\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?100% full\s+\S+\s/);

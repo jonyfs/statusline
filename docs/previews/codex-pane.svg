@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1187" height="118" viewBox="0 0 1187 118" role="img" aria-label="In a 3-line pane under OpenAI Codex CLI: a real Codex rollout through the adapter, drawn by the same renderer">
-<rect width="1187" height="118" rx="8" fill="#1e1e2e"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1089" height="118" viewBox="0 0 1089 118" role="img" aria-label="In a 3-line pane under OpenAI Codex CLI: a real Codex rollout through the adapter, drawn by the same renderer">
+<rect width="1089" height="118" rx="8" fill="#1e1e2e"/>
 <text x="10" y="18" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12" fill="#9399b2">In a 3-line pane under OpenAI Codex CLI: a real Codex rollout through the adapter, drawn by the same renderer</text>
 <rect x="10.00" y="36" width="137.20" height="22" fill="rgb(49,50,68)"/>
 <path d="M133 1134H400Q466 1134 507 1080L576 989Q582 981 591 981H991Q1022 981 1045 959Q1068 936 1067 905V867H210Q187 867 170.0 850.0Q153 833 153 810Q153 786 170.0 769.0Q187 752 210 752H1123Q1154 752 1177 730Q1200 707 1199 676Q1199 670 1199 667L1144 200Q1144 144 1105.0 105.0Q1066 66 1010 66H133Q78 66 39.0 105.0Q0 144 0 200V1000Q0 1056 39.0 1095.0Q78 1134 133 1134Z" fill="rgb(255,255,255)" transform="translate(19.80 52.00) scale(0.00821 -0.00821)"/>
@@ -133,22 +133,12 @@
 <text x="945.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">1</text>
 <rect x="950.80" y="86" width="9.80" height="22" fill="rgb(250,179,135)"/>
 <path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(250,179,135)" transform="translate(960.60 102.00) scale(0.00821 -0.00821)"/>
-<rect x="999.80" y="86" width="68.60" height="22" fill="rgb(148,226,213)"/>
+<rect x="999.80" y="86" width="29.40" height="22" fill="rgb(148,226,213)"/>
 <path d="M780 692Q780 714 798.5 732.0Q817 750 841.0 750.0Q865 750 883.5 732.0Q902 714 902.0 690.0Q902 666 883.5 648.0Q865 630 841.0 630.0Q817 630 798.5 648.0Q780 666 780 692ZM360 750H659V872H360ZM1200 842V420L1031 364L930 30H600V150H479V30H150L110 168Q65 332 37 460Q0 642 0 720Q0 810 44.0 886.0Q88 962 164.0 1007.0Q240 1052 329 1052H631Q673 1106 735.0 1138.0Q797 1170 871 1170Q908 1170 934.0 1145.0Q960 1120 960 1080Q960 1064 952 1046Q938 1012 935 976L1070 842ZM1081 720H1019L811 932Q811 990 825 1046Q783 1036 749.0 1005.0Q715 974 701 932H329Q242 932 180.5 870.0Q119 808 119 720Q119 590 240 150H360V270H721V150H840L935 460L1081 508Z" fill="rgb(17,17,27)" transform="translate(1009.60 102.00) scale(0.00821 -0.00821)"/>
-<text x="1034.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">r</text>
-<text x="1043.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">t</text>
-<text x="1053.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">k</text>
-<rect x="1068.40" y="86" width="29.40" height="22" fill="rgb(148,226,213)"/>
-<text x="1073.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
-<text x="1083.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">4</text>
-<text x="1092.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
-<rect x="1097.80" y="86" width="9.80" height="22" fill="rgb(148,226,213)"/>
-<rect x="1107.60" y="86" width="49.00" height="22" fill="rgb(148,226,213)"/>
-<text x="1112.50" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">s</text>
-<text x="1122.30" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">a</text>
-<text x="1132.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">v</text>
-<text x="1141.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">e</text>
-<text x="1151.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">d</text>
-<rect x="1156.60" y="86" width="9.80" height="22" fill="rgb(148,226,213)"/>
-<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(148,226,213)" transform="translate(1166.40 102.00) scale(0.00821 -0.00821)"/>
+<rect x="1029.20" y="86" width="29.40" height="22" fill="rgb(148,226,213)"/>
+<text x="1034.10" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">7</text>
+<text x="1043.90" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">4</text>
+<text x="1053.70" y="102" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="16" fill="rgb(17,17,27)">%</text>
+<rect x="1058.60" y="86" width="9.80" height="22" fill="rgb(148,226,213)"/>
+<path d="M-72 1812H13L1200 602L13 -612H-72Z" fill="rgb(148,226,213)" transform="translate(1068.40 102.00) scale(0.00821 -0.00821)"/>
 </svg>

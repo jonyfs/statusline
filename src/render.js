@@ -1782,6 +1782,10 @@ export function renderReadings(
   // A bar is shared on screens and in screenshots; a percentage says how
   // much is left without saying of what.
   const hideAmounts = String(process.env.CLAUDE_STATUSLINE_AMOUNTS ?? "").toLowerCase() === "hide";
+  // The line's grammar (specs/072): the icon says what and the number how
+  // much, so the chips that repeated their icon in words lost the word.
+  // `CLAUDE_STATUSLINE_LABELS=on` brings the words back.
+  const labelsOn = String(process.env.CLAUDE_STATUSLINE_LABELS ?? "").toLowerCase() === "on";
   // The age of a figure taken from Claude Code's `/usage` cache: past six
   // hours the chip loses its band, past twelve it says how old it is
   // (specs/070, FR-004). `withAge` puts the mark on a finished chip; the mark
@@ -1794,6 +1798,23 @@ export function renderReadings(
   // have, such as the 5-hour window on the free plan, is absent rather than
   // `?%`, for the same reason (specs/035-codex-pane).
   const isCodex = readings.harness?.value === "codex";
+  // The cache hit ratio draws wherever the credits chip does (specs/071);
+  // decided once, since the prompt cache state chip yields to it.
+  const cacheHitRatio =
+    !noLimits && !isCodex && readings.usageCredits?.value?.enabled && typeof readings.promptCache?.value?.hitRatio === "number"
+      ? readings.promptCache.value.hitRatio
+      : null;
+  // The prompt cache's state as a glyph: the snowflake when cold, an
+  // hourglass that empties by thirds of the cache's own TTL while a warm
+  // cache closes, the full hourglass otherwise.
+  const cacheStateGlyph = () => {
+    const pc = readings.promptCache?.value ?? null;
+    if (!pc || pc.state === "cold") return g.cacheCold;
+    if (!pc.closing) return g.cacheWarm;
+    const ttlS = pc.ttl === "1h" ? 3600 : 300;
+    const left = pc.secondsLeft / ttlS;
+    return left > 2 / 3 ? g.cacheWarm : left > 1 / 3 ? g.cacheWarmHalf : g.cacheWarmLow;
+  };
   // A budget account (Claude Enterprise behind a gateway with a spend limit)
   // is metered in dollars over a day, week or month and has no 5-hour or
   // 7-day window. The payload then carries `spend_limit` and neither window,
@@ -1848,7 +1869,10 @@ export function renderReadings(
       // A probe's text goes through the same sanitiser as the file's.
       const who = plainText(!id ? null : mode === "email" ? (id.email ?? id.org) : (id.org ?? id.email));
       if (!who) return null;
-      const word = { subscriber: "subscriber", budget: "budget", credits: "credits", none: "api" }[readings.accountKind?.value] ?? null;
+      const kind = readings.accountKind?.value;
+      // The credits chip beside it already says `credits` (specs/072).
+      const implied = !labelsOn && kind === "credits" && readings.usageCredits?.value?.enabled === true;
+      const word = implied ? null : ({ subscriber: "subscriber", budget: "budget", credits: "credits", none: "api" }[kind] ?? null);
       return {
         color: ROLE.identity,
         text: ` ${g.account} ${who}${word ? ` \u00b7 ${word}` : ""} `,
@@ -2026,19 +2050,21 @@ export function renderReadings(
     // is what carries work once one of them is full.
     usageCredits: () => {
       if (noLimits || isCodex) return null;
+      // The wallet is the word (specs/072), unless the words are asked for.
+      const creditsLabel = labelsOn ? "credits" : "";
       const c = shows("usageCredits") ? readings.usageCredits?.value : null;
       // Remembered as a credits seat, but the cache is stale or gone: the
       // figure is unknown, not absent, as `spend —` is for a budget account.
       if (!c) {
         if (readings.accountKind?.value !== "credits") return null;
-        const unknown = gaugeChipText({ icon: g.spend, label: "credits", pct: null, band: null, pace: null });
+        const unknown = gaugeChipText({ icon: g.spend, label: creditsLabel, pct: null, band: null, pace: null });
         return { ...gaugeChip(null, null), ...unknown, url: USAGE_PAGES.claude };
       }
       // Extra usage off: a credits seat says so, since the cap is the one
       // thing it is metered by; any other account has nothing to say.
       if (!c.enabled) {
         if (readings.accountKind?.value !== "credits") return null;
-        return { ...gaugeChip(null, null), text: ` ${g.spend} credits off `, variants: [], url: USAGE_PAGES.claude };
+        return { ...gaugeChip(null, null), text: ` ${g.spend} ${labelsOn ? "credits off" : "off"} `, variants: [], url: USAGE_PAGES.claude };
       }
       const mark = cacheMark(c.fetchedAt);
       // The cache's own word for the spend outranks the rounded percentage:
@@ -2047,7 +2073,7 @@ export function renderReadings(
       const own = bandFor(c.pct)?.name ?? null;
       const band = mark?.dim ? null : c.severity === "critical" ? "critical" : c.severity === "warning" && own !== "critical" ? "warn" : own;
       const full = c.reached ? " full" : "";
-      const month = gaugeChipText({ icon: g.spend, label: "credits", pct: c.pct, band, pace: null, full });
+      const month = gaugeChipText({ icon: g.spend, label: creditsLabel, pct: c.pct, band, pace: null, full });
       // When the cap comes back (specs/071, FR-009): the cache's own reset
       // when it carries one, else the first of next month at this
       // computer's midnight, marked `~` as the estimate it is, unless
@@ -2135,22 +2161,25 @@ export function renderReadings(
     cacheHit: () => {
       // Wherever the credits chip draws: a seat billed by usage, or a plan
       // with extra usage on, which pays the same way past its windows.
-      if (noLimits || isCodex || !readings.usageCredits?.value?.enabled) return null;
-      const ratio = promptCache?.hitRatio;
-      if (typeof ratio !== "number") return null;
-      const pct = Math.round(ratio * 100);
+      if (cacheHitRatio === null) return null;
+      const pct = Math.round(cacheHitRatio * 100);
       const band = pct >= 70 ? "ok" : pct >= 40 ? "warn" : "critical";
-      return { ...gaugeChip(pct, band), ...gaugeChipText({ icon: g.cacheWarm, label: "cache", pct, band, pace: null }) };
+      // One chip for the cache (specs/072): the icon carries the state the
+      // prompt cache chip used to draw on its own, cold, closing or warm.
+      const icon = labelsOn ? g.cacheWarm : cacheStateGlyph();
+      return { ...gaugeChip(pct, band), ...gaugeChipText({ icon, label: labelsOn ? "cache" : "", pct, band, pace: null }) };
     },
     promptCache: () => {
       if (!promptCache?.observed) return null;
+      // Beside the hit ratio chip, whose icon carries the state (specs/072),
+      // this chip keeps only what that one does not: the minutes a closing
+      // cache has left, the tokens a cold one writes again. Its bare forms.
+      const besideRatio = !labelsOn && cacheHitRatio !== null;
       if (promptCache.state === "warm") {
         if (!promptCache.closing) return null;
-        // An hourglass that empties by thirds of the cache's own TTL.
-        const ttlS = promptCache.ttl === "1h" ? 3600 : 300;
-        const left = promptCache.secondsLeft / ttlS;
-        const glyph = left > 2 / 3 ? g.cacheWarm : left > 1 / 3 ? g.cacheWarmHalf : g.cacheWarmLow;
+        const glyph = cacheStateGlyph();
         const minutes = cacheMinutesLeft(promptCache.secondsLeft);
+        if (besideRatio) return { color: ROLE.neutral, icon: ROLE.attention, text: ` ${glyph} ${minutes} ` };
         return {
           color: ROLE.neutral,
           icon: ROLE.attention,
@@ -2159,6 +2188,7 @@ export function renderReadings(
         };
       }
       const tokens = promptCache.recacheTokens !== null ? abbreviate(promptCache.recacheTokens) : null;
+      if (besideRatio) return tokens ? { color: ROLE.cold, text: ` ${g.cacheCold} ${tokens} ` } : null;
       const chip = (...parts) => ` ${g.cacheCold} cache cold${parts.filter(Boolean).map((t) => ` \u00b7 ${t}`).join("")} `;
       const text = chip(tokens, promptCache.cause);
       const bare = tokens ? ` ${g.cacheCold} ${tokens} ` : ` ${g.cacheCold} `;
@@ -2179,6 +2209,8 @@ export function renderReadings(
     // cross.
     rtk: () => {
       if (rtkPct === null) return null;
+      // The icon is the word (specs/072): `󱙹 81%`, the former short form.
+      if (!labelsOn) return { color: ROLE.money, text: ` ${g.rtk} ${strong(`${rtkPct}%`)} ` };
       return { color: ROLE.money, text: ` ${g.rtk} rtk ${strong(`${rtkPct}%`)} ${quiet("saved")} `, variants: [` ${g.rtk} ${strong(`${rtkPct}%`)} `] };
     },
 

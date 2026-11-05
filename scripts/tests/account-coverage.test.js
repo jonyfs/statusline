@@ -72,7 +72,7 @@ const render = (...a) => stripAnsi(raw(...a));
 // The colour codes around the credits chip: the icon, the track and the
 // figure, without the text, so two chips compare by colour alone.
 const chipCodes = (s) => {
-  const i = s.indexOf("credits");
+  const i = s.indexOf("\u{F0584}");
   return (s.slice(Math.max(0, i - 60), i + 14).match(/\x1b\[[0-9;]*m/g) ?? []).join("");
 };
 
@@ -117,7 +117,7 @@ await test("before the first response a subscriber's 5h and 7d come from the cac
   const out = render(quiet(), sources(SUBSCRIBER_CACHE, null, noted));
   assert.match(out, /5h\W+20%/);
   assert.match(out, /7d\W+77%/);
-  assert.doesNotMatch(out, /credits/);
+  assert.doesNotMatch(out, /\u{F0584}/u);
   assert.ok(noted.includes("subscriber"), `noted ${JSON.stringify(noted)}`);
 });
 
@@ -169,7 +169,7 @@ await test("a cached figure says its age after twelve hours and loses its band a
   assert.doesNotMatch(stripAnsi(chip(sixPlus)), /·\s*\d+h/);
   assert.notEqual(chipCodes(fresh), chipCodes(sixPlus), "the band goes after six hours");
   const old = render(answered(), sources({ ...CREDITS, fetchedAt: NOW - 13 * HOUR }));
-  assert.match(old, /credits\W+10%[^\n]*·\s*13h/);
+  assert.match(old, /\u{F0584}\W+10%[^\n]*·\s*13h/u);
 });
 
 await test("windows from the cache carry the same age mark", () => {
@@ -181,9 +181,9 @@ await test("windows from the cache carry the same age mark", () => {
 
 await test("a credits seat with extra usage off reads credits off, a subscriber with it off draws nothing", () => {
   const off = { ...CREDITS, enabled: false, disabledReason: "user_disabled" };
-  assert.match(render(answered(), sources(off, "credits")), /credits off/);
-  assert.match(render(answered(), sources(off, null)), /credits off/, "credits ever enabled and no window is a credits seat");
-  assert.doesNotMatch(render(answered(), sources({ ...off, hasWindows: true, windows: WINDOWS }, "subscriber")), /credits/);
+  assert.match(render(answered(), sources(off, "credits")), /\u{F0584} off/u);
+  assert.match(render(answered(), sources(off, null)), /\u{F0584} off/u, "credits ever enabled and no window is a credits seat");
+  assert.doesNotMatch(render(answered(), sources({ ...off, hasWindows: true, windows: WINDOWS }, "subscriber")), /\u{F0584}/u);
 });
 
 // FR-006 ----------------------------------------------------------------------
@@ -233,9 +233,9 @@ await test("the credit chips open the account's own usage page, and the spend ch
     const m = [...before.matchAll(/\x1b\]8;;([^\x07]*)\x07/g)].pop();
     return m ? m[1] : null;
   };
-  assert.equal(linkOn(raw(answered(), sources(CREDITS)), "credits"), USAGE_PAGES.claude);
-  assert.equal(linkOn(raw(answered(), sources({ ...CREDITS, enabled: false }, "credits")), "credits off"), USAGE_PAGES.claude);
-  assert.equal(linkOn(raw(answered(), sources(null, "credits")), "credits"), USAGE_PAGES.claude, "credits — links too");
+  assert.equal(linkOn(raw(answered(), sources(CREDITS)), "\u{F0584}"), USAGE_PAGES.claude);
+  assert.equal(linkOn(raw(answered(), sources({ ...CREDITS, enabled: false }, "credits")), "\u{F0584} off"), USAGE_PAGES.claude);
+  assert.equal(linkOn(raw(answered(), sources(null, "credits")), "\u{F0584}"), USAGE_PAGES.claude, "credits — links too");
   const codex = { cwd: "/tmp/p", codex: {}, rate_limits: { credits: { balance: "12.5" } } };
   assert.equal(linkOn(raw(codex, emptySources), "credits 12.5"), USAGE_PAGES.codex);
   const copilot = { ...quiet(), ai_used: { total_nano_aiu: 641_049_000, formatted: "0.64" } };

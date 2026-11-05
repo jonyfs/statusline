@@ -101,7 +101,7 @@ await test("a context past 200k tokens says so in the critical band, and keeps s
 await test("the credits chip carries the measured rate and the session's share of the month", () => {
   const src = sources({ creditsTrend: () => ({ ratePerHour: 0.42, sessionDelta: 1.24 }) });
   const out = render(answered(), src);
-  assert.match(out, /credits\W+10%\s*·\s*\+0\.4%\/h\s*·\s*\+1\.2% session/);
+  assert.match(out, /\u{F0584}\W+10%\s*·\s*\+0\.4%\/h\s*·\s*\+1\.2% session/u);
   assert.doesNotMatch(out, /session 0\.4%/, "the estimated share is off by default");
   const shared = render(answered(), src, { CLAUDE_STATUSLINE_SESSION_SHARE: "1" });
   assert.match(shared, /session 0\.4%/);
@@ -114,10 +114,10 @@ await test("the credits chip carries the measured rate and the session's share o
 
 await test("a credits seat sees its prompt cache hit ratio, a subscriber does not", () => {
   const withCache = answered({ prompt_cache: { warm: true, caching_observed: true, hit_ratio: 0.82, ttl: "5m", expires_at: NOW / 1000 + 290 } });
-  assert.match(render(withCache, sources()), /cache\W+82%/);
+  assert.match(render(withCache, sources()), /[\u{F078C}\u{F0717}\u{F06AD}\u{F051F}]\W+82%/u);
   const subscriber = sources({ getAccountKind: () => "subscriber", getUsageCredits: () => null });
-  assert.doesNotMatch(render({ ...withCache, rate_limits: fullPayload({ now: NOW }).rate_limits }, subscriber), /cache\W+82%/);
-  assert.doesNotMatch(render(answered(), sources()), /cache\W+\d+%/, "no ratio, no chip");
+  assert.doesNotMatch(render({ ...withCache, rate_limits: fullPayload({ now: NOW }).rate_limits }, subscriber), /[\u{F078C}\u{F0717}\u{F06AD}\u{F051F}]\W+82%/u);
+  assert.doesNotMatch(render(answered(), sources()), /[\u{F078C}\u{F0717}\u{F06AD}]\W+\d+%/u, "no ratio, no chip");
 });
 
 // FR-006 ----------------------------------------------------------------------
@@ -135,9 +135,12 @@ await test("the model tier mark is opt-in and comes from the name", () => {
 
 await test("the account chip names the organisation and the kind, the address on request, nothing when off", () => {
   const out = render(answered(), sources());
-  assert.match(out, /Acme Robotics · credits/);
+  // The credits chip beside it says `credits`, so the word goes (specs/072).
+  assert.match(out, /Acme Robotics/);
+  assert.doesNotMatch(out, /Acme Robotics · credits/);
+  assert.match(render(answered(), sources(), { CLAUDE_STATUSLINE_LABELS: "on" }), /Acme Robotics · credits/);
   assert.doesNotMatch(out, /dev@example\.com/);
-  assert.match(render(answered(), sources(), { CLAUDE_STATUSLINE_ACCOUNT: "email" }), /dev@example\.com · credits/);
+  assert.match(render(answered(), sources(), { CLAUDE_STATUSLINE_ACCOUNT: "email" }), /dev@example\.com/);
   assert.doesNotMatch(render(answered(), sources(), { CLAUDE_STATUSLINE_ACCOUNT: "off" }), /Acme|dev@/);
   assert.doesNotMatch(render(answered(), sources({ getAccountIdentity: () => null })), /Acme|credits ·/);
   const codex = { cwd: "/tmp/p", codex: { plan_type: "pro" }, rate_limits: {} };
@@ -202,18 +205,30 @@ await test("the reader takes a reset from the cache's limits, and the month esti
 
 await test("the credits chip says when the cap comes back: estimated with a tilde, from the cache without one, off on request", () => {
   const out = render(answered(), sources());
-  assert.match(out, /credits\W+10%[^\n]*~dec 1 00:00/);
+  assert.match(out, /\u{F0584}\W+10%[^\n]*~dec 1 00:00/u);
   const real = render(answered(), sources({ getUsageCredits: () => ({ ...CREDITS, resetsAt: Date.parse("2026-11-20T14:30:00Z") / 1000 }) }));
-  assert.match(real, /credits\W+10%[^\n]*[^~]nov 20 14:30/);
+  assert.match(real, /\u{F0584}\W+10%[^\n]*[^~]nov 20 14:30/u);
   assert.doesNotMatch(real, /~/);
   const near = render(answered(), sources({ getUsageCredits: () => ({ ...CREDITS, resetsAt: NOW / 1000 + 3600 }) }));
-  assert.match(near, /credits\W+10%[^\n]*13:00/);
+  assert.match(near, /\u{F0584}\W+10%[^\n]*13:00/u);
   const off = render(answered(), sources(), { CLAUDE_STATUSLINE_CREDITS_RESET: "off" });
   assert.doesNotMatch(off, /~dec|dec 1/);
   const trend = render(answered(), sources({ creditsTrend: () => ({ ratePerHour: 0.42, sessionDelta: 1.24 }) }));
   assert.match(trend, /\+1\.2% session[^\n]*~dec 1 00:00/, "the reset reads last, after what moves the figure");
   // Width sheds the motion before the reset, and the reset before the figure.
   const narrow = render(answered(), sources({ creditsTrend: () => ({ ratePerHour: 0.42, sessionDelta: 1.24 }) }), {}, 72);
-  assert.match(narrow, /credits/);
+  assert.match(narrow, /\u{F0584}/u);
   assert.doesNotMatch(narrow, /session/);
+});
+
+// specs/072: the words come back on request, and the cache draws as one chip.
+await test("CLAUDE_STATUSLINE_LABELS=on brings the words back, and the cache chips merge without it", () => {
+  const withCache = answered({ prompt_cache: { warm: false, caching_observed: true, ttl: "5m", expires_at: null, recache_tokens_if_cold: 184000, hit_ratio: 0.82 } });
+  const bare = render(withCache, sources({ creditsTrend: () => ({ ratePerHour: 0.42, sessionDelta: 0 }) }));
+  assert.match(bare, /\u{F0717}\W+82%/u, "the cold snowflake carries the ratio");
+  assert.doesNotMatch(bare, /cache cold|credits\W+10%|rtk/u);
+  const worded = render(withCache, sources(), { CLAUDE_STATUSLINE_LABELS: "on" });
+  assert.match(worded, /credits\W+10%/u);
+  assert.match(worded, /cache cold/);
+  assert.match(worded, /cache\W+82%/u);
 });

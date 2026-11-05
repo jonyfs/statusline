@@ -151,7 +151,7 @@ await test("each window carries its own reset, and says so when it has none", ()
 });
 
 await test("rtk: present when installed, absent when not", () => {
-  assert.match(render(payload, everything), /rtk 63% saved/);
+  assert.match(render(payload, everything), /\u{F1679} 63%/u);
   assert.doesNotMatch(render(payload, { ...everything, getRtkSavings: () => null }), /rtk/);
 });
 

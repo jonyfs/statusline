@@ -37,7 +37,7 @@ await test("long and short forms of the chips", () => {
     `${g.context} ${trackAt(46)} ${FIGURE_SPACE}46%`,
     `${g.context} ${FIGURE_SPACE}46%`,
   ]);
-  assert.deepEqual(forms("rtk"), [`${g.rtk} rtk 81% saved`, `${g.rtk} 81%`]);
+  assert.deepEqual(forms("rtk"), [`${g.rtk} 81%`]);
   assert.deepEqual(forms("pr"), [
     `${g.pr} PR #128 ${g.reviewApproved} approved`,
     `${g.pr} #128 ${g.reviewApproved}`,
@@ -52,7 +52,7 @@ await test("long and short forms of the chips", () => {
 
 await test("a width that fits keeps the long form and a tight one steps down to the short", () => {
   const wide = strip(draw(PAYLOAD, { maxWidth: 360 }));
-  assert.ok(/rtk 81% saved/.test(wide));
+  assert.ok(new RegExp(`${GLYPHS.nerd.rtk} 81%`, "u").test(wide));
   const tight = strip(draw(PAYLOAD, { maxWidth: 90 }));
   for (const line of tight.split("\n")) assert.ok(displayWidth(line) <= 90, `${displayWidth(line)} wide`);
 });

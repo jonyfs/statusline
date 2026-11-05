@@ -608,7 +608,7 @@ its `spendLimit` row is either on with its figure, or off with the reason.
 no 5-hour or 7-day window at all; its allowance is a monthly cap on usage
 credits, and Claude Code sends none of it to the status line. Claude Code does
 fetch that figure for its own `/usage` screen and keeps the last answer in
-`~/.claude.json`, so the bar reads it from there, as written: `credits 10%`,
+`~/.claude.json`, so the bar reads it from there, as written: `󰖄 10%`,
 in the usage colours, with `full` once the cap is reached, and `· day 3% ·
 week 9%` after it when Claude Code reports those too (specs/069-usage-credits).
 Only percentages are drawn, never the amounts: a status line is shared on
@@ -634,7 +634,7 @@ the payload carries later.
 
 **How old a cached figure is.** A chip drawn from that cache, the credits or the
 windows, is as fresh as Claude Code's last `/usage` fetch. After six hours it
-loses its colour band; after twelve it says so, `credits 11% · 14h`, and the age
+loses its colour band; after twelve it says so, `󰖄 11% · 14h`, and the age
 is the first thing a narrow terminal sheds. After a day the reader answers absent.
 
 **No money on the bar.** `CLAUDE_STATUSLINE_AMOUNTS=hide`, or `"amounts": "hide"`
@@ -651,7 +651,7 @@ past 200k input tokens reads `72% · 200k+` in red, since the long-context price
 applies from there. The credits chip carries `+0.4%/h`, measured across Claude
 Code's own fetches of the figure over the last day, and `+1.2% session`, how far
 it moved since this session's first redraw; neither is projected to the cap,
-because the cache names no reset. A standing `cache 82%` chip shows the prompt
+because the cache names no reset. A standing `󰞌 82%` chip shows the prompt
 cache's hit ratio wherever the credits chip draws, with the bands inverted,
 because paying full price for input is the one cost a session controls. The
 chip ends with when the cap comes back, as a day and a time in your computer's
@@ -667,6 +667,17 @@ names whose credits these are, `Acme · credits`, from the signed-in account's
 organisation (`CLAUDE_STATUSLINE_ACCOUNT=email` for the address, `off` for none),
 so two accounts on one computer never get confused. Under Codex the same chip
 names the plan, `codex pro`.
+
+**The icon says what, the number says how much.** Line 3 reads the way the context
+chip always has: `󰧑 81%`, no word. The chips that repeated their icon in words
+lost the word (specs/072-line-3-grammar): the credits are `󰖄 11%`, the savings
+`󱙹 81%`, the cache hit ratio `󰞌 82%` with the snowflake in place of the hourglass
+when the cache is cold, so the `cache cold` chip beside it shrinks to what the icon
+cannot say (`󰜗 184k`, the tokens a cold cache writes again),
+and the account drops `· credits` when the credits chip stands next to it. A word
+stays where it carries what the icon does not: `5h`, `7d` and `30d` are window
+lengths, `month premium` is a quota's name, and `spend` shares the wallet with the
+credits. `CLAUDE_STATUSLINE_LABELS=on` brings every word back.
 
 **Which kind of account the bar decided on.** `statusline-plugin doctor` prints
 one line above the segment table, `account: <kind> · <evidence>`: `subscriber ·
@@ -906,7 +917,7 @@ they have. A few rules keep the line from moving as figures change:
   take the same width and the chips after them stay put.
 - A duration under an hour is `45m`, and an hour or more is `2h09`, with no trailing `m`.
 - A reset is introduced by its own icon instead of a dot.
-- A chip that has a short form (`rtk 81% saved` is `81%`) shows it before the width guard drops
+- A chip that has a short form (`󰖄 11% · +0.4%/h` is `󰖄 11%`) shows it before the width guard drops
   the chip. The context chip has no word at all: its icon and the figure. The directory, branch,
   skills and effort chips end in their icon alone, so a narrow line shortens them before it
   drops them; the model chip has no icon-only form, since an icon names no model.
@@ -1286,6 +1297,7 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_EVENT_EMOJI=1` | In the Nerd Font tier, draws 💥, 🔥 and 🚀 for conflicts, a critical burn rate and an applied update |
 | `CLAUDE_STATUSLINE_ACCOUNT` | `org` (default) draws the signed-in Claude account's organisation and kind on line 3, `email` the address instead, `off` nothing |
 | `CLAUDE_STATUSLINE_SESSION_SHARE=1` | Adds `session 0.4%` to the credits chip: the session's estimated cost as a share of the month's cap. The one estimated figure on the bar, off by default |
+| `CLAUDE_STATUSLINE_LABELS=on` | Puts the words back on the chips whose icon says the same: `credits 11%`, `rtk 81% saved`, `cache 82%` beside a separate `cache cold`, `Acme · credits` |
 | `CLAUDE_STATUSLINE_CREDITS_RESET=off` | Drops the estimated `~dec 1 00:00` from the credits chip. A reset the cache itself carries is still drawn |
 | `CLAUDE_STATUSLINE_MODEL_TIER=1` | Appends `+++`, `++` or `+` to the model's name by price tier (Opus and Fable, Sonnet, Haiku), from a table in the plugin |
 | `CLAUDE_STATUSLINE_AMOUNTS=hide` | Keeps money and balances off the bar in every harness: the `spend` chip as a percentage, no per-day pace, no Codex balance, Copilot's AI credits as a share of the session limit. Any other value is `show` |
