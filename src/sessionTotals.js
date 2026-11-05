@@ -42,6 +42,7 @@ export function emptyTotals() {
     tools: {},
     byModel: {},
     agentTokens: 0,
+    agentTotals: {},
     over200kMs: 0,
     over200kAt: null,
     outputSamples: [],
@@ -57,6 +58,7 @@ function cleanTotals(raw) {
   if (isBlock(raw.agentOffsets)) for (const [f, o] of Object.entries(raw.agentOffsets)) if (finite(o)) t.agentOffsets[f] = o;
   if (isBlock(raw.tools)) for (const [n, c] of Object.entries(raw.tools)) if (finite(c)) t.tools[n] = c;
   if (isBlock(raw.byModel)) for (const [n, c] of Object.entries(raw.byModel)) if (finite(c)) t.byModel[n] = c;
+  if (isBlock(raw.agentTotals)) for (const [n, c] of Object.entries(raw.agentTotals)) if (finite(c)) t.agentTotals[n] = c;
   if (finite(raw.over200kAt)) t.over200kAt = raw.over200kAt;
   if (Array.isArray(raw.outputSamples)) t.outputSamples = raw.outputSamples.filter((s) => isBlock(s) && finite(s.at) && finite(s.output));
   return t;
@@ -67,7 +69,7 @@ function cleanTotals(raw) {
  * from a subagent's file; a sidechain entry in the main file counts as one
  * too. Pure, so a test can feed it fabricated entries.
  */
-export function foldLine(totals, line, { agent = false } = {}) {
+export function foldLine(totals, line, { agent = false, agentId = null } = {}) {
   let entry;
   try {
     entry = JSON.parse(line);
@@ -85,7 +87,12 @@ export function foldLine(totals, line, { agent = false } = {}) {
     totals.cacheRead += read;
     totals.cacheWrite += write;
     totals.turns += 1;
-    if (fromAgent) totals.agentTokens += input + output + read + write;
+    if (fromAgent) {
+      totals.agentTokens += input + output + read + write;
+      // By agent (specs/077): the file's id, or the entry's own.
+      const id = agentId ?? (typeof entry.agentId === "string" && entry.agentId ? entry.agentId : null);
+      if (id) totals.agentTotals[id] = (totals.agentTotals[id] ?? 0) + input + output + read + write;
+    }
     const model = typeof entry.message.model === "string" && entry.message.model ? entry.message.model : null;
     if (model) totals.byModel[model] = (totals.byModel[model] ?? 0) + output;
   }
@@ -187,7 +194,8 @@ export function advanceTotals(totals, { transcriptPath, sessionId = null, now = 
     left -= main.used;
     for (const file of agentFiles(transcriptPath, sessionId)) {
       if (left <= 0) break;
-      const r = foldFile(totals, file, totals.agentOffsets[file] ?? 0, left, { agent: true });
+      const id = path.basename(file).replace(/^agent-/, "").replace(/\.jsonl$/, "");
+      const r = foldFile(totals, file, totals.agentOffsets[file] ?? 0, left, { agent: true, agentId: id });
       totals.agentOffsets[file] = r.offset;
       left -= r.used;
     }
@@ -238,6 +246,7 @@ export function summarize(totals, { ownModel = null } = {}) {
     total,
     perMinute: outputPerMinute(totals),
     agentTokens: totals.agentTokens,
+    agentTotals: totals.agentTotals,
     mix,
     turns: totals.turns,
     toolCalls: tools.reduce((s, [, c]) => s + c, 0),
