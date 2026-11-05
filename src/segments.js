@@ -82,6 +82,10 @@ export const SEGMENTS = [
   { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
   // The tool calls so far (specs/073-session-totals): after what the session is doing.
   { key: "toolCalls", line: 2, order: 35, priority: 46, colour: "identity", source: "transcript" },
+  // The permission mode (specs/075), after what the session is doing; the
+  // MCP servers before the vim mode.
+  { key: "permissionMode", line: 2, order: 32, priority: 65, colour: "identity", source: "transcript" },
+  { key: "mcp", line: 2, order: 38, priority: 41, colour: "identity", source: "cache" },
   // The editor's vim mode, when vim mode is on (specs/027-bar-polish).
   { key: "vim", line: 2, order: 40, priority: 42, colour: "identity", source: "payload" },
 
@@ -242,5 +246,7 @@ export const SEGMENT_ABOUT = {
   duration: "Wall-clock time since the session started.",
   sessionTokens: "Every token the session has spent, summed from the transcript as it is written: input, output and both cache counts, main session and subagents. Then the output rate per minute, the subagents' share and the largest other model's share of the output, each shed for width in turn.",
   toolCalls: "How many tool calls the session has made, from the transcript. The doctor names the three most used.",
+  permissionMode: "The permission mode the session runs in, from the transcript: plan, auto, accept edits, bypass or dontask. Nothing in the default mode.",
+  mcp: "How many MCP servers this session is configured to load: the user's, the project's .mcp.json minus the ones disabled here, and the project-local ones. The doctor names them.",
   rtk: "The share of tokens rtk has saved, a lifetime average across everything it has proxied rather than a figure for this session.",
 };

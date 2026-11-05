@@ -44,6 +44,8 @@ import { accountKindOf, apiResponded, getAccountKind, noteAccountKind } from "./
 import { readUsageCredits, readAccountIdentity, cacheAgeMark, monthResetAt } from "./usageCredits.js";
 import { creditsTrend } from "./creditsHistory.js";
 import { getSessionTotals, modelFamily } from "./sessionTotals.js";
+import { countMcpServers } from "./mcp.js";
+import { readSkillEventsTrueCount } from "./skillEvents.js";
 
 /**
  * Where a credit figure can be looked at in full (specs/070, FR-009). A
@@ -348,6 +350,7 @@ export const GLYPHS = {
     rtk: NF_RUST,
     spend: NF_WALLET,
     account: NF_ACCOUNT,
+    mcp: NF_FROM,
     cacheWarm: NF_HOURGLASS_FULL,
     cacheWarmHalf: NF_HOURGLASS_HALF,
     cacheWarmLow: NF_HOURGLASS_EMPTY,
@@ -431,6 +434,7 @@ export const GLYPHS = {
     rtk: "\u{1FA99}",            // 🪙 savings
     spend: "\u{1F4B0}",          // 💰
     account: "\u{1F464}",        // 👤
+    mcp: "\u{1F50C}",            // 🔌
     cacheWarm: "\u23F3",         // ⏳
     cacheWarmHalf: "\u23F3",
     cacheWarmLow: "\u231B",      // ⌛
@@ -542,6 +546,7 @@ export const GLYPHS = {
     // ASCII, East Asian Narrow, in every font, and used nowhere else on the bar.
     spend: "$",
     account: "@",
+    mcp: "~",
     // Both East Asian Narrow. `U+2744` has an emoji form, but its default
     // presentation is text and the bar never sends the selector that asks
     // for the other one.
@@ -894,6 +899,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     branchMeta: !hasRepo
       ? missing("git", "not a repository")
       : timed("git", () => probe.getBranchMeta?.(cwd, { now, branch: namedBranch }) ?? null),
+    // The MCP servers and the session's skill count (specs/075).
+    mcp: reading({ value: safeProbe(() => probe.getMcpServers?.(cwd) ?? null), at: now, source: "cache" }),
+    skillSessionCount: reading({ value: safeProbe(() => probe.getSkillSessionCount?.(payload?.session_id ?? null) ?? 0) ?? 0, at: now, source: "hook" }),
     skills: skillsReading(timed, probe, payload, activity.value?.skills, activity.value?.skillsTrueCount),
     activity,
     // The running subagents, which only Copilot's reader returns: Claude Code
@@ -1164,6 +1172,10 @@ export function renderPayload(
     getBranchMeta,
     // The session's totals from its transcript (specs/073).
     getSessionTotals,
+    // The MCP servers configured here, and how many distinct skills the
+    // session has used (specs/075).
+    getMcpServers: (cwd) => countMcpServers(cwd),
+    getSkillSessionCount: (sessionId) => (sessionId ? readSkillEventsTrueCount(sessionId, { windowMs: Number.POSITIVE_INFINITY }) : 0),
     // Who is signed in, and the credits' own history (specs/071).
     getAccountIdentity: readAccountIdentity,
     creditsTrend,
@@ -1737,6 +1749,9 @@ export function renderReadings(
     }
     // The editor's vim mode, beside what the session is doing. Absent unless
     // vim mode is on (specs/027-bar-polish).
+    // The MCP servers configured for this session (specs/075).
+    const mcp = shows("mcp") ? readings.mcp?.value : null;
+    if (mcp?.count > 0) row.push({ key: "mcp", color: ROLE.neutral, text: ` ${g.mcp} mcp ${strong(String(mcp.count))} `, variants: [` ${g.mcp} ${mcp.count} `] });
     const vimMode = shows("vim") ? readings.vim?.value : null;
     if (vimMode) row.push({ key: "vim", color: ROLE.neutral, text: ` ${g.vim} ${vimMode} `, variants: [` ${g.vim} `] });
     if (activity?.awaiting) {
@@ -1762,6 +1777,13 @@ export function renderReadings(
         text: activity.working ? ` ${mark} working${waiting} ` : asleep ? ` ${mark} sleeping ` : ` ${mark} idle `,
         variants: [` ${mark} `],
       });
+    }
+    // The permission mode the session runs in (specs/075): a state to see,
+    // in the attention role for plan and auto, critical for bypass.
+    const mode = activity?.permissionMode ?? null;
+    const modeWord = { plan: ["plan", ROLE.attention], auto: ["auto", ROLE.attention], acceptEdits: ["accept edits", ROLE.neutral], bypassPermissions: ["bypass", ROLE.critical], dontAsk: ["dontask", ROLE.attention] }[mode ?? ""];
+    if (modeWord && shows("permissionMode", "activity")) {
+      row.push({ key: "permissionMode", color: modeWord[1], text: ` ${g.allowAll} ${modeWord[0]} ` });
     }
     // The tool calls so far (specs/073-session-totals): what the turns are
     // spending their tokens on, after what the session is doing.
@@ -1790,15 +1812,31 @@ export function renderReadings(
     const sddStep = sddStepFor(skills[0]);
     const featureId = sddStep ? inProgressFeatureId(readings.cwd) : null;
     const skillsSuffix = featureId ?? sddStep;
+    // Each listed skill as its newest run tells it (specs/075): running, in
+    // emphasis with its duration; the newest finished one with its outcome.
+    const runs = Array.isArray(activity?.skillRuns) ? activity.skillRuns : [];
+    const newestFinished = runs.find((r) => r.finished) ?? null;
+    const named = skills.map((name) => {
+      const run = runs.find((r) => r.skill === name) ?? null;
+      if (run && !run.finished) {
+        const age = typeof run.startedAt === "number" ? ageLabel(now - run.startedAt) : null;
+        return `${strong(name)}${age && age !== "0m" ? ` ${age}` : ""}`;
+      }
+      if (run && run === newestFinished) return `${run.error ? "\u2717" : "\u2713"} ${name}`;
+      return name;
+    });
+    const sessionCount = readings.skillSessionCount?.value ?? 0;
+    const usedTail = sessionCount > skills.length + hidden ? ` \u00b7 ${sessionCount} used` : "";
     const l2 = [
       {
         key: "skills",
         color: ROLE.skills,
         emphasis: changes.isChanged("skills"),
-        text: ` ${g.skills} ${skills.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
+        text: ` ${g.skills} ${named.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""}${usedTail} `,
         // The newest skill with how many more there are, then the icon (F57).
         iconLast: true,
         variants: [
+          ...(usedTail ? [` ${g.skills} ${named.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `] : []),
           ...(skills.length + hidden > 1 || skillsSuffix
             ? [` ${g.skills} ${skills[0]}${skills.length + hidden > 1 ? ` +${skills.length + hidden - 1}` : ""} `]
             : []),

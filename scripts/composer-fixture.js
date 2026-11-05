@@ -127,6 +127,9 @@ export const SOURCES = {
     threads: 3,
   }),
   getAlerts: () => ({ dependabot: 2, codeScanning: 0, total: 2 }),
+  // MCP servers and the skill count (specs/075), fixed so the chips pool.
+  getMcpServers: () => ({ count: 4, names: ["github", "playwright", "slack", "docs"] }),
+  getSkillSessionCount: () => 7,
   getBranchMeta: () => ({ branch: "redesign", defaultBranch: "main", firstCommitAt: 1757000000 }),
   getCiStatus: () => ({ status: "completed", conclusion: "success", workflow: "CI" }),
   getActiveSkills: () => ["speckit-implement", "humanizer"],
@@ -136,6 +139,9 @@ export const SOURCES = {
     skills: ["speckit-implement", "humanizer"],
     todos: { done: 9, total: 24, current: "the composer page" },
     working: true,
+    // The permission mode and the skill runs (specs/075), fixed so the chips pool.
+    permissionMode: "auto",
+    skillRuns: [{ skill: "speckit-implement", startedAt: NOW_MS - 12 * 60_000, endedAt: null, finished: false, error: null }],
     // A Copilot session limit, so the credits chip shows its share of it.
     sessionLimit: 20,
   }),

@@ -194,6 +194,9 @@ export function getSessionActivity(transcriptPath, { now = Date.now(), limit = 3
     // the session is waiting on a person (specs/048-state-feedback).
     idleMs: scan.lastAt !== null ? Math.max(0, now - scan.lastAt) : null,
     awaiting: scan.awaiting === true,
+    // The skill runs in the window and the permission mode (specs/075).
+    skillRuns: Array.isArray(scan.skillRuns) ? scan.skillRuns : [],
+    permissionMode: scan.permissionMode ?? null,
   };
 }
 

@@ -96,6 +96,9 @@ const noSources = {
   // The repository's alerts and the branch's standing (specs/074).
   getAlerts: () => null,
   getBranchMeta: () => null,
+  // MCP servers and the skill count (specs/075).
+  getMcpServers: () => null,
+  getSkillSessionCount: () => 0,
 };
 
 export const SCENARIOS = [

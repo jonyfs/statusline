@@ -39,6 +39,9 @@ export const emptySources = {
   // The repository's alerts and the branch's standing (specs/074).
   getAlerts: () => null,
   getBranchMeta: () => null,
+  // MCP servers and the session's skill count (specs/075).
+  getMcpServers: () => null,
+  getSkillSessionCount: () => 0,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */

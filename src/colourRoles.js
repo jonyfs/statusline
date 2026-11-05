@@ -74,6 +74,8 @@ export const SEGMENT_COLOURS = {
   duration: { fill: ["neutral"] },
   sessionTokens: { fill: ["money"] },
   toolCalls: { fill: ["neutral"] },
+  permissionMode: { fill: ["neutral", "attention", "critical"] },
+  mcp: { fill: ["neutral"] },
   aiCredits: { fill: ["money", "neutral", "attention", "critical"], icon: ["healthy"], tone: ["critical"] },
   rtk: { fill: ["money"] },
 };

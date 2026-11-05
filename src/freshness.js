@@ -55,6 +55,9 @@ export const MAX_AGE_MS = {
   sessionTokens: 1_000,
   toolCalls: 1_000,
   sessionTotals: 1_000,
+  permissionMode: REDRAW_INTERVAL_MS,
+  mcp: 1_000,
+  skillSessionCount: 1_000,
   linesChanged: 1_000,
   apiTime: 1_000,
   // Not a segment: the cache key the three git-derived segments share.

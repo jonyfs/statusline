@@ -123,6 +123,8 @@ const DESCRIBE = {
     "sessionTotals",
     (v) => (v && v.total > 0 ? `${v.total} tokens over ${v.turns} turns${v.agentTokens ? `, ${v.agentTokens} by subagents` : ""}${v.mix ? `, ${v.mix.model} ${v.mix.pct}% of the output` : ""}` : null),
   ],
+  permissionMode: ["activity", (v) => (v?.permissionMode ? v.permissionMode : null)],
+  mcp: ["mcp", (v) => (v?.count ? `${v.count}: ${v.names.join(", ")}` : null)],
   toolCalls: ["sessionTotals", (v) => (v && v.toolCalls > 0 ? `${v.toolCalls} calls: ${v.tools.slice(0, 3).map(([n, c]) => `${n} ${c}`).join(", ")}` : null)],
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
@@ -270,6 +272,8 @@ function absenceReason(segment, reading, readings, now) {
         ? "the payload carries no prompt_cache.hit_ratio yet"
         : "drawn only beside the credits chip (a seat billed by usage, or extra usage on)";
     }
+    if (segment.key === "permissionMode") return "the default mode, or no permission-mode entry in the transcript's tail";
+    if (segment.key === "mcp") return "no MCP server configured for this directory (~/.claude.json, .mcp.json)";
     if (segment.key === "sessionTokens" || segment.key === "toolCalls") {
       return "no transcript to sum yet (Claude Code names one in the payload after the first turn)";
     }
