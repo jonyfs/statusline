@@ -21,9 +21,9 @@ the code does, because they *are* what the code does.
 
 | Line | What's on it |
 |---|---|
-| 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run, and the statusline's own update state |
-| 2 | Skills used recently, as one list, then todo progress, whether Claude is working or idle, and the vim mode while vim mode is on |
-| 3 | The signed-in account, model and effort level, `fast` while fast mode is on, the context window (`200k+` past the long-context threshold), the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the share of the monthly usage credits used where Claude Code has cached it, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
+| 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request with its merge state, checks, reviewers awaited, threads, size and age, the repository's open alerts, the branch's age, last CI run, and the statusline's own update state |
+| 2 | Skills used recently, as one list with the running one in emphasis and its duration, then todo progress, whether Claude is working or idle, the permission mode when it is not the default, the tool calls so far, the MCP servers configured, and the vim mode while vim mode is on |
+| 3 | The signed-in account, model and effort level, `fast` while fast mode is on, the context window (`200k+` past the long-context threshold), the 5-hour and 7-day windows each with its own reset, the week's rate and the per-model weeks when Claude Code caches them, the spend limit where a gateway reports one, the share of the monthly usage credits used where Claude Code has cached it, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -947,6 +947,17 @@ number, so a missing lookup does not read as "no pull request". A clean working 
 with its upstream shows a green tick beside the branch. When the bar cannot run it prints a
 neutral chip that says so.
 
+
+**What the turns are doing, and in which mode** (specs/073, specs/075). The skills chip draws
+the skill running now in emphasis with how long it has run, `ship 12m`, marks the newest finished
+one `✓` or `✗` from its result in the transcript, and ends with `· 7 used` when the session has
+used more distinct skills than it lists (from the hook's log). `plan`, `auto`, `accept edits`,
+`bypass` and `dontask` draw as their own chip when the session is not in the default mode;
+`bypass` in red. `tools 42` counts the tool calls the session has made, summed from the transcript
+as it is written. `mcp 4` counts the MCP servers configured for the directory (the user's, the
+project's `.mcp.json` minus the ones disabled here, and the project-local ones); the doctor names
+them. The activity chip's `· 2 bg` is the background shells and agents still running.
+
 ## Reading a level at a glance
 
 Each gauge is a five-cell track and a figure: `󰔟 5h [track] 62%`. A cell turns on at the
@@ -1137,6 +1148,13 @@ Line 1 gained two more, both about states that stop you:
   the same way, and both vanish the moment you switch branches rather than
   describing the branch you left.
 
+
+**The share, the queue, the finished** (specs/077-agent-rows). Each row ends with `18% of
+session`, the agent's tokens over the session's total, the first cell a narrow window sheds. A
+task not started yet reads `queued`. Two or more finished agents inside their two-minute grace
+draw as one row, `✓ 3 done · explore, code-review, tests`, and `✗ 3 done, 1 failed` when one did
+not end well. The context gauge keeps the bar's own ramp, with a critical mark from 85%.
+
 ### Git gates running in other worktrees
 
 A commit can wait minutes on its `pre-commit` hook, and when a repository has
@@ -1255,6 +1273,17 @@ used-of-total, the window size, the 200k flag, the context sparkline, the
 API-wait figure and the clock. The payload readers behind them are still
 there, feeding the segments that remain.
 
+
+**What the session has spent** (specs/073-session-totals). `Σ 1.2M` is every token the transcript
+recorded for the session, input, output and both cache counts, main session and subagents, read
+incrementally as the file grows. It carries `· ↑3.1k/min`, the output rate over the last fifteen
+minutes; `· agents 420k`, the subagents' part; and `· opus 20%`, the largest other model's share of
+the output when more than one answered. The context chip's `200k+` carries `· 12m` once the
+session has spent a minute above the threshold. The 7-day chip gains `+3%/d`, its rate over the
+sample ring scaled to a day, and `opus 40% · sonnet 12%` draws the per-model weeks when Claude
+Code's cache carries them. A plan with extra usage on marks its 5-hour chip `+extra`. The 5-hour
+and 7-day chips link to the account's usage page like the credits do (specs/076).
+
 ## Model and effort
 
 Line 3 opens with the model, and beside it the effort level behind a lightning
@@ -1295,10 +1324,11 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_BLOCK=1` | Pads every line to the widest with spaces on the `mantle` colour, so the right edge is a block |
 | `CLAUDE_STATUSLINE_SPARKLINE=1` | Adds the last eight samples beside the burn rate and, with eight readings, beside the context figure |
 | `CLAUDE_STATUSLINE_EVENT_EMOJI=1` | In the Nerd Font tier, draws 💥, 🔥 and 🚀 for conflicts, a critical burn rate and an applied update |
-| `CLAUDE_STATUSLINE_ACCOUNT` | `org` (default) draws the signed-in Claude account's organisation and kind on line 3, `email` the address instead, `off` nothing |
+| `CLAUDE_STATUSLINE_ACCOUNT` | `org` (default) draws the signed-in Claude account's organisation and kind on line 3, `email` the address instead, `tier` the seat's tier beside the organisation, `off` nothing |
 | `CLAUDE_STATUSLINE_SESSION_SHARE=1` | Adds `session 0.4%` to the credits chip: the session's estimated cost as a share of the month's cap. The one estimated figure on the bar, off by default |
 | `CLAUDE_STATUSLINE_LABELS=on` | Puts the words back on the chips whose icon says the same: `credits 11%`, `rtk 81% saved`, `cache 82%` beside a separate `cache cold`, `Acme · credits` |
 | `CLAUDE_STATUSLINE_CREDITS_RESET=off` | Drops the estimated `~dec 1 00:00` from the credits chip. A reset the cache itself carries is still drawn |
+| `CLAUDE_STATUSLINE_RESET=clock` | Draws every window's reset as a moment in your computer's zone (`13:45`, `tmrw 09:00`, `thu 18:00`) instead of a countdown |
 | `CLAUDE_STATUSLINE_MODEL_TIER=1` | Appends `+++`, `++` or `+` to the model's name by price tier (Opus and Fable, Sonnet, Haiku), from a table in the plugin |
 | `CLAUDE_STATUSLINE_AMOUNTS=hide` | Keeps money and balances off the bar in every harness: the `spend` chip as a percentage, no per-day pace, no Codex balance, Copilot's AI credits as a share of the session limit. Any other value is `show` |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
@@ -1722,6 +1752,17 @@ not "commits that exist on the remote right now". The statusline never
 fetches on your behalf, because it redraws every few seconds and hitting the
 network that often would be rude to both your connection and the remote. Run
 `git fetch` and the count catches up.
+
+
+**What decides the pull request's next step** (specs/074-pr-state). Beside the request, each its
+own chip so a narrow line drops them one at a time: `mergeable`, `behind`, `conflicts` or
+`blocked` as GitHub reports the merge state, with `· automerge` when auto-merge is armed; the
+checks as `✓5 ✗1 ●2` with the first failure's name; `2 awaiting · 3 threads`, the reviewers asked
+who have not answered and the review threads still unresolved; `+412 −87 · 23f · 2d`, the size
+and the age. `alerts 2` is the repository's open Dependabot and code-scanning alerts, refreshed
+hourly and absent where the endpoints refuse. After the branch's state, `14d` is how long since
+its first commit past the default branch; on the default branch itself the chip turns red and
+reads `main!`. All of it comes from `gh` behind the detached refresh, never during a redraw.
 
 ## Where the icons come from
 
