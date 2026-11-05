@@ -586,6 +586,14 @@ be about five minutes behind the percentage. The kind of account is remembered f
 first response) the windows stay out and the chip reads `spend —`. A plan with the
 5-hour and 7-day windows draws exactly as before.
 
+Claude Code sends no `rate_limits` at all to a Console API key, Bedrock, Vertex,
+Foundry or an Enterprise seat without an individual allowance. Once a response has
+come back and nothing else is known about the account, the `5h` and `7d` chips are
+left out instead of reading `5h — ?` for ever (specs/068-no-window-account). A
+kind already remembered always wins over this, since a subscriber or gateway window
+that was only dropped looks the same. The dollar limit of a plain Enterprise
+organisation is not in the payload, so the bar cannot show it.
+
 ![A dollar budget: $300 of $500, the daily allowance left and the average so far](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/budget-account.svg)
 
 ![A dollar budget exceeded](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/budget-over.svg)

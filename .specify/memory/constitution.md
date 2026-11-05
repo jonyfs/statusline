@@ -2,7 +2,14 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.8.0 (III extended on 2026-11-03: MINOR. A budget account remembers its kind for 30 days, so the
+- Version: 8.9.0 (III extended on 2026-11-04: MINOR. An account that provably has no window, a Console
+  API key, Bedrock, Vertex, Foundry or a seat with no individual allowance, draws no 5h or 7d chip
+  instead of `5h — ?` for ever, as Copilot, OpenCode and Codex already do for a window their plan
+  lacks. "Provably" is a response already received (`cost.total_api_duration_ms` above zero) with no
+  `rate_limits`, and only when no kind is remembered: a remembered subscriber or budget kind
+  outranks it, because a dropped window looks the same. No figure is estimated and no dollar chip
+  is added. See specs/068-no-window-account/.)
+- Previously, version 8.8.0 (III extended on 2026-11-03: MINOR. A budget account remembers its kind for 30 days, so the
   windows it does not have stay out and the spend chip reads `spend —` when the gateway has
   dropped `spend_limit`; a field absent from the payload is still the unknown mark, never a
   guess. Nothing is remembered under Codex, Copilot or OpenCode. See specs/063-account-kind/.)
@@ -917,4 +924,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.8.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-03
+**Version**: 8.9.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-04
