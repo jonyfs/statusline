@@ -73,6 +73,7 @@ WANTED = {
     "F12CC": 0xF12CC,  # updated this session
     "F00E8": 0xF00E8,  # the bar could not run
     "F04E6": 0xF04E6,  # a reset: the window comes back (specs/047)
+    "F0004": 0xF0004,  # nf-md-account: who is signed in (specs/071)
     "F078C": 0xF078C,  # a warm cache with most of its life left
     "F06AD": 0xF06AD,  # a warm cache in its last third
     "F0A33": 0xF0A33,  # a calendar with a week bar: the 7-day window

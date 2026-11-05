@@ -62,6 +62,8 @@ export const SEGMENT_COLOURS = {
   spendLimit: GAUGE,
   spendPace: { fill: ["money", "attention", "critical"] },
   usageCredits: GAUGE,
+  cacheHit: GAUGE,
+  account: { fill: ["identity"] },
   promptCache: { fill: ["cold", "neutral"], icon: ["attention"] },
   duration: { fill: ["neutral"] },
   aiCredits: { fill: ["money", "neutral", "attention", "critical"], icon: ["healthy"], tone: ["critical"] },

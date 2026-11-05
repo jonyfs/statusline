@@ -18,7 +18,8 @@ import { gather, renderReadings, harnessProbes } from "./render.js";
 import { detectHarness } from "./harness.js";
 import { getCopilotQuota } from "./copilotQuota.js";
 import { getAccountKind, accountKindOf } from "./accountKind.js";
-import { readUsageCredits } from "./usageCredits.js";
+import { readUsageCredits, readAccountIdentity } from "./usageCredits.js";
+import { creditsTrend } from "./creditsHistory.js";
 import { loadCopilotSettings, copilotPadding } from "./copilotSettings.js";
 import { checkInstall, projectOverrides, harnessStatus } from "./install.js";
 import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
@@ -90,6 +91,12 @@ const DESCRIBE = {
   projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   sevenDay: ["sevenDay", (v, now, readings) => describeWindow(v, readings?.sevenDayReset?.value, now)],
   promptCache: ["promptCache", (v) => describePromptCache(v)],
+  cacheHit: ["promptCache", (v) => (typeof v?.hitRatio === "number" ? `${Math.round(v.hitRatio * 100)}% of input tokens read from cache` : null)],
+  account: [
+    "account",
+    (v, now, readings) =>
+      v ? `${v.org ?? v.email ?? "?"}${v.seatTier ? `, ${v.seatTier}` : ""}${readings?.accountKind?.value ? `, ${readings.accountKind.value}` : ""}` : null,
+  ],
   spendLimit: [
     "spendLimit",
     (v, now, readings) =>
@@ -97,7 +104,7 @@ const DESCRIBE = {
   ],
   usageCredits: [
     "usageCredits",
-    (v) => (v && !v.enabled ? `extra usage off${v.disabledReason ? ` (${v.disabledReason})` : ""}` : v ? `${v.pct}% of the month's credits${v.daily !== null ? `, ${v.daily}% of the day` : ""}${v.weekly !== null ? `, ${v.weekly}% of the week` : ""}${v.reached ? ", cap reached" : ""}${v.enabled ? "" : ", extra usage off"} (Claude Code's own cached /usage figure)` : null),
+    (v) => (v && !v.enabled ? `extra usage off${v.disabledReason ? ` (${v.disabledReason})` : ""}` : v ? `${v.pct}% of the month's credits${v.daily !== null ? `, ${v.daily}% of the day` : ""}${v.weekly !== null ? `, ${v.weekly}% of the week` : ""}${v.reached ? ", cap reached" : ""}${v.enabled ? "" : ", extra usage off"}${typeof v.resetsAt === "number" ? `, resets ${new Date(v.resetsAt * 1000).toISOString()} (from the cache)` : ", reset not in the cache (the bar estimates the 1st of next month, marked ~)"} (Claude Code's own cached /usage figure)` : null),
   ],
   spendPace: [
     "spendLimitUsd",
@@ -241,6 +248,12 @@ function absenceReason(segment, reading, readings, now) {
         ? "no fresh cachedUsageUtilization for the signed-in account in ~/.claude.json (Claude Code refreshes it for /usage; a figure older than a day is not shown)"
         : "extra usage is off on the signed-in account, or Claude Code has no fresh cachedUsageUtilization in ~/.claude.json (it refreshes it for /usage; a figure older than a day is not shown)";
     }
+    if (segment.key === "cacheHit") {
+      return readings?.usageCredits?.value?.enabled
+        ? "the payload carries no prompt_cache.hit_ratio yet"
+        : "drawn only beside the credits chip (a seat billed by usage, or extra usage on)";
+    }
+    if (segment.key === "account") return "no signed-in Claude account in ~/.claude.json (under Codex the chip names the plan; Copilot and OpenCode read nothing)";
     if (segment.key === "spendPace") return "the payload carries no dollar amounts for the spend limit (needs Claude Code 2.1.284 and a gateway that sends them)";
     if (segment.key === "effort") return "the payload carries no effort level";
     if (segment.key === "outputStyle") return "no output style set";
@@ -335,6 +348,10 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     // reports the same chips the bar draws without moving what it remembers.
     getAccountKind,
     getUsageCredits: readUsageCredits,
+    getAccountIdentity: readAccountIdentity,
+    // The trend is read and folded in exactly as the renderer does it: one
+    // more point for the same fetch changes nothing (specs/071).
+    creditsTrend,
   };
 
   const started = Date.now();

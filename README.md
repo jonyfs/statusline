@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run, and the statusline's own update state |
 | 2 | Skills used recently, as one list, then todo progress, whether Claude is working or idle, and the vim mode while vim mode is on |
-| 3 | Model and effort level, `fast` while fast mode is on, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the share of the monthly usage credits used where Claude Code has cached it, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
+| 3 | The signed-in account, model and effort level, `fast` while fast mode is on, the context window (`200k+` past the long-context threshold), the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the share of the monthly usage credits used where Claude Code has cached it, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -645,6 +645,29 @@ as `AIC 32%` against the session's limit, or not at all without one. The default
 is `show`, the bar as it was. `doctor` still prints the amounts it has, since
 nobody screenshots a diagnostic.
 
+**What burns the credits, and whose they are.** For a seat billed by usage the bar
+also says what is spending the month (specs/071-line-3-credits-seat). A context
+past 200k input tokens reads `72% · 200k+` in red, since the long-context price
+applies from there. The credits chip carries `+0.4%/h`, measured across Claude
+Code's own fetches of the figure over the last day, and `+1.2% session`, how far
+it moved since this session's first redraw; neither is projected to the cap,
+because the cache names no reset. A standing `cache 82%` chip shows the prompt
+cache's hit ratio wherever the credits chip draws, with the bands inverted,
+because paying full price for input is the one cost a session controls. The
+chip ends with when the cap comes back, as a day and a time in your computer's
+zone: the cache's own reset when Claude Code has one, else the first of next
+month at midnight marked `~dec 1 00:00`, since neither Claude Code's cache nor
+Anthropic's documentation names the cap's period; `CLAUDE_STATUSLINE_CREDITS_RESET=off`
+drops the estimate. Three
+switches add more: `CLAUDE_STATUSLINE_SESSION_SHARE=1` puts `session 0.4%` on the
+credits chip, this session's estimated cost over the cap, the one estimated figure
+the bar draws and off for that reason; `CLAUDE_STATUSLINE_MODEL_TIER=1` marks the
+model `+++`, `++` or `+` by price tier; and the `account` chip before the model
+names whose credits these are, `Acme · credits`, from the signed-in account's
+organisation (`CLAUDE_STATUSLINE_ACCOUNT=email` for the address, `off` for none),
+so two accounts on one computer never get confused. Under Codex the same chip
+names the plan, `codex pro`.
+
 **Which kind of account the bar decided on.** `statusline-plugin doctor` prints
 one line above the segment table, `account: <kind> · <evidence>`: `subscriber ·
 5h/7d in the payload`, `subscriber · 5h/7d from Claude Code's /usage cache, 3h
@@ -657,6 +680,8 @@ response yet`. Under Codex it names the plan the rollout reports, under Copilot
 ![A seat billed by usage: the monthly credits, no windows](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/usage-credits.svg)
 
 ![A dollar budget with amounts hidden: the spend as a percentage only](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/amounts-hidden.svg)
+
+![A seat billed by usage, line 3 in full: the account, a context past 200k, the credits with their rate and the cache hit ratio](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/credits-seat-line3.svg)
 
 `/usage` in Claude Code also shows a Sonnet-only week and an Opus-only week.
 Claude Code does not send those to the status line, and fetching them would mean
@@ -1259,6 +1284,10 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_BLOCK=1` | Pads every line to the widest with spaces on the `mantle` colour, so the right edge is a block |
 | `CLAUDE_STATUSLINE_SPARKLINE=1` | Adds the last eight samples beside the burn rate and, with eight readings, beside the context figure |
 | `CLAUDE_STATUSLINE_EVENT_EMOJI=1` | In the Nerd Font tier, draws 💥, 🔥 and 🚀 for conflicts, a critical burn rate and an applied update |
+| `CLAUDE_STATUSLINE_ACCOUNT` | `org` (default) draws the signed-in Claude account's organisation and kind on line 3, `email` the address instead, `off` nothing |
+| `CLAUDE_STATUSLINE_SESSION_SHARE=1` | Adds `session 0.4%` to the credits chip: the session's estimated cost as a share of the month's cap. The one estimated figure on the bar, off by default |
+| `CLAUDE_STATUSLINE_CREDITS_RESET=off` | Drops the estimated `~dec 1 00:00` from the credits chip. A reset the cache itself carries is still drawn |
+| `CLAUDE_STATUSLINE_MODEL_TIER=1` | Appends `+++`, `++` or `+` to the model's name by price tier (Opus and Fable, Sonnet, Haiku), from a table in the plugin |
 | `CLAUDE_STATUSLINE_AMOUNTS=hide` | Keeps money and balances off the bar in every harness: the `spend` chip as a percentage, no per-day pace, no Codex balance, Copilot's AI credits as a share of the session limit. Any other value is `show` |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
@@ -1289,7 +1318,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts thirty-six segments on three lines, and it is a default
+The default puts thirty-eight segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:

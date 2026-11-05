@@ -57,17 +57,21 @@ const render = (payload, src, width = 200) =>
   stripAnsi(renderPayload(payload, { sources: src, trackChanges: false, now: NOW, maxWidth: width, maxHeight: 40 }));
 
 const CREDITS = {
-  pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: false, fetchedAt: NOW - HOUR,
+  pct: 10, pctExact: 9.903809523809525, daily: null, weekly: null, enabled: true, reached: false, hasWindows: false, fetchedAt: NOW - HOUR,
   // specs/070 widened the reader: the disabled reason, the cache's own word
   // for the spend, whether credits were ever on, and the cached windows.
   disabledReason: null, severity: null, creditsEverEnabled: false, windows: { fiveHour: null, sevenDay: null },
+  // specs/071 FR-009: the cap's reset when the cache's limits carry one.
+  resetsAt: null,
 };
 
 await test("the reader takes the percentage Claude Code cached, and never the money", async () => {
   const home = makeHome();
   await withHome(home, () => {
     writeClaudeJson(home, claudeJson());
-    assert.deepEqual(readUsageCredits({ now: NOW }), CREDITS);
+    const { shareOfCap, ...rest } = readUsageCredits({ now: NOW });
+    assert.deepEqual(rest, CREDITS);
+    assert.equal(typeof shareOfCap, "function", "the cap is asked, never read (specs/071)");
     assert.equal(JSON.stringify(readUsageCredits({ now: NOW })).includes("2100"), false);
   });
 });

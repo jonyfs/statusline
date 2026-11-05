@@ -148,7 +148,9 @@ await test("an arranged bar still drops by priority", async () => {
   // rtk carries the lowest priority on the bar and context the highest.
   // Put both on line 3 and squeeze it: the savings figure goes first.
   const moved = { version: 1, segments: { rtk: { line: 3, order: 5 }, context: { line: 3, order: 6 } } };
-  const roomy = draw(moved, 300);
+  // 340: the fixture draws every harness's chips at once and grew with
+  // specs/071 (the account, the cache hit ratio, the credits' reset).
+  const roomy = draw(moved, 340);
   assert.ok(/rtk 81% saved/.test(roomy), "the savings figure is missing before the squeeze");
   assert.ok(/󰧑\s+(?:[\uEE00-\uEE05]{5}\s+|[|.]{5}\s+)?[\uF40C!]?46%/.test(roomy), "the context figure is missing before the squeeze");
 

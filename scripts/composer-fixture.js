@@ -72,6 +72,8 @@ export const PAYLOAD = {
     ttl: "5m",
     expires_at: null,
     recache_tokens_if_cold: 184000,
+    // A hit ratio, so the standing cache chip (specs/071) is in the pool.
+    hit_ratio: 0.82,
   },
   cost: {
     total_duration_ms: 1000 * 60 * 64,
@@ -136,6 +138,8 @@ export const SOURCES = {
   // The usage credits Claude Code caches for /usage (specs/069-usage-credits),
   // so the composer has the chip to arrange without reading ~/.claude.json.
   getUsageCredits: () => ({ pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: true, fetchedAt: NOW_MS - 3600000 }),
+  // Whose bar it is (specs/071): a fixed organisation, so the composer can pool the chip.
+  getAccountIdentity: () => ({ org: "example-org", email: null, seatTier: null, orgType: null }),
   readTty: () => null,
   getGateRuns: () => [
     { pid: 101, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "004-statusline-redesign-research", step: "gates.sh \u203a review-cycle.test.sh", startedAt: NOW_MS - 184000, state: "running" },

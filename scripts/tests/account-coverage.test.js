@@ -169,7 +169,7 @@ await test("a cached figure says its age after twelve hours and loses its band a
   assert.doesNotMatch(stripAnsi(chip(sixPlus)), /·\s*\d+h/);
   assert.notEqual(chipCodes(fresh), chipCodes(sixPlus), "the band goes after six hours");
   const old = render(answered(), sources({ ...CREDITS, fetchedAt: NOW - 13 * HOUR }));
-  assert.match(old, /credits\W+10%\s*·\s*13h/);
+  assert.match(old, /credits\W+10%[^\n]*·\s*13h/);
 });
 
 await test("windows from the cache carry the same age mark", () => {

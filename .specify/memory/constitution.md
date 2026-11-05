@@ -2,7 +2,19 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.10.0 (III extended on 2026-11-05: MINOR. A seat billed by usage (Claude Enterprise,
+- Version: 8.12.0 (III extended on 2026-11-05: MINOR. The credits chip MAY end with when the cap
+  comes back: the cache's own `resets_at` when an active extra-usage limit carries one, else the
+  first of next calendar month at the computer's midnight, drawn with a tilde as the estimate it is,
+  on by default at the owner's decision, off with `CLAUDE_STATUSLINE_CREDITS_RESET=off`. See
+  specs/071-line-3-credits-seat/ FR-009.)
+- Previously, version 8.11.0 (III extended on 2026-11-05: MINOR. Beside the cached credits figure the bar MAY
+  draw two measured differences of it, the rate per hour across Claude Code's own fetches and the
+  rise since the session's first redraw, never a projection to the cap; MAY read the signed-in
+  account's organisation name and address from `oauthAccount`, never the token; and, only when
+  `CLAUDE_STATUSLINE_SESSION_SHARE=1` is set, MAY draw the session's client-side cost estimate as a
+  share of the cap, the one estimated figure on the bar, named as such. See
+  specs/071-line-3-credits-seat/.)
+- Previously, version 8.10.0 (III extended on 2026-11-05: MINOR. A seat billed by usage (Claude Enterprise,
   `seatTier` `enterprise_usage_based`) has no window; its allowance is a monthly cap on usage
   credits that Claude Code fetches for `/usage` and keeps in `~/.claude.json` under
   `cachedUsageUtilization`. The bar MAY read that cached figure as Claude Code wrote it, for the
@@ -523,8 +535,14 @@ payload is allowed, because Claude Code itself fetched and wrote it: the monthly
 file as written, only for the account `oauthAccount` names and only within a day of
 `fetchedAtMs`, and MUST draw the percentage used as it is, with `full` when the cap is
 reported reached, and the day and week percentages when the file carries them. It MUST NOT
-draw the amounts in money: a status line is shared, and a seat's cap is its own business. It MUST NOT fetch, refresh, or add a reset or a pace
-the figure does not carry. A seat billed by usage, which that figure shows with no window and
+draw the amounts in money: a status line is shared, and a seat's cap is its own business. It MUST NOT fetch, refresh, or add a reset or a projection
+the figure does not carry. It MAY draw two differences it measured itself between figures Claude
+Code wrote, the rate per hour over the last day and the rise since the session began, and MAY name
+the signed-in account from `oauthAccount` (organisation, address), never the token. The session's
+own cost estimate as a share of the cap is permitted only behind `CLAUDE_STATUSLINE_SESSION_SHARE=1`
+and named as an estimate. The cap's reset is drawn from the cache's `limits` when an active
+extra-usage entry carries `resets_at`; otherwise the first of next calendar month at the computer's
+midnight MAY be drawn, marked with a tilde, as the estimate it is (specs/071-line-3-credits-seat). A seat billed by usage, which that figure shows with no window and
 credits enabled, draws no 5-hour or 7-day chip, the way a budget account does. A field the rollout does not carry
 is absent from the payload and renders as the bar renders any absent field. The rollout is
 Codex's internal format, so a reader MUST degrade to the absent field, never guess, when a
@@ -940,4 +958,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.10.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-05
+**Version**: 8.12.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-05

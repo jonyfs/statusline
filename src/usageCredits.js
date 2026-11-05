@@ -27,6 +27,7 @@
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { plainText } from "./text.js";
 
 /** How long a cached fetch may be trusted. Beyond it the figure is absent. */
 export const USAGE_CREDITS_FRESH_MS = 24 * 60 * 60 * 1000;
@@ -48,6 +49,36 @@ function periodPct(block) {
 function windowOf(block) {
   if (!isBlock(block) || !finite(block.utilization)) return null;
   return { pct: Math.round(block.utilization), resetsAt: finite(block.resets_at) ? block.resets_at : null };
+}
+
+/**
+ * When the monthly cap is assumed to come back (specs/071, FR-009): the
+ * first day of the next calendar month at midnight in this computer's own
+ * zone, in epoch seconds. An estimate, since the cache names no reset for
+ * the cap; the chip marks it with a tilde for that reason.
+ */
+export function monthResetAt(now = Date.now()) {
+  const d = new Date(now);
+  return Math.floor(new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 0, 0).getTime() / 1000);
+}
+
+/**
+ * The reset of the extra-usage cap when the cache carries one: the earliest
+ * future `resets_at` among active `limits` whose kind or group names the
+ * extra usage, credits, spend or overage. Null otherwise. Epoch seconds.
+ */
+function capResetOf(limits, now) {
+  if (!Array.isArray(limits)) return null;
+  let best = null;
+  for (const l of limits) {
+    if (!isBlock(l) || l.is_active === false) continue;
+    const name = `${l.kind ?? ""} ${l.group ?? ""}`.toLowerCase();
+    if (!/extra|credit|spend|overage/.test(name)) continue;
+    const at = typeof l.resets_at === "string" ? Date.parse(l.resets_at) : NaN;
+    if (!Number.isFinite(at) || at <= now) continue;
+    if (best === null || at < best) best = at;
+  }
+  return best === null ? null : Math.floor(best / 1000);
 }
 
 /**
@@ -75,6 +106,30 @@ export function cacheAgeMark(fetchedAt, now = Date.now()) {
  * subscriber from a usage-based seat. `severity` is the cache's own word for
  * the spend (`normal`, `warning`, `critical`) when it has one.
  */
+/**
+ * Who is signed in, from `oauthAccount` (specs/071, FR-007): the
+ * organisation's name, the address, the seat tier and the organisation
+ * type, each a string or null. Never the token. Null without the block.
+ */
+export function readAccountIdentity({ homedir = os.homedir() } = {}) {
+  let root;
+  try {
+    root = JSON.parse(readFileSync(path.join(homedir, ".claude.json"), "utf8"));
+  } catch {
+    return null;
+  }
+  const a = root?.oauthAccount;
+  if (!isBlock(a)) return null;
+  // Sanitised like any payload string: a name is text written by someone
+  // else, and a control sequence in it would reach the terminal otherwise.
+  // Capped, so an organisation's name cannot take the line.
+  const text = (v) => {
+    const clean = plainText(v);
+    return clean && clean.length > 40 ? `${clean.slice(0, 39)}\u2026` : clean;
+  };
+  return { org: text(a.organizationName), email: text(a.emailAddress), seatTier: text(a.seatTier), orgType: text(a.organizationType) };
+}
+
 export function readUsageCredits({ now = Date.now(), homedir = os.homedir() } = {}) {
   let root;
   try {
@@ -98,8 +153,14 @@ export function readUsageCredits({ now = Date.now(), homedir = os.homedir() } = 
       : null;
   if (!credits && !windows.fiveHour && !windows.sevenDay) return null;
   const severity = typeof util.spend?.severity === "string" ? util.spend.severity : null;
+  // The cap stays in here (specs/071, FR-005): `shareOfCap` answers what
+  // share of it a sum in dollars is, so the renderer never holds the amount.
+  const places = finite(credits?.decimal_places) && credits.decimal_places >= 0 ? credits.decimal_places : 2;
+  const capUsd = credits ? credits.monthly_limit / 10 ** places : null;
   return {
     pct: credits ? Math.round(credits.utilization) : null,
+    pctExact: credits ? credits.utilization : null,
+    shareOfCap: (usd) => (capUsd > 0 && finite(usd) && usd >= 0 ? (usd / capUsd) * 100 : null),
     daily: credits ? periodPct(credits.daily) : null,
     weekly: credits ? periodPct(credits.weekly) : null,
     enabled: credits !== null && credits.is_enabled === true && credits.user_disabled !== true,
@@ -110,5 +171,6 @@ export function readUsageCredits({ now = Date.now(), homedir = os.homedir() } = 
     severity,
     creditsEverEnabled: credits?.credits_ever_enabled === true,
     windows,
+    resetsAt: capResetOf(util.limits, now),
   };
 }

@@ -21,8 +21,13 @@ const assert = (cond, message) => {
 
 const NO_ARRANGEMENT = { arrangement: null, origin: "default", path: null, error: null };
 
-/** The bar as text, for one arrangement, at one width. */
-function draw(arrangement, { width = 300, sources = SOURCES } = {}) {
+/**
+ * The bar as text, for one arrangement, at one width. The default is the
+ * width at which the fixture, which draws every harness's chips at once,
+ * still fits its lowest-priority figure (the savings); it grew with
+ * specs/071 (the account, the cache hit ratio and the credits' reset).
+ */
+function draw(arrangement, { width = 340, sources = SOURCES } = {}) {
   return stripAnsi(
     renderPayload(PAYLOAD, {
       sources: { ...sources },
