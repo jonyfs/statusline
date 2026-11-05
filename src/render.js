@@ -41,7 +41,7 @@ import {
 import { getRtkSavings } from "./rtk.js";
 import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
 import { detectHarness } from "./harness.js";
-import { accountKindOf, getAccountKind, noteAccountKind } from "./accountKind.js";
+import { accountKindOf, apiResponded, getAccountKind, noteAccountKind } from "./accountKind.js";
 import { copilotSessionActivity, AGENT_ROW_CAP } from "./copilotEvents.js";
 import { readGateRuns, GATE_ROW_CAP } from "./gateRuns.js";
 import { gateRows, gateChip } from "./gateRows.js";
@@ -684,7 +684,16 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
       // a kind that cannot be kept is seen again on the next payload
     }
     try {
-      accountKind = seen ?? probe.getAccountKind?.({ now }) ?? null;
+      const remembered = probe.getAccountKind?.({ now }) ?? null;
+      accountKind = seen ?? remembered;
+      // No window, no spend limit, nothing remembered, and a response already
+      // received: the account has no window to wait for (specs/068). A
+      // remembered kind outranks this, because a subscriber or a gateway
+      // account looks the same in the moment its window was dropped.
+      if (!accountKind && apiResponded(payload)) {
+        accountKind = "none";
+        probe.noteAccountKind?.("none", { now });
+      }
     } catch {
       accountKind = null;
     }
@@ -1664,8 +1673,11 @@ export function renderReadings(
     (spendLimitPct !== null || readings.accountKind?.value === "budget") &&
     !payload?.rate_limits?.five_hour &&
     !payload?.rate_limits?.seven_day;
-  const noFiveHour = noLimits || budgetOnly || (isCodex && !payload?.rate_limits?.five_hour);
-  const noSevenDay = noLimits || budgetOnly || (isCodex && !payload?.rate_limits?.seven_day);
+  // An account with no window at all (specs/068-no-window-account): Console
+  // API key, Bedrock, Vertex, Foundry, a seat without an individual allowance.
+  const noWindows = readings.accountKind?.value === "none" && !payload?.rate_limits?.five_hour && !payload?.rate_limits?.seven_day;
+  const noFiveHour = noLimits || budgetOnly || noWindows || (isCodex && !payload?.rate_limits?.five_hour);
+  const noSevenDay = noLimits || budgetOnly || noWindows || (isCodex && !payload?.rate_limits?.seven_day);
 
   // Copilot CLI's monthly quota, one chip per allowance the plan meters
   // (specs/033-copilot-parity). Labelled `month` the way the windows are
