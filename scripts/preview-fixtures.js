@@ -99,6 +99,8 @@ const noSources = {
   // MCP servers and the skill count (specs/075).
   getMcpServers: () => null,
   getSkillSessionCount: () => 0,
+  // The help page (specs/078): previews draw the bar without it.
+  getHelpPage: () => null,
 };
 
 export const SCENARIOS = [

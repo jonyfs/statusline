@@ -1,7 +1,8 @@
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { canWrite, stateRoot } from "./paths.js";
 import os from "node:os";
-import { realpathSync } from "node:fs";
+import { realpathSync, existsSync } from "node:fs";
 import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
 import {
   getDirLabel,
@@ -54,6 +55,13 @@ import { readSkillEventsTrueCount } from "./skillEvents.js";
  * account, never another project's repository (specs/020). The gateway's
  * spend limit has no page the payload names, so that chip stays unlinked.
  */
+/**
+ * The help page that ships with the statusline (specs/078-help-page): one
+ * file in the clone, beside `src`, opened from disk. A copy without it (a
+ * render-only copy for a host) simply draws no help chip.
+ */
+export const HELP_PAGE = fileURLToPath(new URL("../help/index.html", import.meta.url));
+
 /** A probe that throws costs its own figure and nothing else. */
 function safeProbe(fn) {
   try {
@@ -246,6 +254,7 @@ const NF_RUST = "\u{F1679}";     // a piggy bank, which is what rtk keeps: savin
 // F00F6, listed in one cheat sheet as a cart, draws a calendar.
 const NF_WALLET = "\u{F0584}";  // nf-md-wallet
 const NF_ACCOUNT = "\u{F0004}"; // nf-md-account: who is signed in (specs/071)
+const NF_HELP = "\u{F0625}";    // nf-md-help_circle_outline: the help page (specs/078)
 // The prompt cache, one icon per state so the icon itself says which
 // (Principle X). Rendered before adoption (specs/025-prompt-cache-chip/
 // glyph-evidence.png): F09A2, listed as a database refresh, draws a speaker
@@ -350,6 +359,7 @@ export const GLYPHS = {
     rtk: NF_RUST,
     spend: NF_WALLET,
     account: NF_ACCOUNT,
+    help: NF_HELP,
     mcp: NF_FROM,
     cacheWarm: NF_HOURGLASS_FULL,
     cacheWarmHalf: NF_HOURGLASS_HALF,
@@ -434,6 +444,7 @@ export const GLYPHS = {
     rtk: "\u{1FA99}",            // 🪙 savings
     spend: "\u{1F4B0}",          // 💰
     account: "\u{1F464}",        // 👤
+    help: "\u2753",              // ❓
     mcp: "\u{1F50C}",            // 🔌
     cacheWarm: "\u23F3",         // ⏳
     cacheWarmHalf: "\u23F3",
@@ -546,6 +557,7 @@ export const GLYPHS = {
     // ASCII, East Asian Narrow, in every font, and used nowhere else on the bar.
     spend: "$",
     account: "@",
+    help: "?",
     mcp: "~",
     // Both East Asian Narrow. `U+2744` has an emoji form, but its default
     // presentation is text and the bar never sends the selector that asks
@@ -900,6 +912,8 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     branchMeta: !hasRepo
       ? missing("git", "not a repository")
       : timed("git", () => probe.getBranchMeta?.(cwd, { now, branch: namedBranch }) ?? null),
+    // The help page, when this copy ships it (specs/078).
+    helpPage: reading({ value: safeProbe(() => probe.getHelpPage?.() ?? null), at: now, source: "cache" }),
     // The MCP servers and the session's skill count (specs/075).
     mcp: reading({ value: safeProbe(() => probe.getMcpServers?.(cwd) ?? null), at: now, source: "cache" }),
     skillSessionCount: reading({ value: safeProbe(() => probe.getSkillSessionCount?.(payload?.session_id ?? null) ?? 0) ?? 0, at: now, source: "hook" }),
@@ -1173,6 +1187,8 @@ export function renderPayload(
     getBranchMeta,
     // The session's totals from its transcript (specs/073).
     getSessionTotals,
+    // The help page beside the code, when this copy has it (specs/078).
+    getHelpPage: () => (existsSync(HELP_PAGE) ? HELP_PAGE : null),
     // The MCP servers configured here, and how many distinct skills the
     // session has used (specs/075).
     getMcpServers: (cwd) => countMcpServers(cwd),
@@ -2333,6 +2349,12 @@ export function renderReadings(
     // spare, or a provider that reports no caching, draws nothing at all. A
     // cold chip carries shorter `variants`: when the width guard reaches it,
     // the cause comes off, then the token count, and only then the chip.
+    // The help page (specs/078): the last chip on line 3, at its right end,
+    // and the first to go for width. A link to the page on disk.
+    help: () => {
+      const page = shows("help", "helpPage") ? readings.helpPage?.value : null;
+      return page ? { color: ROLE.neutral, alignRight: true, text: ` ${g.help} `, url: pathToFileUrl(page) } : null;
+    },
     // The prompt cache's hit ratio, standing, for a seat billed by usage
     // (specs/071, FR-004): the largest cost it controls. Bands inverted,
     // since a low ratio is the bad one.

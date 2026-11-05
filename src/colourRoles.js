@@ -80,6 +80,7 @@ export const SEGMENT_COLOURS = {
   mcp: { fill: ["neutral"] },
   aiCredits: { fill: ["money", "neutral", "attention", "critical"], icon: ["healthy"], tone: ["critical"] },
   rtk: { fill: ["money"] },
+  help: { fill: ["neutral"] },
 };
 
 /** The legend `doctor --explain` prints: role, token and the one thing it means. */

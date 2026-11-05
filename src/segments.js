@@ -167,6 +167,9 @@ export const SEGMENTS = [
   // then the projection and the burn rate — all three derived from figures
   // that stay on the line.
   { key: "rtk", line: 3, group: "savings", order: 60, priority: 72, colour: "identity", source: "rtk" },
+  // The help page (specs/078-help-page): the last chip, right-aligned, and
+  // the first to go for width.
+  { key: "help", line: 3, group: "savings", order: 99, priority: 40, colour: "identity", source: "cache" },
 ];
 
 const BY_KEY = new Map(SEGMENTS.map((s) => [s.key, s]));
@@ -253,5 +256,6 @@ export const SEGMENT_ABOUT = {
   toolCalls: "How many tool calls the session has made, from the transcript. The doctor names the three most used.",
   permissionMode: "The permission mode the session runs in, from the transcript: plan, auto, accept edits, bypass or dontask. Nothing in the default mode.",
   mcp: "How many MCP servers this session is configured to load: the user's, the project's .mcp.json minus the ones disabled here, and the project-local ones. The doctor names them.",
+  help: "The ? at the right end of line 3: opens the help page that ships with the statusline, in your browser, in your language.",
   rtk: "The share of tokens rtk has saved, a lifetime average across everything it has proxied rather than a figure for this session.",
 };

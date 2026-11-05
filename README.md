@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request with its merge state, checks, reviewers awaited, threads, size and age, the repository's open alerts, the branch's age, last CI run, and the statusline's own update state |
 | 2 | Skills used recently, as one list with the running one in emphasis and its duration, then todo progress, whether Claude is working or idle, the permission mode when it is not the default, the tool calls so far, the MCP servers configured, and the vim mode while vim mode is on |
-| 3 | The signed-in account, model and effort level, `fast` while fast mode is on, the context window (`200k+` past the long-context threshold), the 5-hour and 7-day windows each with its own reset, the week's rate and the per-model weeks when Claude Code caches them, the spend limit where a gateway reports one, the share of the monthly usage credits used where Claude Code has cached it, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
+| 3 | The signed-in account, model and effort level, `fast` while fast mode is on, the context window (`200k+` past the long-context threshold), the 5-hour and 7-day windows each with its own reset, the week's rate and the per-model weeks when Claude Code caches them, the spend limit where a gateway reports one, the share of the monthly usage credits used where Claude Code has cached it, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings The `?` at the right end opens the help page. |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -1360,7 +1360,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts fifty segments on three lines, and it is a default
+The default puts fifty-one segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:
@@ -1995,6 +1995,12 @@ to point at, so it carries no link rather than one pointing elsewhere. For a
 while it pointed at this README instead, and in someone else's project most of
 the bar then linked to a repository that was not theirs — correct by
 construction, and indistinguishable from a bug.
+
+The `?` at the right end of line 3 is the other exception: it opens the help
+page that ships with the statusline (`help/index.html` in the install), from your
+own disk, in English, Portuguese, French or Spanish according to your browser
+(specs/078-help-page). It explains every chip in detail and loads nothing from
+the network. `CLAUDE_STATUSLINE_OMIT=help` removes it.
 
 The one exception is a credit figure, which does have a page of its own: your
 account's. The `credits` chip (the figure, `credits —` and `credits off`) opens

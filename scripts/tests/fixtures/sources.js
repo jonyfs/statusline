@@ -42,6 +42,8 @@ export const emptySources = {
   // MCP servers and the session's skill count (specs/075).
   getMcpServers: () => null,
   getSkillSessionCount: () => 0,
+  // The help page (specs/078): a case that wants the chip says so.
+  getHelpPage: () => null,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */

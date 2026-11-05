@@ -129,6 +129,8 @@ export const SOURCES = {
   getAlerts: () => ({ dependabot: 2, codeScanning: 0, total: 2 }),
   // MCP servers and the skill count (specs/075), fixed so the chips pool.
   getMcpServers: () => ({ count: 4, names: ["github", "playwright", "slack", "docs"] }),
+  // The help page (specs/078), a fixed path so the chip pools.
+  getHelpPage: () => "/opt/statusline/help/index.html",
   getSkillSessionCount: () => 7,
   getBranchMeta: () => ({ branch: "redesign", defaultBranch: "main", firstCommitAt: 1757000000 }),
   getCiStatus: () => ({ status: "completed", conclusion: "success", workflow: "CI" }),

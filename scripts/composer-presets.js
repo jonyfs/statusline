@@ -191,6 +191,7 @@ export const PRESETS = [
         alerts: { line: 1, order: 46 },
         branchAge: { line: 1, order: 21 },
         sessionTokens: { line: 1, order: 89.2 },
+        help: { line: 1, order: 99 },
         toolCalls: { line: 1, order: 7.5 },
         permissionMode: { line: 1, order: 7.2 },
         mcp: { line: 1, order: 7.8 },

@@ -44,6 +44,7 @@
   "files": [
     "bin",
     "src",
+    "help",
     "!src/preview",
     "README.md",
     "LICENSE"

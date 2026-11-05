@@ -11,10 +11,10 @@
  */
 
 import { readGateRuns, probeGateRuns } from "./gateRuns.js";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { gather, renderReadings, harnessProbes } from "./render.js";
+import { gather, renderReadings, harnessProbes, HELP_PAGE } from "./render.js";
 import { detectHarness } from "./harness.js";
 import { getCopilotQuota } from "./copilotQuota.js";
 import { getAccountKind, accountKindOf } from "./accountKind.js";
@@ -130,6 +130,7 @@ const DESCRIBE = {
   toolCalls: ["sessionTotals", (v) => (v && v.toolCalls > 0 ? `${v.toolCalls} calls: ${v.tools.slice(0, 3).map(([n, c]) => `${n} ${c}`).join(", ")}` : null)],
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
+  help: ["helpPage", (v) => (v ? `opens ${v}` : null)],
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
   dir: ["dir", (v) => v ?? null],
   // The git gates running in this repository (specs/031-git-gate-rows).
@@ -254,6 +255,7 @@ function absenceReason(segment, reading, readings, now) {
         : "not a git repository";
     }
     if (segment.key === "rtk") return "rtk not installed, or nothing cached yet";
+    if (segment.key === "help") return "this copy has no help/index.html (a render-only copy ships none)";
     if (["prMerge", "prChecks", "prReview", "prSize"].includes(segment.key)) {
       return inRepo ? "no open pull request, or gh has not answered with that field yet" : "not a git repository";
     }
@@ -382,6 +384,8 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     creditsTrend,
     // The session's totals, folded in as the renderer does it (specs/073).
     getSessionTotals,
+    // The help page beside the code (specs/078).
+    getHelpPage: () => (existsSync(HELP_PAGE) ? HELP_PAGE : null),
   };
 
   const started = Date.now();
