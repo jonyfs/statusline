@@ -70,6 +70,8 @@ export const SEGMENTS = [
   { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
   { key: "todo", line: 2, order: 20, priority: 70, colour: "identity", source: "transcript" },
   { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
+  // The tool calls so far (specs/073-session-totals): after what the session is doing.
+  { key: "toolCalls", line: 2, order: 35, priority: 46, colour: "identity", source: "transcript" },
   // The editor's vim mode, when vim mode is on (specs/027-bar-polish).
   { key: "vim", line: 2, order: 40, priority: 42, colour: "identity", source: "payload" },
 
@@ -136,6 +138,8 @@ export const SEGMENTS = [
   // windows and the credits before it keeps the ratio.
   { key: "cacheHit", line: 3, group: "gauges", order: 54.5, priority: 64, colour: "ramp", source: "payload" },
   { key: "duration", line: 3, group: "savings", order: 55, priority: 50, colour: "identity", source: "payload" },
+  // What the session has spent (specs/073-session-totals), beside how long it has run.
+  { key: "sessionTokens", line: 3, group: "savings", order: 55.5, priority: 47, colour: "identity", source: "transcript" },
   // Copilot CLI only: the AI credits this session used, and the share of its
   // session limit when one is set (specs/033-copilot-parity). Beside the
   // premium requests, the other thing Copilot bills a session by.
@@ -220,5 +224,7 @@ export const SEGMENT_ABOUT = {
   spendPace: "What is left of a dollar spend limit per day until it resets, beside what you have spent per day so far. It needs the dollar amounts Claude Code 2.1.284 and a gateway send, so it is absent without them. The gateway sends the dollars about every five minutes, so they can be that much older than the percentage.",
   spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",
   duration: "Wall-clock time since the session started.",
+  sessionTokens: "Every token the session has spent, summed from the transcript as it is written: input, output and both cache counts, main session and subagents. Then the output rate per minute, the subagents' share and the largest other model's share of the output, each shed for width in turn.",
+  toolCalls: "How many tool calls the session has made, from the transcript. The doctor names the three most used.",
   rtk: "The share of tokens rtk has saved, a lifetime average across everything it has proxied rather than a figure for this session.",
 };

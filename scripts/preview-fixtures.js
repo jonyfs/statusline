@@ -91,6 +91,8 @@ const noSources = {
   readTty: () => null,
   copilotSettings: () => ({}),
   getCopilotQuota: () => null,
+  // The session totals (specs/073): a preview reads no transcript.
+  getSessionTotals: () => null,
 };
 
 export const SCENARIOS = [

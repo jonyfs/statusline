@@ -52,6 +52,9 @@ export const MAX_AGE_MS = {
   contextSize: 1_000,
   exceeds200k: 1_000,
   duration: 1_000,
+  sessionTokens: 1_000,
+  toolCalls: 1_000,
+  sessionTotals: 1_000,
   linesChanged: 1_000,
   apiTime: 1_000,
   // Not a segment: the cache key the three git-derived segments share.

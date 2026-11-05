@@ -34,6 +34,8 @@ export const emptySources = {
   // machine's own files; a case says so itself or draws neither.
   getAccountIdentity: () => null,
   creditsTrend: () => null,
+  // The session's totals come from the transcript (specs/073); a case supplies them.
+  getSessionTotals: () => null,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */

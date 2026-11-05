@@ -20,6 +20,7 @@ import { getCopilotQuota } from "./copilotQuota.js";
 import { getAccountKind, accountKindOf } from "./accountKind.js";
 import { readUsageCredits, readAccountIdentity } from "./usageCredits.js";
 import { creditsTrend } from "./creditsHistory.js";
+import { getSessionTotals } from "./sessionTotals.js";
 import { loadCopilotSettings, copilotPadding } from "./copilotSettings.js";
 import { checkInstall, projectOverrides, harnessStatus } from "./install.js";
 import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
@@ -112,6 +113,11 @@ const DESCRIBE = {
   ],
   // One segment carrying both countdowns, so the diagnostic reports both. A
   // row that described only the 5-hour one named half of what is on the line.
+  sessionTokens: [
+    "sessionTotals",
+    (v) => (v && v.total > 0 ? `${v.total} tokens over ${v.turns} turns${v.agentTokens ? `, ${v.agentTokens} by subagents` : ""}${v.mix ? `, ${v.mix.model} ${v.mix.pct}% of the output` : ""}` : null),
+  ],
+  toolCalls: ["sessionTotals", (v) => (v && v.toolCalls > 0 ? `${v.toolCalls} calls: ${v.tools.slice(0, 3).map(([n, c]) => `${n} ${c}`).join(", ")}` : null)],
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
@@ -253,6 +259,9 @@ function absenceReason(segment, reading, readings, now) {
         ? "the payload carries no prompt_cache.hit_ratio yet"
         : "drawn only beside the credits chip (a seat billed by usage, or extra usage on)";
     }
+    if (segment.key === "sessionTokens" || segment.key === "toolCalls") {
+      return "no transcript to sum yet (Claude Code names one in the payload after the first turn)";
+    }
     if (segment.key === "account") return "no signed-in Claude account in ~/.claude.json (under Codex the chip names the plan; Copilot and OpenCode read nothing)";
     if (segment.key === "spendPace") return "the payload carries no dollar amounts for the spend limit (needs Claude Code 2.1.284 and a gateway that sends them)";
     if (segment.key === "effort") return "the payload carries no effort level";
@@ -352,6 +361,8 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     // The trend is read and folded in exactly as the renderer does it: one
     // more point for the same fetch changes nothing (specs/071).
     creditsTrend,
+    // The session's totals, folded in as the renderer does it (specs/073).
+    getSessionTotals,
   };
 
   const started = Date.now();

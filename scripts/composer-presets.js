@@ -182,6 +182,8 @@ export const PRESETS = [
         spendLimit: { line: 1, order: 86 },
         spendPace: { line: 1, order: 86.5 },
         usageCredits: { line: 1, order: 86.2 },
+        sessionTokens: { line: 1, order: 89.2 },
+        toolCalls: { line: 1, order: 7.5 },
         cacheHit: { line: 1, order: 88.2 },
         account: { line: 1, order: 75 },
         promptCache: { line: 1, order: 88 },

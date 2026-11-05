@@ -1330,7 +1330,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts thirty-eight segments on three lines, and it is a default
+The default puts forty segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:

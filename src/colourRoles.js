@@ -66,6 +66,8 @@ export const SEGMENT_COLOURS = {
   account: { fill: ["identity"] },
   promptCache: { fill: ["cold", "neutral"], icon: ["attention"] },
   duration: { fill: ["neutral"] },
+  sessionTokens: { fill: ["money"] },
+  toolCalls: { fill: ["neutral"] },
   aiCredits: { fill: ["money", "neutral", "attention", "critical"], icon: ["healthy"], tone: ["critical"] },
   rtk: { fill: ["money"] },
 };

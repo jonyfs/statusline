@@ -140,6 +140,8 @@ export const SOURCES = {
   getUsageCredits: () => ({ pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: true, fetchedAt: NOW_MS - 3600000 }),
   // Whose bar it is (specs/071): a fixed organisation, so the composer can pool the chip.
   getAccountIdentity: () => ({ org: "example-org", email: null, seatTier: null, orgType: null }),
+  // The session's totals (specs/073), fixed so the chips pool.
+  getSessionTotals: () => ({ total: 1_234_000, perMinute: 3100, agentTokens: 420_000, mix: { model: "claude-opus-5-5", pct: 20 }, turns: 42, toolCalls: 42, tools: [["Bash", 30], ["Read", 12]], over200kMs: 0 }),
   readTty: () => null,
   getGateRuns: () => [
     { pid: 101, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "004-statusline-redesign-research", step: "gates.sh \u203a review-cycle.test.sh", startedAt: NOW_MS - 184000, state: "running" },

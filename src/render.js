@@ -44,6 +44,7 @@ import { detectHarness } from "./harness.js";
 import { accountKindOf, apiResponded, getAccountKind, noteAccountKind } from "./accountKind.js";
 import { readUsageCredits, readAccountIdentity, cacheAgeMark, monthResetAt } from "./usageCredits.js";
 import { creditsTrend } from "./creditsHistory.js";
+import { getSessionTotals, modelFamily } from "./sessionTotals.js";
 
 /**
  * Where a credit figure can be looked at in full (specs/070, FR-009). A
@@ -52,6 +53,15 @@ import { creditsTrend } from "./creditsHistory.js";
  * account, never another project's repository (specs/020). The gateway's
  * spend limit has no page the payload names, so that chip stays unlinked.
  */
+/** A probe that throws costs its own figure and nothing else. */
+function safeProbe(fn) {
+  try {
+    return fn();
+  } catch {
+    return null;
+  }
+}
+
 export const USAGE_PAGES = Object.freeze({
   claude: "https://claude.ai/settings/usage",
   codex: "https://chatgpt.com/codex/settings/usage",
@@ -925,6 +935,24 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     }),
     tokens: reading({ value: getContextTokens(payload), at: now, source: "payload" }),
     sessionCost: reading({ value: getSessionCost(payload), at: now, source: "payload" }),
+    // What the session has spent, summed from the transcript as it is
+    // written (specs/073-session-totals): Claude Code's transcript only.
+    sessionTotals: reading({
+      // Asked under every harness, as the credits are, so the composer's
+      // fixture can pool the chips; the reader itself answers null without a
+      // transcript path, which only Claude Code's payload carries.
+      value: probe.getSessionTotals
+        ? (safeProbe(() => probe.getSessionTotals({
+            transcriptPath: payload?.transcript_path ?? null,
+            sessionId: payload?.session_id ?? null,
+            now,
+            exceeds200k: payload?.exceeds_200k_tokens === true,
+            ownModel: modelFamily(payload?.model?.id ?? payload?.model?.display_name),
+          })) ?? null)
+        : null,
+      at: now,
+      source: "transcript",
+    }),
     context: reading({ value: ctxPct, at: now, source: "payload" }),
     fiveHour: reading({ value: fiveHourFromCache ? fiveHourFromCache.pct : fiveHourPct, at: now, source: fiveHourFromCache ? "cache" : "payload" }),
     fiveHourReset: reading({ value: fiveHourFromCache ? fiveHourFromCache.resetsAt : fiveHourResetsAt, at: now, source: fiveHourFromCache ? "cache" : "payload" }),
@@ -1114,6 +1142,8 @@ export function renderPayload(
     // The usage credits Claude Code cached for a seat billed by usage
     // (specs/069-usage-credits): one local file read, never a fetch.
     getUsageCredits: readUsageCredits,
+    // The session's totals from its transcript (specs/073).
+    getSessionTotals,
     // Who is signed in, and the credits' own history (specs/071).
     getAccountIdentity: readAccountIdentity,
     creditsTrend,
@@ -1671,6 +1701,12 @@ export function renderReadings(
         variants: [` ${mark} `],
       });
     }
+    // The tool calls so far (specs/073-session-totals): what the turns are
+    // spending their tokens on, after what the session is doing.
+    const totals = shows("toolCalls", "sessionTotals") ? readings.sessionTotals?.value : null;
+    if (totals && totals.toolCalls > 0) {
+      row.push({ key: "toolCalls", color: ROLE.neutral, text: ` ${g.working} tools ${strong(String(totals.toolCalls))} ` });
+    }
   }
 
   // Line 2: active skills, one chip per skill, distinct colors, no bullets.
@@ -1948,9 +1984,20 @@ export function renderReadings(
       const over200k = readings.tokens?.value?.exceeds200k === true;
       const { band: ownBand } = contextBand(ctxPct, repoConfig(readings.cwd || process.cwd()).contextBands);
       const band = over200k ? "critical" : ownBand;
+      // With the time already spent above the threshold once it is a minute
+      // (specs/073): the mark stays, the time is the first thing width sheds.
+      const overMs = readings.sessionTotals?.value?.over200kMs ?? 0;
+      const overTime = overMs >= 60_000 ? ` \u00b7 ${formatDuration(overMs)}` : "";
       const mark200k = (chip) =>
         over200k
-          ? { ...chip, text: `${chip.text.replace(/ $/, "")} \u00b7 200k+ `, variants: (chip.variants ?? []).map((v) => `${v.replace(/ $/, "")} \u00b7 200k+ `) }
+          ? {
+              ...chip,
+              text: `${chip.text.replace(/ $/, "")} \u00b7 200k+${overTime} `,
+              variants: [
+                ...(overTime ? [`${chip.text.replace(/ $/, "")} \u00b7 200k+ `] : []),
+                ...(chip.variants ?? []).map((v) => `${v.replace(/ $/, "")} \u00b7 200k+ `),
+              ],
+            }
           : chip;
       const built = gaugeChipText({ icon: g.context, label: "", pct: ctxPct, band });
       // The last eight context readings, when asked for and when there are that
@@ -2253,6 +2300,21 @@ export function renderReadings(
       return n ? { color: ROLE.neutral, text: ` ${g.premium} ${n} premium ` } : null;
     },
     allowAll: () => (shows("allowAll") && readings.allowAll?.value ? { color: ROLE.attention, text: ` ${g.allowAll} ${strong("allow all")} ` } : null),
+    // What the session has spent (specs/073): every token the transcript
+    // recorded, then what moves it, shed right to left for width.
+    sessionTokens: () => {
+      const t = shows("sessionTokens", "sessionTotals") ? readings.sessionTotals?.value : null;
+      if (!t || !(t.total > 0)) return null;
+      const head = ` \u03a3 ${strong(abbreviate(t.total))}`;
+      const tails = [
+        t.perMinute !== null && t.perMinute >= 1 ? `\u2191${abbreviate(Math.round(t.perMinute))}/min` : null,
+        t.agentTokens > 0 ? `agents ${abbreviate(t.agentTokens)}` : null,
+        t.mix ? `${modelFamily(t.mix.model)} ${t.mix.pct}%` : null,
+      ].filter(Boolean);
+      const forms = [];
+      for (let i = tails.length; i >= 0; i--) forms.push(`${head}${tails.slice(0, i).map((x) => ` \u00b7 ${x}`).join("")} `);
+      return { color: ROLE.money, text: forms[0], variants: forms.slice(1) };
+    },
     duration: () => {
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       // Not before half an hour: a session two minutes old is not news.
