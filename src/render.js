@@ -42,6 +42,7 @@ import { getRtkSavings } from "./rtk.js";
 import { maybeStartUpdateCheck, getUpdateNotice } from "./updateCheck.js";
 import { detectHarness } from "./harness.js";
 import { accountKindOf, apiResponded, getAccountKind, noteAccountKind } from "./accountKind.js";
+import { readUsageCredits } from "./usageCredits.js";
 import { copilotSessionActivity, AGENT_ROW_CAP } from "./copilotEvents.js";
 import { readGateRuns, GATE_ROW_CAP } from "./gateRuns.js";
 import { gateRows, gateChip } from "./gateRows.js";
@@ -676,6 +677,17 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
   // the last one seen when it cannot (specs/063-account-kind). Only Claude
   // Code's payload has these limits; the other harnesses decide their own.
   let accountKind = null;
+  // The usage credits Claude Code cached for a seat billed by usage
+  // (specs/069-usage-credits): read once, used for the kind and the chip.
+  // Read under every harness, as the spend limit is, so the composer's
+  // fixture can pool the chip; the chip itself stays off under Copilot,
+  // OpenCode and Codex, which have no Claude account behind them.
+  let usageCredits = null;
+  try {
+    usageCredits = off?.has("usageCredits") ? null : (probe.getUsageCredits?.({ now }) ?? null);
+  } catch {
+    usageCredits = null;
+  }
   if (detectHarness(payload) === "claude") {
     const seen = accountKindOf(payload);
     try {
@@ -685,7 +697,14 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     }
     try {
       const remembered = probe.getAccountKind?.({ now }) ?? null;
-      accountKind = seen ?? remembered;
+      // A fresh cache for the signed-in account that shows no window and
+      // credits enabled is a usage-based seat. It outranks what is
+      // remembered, because the payload of such a seat never says anything,
+      // and a `subscriber` remembered from another account would otherwise
+      // keep `5h — ?` on the line for 30 days.
+      const fromCache = !seen && usageCredits && !usageCredits.hasWindows && usageCredits.enabled ? "credits" : null;
+      if (fromCache) probe.noteAccountKind?.(fromCache, { now });
+      accountKind = seen ?? fromCache ?? remembered;
       // No window, no spend limit, nothing remembered, and a response already
       // received: the account has no window to wait for (specs/068). A
       // remembered kind outranks this, because a subscriber or a gateway
@@ -861,6 +880,9 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     spendLimit: reading({ value: spendLimitPct, at: now, source: "payload" }),
     spendLimitReset: reading({ value: spendLimitResetsAt, at: now, source: "payload" }),
     spendLimitUsd: reading({ value: spendLimitUsd, at: now, source: "payload" }),
+    // The figure draws only while extra usage is on; off, there is nothing
+    // to spend and the chip is absent (specs/069-usage-credits).
+    usageCredits: reading({ value: usageCredits?.enabled ? usageCredits : null, at: now, source: "cache" }),
     accountKind: reading({ value: accountKind, at: now, source: "payload" }),
     promptCache: reading({ value: getPromptCache(payload, now), at: now, source: "payload" }),
     update: updateReading,
@@ -999,6 +1021,9 @@ export function renderPayload(
     getCopilotQuota,
     getAccountKind,
     noteAccountKind,
+    // The usage credits Claude Code cached for a seat billed by usage
+    // (specs/069-usage-credits): one local file read, never a fetch.
+    getUsageCredits: readUsageCredits,
     ...sources,
   };
 
@@ -1675,7 +1700,10 @@ export function renderReadings(
     !payload?.rate_limits?.seven_day;
   // An account with no window at all (specs/068-no-window-account): Console
   // API key, Bedrock, Vertex, Foundry, a seat without an individual allowance.
-  const noWindows = readings.accountKind?.value === "none" && !payload?.rate_limits?.five_hour && !payload?.rate_limits?.seven_day;
+  // A seat billed by usage (specs/069-usage-credits) has no window either:
+  // its allowance is the monthly credit cap the `usageCredits` chip draws.
+  const noWindows =
+    ["none", "credits"].includes(readings.accountKind?.value) && !payload?.rate_limits?.five_hour && !payload?.rate_limits?.seven_day;
   const noFiveHour = noLimits || budgetOnly || noWindows || (isCodex && !payload?.rate_limits?.five_hour);
   const noSevenDay = noLimits || budgetOnly || noWindows || (isCodex && !payload?.rate_limits?.seven_day);
 
@@ -1836,6 +1864,36 @@ export function renderReadings(
     codexCredits: () => {
       const c = shows("codexCredits") ? readings.codexCredits?.value : null;
       return c ? { color: ROLE.money, text: ` ${g.spend} credits ${c.balance} ` } : null;
+    },
+    // The usage credits of a seat billed by usage (specs/069-usage-credits),
+    // as Claude Code cached them for its own `/usage` screen: the used and
+    // the limit as sent, the percentage in the usage bands, `full` once the
+    // cap is reached. Percentages only, never the money: a bar is shared on
+    // screens and in screenshots, and a seat's cap is its own business. The
+    // day and the week follow when the cache carries them.
+    // No reset and no pace: the cache carries neither, and
+    // the bar invents nothing (Principle III). Drawn whenever the signed-in
+    // account has a fresh figure with extra usage on: for a seat billed by
+    // usage it is the only allowance, and beside a subscriber's windows it
+    // is what carries work once one of them is full.
+    usageCredits: () => {
+      if (noLimits || isCodex) return null;
+      const c = shows("usageCredits") ? readings.usageCredits?.value : null;
+      // Remembered as a credits seat, but the cache is stale or gone: the
+      // figure is unknown, not absent, as `spend —` is for a budget account.
+      if (!c) {
+        if (readings.accountKind?.value !== "credits") return null;
+        const unknown = gaugeChipText({ icon: g.spend, label: "credits", pct: null, band: null, pace: null });
+        return { ...gaugeChip(null, null), ...unknown };
+      }
+      const band = bandFor(c.pct)?.name ?? null;
+      const full = c.reached ? " full" : "";
+      const month = gaugeChipText({ icon: g.spend, label: "credits", pct: c.pct, band, pace: null, full });
+      const periods = [c.daily !== null ? `day ${c.daily}%` : null, c.weekly !== null ? `week ${c.weekly}%` : null].filter(Boolean);
+      if (!periods.length) return { ...gaugeChip(c.pct, band), ...month };
+      // The day and the week are the first to go for width, then the track.
+      const tail = ` \u00b7 ${periods.join(" \u00b7 ")}`;
+      return { ...gaugeChip(c.pct, band), text: `${month.text.replace(/ $/, "")}${tail} `, variants: [month.text, ...month.variants] };
     },
     spendLimit: () => {
       if (noLimits) return null;

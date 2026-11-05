@@ -116,6 +116,12 @@ export const SEGMENTS = [
   // payload carries the dollars (specs/062-budget-account). Ranked under the
   // spend chip it explains and above the cache and the duration.
   { key: "spendPace", line: 3, group: "gauges", order: 52.5, priority: 87, colour: "ramp", source: "payload" },
+  // The monthly usage credits Claude Code cached for `/usage`
+  // (specs/069-usage-credits). For a seat billed by usage it is the only
+  // allowance there is, and for a subscriber with extra usage on it is what
+  // carries work once a window is full, so it is essential: under the
+  // 5-hour window and the model, above the 7-day window.
+  { key: "usageCredits", line: 3, group: "gauges", order: 52.2, priority: 91, colour: "ramp", source: "cache" },
   // Only when the prompt cache is cold, or warm and about to go cold: the one
   // moment its state changes what you do next (specs/025-prompt-cache-chip).
   // Actionable, so it sits under the allowances and the model and above the
@@ -200,6 +206,7 @@ export const SEGMENT_ABOUT = {
   codexCredits: "Codex CLI only: the credit balance Codex reports. Absent when the account has no credits, or unlimited ones.",
   sevenDay: "The seven-day usage window and when it comes back. It names the day, because beyond a day a reset is something you plan around.",
   promptCache: "The prompt cache, shown only when it matters: warm with minutes left once it is close to expiring, or cold with the tokens the next request writes again and the likely reason it was lost. Silent while there is time to spare.",
+  usageCredits: "The share of your monthly usage credits used, with the day and the week when Claude Code reports them, from the figure Claude Code caches for its own /usage screen in ~/.claude.json. Percentages only, never the amounts, since a screen gets shared. Drawn while extra usage is enabled on the signed-in account: for a seat billed by usage it is the only allowance, and it has no 5-hour or 7-day window. As fresh as Claude Code's last fetch, and absent past a day.",
   spendPace: "What is left of a dollar spend limit per day until it resets, beside what you have spent per day so far. It needs the dollar amounts Claude Code 2.1.284 and a gateway send, so it is absent without them. The gateway sends the dollars about every five minutes, so they can be that much older than the percentage.",
   spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",
   duration: "Wall-clock time since the session started.",

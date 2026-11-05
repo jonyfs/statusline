@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run, and the statusline's own update state |
 | 2 | Skills used recently, as one list, then todo progress, whether Claude is working or idle, and the vim mode while vim mode is on |
-| 3 | Model and effort level, `fast` while fast mode is on, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
+| 3 | Model and effort level, `fast` while fast mode is on, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the share of the monthly usage credits used where Claude Code has cached it, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -604,11 +604,31 @@ balance from what you have spent, how many messages you sent, or how long you
 have been working. `statusline-plugin doctor` tells you which case you are in:
 its `spendLimit` row is either on with its figure, or off with the reason.
 
-`/usage` in Claude Code also shows a Sonnet-only week, an Opus-only week and
-extra usage. Claude Code does not send those to the status line, and fetching
-them would mean reading its login token, so the bar does not show them. The
-5-hour and 7-day chips are the same figures `/usage` calls the current session
-and the current week.
+**A seat billed by usage.** A Claude Enterprise seat on usage-based billing has
+no 5-hour or 7-day window at all; its allowance is a monthly cap on usage
+credits, and Claude Code sends none of it to the status line. Claude Code does
+fetch that figure for its own `/usage` screen and keeps the last answer in
+`~/.claude.json`, so the bar reads it from there, as written: `credits 10%`,
+in the usage colours, with `full` once the cap is reached, and `· day 3% ·
+week 9%` after it when Claude Code reports those too (specs/069-usage-credits).
+Only percentages are drawn, never the amounts: a status line is shared on
+screens and in screenshots, and a seat's cap is its own business. Nothing is fetched and no login token is read; the
+chip is as fresh as Claude Code's last `/usage` fetch and goes away when that is
+more than a day old, or when the figure belongs to another account than the one
+signed in. Such a seat draws no `5h` or `7d` chip, and the kind is remembered for
+30 days the way a budget account's is, so a stale figure reads `credits —`
+rather than bringing the placeholders back. A Pro, Max or Ultra subscriber with
+extra usage enabled sees the same chip beside the windows it keeps; with extra
+usage off, nothing changes. The chip carries no reset and no per-day pace,
+because the cached figure has neither.
+
+![A seat billed by usage: the monthly credits, no windows](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/usage-credits.svg)
+
+`/usage` in Claude Code also shows a Sonnet-only week and an Opus-only week.
+Claude Code does not send those to the status line, and fetching them would mean
+reading its login token, so the bar does not show them. The 5-hour and 7-day
+chips are the same figures `/usage` calls the current session and the current
+week.
 
 To see what your own Claude Code sends, start it with `CLAUDE_STATUSLINE_DEBUG=1`
 in its environment. Every redraw then writes the raw payload to
@@ -1233,7 +1253,7 @@ that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts thirty-five segments on three lines, and it is a default
+The default puts thirty-six segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:

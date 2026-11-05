@@ -133,6 +133,9 @@ export const SOURCES = {
     },
   }),
   copilotSettings: () => ({}),
+  // The usage credits Claude Code caches for /usage (specs/069-usage-credits),
+  // so the composer has the chip to arrange without reading ~/.claude.json.
+  getUsageCredits: () => ({ pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: true, fetchedAt: NOW_MS - 3600000 }),
   readTty: () => null,
   getGateRuns: () => [
     { pid: 101, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "004-statusline-redesign-research", step: "gates.sh \u203a review-cycle.test.sh", startedAt: NOW_MS - 184000, state: "running" },

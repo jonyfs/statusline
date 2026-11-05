@@ -2,7 +2,15 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.9.0 (III extended on 2026-11-04: MINOR. An account that provably has no window, a Console
+- Version: 8.10.0 (III extended on 2026-11-05: MINOR. A seat billed by usage (Claude Enterprise,
+  `seatTier` `enterprise_usage_based`) has no window; its allowance is a monthly cap on usage
+  credits that Claude Code fetches for `/usage` and keeps in `~/.claude.json` under
+  `cachedUsageUtilization`. The bar MAY read that cached figure as Claude Code wrote it, for the
+  signed-in account and within a day of its fetch, and draws it as the `credits` chip: the
+  percentage used, `full`, and the day and week percentages when cached. Never the amounts. It is Claude Code's own figure, not one the bar fetched or
+  estimated; the rule against reading the login token stands. A fourth account kind,
+  `credits`, hides the windows such a seat lacks. See specs/069-usage-credits/.)
+- Previously, version 8.9.0 (III extended on 2026-11-04: MINOR. An account that provably has no window, a Console
   API key, Bedrock, Vertex, Foundry or a seat with no individual allowance, draws no 5h or 7d chip
   instead of `5h — ?` for ever, as Copilot, OpenCode and Codex already do for a window their plan
   lacks. "Provably" is a response already received (`cost.total_api_duration_ms` above zero) with no
@@ -509,7 +517,15 @@ so it is not the invented monthly figure this principle forbids for Anthropic's 
 rollout's `credits.balance` MAY be shown as Codex writes it, only when `has_credits` is true,
 the credits are not unlimited, and the balance reads as a number. Under Claude Code the bar
 MUST NOT read Claude Code's OAuth credentials to fetch figures the payload lacks, such as the
-per-model weekly windows `/usage` shows: the payload is the source. A field the rollout does not carry
+per-model weekly windows `/usage` shows: the payload is the source. One figure outside the
+payload is allowed, because Claude Code itself fetched and wrote it: the monthly usage credits in
+`~/.claude.json` under `cachedUsageUtilization` (specs/069-usage-credits). The bar MAY read that
+file as written, only for the account `oauthAccount` names and only within a day of
+`fetchedAtMs`, and MUST draw the percentage used as it is, with `full` when the cap is
+reported reached, and the day and week percentages when the file carries them. It MUST NOT
+draw the amounts in money: a status line is shared, and a seat's cap is its own business. It MUST NOT fetch, refresh, or add a reset or a pace
+the figure does not carry. A seat billed by usage, which that figure shows with no window and
+credits enabled, draws no 5-hour or 7-day chip, the way a budget account does. A field the rollout does not carry
 is absent from the payload and renders as the bar renders any absent field. The rollout is
 Codex's internal format, so a reader MUST degrade to the absent field, never guess, when a
 record changes shape.
@@ -924,4 +940,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.9.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-04
+**Version**: 8.10.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-05

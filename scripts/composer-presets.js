@@ -181,6 +181,7 @@ export const PRESETS = [
         sevenDay: { line: 1, order: 84 },
         spendLimit: { line: 1, order: 86 },
         spendPace: { line: 1, order: 86.5 },
+        usageCredits: { line: 1, order: 86.2 },
         promptCache: { line: 1, order: 88 },
         // Copilot CLI's month and credits (specs/033-copilot-parity), beside
         // the windows they stand in for there.

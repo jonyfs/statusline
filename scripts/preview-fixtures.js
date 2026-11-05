@@ -386,6 +386,26 @@ export const SCENARIOS = [
     },
   },
   {
+    file: "usage-credits.svg",
+    title: "A seat billed by usage: 10% of its monthly credits used, and no 5-hour or 7-day window to draw",
+    payload: {
+      ...basePayload,
+      rate_limits: undefined,
+      context_window: { used_percentage: 44 },
+      cost: { total_cost_usd: 1.2, total_api_duration_ms: 4200 },
+    },
+    sources: {
+      ...noSources,
+      getGitInfo: () => ({ branch: "main", upstream: "origin/main", ahead: 0, behind: 0, changed: 0, untracked: 0 }),
+      getRemoteUrl: () => "https://github.com/jonyfs/statusline",
+      getActiveSkills: () => ["code-review"],
+      getRtkSavings: () => 81,
+      getAccountKind: () => null,
+      noteAccountKind: () => {},
+      getUsageCredits: () => ({ pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: false, fetchedAt: FIXED_NOW * 1000 - 3600000 }),
+    },
+  },
+  {
     file: "prompt-cache-cold.svg",
     title: "Back from a break: the prompt cache went cold, what the next request writes again, and why",
     payload: {

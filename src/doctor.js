@@ -17,6 +17,8 @@ import os from "node:os";
 import { gather, renderReadings, harnessProbes } from "./render.js";
 import { detectHarness } from "./harness.js";
 import { getCopilotQuota } from "./copilotQuota.js";
+import { getAccountKind } from "./accountKind.js";
+import { readUsageCredits } from "./usageCredits.js";
 import { loadCopilotSettings, copilotPadding } from "./copilotSettings.js";
 import { checkInstall, projectOverrides, harnessStatus } from "./install.js";
 import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
@@ -92,6 +94,10 @@ const DESCRIBE = {
     "spendLimit",
     (v, now, readings) =>
       v === null ? null : describeWindow(v, readings?.spendLimitReset?.value, now, { maxMs: MAX_PLAUSIBLE_SPEND_PERIOD_MS }),
+  ],
+  usageCredits: [
+    "usageCredits",
+    (v) => (v ? `${v.pct}% of the month's credits${v.daily !== null ? `, ${v.daily}% of the day` : ""}${v.weekly !== null ? `, ${v.weekly}% of the week` : ""}${v.reached ? ", cap reached" : ""}${v.enabled ? "" : ", extra usage off"} (Claude Code's own cached /usage figure)` : null),
   ],
   spendPace: [
     "spendLimitUsd",
@@ -230,6 +236,11 @@ function absenceReason(segment, reading, readings, now) {
     if (segment.key === "spendLimit") {
       return "not in the payload: Claude Code reports a spend limit only behind a Claude gateway with spend limits";
     }
+    if (segment.key === "usageCredits") {
+      return readings?.accountKind?.value === "credits"
+        ? "no fresh cachedUsageUtilization for the signed-in account in ~/.claude.json (Claude Code refreshes it for /usage; a figure older than a day is not shown)"
+        : "extra usage is off on the signed-in account, or Claude Code has no fresh cachedUsageUtilization in ~/.claude.json (it refreshes it for /usage; a figure older than a day is not shown)";
+    }
     if (segment.key === "spendPace") return "the payload carries no dollar amounts for the spend limit (needs Claude Code 2.1.284 and a gateway that sends them)";
     if (segment.key === "effort") return "the payload carries no effort level";
     if (segment.key === "outputStyle") return "no output style set";
@@ -319,6 +330,11 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     // (specs/033-copilot-parity).
     copilotSettings: loadCopilotSettings,
     getCopilotQuota: (opts) => getCopilotQuota({ ...opts, refresh: false }),
+    // The remembered account kind and the usage credits Claude Code cached
+    // (specs/063, specs/069): both read, neither written, so the diagnostic
+    // reports the same chips the bar draws without moving what it remembers.
+    getAccountKind,
+    getUsageCredits: readUsageCredits,
   };
 
   const started = Date.now();
