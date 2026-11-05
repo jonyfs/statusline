@@ -36,6 +36,9 @@ export const emptySources = {
   creditsTrend: () => null,
   // The session's totals come from the transcript (specs/073); a case supplies them.
   getSessionTotals: () => null,
+  // The repository's alerts and the branch's standing (specs/074).
+  getAlerts: () => null,
+  getBranchMeta: () => null,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */

@@ -73,6 +73,12 @@ const DESCRIBE = {
   worktreeState: ["git", (v) => (v ? `${v.changed} changed, ${v.untracked} untracked` : null)],
   conflicts: ["git", (v) => (v?.conflicts ? `${v.conflicts} unmerged` : null)],
   pr: ["pr", (v) => (v ? `#${v.number} ${v.review ?? "open"}${v.source ? ` (${v.source})` : ""}` : null)],
+  prMerge: ["pr", (v) => (v?.mergeState ? `${v.mergeState.toLowerCase()}${v.autoMerge ? `, automerge ${v.autoMerge}` : ""}` : null)],
+  prChecks: ["pr", (v) => (v?.checks ? `${v.checks.ok} passed, ${v.checks.failed} failed, ${v.checks.running} running${v.checks.failedName ? ` (${v.checks.failedName})` : ""}` : null)],
+  prReview: ["pr", (v) => (v && (v.awaiting || v.threads) ? `${v.awaiting ?? 0} awaiting, ${v.threads ?? 0} unresolved threads` : null)],
+  prSize: ["pr", (v) => (v && typeof v.additions === "number" ? `+${v.additions} -${v.deletions}, ${v.changedFiles ?? "?"} files, opened ${v.createdAt ?? "?"}` : null)],
+  alerts: ["alerts", (v) => (v ? `${v.dependabot} dependabot, ${v.codeScanning} code scanning` : null)],
+  branchAge: ["branchMeta", (v) => (v?.firstCommitAt ? `first commit past ${v.defaultBranch} at ${new Date(v.firstCommitAt * 1000).toISOString()}` : null)],
   repo: ["repo", (v) => (v?.owner ? `${v.owner}/${v.name}` : null)],
   ci: ["ci", (v) => (v ? `${v.conclusion ?? v.status} ${v.workflow ?? ""}`.trim() : null)],
   worktree: ["worktree", (v) => (v?.name ? `${v.name}${v.from ? ` from ${v.from}` : ""}` : null)],
@@ -244,6 +250,11 @@ function absenceReason(segment, reading, readings, now) {
         : "not a git repository";
     }
     if (segment.key === "rtk") return "rtk not installed, or nothing cached yet";
+    if (["prMerge", "prChecks", "prReview", "prSize"].includes(segment.key)) {
+      return inRepo ? "no open pull request, or gh has not answered with that field yet" : "not a git repository";
+    }
+    if (segment.key === "alerts") return inRepo ? "no open alerts, the endpoints refused, or nothing cached yet (hourly)" : "not a git repository";
+    if (segment.key === "branchAge") return inRepo ? "on the default branch, no origin/HEAD, or nothing cached yet" : "not a git repository";
     // Absent on most accounts, which is not a fault: say where it comes from
     // so nobody files a bug about a figure the payload never carries.
     if (segment.key === "spendLimit") {

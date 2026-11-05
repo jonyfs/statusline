@@ -13,8 +13,7 @@ import {
   getRemoteUrl,
   getCiStatus,
   normalizePr,
-  repoUrlFromPayload,
-} from "./git.js";
+  repoUrlFromPayload, getAlerts, getBranchMeta } from "./git.js";
 import {
   getActiveSkills,
   getActiveSkillsTrueCount,
@@ -887,6 +886,14 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
         ? reading({ value: payloadPr, at: now, source: "payload" })
         : timed("gh", () => normalizePr(probe.getPrInfo(cwd, { branch: namedBranch }), "gh"))
       : missing("gh", "not a repository"),
+    // The repository's alerts and the branch's standing (specs/074-pr-state),
+    // both from caches the detached refresh fills.
+    alerts: off?.has("alerts") || !hasRepo
+      ? missing("gh", hasRepo ? "switched off" : "not a repository")
+      : timed("gh", () => probe.getAlerts?.(cwd, { now }) ?? null),
+    branchMeta: !hasRepo
+      ? missing("git", "not a repository")
+      : timed("git", () => probe.getBranchMeta?.(cwd, { now, branch: namedBranch }) ?? null),
     skills: skillsReading(timed, probe, payload, activity.value?.skills, activity.value?.skillsTrueCount),
     activity,
     // The running subagents, which only Copilot's reader returns: Claude Code
@@ -1061,6 +1068,16 @@ export function resetDayAndTime(resetsAtSeconds, now = Date.now()) {
   return `${months[d.getMonth()]} ${d.getDate()} ${hhmm}`;
 }
 
+/** An age in the shortest unit that is not zero: `2d`, `5h`, `20m` (specs/074). */
+export function ageLabel(ms) {
+  if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return null;
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
 /** `+++`, `++`, `+` from a model's name, or null for a name the table does not know (specs/071). */
 export function modelTierOf(name) {
   const n = String(name ?? "").toLowerCase();
@@ -1142,6 +1159,9 @@ export function renderPayload(
     // The usage credits Claude Code cached for a seat billed by usage
     // (specs/069-usage-credits): one local file read, never a fetch.
     getUsageCredits: readUsageCredits,
+    // The repository's alerts and the branch's standing (specs/074).
+    getAlerts,
+    getBranchMeta,
     // The session's totals from its transcript (specs/073).
     getSessionTotals,
     // Who is signed in, and the credits' own history (specs/071).
@@ -1492,11 +1512,15 @@ export function renderReadings(
     // part of the name, and the slashes are the tree view's own.
     const branchUrl =
       !detached && remoteUrl ? `${remoteUrl}/tree/${git.branch.split("/").map(encodeURIComponent).join("/")}` : null;
+    // Working on the default branch is a state to see (specs/074, item 39):
+    // the chip turns critical and the name takes a mark.
+    const meta = readings.branchMeta?.value ?? null;
+    const onDefault = !detached && typeof meta?.defaultBranch === "string" && meta.defaultBranch === git.branch;
     l1.push({
       key: "branch",
-      color: ROLE.identity,
+      color: onDefault ? ROLE.critical : ROLE.identity,
         emphasis: changes.isChanged("branch"),
-      text: ` ${detached ? g.commit : g.branch} ${label} `,
+      text: ` ${detached ? g.commit : g.branch} ${label}${onDefault ? "!" : ""} `,
       variants: [` ${detached ? g.commit : g.branch} `],
       iconLast: true,
       url: branchUrl,
@@ -1522,6 +1546,12 @@ export function renderReadings(
       // A tree that is clean and in step with its upstream says so, in the
       // one place a failed read draws nothing (specs/048-state-feedback).
       l1.push({ key: "worktreeState", color: ROLE.neutral, icon: ROLE.healthy, text: ` ${g.clean} ` });
+    }
+    // How old the branch is (specs/074): since its first commit past the
+    // default branch, once it is an hour old.
+    const branchAgeMs = !detached && shows("branchAge", "branchMeta") && typeof meta?.firstCommitAt === "number" ? now - meta.firstCommitAt * 1000 : 0;
+    if (branchAgeMs >= 3_600_000) {
+      l1.push({ key: "branchAge", color: ROLE.neutral, text: ` ${g.calendar} ${ageLabel(branchAgeMs)} ` });
     }
     // A2's chosen form: owner and repo as text. It repeats the directory in
     // a repository whose folder is named after it, and says something the
@@ -1570,6 +1600,11 @@ export function renderReadings(
         emphasis: changes.isChanged("ci"),
         url: runs ?? undefined,
       });
+    }
+    // The repository's open alerts (specs/074): Dependabot and code scanning.
+    const alerts = shows("alerts") ? readings.alerts?.value : null;
+    if (alerts?.total > 0) {
+      l1.push({ key: "alerts", color: ROLE.attention, text: ` ${g.conflict} alerts ${alerts.total} `, variants: [` ${g.conflict} ${alerts.total} `], url: remoteUrl ? `${remoteUrl}/security` : undefined });
     }
     // What this session changed, which is a different question from what the
     // working tree looks like: the payload counts it, git does not. It sits
@@ -1634,6 +1669,33 @@ export function renderReadings(
         variants: [` ${prGlyph} #${pr.number}${reviewGlyph ? ` ${reviewGlyph}` : review ? ` ${review}` : ""} `],
         url: pr.url,
       });
+      // What decides the next step (specs/074-pr-state), each its own chip
+      // so the width guard drops them one at a time: the merge state, the
+      // checks, the reviewers awaited and the threads open, the size and age.
+      const open = !["merged", "closed", "draft"].includes(pr.prState ?? "");
+      const mergeWord = { BLOCKED: ["blocked", ROLE.critical], DIRTY: ["conflicts", ROLE.critical], BEHIND: ["behind", ROLE.attention], CLEAN: ["mergeable", ROLE.healthy], HAS_HOOKS: ["mergeable", ROLE.healthy], UNSTABLE: ["mergeable", ROLE.attention] }[pr.mergeState ?? ""];
+      if (open && mergeWord && shows("prMerge", "pr")) {
+        const auto = pr.autoMerge ? " \u00b7 automerge" : "";
+        l1.push({ key: "prMerge", color: mergeWord[1], text: ` ${mergeWord[0]}${auto} `, ...(auto ? { variants: [` ${mergeWord[0]} `] } : {}) });
+      }
+      const checks = pr.checks;
+      if (checks && shows("prChecks", "pr")) {
+        const parts = [checks.ok ? `${g.ciPass}${checks.ok}` : null, checks.failed ? `${g.ciFail}${checks.failed}` : null, checks.running ? `${g.ciRunning}${checks.running}` : null].filter(Boolean);
+        const bare = ` ${parts.join(" ")} `;
+        const name = checks.failed && checks.failedName ? ` ${parts.join(" ")} \u00b7 ${cutMiddle(checks.failedName, 24)} ` : null;
+        l1.push({ key: "prChecks", color: ROLE.neutral, icon: checks.failed ? ROLE.critical : checks.running ? ROLE.modified : ROLE.healthy, text: name ?? bare, ...(name ? { variants: [bare] } : {}) });
+      }
+      const awaiting = pr.awaiting > 0 ? `${pr.awaiting} awaiting` : null;
+      const threads = pr.threads > 0 ? `${pr.threads} threads` : null;
+      if (open && (awaiting || threads) && shows("prReview", "pr")) {
+        l1.push({ key: "prReview", color: ROLE.open, text: ` ${g.account} ${[awaiting, threads].filter(Boolean).join(" \u00b7 ")} ` });
+      }
+      if (typeof pr.additions === "number" && typeof pr.deletions === "number" && shows("prSize", "pr")) {
+        const age = pr.createdAt ? ageLabel(now - Date.parse(pr.createdAt)) : null;
+        const size = `+${pr.additions} \u2212${pr.deletions}`;
+        const files = typeof pr.changedFiles === "number" ? ` \u00b7 ${pr.changedFiles}f` : "";
+        l1.push({ key: "prSize", color: ROLE.neutral, text: ` ${size}${files}${age ? ` \u00b7 ${age}` : ""} `, variants: [` ${size} `] });
+      }
     }
   }
   // The statusline's own update state, in or out of a repository: it is about

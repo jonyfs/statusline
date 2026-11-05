@@ -11,7 +11,7 @@
  */
 
 import { writeEntry, takeLock } from "./cache.js";
-import { probeGitInfo, probePrResult, probeCiResult } from "./git.js";
+import { probeGitInfo, probePrResult, probeCiResult, probeAlertsResult, probeBranchMetaResult } from "./git.js";
 import { probeRtkSavings } from "./rtk.js";
 import { probeGateRuns } from "./gateRuns.js";
 import { REFRESH_BUDGET_MS, MAX_AGE_MS } from "./freshness.js";
@@ -41,6 +41,9 @@ const PROBES = {
     return pct === null ? { state: "failed", value: null } : { state: "found", value: pct };
   },
   ci: (cwd) => probeCiResult(cwd, REFRESH_BUDGET_MS.gh),
+  // The repository's alerts and the branch's standing (specs/074).
+  alerts: (cwd) => probeAlertsResult(cwd, REFRESH_BUDGET_MS.alerts),
+  branchMeta: (cwd) => probeBranchMetaResult(cwd, REFRESH_BUDGET_MS.branchMeta),
   // The git hooks running in this repository's worktrees
   // (specs/031-git-gate-rows). Too slow for a redraw, which reads this.
   gates: (cwd) => probeGateRuns(cwd, REFRESH_BUDGET_MS.gates),
@@ -81,9 +84,9 @@ export async function runRefresh(name, key, cwd, { now = Date.now(), probes = PR
     // invalidated on branch switch. RTK and git don't need branch (global cache
     // for RTK, fast local check for git), so only wrap for pr/ci (spec 014 fix).
     let value = result.value;
-    if ((name === "pr" || name === "ci") && result.value) {
+    if ((name === "pr" || name === "ci" || name === "branchMeta") && result.value) {
       value = { ...result.value, branch: result.branch };
-    } else if ((name === "pr" || name === "ci") && result.branch) {
+    } else if ((name === "pr" || name === "ci" || name === "branchMeta") && result.branch) {
       value = { branch: result.branch };
     }
     writeEntry(key, name, value, { now: Date.now() });

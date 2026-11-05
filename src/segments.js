@@ -50,13 +50,23 @@ export const SEGMENTS = [
   { key: "worktree", line: 1, order: 25, priority: 88, colour: "identity", source: "payload" },
   { key: "conflicts", line: 1, order: 28, priority: 99, colour: "identity", source: "git" },
   { key: "worktreeState", line: 1, order: 30, priority: 86, colour: "identity", source: "git" },
+  // How old the branch is (specs/074), after its state.
+  { key: "branchAge", line: 1, order: 32, priority: 43, colour: "identity", source: "cache" },
   // Not repository state: it is what this session changed, from the
   // payload's own counters rather than from git. It sits here because it
   // reads as a diff stat and belongs beside the other change counts, and it
   // keeps its low priority, so it is the first thing line 1 drops.
   { key: "linesChanged", line: 1, order: 35, priority: 48, colour: "identity", source: "payload" },
   { key: "pr", line: 1, order: 50, priority: 82, colour: "change", source: "gh" },
+  // What decides the request's next step (specs/074-pr-state), each its own
+  // chip so width drops them one at a time.
+  { key: "prMerge", line: 1, order: 51, priority: 59, colour: "identity", source: "gh" },
+  { key: "prChecks", line: 1, order: 52, priority: 57, colour: "identity", source: "gh" },
+  { key: "prReview", line: 1, order: 53, priority: 55, colour: "identity", source: "gh" },
+  { key: "prSize", line: 1, order: 54, priority: 49, colour: "identity", source: "gh" },
   { key: "ci", line: 1, order: 60, priority: 56, colour: "identity", source: "gh" },
+  // The repository's open alerts (specs/074), hourly.
+  { key: "alerts", line: 1, order: 65, priority: 54, colour: "identity", source: "gh" },
   // The statusline's own update state (specs/026-update-check): about the
   // install, not the session, so it sits with the repository's state. Useful
   // band, after the CI tick, so nothing already on the line moves.
@@ -201,6 +211,12 @@ export const SEGMENT_ABOUT = {
   gates: "The git hooks running in this repository's worktrees: which hook, in which worktree and branch, what it is running now and for how long, one row each after the bar. A run waiting for another's gates.lock says so. Only when the window is too short does it shrink to a count on line 1.",
   skills: "The skills shaping this session, newest first, dropped once they fall outside the activity window. A skill a subagent invoked belongs to that subagent's row instead.",
   todo: "The current todo and how far the list has got.",
+  prMerge: "Whether the pull request can be merged, as GitHub reports it: mergeable, behind, conflicts or blocked, and automerge when it is armed.",
+  prChecks: "The pull request's checks: passed, failed and running, then the name of the first failure.",
+  prReview: "Reviewers asked who have not answered, and review threads still unresolved.",
+  prSize: "The pull request's size in lines and files, and its age.",
+  alerts: "Open Dependabot and code-scanning alerts of the repository, refreshed hourly; nothing where the endpoints refuse.",
+  branchAge: "How long since the branch's first commit past the default branch.",
   activity: "What the session is doing: working (the transcript grew in the last ten seconds, or a subagent of this session is running, with a spinner that turns once a redraw), idle, sleeping after five quiet minutes, or your turn when its newest entry is a question or a plan that has no answer yet. Nothing emits \"thinking now\", so this is the honest approximation.",
   model: "The model answering, and how much of its context window this session carries.",
   effort: "The reasoning effort it is running at.",

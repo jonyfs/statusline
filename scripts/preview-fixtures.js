@@ -93,6 +93,9 @@ const noSources = {
   getCopilotQuota: () => null,
   // The session totals (specs/073): a preview reads no transcript.
   getSessionTotals: () => null,
+  // The repository's alerts and the branch's standing (specs/074).
+  getAlerts: () => null,
+  getBranchMeta: () => null,
 };
 
 export const SCENARIOS = [

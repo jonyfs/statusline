@@ -323,7 +323,137 @@ export function normalizePr(raw, source) {
     // and id are not the statusline's to carry (specs/006, data-model.md).
     labels: Array.isArray(raw.labels) ? raw.labels.map((l) => plainText(typeof l === "string" ? l : l?.name)).filter(Boolean) : [],
     source,
+    // What decides the next step (specs/074-pr-state), as `gh` reports it.
+    mergeState: typeof raw.mergeStateStatus === "string" && raw.mergeStateStatus ? raw.mergeStateStatus.toUpperCase() : null,
+    awaiting: Array.isArray(raw.reviewRequests) ? raw.reviewRequests.length : typeof raw.reviewRequests === "number" ? raw.reviewRequests : 0,
+    checks: summarizeChecks(raw.statusCheckRollup),
+    autoMerge: raw.autoMergeRequest ? plainText(raw.autoMergeRequest.mergeMethod) ?? "on" : null,
+    createdAt: typeof raw.createdAt === "string" && Number.isFinite(Date.parse(raw.createdAt)) ? raw.createdAt : null,
+    additions: typeof raw.additions === "number" ? raw.additions : null,
+    deletions: typeof raw.deletions === "number" ? raw.deletions : null,
+    changedFiles: typeof raw.changedFiles === "number" ? raw.changedFiles : null,
+    threads: typeof raw.threads === "number" ? raw.threads : null,
   };
+}
+
+/**
+ * The checks of a pull request, counted (specs/074): passed, failed and
+ * still running, and the name of the first failure. `statusCheckRollup`
+ * mixes check runs (`status`, `conclusion`) and commit statuses (`state`).
+ */
+export function summarizeChecks(rollup) {
+  if (!Array.isArray(rollup) || !rollup.length) return null;
+  const out = { ok: 0, failed: 0, running: 0, failedName: null };
+  for (const c of rollup) {
+    if (!c || typeof c !== "object") continue;
+    const conclusion = String(c.conclusion ?? c.state ?? "").toUpperCase();
+    const status = String(c.status ?? "").toUpperCase();
+    if (["IN_PROGRESS", "QUEUED", "PENDING", "WAITING", "REQUESTED"].includes(status) || conclusion === "PENDING") out.running += 1;
+    else if (["SUCCESS", "SKIPPED", "NEUTRAL"].includes(conclusion)) out.ok += 1;
+    else if (["FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "STARTUP_FAILURE", "ACTION_REQUIRED"].includes(conclusion)) {
+      out.failed += 1;
+      if (!out.failedName) out.failedName = plainText(c.name ?? c.context) ?? null;
+    }
+  }
+  return out.ok + out.failed + out.running ? out : null;
+}
+
+/** `{ owner, name }` from the origin remote, or null. */
+export function repoSlug(cwd) {
+  const url = getRemoteUrl(cwd);
+  const m = typeof url === "string" ? url.match(/^https?:\/\/[^/]+\/([^/]+)\/([^/]+?)(?:\.git)?\/?$/) : null;
+  return m ? { owner: m[1], name: m[2] } : null;
+}
+
+/** Unresolved review threads of a pull request, or null when the query fails (specs/074). */
+export function probePrThreads(cwd, number, timeout = 5000) {
+  const slug = repoSlug(cwd);
+  if (!slug || typeof number !== "number") return null;
+  try {
+    const out = execFileSync(
+      "gh",
+      ["api", "graphql", "-f", `query=query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved}}}}}`, "-F", `o=${slug.owner}`, "-F", `n=${slug.name}`, "-F", `p=${number}`],
+      { cwd, timeout, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true }
+    );
+    const nodes = JSON.parse(out)?.data?.repository?.pullRequest?.reviewThreads?.nodes;
+    return Array.isArray(nodes) ? nodes.filter((t) => t && t.isResolved === false).length : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The repository's open alerts (specs/074): Dependabot and code scanning.
+ * A repository that refuses either endpoint (no permission, feature off)
+ * answers `none`, which draws nothing; a network failure caches nothing.
+ */
+export function probeAlertsResult(cwd, timeout = 10000) {
+  const slug = repoSlug(cwd);
+  if (!slug) return { state: "none", value: null };
+  const count = (route) => {
+    try {
+      const out = execFileSync("gh", ["api", `repos/${slug.owner}/${slug.name}/${route}?state=open&per_page=100`, "--jq", "length"], {
+        cwd, timeout, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
+      });
+      const n = Number(out.trim());
+      return Number.isFinite(n) ? n : null;
+    } catch (err) {
+      // 403 and 404 are answers: the endpoint is not ours to read, or off.
+      return /HTTP 40[34]/.test(String(err?.stderr ?? "")) ? 0 : null;
+    }
+  };
+  const dependabot = count("dependabot/alerts");
+  const codeScanning = count("code-scanning/alerts");
+  if (dependabot === null && codeScanning === null) return { state: "failed", value: null };
+  const total = (dependabot ?? 0) + (codeScanning ?? 0);
+  return { state: "found", value: { dependabot: dependabot ?? 0, codeScanning: codeScanning ?? 0, total } };
+}
+
+/**
+ * The branch's standing against the default branch (specs/074): which branch
+ * is the default, and when this one's first own commit was made.
+ */
+export function probeBranchMetaResult(cwd, timeout = 5000) {
+  const branch = currentBranch(cwd, timeout);
+  if (!branch) return { state: "none", value: null, branch: null };
+  const head = gitText(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd, timeout);
+  let defaultBranch = typeof head === "string" && head.trim() ? head.trim().replace(/^origin\//, "") : null;
+  // A clone made without `origin/HEAD` (a plain `git init` plus a remote)
+  // still has the usual names: the first that exists is the default.
+  if (!defaultBranch) {
+    for (const name of ["main", "master"]) {
+      if (typeof gitText(["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${name}`], cwd, timeout) === "string") {
+        defaultBranch = name;
+        break;
+      }
+    }
+  }
+  let firstCommitAt = null;
+  if (defaultBranch && defaultBranch !== branch) {
+    const log = gitText(["log", "--reverse", "--format=%ct", `origin/${defaultBranch}..HEAD`], cwd, timeout);
+    const first = typeof log === "string" ? Number(log.trim().split("\n")[0]) : NaN;
+    if (Number.isFinite(first) && first > 0) firstCommitAt = first;
+  }
+  return { state: "found", value: { branch, defaultBranch, firstCommitAt }, branch };
+}
+
+/** Open alerts, from cache only, refreshed hourly in the background. */
+export function getAlerts(cwd, { now = Date.now() } = {}) {
+  const key = repoKey(cwd);
+  const entry = readEntry(key, "alerts");
+  if (shouldRefresh("alerts", entry, now)) spawnRefresh(key, "alerts", cwd, { now });
+  if (!entry || now - entry.at > MAX_AGE_MS.alerts) return null;
+  return entry.value?.total > 0 ? entry.value : null;
+}
+
+/** The branch's standing, from cache only, refreshed in the background. */
+export function getBranchMeta(cwd, { now = Date.now(), branch = null } = {}) {
+  const key = repoKey(cwd);
+  const entry = readEntry(key, "branchMeta");
+  if (shouldRefresh("branchMeta", entry, now)) spawnRefresh(key, "branchMeta", cwd, { now });
+  if (!entry || now - entry.at > MAX_AGE_MS.branchMeta) return null;
+  if (branch && entry.value?.branch && entry.value.branch !== branch) return null;
+  return entry.value?.defaultBranch ? entry.value : null;
 }
 
 /**
@@ -402,7 +532,7 @@ export function currentBranch(cwd, timeout = SOURCE_BUDGET_MS.git) {
 export function probePrResult(cwd, timeout = 5000) {
   const branch = currentBranch(cwd);
   try {
-    const out = execFileSync("gh", ["pr", "view", "--json", "number,state,isDraft,url,labels,reviewDecision,comments"], {
+    const out = execFileSync("gh", ["pr", "view", "--json", "number,state,isDraft,url,labels,reviewDecision,comments,mergeStateStatus,mergeable,reviewRequests,statusCheckRollup,autoMergeRequest,createdAt,additions,deletions,changedFiles"], {
       cwd,
       timeout,
       encoding: "utf8",
@@ -421,6 +551,17 @@ export function probePrResult(cwd, timeout = 5000) {
         reviewDecision: pr.reviewDecision,
         comments: Array.isArray(pr.comments) ? pr.comments.length : null,
         branch,
+        // specs/074-pr-state: what decides the next step.
+        mergeStateStatus: pr.mergeStateStatus ?? null,
+        mergeable: pr.mergeable ?? null,
+        reviewRequests: Array.isArray(pr.reviewRequests) ? pr.reviewRequests.length : 0,
+        statusCheckRollup: Array.isArray(pr.statusCheckRollup) ? pr.statusCheckRollup.map((c) => ({ name: c?.name ?? c?.context ?? null, status: c?.status ?? null, conclusion: c?.conclusion ?? c?.state ?? null })) : [],
+        autoMergeRequest: pr.autoMergeRequest ? { mergeMethod: pr.autoMergeRequest.mergeMethod ?? null } : null,
+        createdAt: pr.createdAt ?? null,
+        additions: pr.additions ?? null,
+        deletions: pr.deletions ?? null,
+        changedFiles: pr.changedFiles ?? null,
+        threads: pr.state === "OPEN" ? probePrThreads(cwd, pr.number, timeout) : null,
       },
     };
   } catch (err) {

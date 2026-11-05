@@ -84,6 +84,15 @@ await test("normalizePr reads both shapes into one", () => {
     kind: "pr",
     labels: [],
     source: "payload",
+    mergeState: null,
+    awaiting: 0,
+    checks: null,
+    autoMerge: null,
+    createdAt: null,
+    additions: null,
+    deletions: null,
+    changedFiles: null,
+    threads: null,
   });
   assert.deepEqual(normalizePr({ number: 2, url: "u", state: "OPEN", isDraft: true }, "gh"), {
     number: 2,
@@ -94,6 +103,15 @@ await test("normalizePr reads both shapes into one", () => {
     kind: "pr",
     labels: [],
     source: "gh",
+    mergeState: null,
+    awaiting: 0,
+    checks: null,
+    autoMerge: null,
+    createdAt: null,
+    additions: null,
+    deletions: null,
+    changedFiles: null,
+    threads: null,
   });
   // gh's review decision maps onto the payload's words, and the state is kept apart
   const decided = normalizePr({ number: 3, url: "u", state: "MERGED", isDraft: false, reviewDecision: "APPROVED", comments: 4 }, "gh");
