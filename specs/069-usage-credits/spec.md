@@ -1,0 +1,84 @@
+---
+track: quick
+status: done
+---
+
+# A usage-based seat: the extra-usage credits
+
+**Feature Branch**: `feat/069-usage-credits`
+
+**Created**: 2026-11-05
+
+**Input**: "o que está faltando ser implementado no statusline para que funcione tb com o modelo de
+cobrança/tokens desta conta claude, sem perder compatibilidade com outros tipos de conta que
+trabalham com janela de 5 horas e semana" (what the bar still needs so it works with this
+account's billing model too, without losing the 5-hour and weekly accounts that already work).
+
+**Track**: `quick`: one reader, one account kind, one chip.
+
+## Why this exists
+
+A Claude Enterprise seat billed by usage (`oauthAccount.seatTier` is `enterprise_usage_based`,
+`organizationType` is `claude_enterprise`, extra usage enabled) has no 5-hour window and no
+7-day window. Its allowance is a monthly cap on usage credits, in dollars. Claude Code sends
+`rate_limits` only to Pro, Max and Ultra subscribers and behind a gateway with a spend limit
+(code.claude.com/docs/en/statusline), so this seat's payload never carries a limit at all.
+
+Claude Code does know the figure. Its `/usage` screen fetches it, and it keeps the last answer
+in `~/.claude.json` under `cachedUsageUtilization`: `accountUuid`, `fetchedAtMs` and a
+`utilization` block whose `five_hour` and `seven_day` are `null` for this seat and whose
+`extra_usage` carries `is_enabled`, `monthly_limit`, `used_credits` (both in minor units,
+`decimal_places` says how many), `utilization` (a percentage), `currency` and
+`spend_limit_reached`. Observed on 2026-11-05 under Claude Code 2.1.318.
+
+Today the bar draws `5h — ?  7d — ?` on this machine (a `subscriber` kind remembered from
+another payload) or, once that memory lapses, nothing at all (specs/068). The one figure the
+seat is metered by is never shown.
+
+## Requirements
+
+- **FR-001**: A new reader, `readUsageCredits`, reads `cachedUsageUtilization` from
+  `~/.claude.json` as Claude Code wrote it. It never fetches, never reads a credential, and
+  returns null when the file, the block or any needed field is missing or malformed.
+- **FR-002**: The reading counts only when `cachedUsageUtilization.accountUuid` equals
+  `oauthAccount.accountUuid` (the signed-in account) and `fetchedAtMs` is within the last 24
+  hours of `now`. Older, or for another account, it is as if absent.
+- **FR-003**: The reading says whether the account has windows (`five_hour` or `seven_day` is
+  an object) and, from `extra_usage`, whether credits are enabled (`is_enabled` true and
+  `user_disabled` not true), the percentage of the month used (`utilization`, rounded), the
+  same for the day and the week when `extra_usage.daily` and `extra_usage.weekly` are blocks
+  with a `utilization` (null otherwise), and whether the cap is reached (`spend_limit_reached`).
+  The amounts in money never leave the reader: a status line is shared on screens and in
+  screenshots, and a seat's cap is its own business.
+- **FR-004**: A fourth account kind, `credits`: under Claude Code, a payload with no
+  `five_hour`, `seven_day` or `spend_limit` whose fresh reading shows no windows and credits
+  enabled. It ranks between the payload and the remembered kind: a payload with a window or a
+  spend limit always wins; a stale or absent reading falls through to what is remembered, then
+  to `none` (specs/068). `credits` is remembered for 30 days like the other kinds.
+- **FR-005**: Under `credits` the `5h` and `7d` chips are absent, not `?` (as for `budget` and
+  `none`).
+- **FR-006**: A new `usageCredits` chip, on line 3 beside the spend chip, reads
+  `credits 10%` from the reading: the month's percentage with the usage band colours, ` full`
+  once `spend_limit_reached` is true, and `· day 3% · week 9%` after it when the cache carries
+  those blocks. No amount in money, ever. The day and the week are the first to go for width,
+  then the track. It carries no reset, because the reading has none, and no pace (Principle
+  III: nothing invented).
+- **FR-007**: The chip draws for any Claude Code account whose fresh reading has credits
+  enabled: a subscriber with extra usage on sees it beside the windows it keeps, under the 5-hour
+  window and the model in priority and above the 7-day window. With credits off, or no fresh
+  reading, a subscriber, a budget account, a `none` account and the other harnesses draw
+  exactly as before.
+- **FR-008**: A remembered `credits` kind whose reading is stale or absent draws `credits —`,
+  not nothing and not the old figure (as `spend —` in specs/063).
+- **FR-009**: `statusline-plugin doctor` reports the `usageCredits` row with its percentages or the
+  reason it is off (no fresh `cachedUsageUtilization` for the signed-in account; not a credits
+  account).
+
+## Known limits
+
+- The figure is as fresh as Claude Code's last `/usage` fetch. The bar does not refresh it.
+- No reset moment is stored with the figure, so no countdown and no per-day pace.
+
+## Images
+
+`docs/previews/usage-credits.svg`, generated by `npm run previews`.

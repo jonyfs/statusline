@@ -51,7 +51,7 @@ await test("the top band is what a narrow terminal keeps", () => {
   const top = SEGMENTS.filter((s) => s.priority >= PRIORITY_BANDS.essential)
     .sort((a, b) => b.priority - a.priority)
     .map((s) => s.key);
-  assert.deepEqual(top, ["context", "conflicts", "branch", "dir", "spendLimit", "fiveHour", "model", "sevenDay"]);
+  assert.deepEqual(top, ["context", "conflicts", "branch", "dir", "spendLimit", "fiveHour", "model", "usageCredits", "sevenDay"]);
 });
 
 await test("the bands are ordered and named", () => {
@@ -104,7 +104,7 @@ await test("the rendered lines follow the registry's order", async () => {
 
 await test("the colour channels name real segments", async () => {
   const { inChannel } = await import("../../src/segments.js");
-  assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "burnRate", "sevenDay", "codexWindow", "premiumQuota", "chatQuota", "spendLimit", "spendPace", "promptCache", "aiCredits"]);
+  assert.deepEqual(inChannel("ramp"), ["context", "fiveHour", "burnRate", "sevenDay", "codexWindow", "premiumQuota", "chatQuota", "spendLimit", "spendPace", "usageCredits", "promptCache", "cacheHit", "aiCredits"]);
   assert.deepEqual(inChannel("change"), ["branch", "pr", "skills", "model"]);
 });
 

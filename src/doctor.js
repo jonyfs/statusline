@@ -17,6 +17,9 @@ import os from "node:os";
 import { gather, renderReadings, harnessProbes } from "./render.js";
 import { detectHarness } from "./harness.js";
 import { getCopilotQuota } from "./copilotQuota.js";
+import { getAccountKind, accountKindOf } from "./accountKind.js";
+import { readUsageCredits, readAccountIdentity } from "./usageCredits.js";
+import { creditsTrend } from "./creditsHistory.js";
 import { loadCopilotSettings, copilotPadding } from "./copilotSettings.js";
 import { checkInstall, projectOverrides, harnessStatus } from "./install.js";
 import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
@@ -88,10 +91,20 @@ const DESCRIBE = {
   projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   sevenDay: ["sevenDay", (v, now, readings) => describeWindow(v, readings?.sevenDayReset?.value, now)],
   promptCache: ["promptCache", (v) => describePromptCache(v)],
+  cacheHit: ["promptCache", (v) => (typeof v?.hitRatio === "number" ? `${Math.round(v.hitRatio * 100)}% of input tokens read from cache` : null)],
+  account: [
+    "account",
+    (v, now, readings) =>
+      v ? `${v.org ?? v.email ?? "?"}${v.seatTier ? `, ${v.seatTier}` : ""}${readings?.accountKind?.value ? `, ${readings.accountKind.value}` : ""}` : null,
+  ],
   spendLimit: [
     "spendLimit",
     (v, now, readings) =>
       v === null ? null : describeWindow(v, readings?.spendLimitReset?.value, now, { maxMs: MAX_PLAUSIBLE_SPEND_PERIOD_MS }),
+  ],
+  usageCredits: [
+    "usageCredits",
+    (v) => (v && !v.enabled ? `extra usage off${v.disabledReason ? ` (${v.disabledReason})` : ""}` : v ? `${v.pct}% of the month's credits${v.daily !== null ? `, ${v.daily}% of the day` : ""}${v.weekly !== null ? `, ${v.weekly}% of the week` : ""}${v.reached ? ", cap reached" : ""}${v.enabled ? "" : ", extra usage off"}${typeof v.resetsAt === "number" ? `, resets ${new Date(v.resetsAt * 1000).toISOString()} (from the cache)` : ", reset not in the cache (the bar estimates the 1st of next month, marked ~)"} (Claude Code's own cached /usage figure)` : null),
   ],
   spendPace: [
     "spendLimitUsd",
@@ -230,6 +243,17 @@ function absenceReason(segment, reading, readings, now) {
     if (segment.key === "spendLimit") {
       return "not in the payload: Claude Code reports a spend limit only behind a Claude gateway with spend limits";
     }
+    if (segment.key === "usageCredits") {
+      return readings?.accountKind?.value === "credits"
+        ? "no fresh cachedUsageUtilization for the signed-in account in ~/.claude.json (Claude Code refreshes it for /usage; a figure older than a day is not shown)"
+        : "extra usage is off on the signed-in account, or Claude Code has no fresh cachedUsageUtilization in ~/.claude.json (it refreshes it for /usage; a figure older than a day is not shown)";
+    }
+    if (segment.key === "cacheHit") {
+      return readings?.usageCredits?.value?.enabled
+        ? "the payload carries no prompt_cache.hit_ratio yet"
+        : "drawn only beside the credits chip (a seat billed by usage, or extra usage on)";
+    }
+    if (segment.key === "account") return "no signed-in Claude account in ~/.claude.json (under Codex the chip names the plan; Copilot and OpenCode read nothing)";
     if (segment.key === "spendPace") return "the payload carries no dollar amounts for the spend limit (needs Claude Code 2.1.284 and a gateway that sends them)";
     if (segment.key === "effort") return "the payload carries no effort level";
     if (segment.key === "outputStyle") return "no output style set";
@@ -319,6 +343,15 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     // (specs/033-copilot-parity).
     copilotSettings: loadCopilotSettings,
     getCopilotQuota: (opts) => getCopilotQuota({ ...opts, refresh: false }),
+    // The remembered account kind and the usage credits Claude Code cached
+    // (specs/063, specs/069): both read, neither written, so the diagnostic
+    // reports the same chips the bar draws without moving what it remembers.
+    getAccountKind,
+    getUsageCredits: readUsageCredits,
+    getAccountIdentity: readAccountIdentity,
+    // The trend is read and folded in exactly as the renderer does it: one
+    // more point for the same fetch changes nothing (specs/071).
+    creditsTrend,
   };
 
   const started = Date.now();
@@ -415,6 +448,10 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
 
   return {
     cwd: readings.cwd,
+    // Which kind of account the bar decided on, and from what
+    // (specs/070, FR-007): the answer to "why is my chip missing" that the
+    // per-segment reasons give only one piece of at a time.
+    account: accountOf(readings, payload, now),
     elapsedMs,
     terminal,
     // Which arrangement is in force, where it came from, and every part of
@@ -635,6 +672,36 @@ function pad(text, width) {
   return value + " ".repeat(width - value.length);
 }
 
+/**
+ * The kind of account and the evidence for it, in the words the report
+ * prints: `{ kind, evidence }`. Under Codex, Copilot and OpenCode the harness
+ * is the kind, since none of them has a Claude account behind it.
+ */
+export function accountOf(readings, payload, now = Date.now()) {
+  const harness = readings?.harness?.value;
+  if (harness === "codex") {
+    const plan = payload?.codex?.plan_type;
+    return { kind: "codex", evidence: typeof plan === "string" && plan ? `plan ${plan}` : "plan not named by the rollout" };
+  }
+  if (harness === "copilot") return { kind: "copilot", evidence: "quotas via gh" };
+  if (harness === "opencode") return { kind: "opencode", evidence: "no usage windows" };
+  const kind = readings?.accountKind?.value ?? null;
+  const seen = accountKindOf(payload);
+  const cache = readings?.usageCache?.value ?? null;
+  const hours = cache ? Math.max(0, Math.round((now - cache.fetchedAt) / 3_600_000)) : null;
+  const age = hours === null ? null : hours === 0 ? "under 1h old" : `${hours}h old`;
+  if (seen === "subscriber") return { kind: "subscriber", evidence: "5h/7d in the payload" };
+  if (seen === "budget") {
+    const period = readings?.spendLimitUsd?.value?.period;
+    return { kind: "budget", evidence: `spend_limit in the payload${period ? `, period ${period}` : ""}` };
+  }
+  if (kind === "subscriber" && cache?.windowsFromCache) return { kind, evidence: `5h/7d from Claude Code's /usage cache, ${age}` };
+  if (kind === "credits" && cache && readings?.usageCredits?.value) return { kind, evidence: `Claude Code's /usage cache, ${age}, no 5h/7d window` };
+  if (kind === "none") return { kind, evidence: "a response and no rate_limits" };
+  if (kind) return { kind, evidence: "remembered from an earlier session" };
+  return { kind: "unknown", evidence: "no response yet" };
+}
+
 export function formatReport(report) {
   const header = [
     pad("segment", 17),
@@ -692,6 +759,7 @@ export function formatReport(report) {
     ...(report.harnesses ?? []).map((h) => harnessLine(h)),
     ...(report.updates ? [report.updates] : []),
     `working directory: ${report.cwd}`,
+    ...(report.account ? [`account: ${report.account.kind} \u00b7 ${report.account.evidence}`] : []),
     arrangementLine,
     ...ignoredLines,
     `redraw: ${report.elapsedMs} ms of a ${report.budgets.redrawMs} ms budget`,

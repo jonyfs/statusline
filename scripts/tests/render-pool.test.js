@@ -90,7 +90,11 @@ await test("the fixture's bar is the golden one", () => {
     // CRLF on a Windows checkout, whatever the file was committed as.
     .replace(/\r\n/g, "\n")
     .replace(/\n$/, "");
-  assert(strip(renderReadings(readings(), PAYLOAD, opts)) === golden, "the fixture's bar changed");
+  const drawn = strip(renderReadings(readings(), PAYLOAD, opts));
+  // Name the first line that moved: a bare "changed" sends the reader to a
+  // file of private-use glyphs with nothing to look for.
+  const first = drawn.split("\n").findIndex((l, i) => l !== golden.split("\n")[i]);
+  assert(drawn === golden, `the fixture's bar changed at line ${first + 1}:\n got: ${drawn.split("\n")[first]}\n exp: ${golden.split("\n")[first]}`);
 });
 
 await test("a sample history can be supplied instead of read from disk", () => {

@@ -106,12 +106,12 @@ await test("the savings figure renders whenever there is one", () => {
   const withRtk = (pct) => ({ ...gitSources(), getRtkSavings: () => pct });
 
   const first = stripAnsi(renderPayload(payload, { sources: withRtk(80), now: NOW, ...WIDE }));
-  assert.match(first, /rtk 80% saved/);
+  assert.match(first, /\u{F1679} 80%/u);
 
   const again = stripAnsi(
     renderPayload(payload, { sources: withRtk(80), now: NOW + 6000, ...WIDE })
   );
-  assert.match(again, /rtk 80% saved/, "an unchanged figure is still the figure");
+  assert.match(again, /\u{F1679} 80%/u, "an unchanged figure is still the figure");
 
   const narrow = stripAnsi(
     renderPayload(payload, { sources: withRtk(80), now: NOW + 12000, maxWidth: 60, maxHeight: 40 })

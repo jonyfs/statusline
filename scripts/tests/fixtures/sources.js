@@ -30,6 +30,10 @@ export const emptySources = {
   readTty: () => null,
   copilotSettings: () => ({}),
   getCopilotQuota: () => null,
+  // Whose bar it is and how the credits move (specs/071) come from the
+  // machine's own files; a case says so itself or draws neither.
+  getAccountIdentity: () => null,
+  creditsTrend: () => null,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */

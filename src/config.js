@@ -22,7 +22,7 @@ const FILENAME = ".statusline.json";
  * holds the patterns that name this repository's gate scripts
  * (specs/036-direct-gates); `gateRuns.js` reads it in the detached refresh.
  */
-const KNOWN = ["flavor", "ascii", "separator", "skillWindowMin", "layout", "gates", "branchPrefixes", "contextBands"];
+const KNOWN = ["flavor", "ascii", "separator", "skillWindowMin", "layout", "gates", "branchPrefixes", "contextBands", "amounts"];
 
 /** Where a person's own arrangement lives, when they have one. */
 const USER_LAYOUT = ["\u002eclaude", "statusline", "layout.json"];
@@ -225,5 +225,8 @@ export function resolveSettings(cwd = process.cwd(), env = process.env) {
     asciiArrows: env.CLAUDE_STATUSLINE_ASCII === "1" || file.ascii === true,
     separator: env.CLAUDE_STATUSLINE_SEPARATOR || file.separator || null,
     skillWindowMin: env.CLAUDE_STATUSLINE_SKILL_WINDOW_MIN || file.skillWindowMin || null,
+    // `hide` keeps money and balances off the bar (specs/070, FR-003); any
+    // other value is `show`, the bar as it always was.
+    amounts: String(env.CLAUDE_STATUSLINE_AMOUNTS || file.amounts || "").toLowerCase() === "hide" ? "hide" : "show",
   };
 }

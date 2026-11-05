@@ -81,6 +81,10 @@ export const SEGMENTS = [
   // Everything both lines carried is still here — the terminal decides what
   // survives, not this table, and at 120 columns that is the model, the effort,
   // the three levels with their resets, and the savings figure.
+  // Whose bar this is (specs/071): the signed-in account's organisation and
+  // kind, before the model. Below the savings figure: a narrow line keeps
+  // every number before it keeps a name.
+  { key: "account", line: 3, group: "identity", order: 5, priority: 63, colour: "identity", source: "cache" },
   { key: "model", line: 3, group: "identity", order: 10, priority: 92, colour: "change", source: "payload" },
   { key: "effort", line: 3, group: "identity", order: 20, priority: 74, colour: "identity", source: "payload" },
   // Fast mode, beside the effort (specs/027-bar-polish).
@@ -116,11 +120,21 @@ export const SEGMENTS = [
   // payload carries the dollars (specs/062-budget-account). Ranked under the
   // spend chip it explains and above the cache and the duration.
   { key: "spendPace", line: 3, group: "gauges", order: 52.5, priority: 87, colour: "ramp", source: "payload" },
+  // The monthly usage credits Claude Code cached for `/usage`
+  // (specs/069-usage-credits). For a seat billed by usage it is the only
+  // allowance there is, and for a subscriber with extra usage on it is what
+  // carries work once a window is full, so it is essential: under the
+  // 5-hour window and the model, above the 7-day window.
+  { key: "usageCredits", line: 3, group: "gauges", order: 52.2, priority: 91, colour: "ramp", source: "cache" },
   // Only when the prompt cache is cold, or warm and about to go cold: the one
   // moment its state changes what you do next (specs/025-prompt-cache-chip).
   // Actionable, so it sits under the allowances and the model and above the
   // burn rate. Order 54 moves nothing that was already on the line.
   { key: "promptCache", line: 3, group: "gauges", order: 54, priority: 80, colour: "ramp", source: "payload" },
+  // The standing hit ratio for a credits seat (specs/071), after the state chip.
+  // Below the savings figure, like the account: a tight line keeps the
+  // windows and the credits before it keeps the ratio.
+  { key: "cacheHit", line: 3, group: "gauges", order: 54.5, priority: 64, colour: "ramp", source: "payload" },
   { key: "duration", line: 3, group: "savings", order: 55, priority: 50, colour: "identity", source: "payload" },
   // Copilot CLI only: the AI credits this session used, and the share of its
   // session limit when one is set (specs/033-copilot-parity). Beside the
@@ -200,6 +214,9 @@ export const SEGMENT_ABOUT = {
   codexCredits: "Codex CLI only: the credit balance Codex reports. Absent when the account has no credits, or unlimited ones.",
   sevenDay: "The seven-day usage window and when it comes back. It names the day, because beyond a day a reset is something you plan around.",
   promptCache: "The prompt cache, shown only when it matters: warm with minutes left once it is close to expiring, or cold with the tokens the next request writes again and the likely reason it was lost. Silent while there is time to spare.",
+  account: "The signed-in Claude account's organisation and the kind of account (subscriber, budget, credits, api); CLAUDE_STATUSLINE_ACCOUNT=email shows the address instead, off hides it. Under Codex, the plan the rollout names.",
+  cacheHit: "The prompt cache's hit ratio, standing, wherever the credits chip draws: the share of input tokens read from cache rather than paid in full. Bands inverted: below 40% is critical.",
+  usageCredits: "The share of your monthly usage credits used, with the day and the week when Claude Code reports them, from the figure Claude Code caches for its own /usage screen in ~/.claude.json. Percentages only, never the amounts, since a screen gets shared. Drawn while extra usage is enabled on the signed-in account: for a seat billed by usage it is the only allowance, and it has no 5-hour or 7-day window. As fresh as Claude Code's last fetch, and absent past a day. A seat with extra usage off reads credits off; a figure more than six hours old loses its band and says its age after twelve.",
   spendPace: "What is left of a dollar spend limit per day until it resets, beside what you have spent per day so far. It needs the dollar amounts Claude Code 2.1.284 and a gateway send, so it is absent without them. The gateway sends the dollars about every five minutes, so they can be that much older than the percentage.",
   spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",
   duration: "Wall-clock time since the session started.",

@@ -55,5 +55,15 @@ await test("nothing anywhere means the defaults", () => {
     asciiArrows: false,
     separator: null,
     skillWindowMin: null,
+    amounts: "show",
   });
+});
+
+await test("amounts is hide from the variable or the file, and show for anything else", () => {
+  // specs/070-account-coverage, FR-003.
+  assert.equal(resolveSettings(repoWith('{"amounts":"hide"}'), {}).amounts, "hide");
+  assert.equal(resolveSettings(repoWith('{"amounts":"HIDE"}'), {}).amounts, "hide");
+  assert.equal(resolveSettings(repoWith('{"amounts":"secret"}'), {}).amounts, "show");
+  assert.equal(resolveSettings(repoWith(null), { CLAUDE_STATUSLINE_AMOUNTS: "hide" }).amounts, "hide");
+  assert.equal(resolveSettings(repoWith('{"amounts":"hide"}'), { CLAUDE_STATUSLINE_AMOUNTS: "show" }).amounts, "show", "the variable wins");
 });

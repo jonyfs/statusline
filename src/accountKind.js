@@ -49,7 +49,10 @@ export function apiResponded(payload) {
   return typeof ms === "number" && Number.isFinite(ms) && ms > 0;
 }
 
-const KINDS = ["subscriber", "budget", "none"];
+// "credits" is a seat billed by usage (specs/069-usage-credits): no window,
+// a monthly credit cap that Claude Code caches in `~/.claude.json`. The
+// payload never says it; the cache does, so the renderer decides it.
+const KINDS = ["subscriber", "budget", "credits", "none"];
 
 /** The remembered kind, or null when none was seen in the last 30 days. */
 export function getAccountKind({ now = Date.now() } = {}) {

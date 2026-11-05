@@ -80,6 +80,11 @@ export const MAX_AGE_MS = {
   spendLimitReset: 1_000,
   spendLimitUsd: 1_000,
   spendPace: 1_000,
+  usageCredits: 1_000,
+  usageCache: 1_000,
+  account: 1_000,
+  creditsTrend: 1_000,
+  cacheHit: 1_000,
   // The kind of account last seen (specs/063-account-kind): it fills the
   // gap while the payload cannot say, so it outlives a billing period.
   accountKind: 30 * 24 * 60 * 60 * 1000,

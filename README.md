@@ -23,7 +23,7 @@ the code does, because they *are* what the code does.
 |---|---|
 | 1 | Working directory, repository, branch, worktree, uncommitted and untracked counts, lines this session changed, merge conflicts, commits to push and pull, open pull request, last CI run, and the statusline's own update state |
 | 2 | Skills used recently, as one list, then todo progress, whether Claude is working or idle, and the vim mode while vim mode is on |
-| 3 | Model and effort level, `fast` while fast mode is on, the context window, the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
+| 3 | The signed-in account, model and effort level, `fast` while fast mode is on, the context window (`200k+` past the long-context threshold), the 5-hour and 7-day windows each with its own reset, the spend limit where a gateway reports one, the share of the monthly usage credits used where Claude Code has cached it, the prompt cache when it is about to go cold or has, burn rate with the time it runs out, session duration, rtk savings |
 
 A segment with nothing to say is dropped rather than shown empty, so the bar
 is only as wide as what you have.
@@ -604,11 +604,101 @@ balance from what you have spent, how many messages you sent, or how long you
 have been working. `statusline-plugin doctor` tells you which case you are in:
 its `spendLimit` row is either on with its figure, or off with the reason.
 
-`/usage` in Claude Code also shows a Sonnet-only week, an Opus-only week and
-extra usage. Claude Code does not send those to the status line, and fetching
-them would mean reading its login token, so the bar does not show them. The
-5-hour and 7-day chips are the same figures `/usage` calls the current session
-and the current week.
+**A seat billed by usage.** A Claude Enterprise seat on usage-based billing has
+no 5-hour or 7-day window at all; its allowance is a monthly cap on usage
+credits, and Claude Code sends none of it to the status line. Claude Code does
+fetch that figure for its own `/usage` screen and keeps the last answer in
+`~/.claude.json`, so the bar reads it from there, as written: `󰖄 10%`,
+in the usage colours, with `full` once the cap is reached, and `· day 3% ·
+week 9%` after it when Claude Code reports those too (specs/069-usage-credits).
+Only percentages are drawn, never the amounts: a status line is shared on
+screens and in screenshots, and a seat's cap is its own business. Nothing is fetched and no login token is read; the
+chip is as fresh as Claude Code's last `/usage` fetch and goes away when that is
+more than a day old, or when the figure belongs to another account than the one
+signed in. Such a seat draws no `5h` or `7d` chip, and the kind is remembered for
+30 days the way a budget account's is, so a stale figure reads `credits —`
+rather than bringing the placeholders back. A Pro, Max or Ultra subscriber with
+extra usage enabled sees the same chip beside the windows it keeps; with extra
+usage off, nothing changes. A seat whose credits were switched off reads
+`credits off` instead, since the cap is the one thing it is metered by. The chip
+carries no reset and no per-day pace, because the cached figure has neither.
+When Claude Code's own word for the spend is `critical` or `warning`, the chip
+takes that band whatever the rounded percentage says (specs/070-account-coverage).
+
+**Before the first response.** Claude Code sends a subscriber's `5h` and `7d`
+only after the session's first API response, so a fresh session used to open
+with no window at all. The same `/usage` cache carries both windows, and the bar
+draws them from there until the payload brings its own, which then wins. Nothing
+is estimated: the cache holds the percentage and the reset instant, exactly what
+the payload carries later.
+
+**How old a cached figure is.** A chip drawn from that cache, the credits or the
+windows, is as fresh as Claude Code's last `/usage` fetch. After six hours it
+loses its colour band; after twelve it says so, `󰖄 11% · 14h`, and the age
+is the first thing a narrow terminal sheds. After a day the reader answers absent.
+
+**No money on the bar.** `CLAUDE_STATUSLINE_AMOUNTS=hide`, or `"amounts": "hide"`
+in `.statusline.json`, keeps every amount and balance off the bar in every
+harness: the `spend` chip draws its percentage form only, the per-day pace chip
+is not drawn, Codex's credit balance is not drawn, and Copilot's AI credits draw
+as `AIC 32%` against the session's limit, or not at all without one. The default
+is `show`, the bar as it was. `doctor` still prints the amounts it has, since
+nobody screenshots a diagnostic.
+
+**What burns the credits, and whose they are.** For a seat billed by usage the bar
+also says what is spending the month (specs/071-line-3-credits-seat). A context
+past 200k input tokens reads `72% · 200k+` in red, since the long-context price
+applies from there. The credits chip carries `+0.4%/h`, measured across Claude
+Code's own fetches of the figure over the last day, and `+1.2% session`, how far
+it moved since this session's first redraw; neither is projected to the cap,
+because the cache names no reset. A standing `󰞌 82%` chip shows the prompt
+cache's hit ratio wherever the credits chip draws, with the bands inverted,
+because paying full price for input is the one cost a session controls. The
+chip ends with when the cap comes back, as a day and a time in your computer's
+zone: the cache's own reset when Claude Code has one, else the first of next
+month at midnight marked `~dec 1 00:00`, since neither Claude Code's cache nor
+Anthropic's documentation names the cap's period; `CLAUDE_STATUSLINE_CREDITS_RESET=off`
+drops the estimate. Three
+switches add more: `CLAUDE_STATUSLINE_SESSION_SHARE=1` puts `session 0.4%` on the
+credits chip, this session's estimated cost over the cap, the one estimated figure
+the bar draws and off for that reason; `CLAUDE_STATUSLINE_MODEL_TIER=1` marks the
+model `+++`, `++` or `+` by price tier; and the `account` chip before the model
+names whose credits these are, `Acme · credits`, from the signed-in account's
+organisation (`CLAUDE_STATUSLINE_ACCOUNT=email` for the address, `off` for none),
+so two accounts on one computer never get confused. Under Codex the same chip
+names the plan, `codex pro`.
+
+**The icon says what, the number says how much.** Line 3 reads the way the context
+chip always has: `󰧑 81%`, no word. The chips that repeated their icon in words
+lost the word (specs/072-line-3-grammar): the credits are `󰖄 11%`, the savings
+`󱙹 81%`, the cache hit ratio `󰞌 82%` with the snowflake in place of the hourglass
+when the cache is cold, so the `cache cold` chip beside it shrinks to what the icon
+cannot say (`󰜗 184k`, the tokens a cold cache writes again),
+and the account drops `· credits` when the credits chip stands next to it. A word
+stays where it carries what the icon does not: `5h`, `7d` and `30d` are window
+lengths, `month premium` is a quota's name, and `spend` shares the wallet with the
+credits. `CLAUDE_STATUSLINE_LABELS=on` brings every word back.
+
+**Which kind of account the bar decided on.** `statusline-plugin doctor` prints
+one line above the segment table, `account: <kind> · <evidence>`: `subscriber ·
+5h/7d in the payload`, `subscriber · 5h/7d from Claude Code's /usage cache, 3h
+old`, `budget · spend_limit in the payload, period monthly`, `credits · Claude
+Code's /usage cache, 3h old, no 5h/7d window`, `none · a response and no
+rate_limits`, a kind `remembered from an earlier session`, or `unknown · no
+response yet`. Under Codex it names the plan the rollout reports, under Copilot
+`quotas via gh`, under OpenCode `no usage windows`.
+
+![A seat billed by usage: the monthly credits, no windows](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/usage-credits.svg)
+
+![A dollar budget with amounts hidden: the spend as a percentage only](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/amounts-hidden.svg)
+
+![A seat billed by usage, line 3 in full: the account, a context past 200k, the credits with their rate and the cache hit ratio](https://raw.githubusercontent.com/jonyfs/statusline/main/docs/previews/credits-seat-line3.svg)
+
+`/usage` in Claude Code also shows a Sonnet-only week and an Opus-only week.
+Claude Code does not send those to the status line, and fetching them would mean
+reading its login token, so the bar does not show them. The 5-hour and 7-day
+chips are the same figures `/usage` calls the current session and the current
+week.
 
 To see what your own Claude Code sends, start it with `CLAUDE_STATUSLINE_DEBUG=1`
 in its environment. Every redraw then writes the raw payload to
@@ -827,7 +917,7 @@ they have. A few rules keep the line from moving as figures change:
   take the same width and the chips after them stay put.
 - A duration under an hour is `45m`, and an hour or more is `2h09`, with no trailing `m`.
 - A reset is introduced by its own icon instead of a dot.
-- A chip that has a short form (`rtk 81% saved` is `81%`) shows it before the width guard drops
+- A chip that has a short form (`󰖄 11% · +0.4%/h` is `󰖄 11%`) shows it before the width guard drops
   the chip. The context chip has no word at all: its icon and the figure. The directory, branch,
   skills and effort chips end in their icon alone, so a narrow line shortens them before it
   drops them; the model chip has no icon-only form, since an icon names no model.
@@ -1205,6 +1295,12 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_BLOCK=1` | Pads every line to the widest with spaces on the `mantle` colour, so the right edge is a block |
 | `CLAUDE_STATUSLINE_SPARKLINE=1` | Adds the last eight samples beside the burn rate and, with eight readings, beside the context figure |
 | `CLAUDE_STATUSLINE_EVENT_EMOJI=1` | In the Nerd Font tier, draws 💥, 🔥 and 🚀 for conflicts, a critical burn rate and an applied update |
+| `CLAUDE_STATUSLINE_ACCOUNT` | `org` (default) draws the signed-in Claude account's organisation and kind on line 3, `email` the address instead, `off` nothing |
+| `CLAUDE_STATUSLINE_SESSION_SHARE=1` | Adds `session 0.4%` to the credits chip: the session's estimated cost as a share of the month's cap. The one estimated figure on the bar, off by default |
+| `CLAUDE_STATUSLINE_LABELS=on` | Puts the words back on the chips whose icon says the same: `credits 11%`, `rtk 81% saved`, `cache 82%` beside a separate `cache cold`, `Acme · credits` |
+| `CLAUDE_STATUSLINE_CREDITS_RESET=off` | Drops the estimated `~dec 1 00:00` from the credits chip. A reset the cache itself carries is still drawn |
+| `CLAUDE_STATUSLINE_MODEL_TIER=1` | Appends `+++`, `++` or `+` to the model's name by price tier (Opus and Fable, Sonnet, Haiku), from a table in the plugin |
+| `CLAUDE_STATUSLINE_AMOUNTS=hide` | Keeps money and balances off the bar in every harness: the `spend` chip as a percentage, no per-day pace, no Codex balance, Copilot's AI credits as a share of the session limit. Any other value is `show` |
 | `CLAUDE_STATUSLINE_SKILL_WINDOW_MIN` | Minutes a skill stays listed after its last use (default 30) |
 | `CLAUDE_STATUSLINE_DEBUG=1` | Dumps the raw payload Claude Code sent to `~/.claude/statusline/debug-last-payload.json` on every redraw, for checking what your version sends or when a field changes shape. Without it the file is never written |
 | `CLAUDE_STATUSLINE_NO_REFRESH=1` | Never starts a background refresh. The pull request, CI and rtk segments then show only what is already cached. Used when generating previews and running tests |
@@ -1223,17 +1319,18 @@ repository root:
 { "flavor": "gruvbox", "separator": "thin", "skillWindowMin": 60 }
 ```
 
-Seven keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin`,
-`layout`, `gates` and `branchPrefixes`. `gates` holds the patterns that name the
-repository's gate scripts (see "Gate scripts run without a hook"), and
-`branchPrefixes` maps a branch prefix to its short form. Anything else in the
+Nine keys are read: `flavor`, `ascii`, `separator`, `skillWindowMin`,
+`layout`, `gates`, `branchPrefixes`, `contextBands` and `amounts`. `gates` holds
+the patterns that name the repository's gate scripts (see "Gate scripts run
+without a hook"), `branchPrefixes` maps a branch prefix to its short form, and
+`amounts: "hide"` keeps money and balances off the bar. Anything else in the
 file is ignored. An environment variable always
 wins, and a file in your home directory is ignored entirely, because settings
 that live in a repository travel to everyone who clones it.
 
 ## Arranging the bar yourself
 
-The default puts thirty-five segments on three lines, and it is a default
+The default puts thirty-eight segments on three lines, and it is a default
 rather than a verdict. `doctor --explain` lists every segment key. If you
 want the burn rate first, the pull request last and the savings figure gone,
 say so in an arrangement:
@@ -1295,6 +1392,7 @@ node bin/cli.js doctor | head -5
 
 ```text
 working directory: /Users/dev/projects/statusline
+account: subscriber · 5h/7d in the payload
 arrangement: "mine" from user (/Users/dev/.claude/statusline/layout.json)
   ignored segment on notASegment: no such segment
   ignored line on branch: not a line the bar has
@@ -1856,6 +1954,14 @@ to point at, so it carries no link rather than one pointing elsewhere. For a
 while it pointed at this README instead, and in someone else's project most of
 the bar then linked to a repository that was not theirs — correct by
 construction, and indistinguishable from a bug.
+
+The one exception is a credit figure, which does have a page of its own: your
+account's. The `credits` chip (the figure, `credits —` and `credits off`) opens
+`claude.ai/settings/usage`, Codex's balance opens `chatgpt.com/codex/settings/usage`,
+and Copilot's AI credits open `github.com/settings/billing`. No link can open
+Claude Code's own `/usage` screen from a terminal, so the web page is the
+nearest thing. The gateway's `spend` chip stays unlinked: the payload names no
+page for it.
 
 ## Asking what a segment shows
 
