@@ -13,7 +13,7 @@ status: done
 statusline e adicione um icone de help no fim da terceira linha, no canto direito … explicando o que
 significa cada informação exibida pelo statusline, de forma bem detalhada usando /humanizer … com
 opção de pt-br, inglês, francês e espanhol, onde o default é conforme o browser do usuário ou inglês …
-a página usará a lib i18n … esta página html não pode em nenhuma hipótese usar design system da intelie."
+a página usará a lib i18n … esta página html não pode em nenhuma hipótese usar design system de empresa."
 
 ## Requirements
 

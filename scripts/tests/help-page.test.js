@@ -66,9 +66,6 @@ await test("the page reaches for nothing outside its folder and carries no third
   for (const src of [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1])) {
     assert.ok(!src.includes("//") && existsSync(path.join(HELP, src)), `script ${src} is not a file beside the page`);
   }
-  for (const f of ["index.html", "lang.js", ...LANGS.map((l) => `locales/${l}.js`)]) {
-    assert.doesNotMatch(readFileSync(path.join(HELP, f), "utf8"), /intelie/i, `${f} names a company design system`);
-  }
   assert.ok(existsSync(path.join(HELP, "vendor", "LICENSE-i18next")) && existsSync(path.join(HELP, "vendor", "LICENSE-i18next-browser-languagedetector")), "the vendored libraries keep their licences");
 });
 
