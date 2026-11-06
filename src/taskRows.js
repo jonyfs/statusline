@@ -20,6 +20,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { canWrite, stateRoot, readablePath } from "./paths.js";
 import path from "node:path";
 import os from "node:os";
+import { loadTotals } from "./sessionTotals.js";
 import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
 import { eighthsBar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
@@ -153,7 +154,7 @@ const MAX_COLUMN = 48;
  * row and the token count on the next, and padding them to a common width
  * lines up things that are not the same thing.
  */
-function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [], treePrefix = "", asciiArrows } = {}) {
+function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.now(), nameIsShared = false, skills = [], treePrefix = "", asciiArrows, share = null } = {}) {
   // Text, or the placeholder. A name that arrives as an object interpolates
   // as the literal `[object Object]` into the column a reader uses to tell
   // one agent from another.
@@ -215,6 +216,8 @@ function taskCells(task, { columns = 80, palette = PALETTES.mocha, now = Date.no
     cell(gauge, pct === null ? palette.green : palette[rampColour(pct, "green")] ?? palette.green),
     cell(counted === null ? null : abbreviate(counted), palette.surface2),
     cell(elapsed(task.startTime, now), palette.surface2),
+    // The agent's share of the session's tokens (specs/077, FR-001).
+    cell(typeof share === "number" && share > 0 ? `${share}% of session` : null, palette.surface2),
   ];
 }
 
@@ -272,6 +275,7 @@ function joinCells(cells, widths, palette) {
  * it is doing now, and what it costs.
  */
 const SHED_ORDER = [
+  9, // the share of the session: a proportion the gauge does not say, but the least urgent
   7, // the token count: the gauge beside it already says the proportion
   8, // the age: the least actionable thing on the row
   6, // the gauge: its percentage is the last of it to go
@@ -341,6 +345,8 @@ function taskStep(task) {
 /** A status worth a column: `running` is what every row already looks like. */
 function taskStatus(task) {
   const status = plainText(task?.status);
+  // A task not started yet is queued (specs/077, FR-002).
+  if (status === "pending") return "queued";
   return status && status !== "running" ? status : null;
 }
 
@@ -567,10 +573,25 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   // off with an empty `content`. Hidden agents are left out of the alignment,
   // so they do not size the columns of the rows that remain.
   const before = readFinishedMemory(sessionId);
-  const { visible, hidden, next: finished } = splitFinished(tasks, before, now);
+  const { visible: inGrace, hidden, next: finished } = splitFinished(tasks, before, now);
   if (JSON.stringify(finished) !== JSON.stringify(before)) writeFinishedMemory(sessionId, finished);
   const hideLines = hidden.map((id) => ({ id, content: "" }));
-  if (!visible.length) return hideLines.map((row) => JSON.stringify(row)).join("\n");
+  // Two or more finished agents inside their grace draw as one row
+  // (specs/077, FR-004), carried by the first's id; the others come off.
+  const done = inGrace.filter((t) => isFinished(t));
+  const visible = done.length >= 2 ? inGrace.filter((t) => !isFinished(t)) : inGrace;
+  const summary = done.length >= 2 ? finishedSummaryRow(done, { columns, palette, asciiArrows: false }) : null;
+  if (summary) for (const t of done.slice(1)) hideLines.push({ id: t.id, content: "" });
+  if (!visible.length && !summary) return hideLines.map((row) => JSON.stringify(row)).join("\n");
+
+  // Each agent's share of the session's tokens (specs/077, FR-001), from
+  // the totals the bar keeps for the session's transcript.
+  const totals = loadTotals(sessionId);
+  const shareByAgent = new Map();
+  const sessionTotal = totals.input + totals.output + totals.cacheRead + totals.cacheWrite;
+  if (sessionTotal > 0) {
+    for (const [id, spent] of Object.entries(totals.agentTotals)) shareByAgent.set(id, Math.round((spent / sessionTotal) * 100));
+  }
 
   const remembered = readWidthMemory(sessionId);
   let used = [];
@@ -580,8 +601,10 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
     now,
     skillsByAgent,
     remembered,
+    shareByAgent,
     reportWidths: (w) => (used = w),
   });
+  if (summary) rows.push(summary);
   // Only what a column actually reached is remembered, and only upwards.
   const next = remembered.slice();
   for (const i of REMEMBERED_COLUMNS) {
@@ -594,6 +617,19 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
 }
 
 /**
+ * One row for several finished agents (specs/077, FR-004): the count, then
+ * their names as far as the width allows.
+ */
+export function finishedSummaryRow(done, { columns = 80, palette = PALETTES.mocha } = {}) {
+  const failed = done.filter((t) => plainText(t?.status) !== "completed").length;
+  const mark = failed ? `\u2717 ${done.length} done, ${failed} failed` : `\u2713 ${done.length} done`;
+  const names = done.map((t) => plainText(t?.name) ?? plainText(t?.type) ?? "task").filter((n) => !GENERIC_TASK_NAMES.has(n));
+  let plain = names.length ? `${mark}${SEP}${names.join(", ")}` : mark;
+  if (displayWidth(plain) > columns) plain = cutToWidth(plain, columns);
+  return { id: done[0].id, content: `${fg(failed ? palette.red : palette.green)}${plain}${reset()}` };
+}
+
+/**
  * A tick's rows, aligned against each other and shed to fit.
  *
  * Separated from `runTaskRows` so the README's illustration can be produced
@@ -601,7 +637,7 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
  * input it needs is an argument: it reads no stdin, no environment and no
  * state directory, so the same tasks render the same rows anywhere.
  */
-export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, now = Date.now(), skillsByAgent = new Map(), remembered = [], reportWidths = null, asciiArrows } = {}) {
+export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, now = Date.now(), skillsByAgent = new Map(), remembered = [], reportWidths = null, shareByAgent = new Map(), asciiArrows } = {}) {
   // Which names fail to tell one running task from another. Computed over the
   // whole tick, because a name can only be judged against its siblings.
   const seen = new Map();
@@ -650,6 +686,7 @@ export function alignTaskRows(tasks, { columns = 80, palette = PALETTES.mocha, n
     skills: skillsByAgent.get(task?.id) ?? [],
     treePrefix: prefixes.get(task?.id) ?? "",
     asciiArrows,
+    share: shareByAgent.get(task?.id) ?? null,
   });
 
   // Two passes: the columns can only be sized once every row in the tick has

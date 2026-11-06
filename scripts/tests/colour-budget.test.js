@@ -59,11 +59,12 @@ await test("the skill chip is flamingo and the model is lavender", () => {
   assert.equal(byKey.conflicts.color, "red");
 });
 
-await test("red is for the critical band and conflicts only", () => {
+await test("red is for the critical band, conflicts and a blocked pull request only", () => {
   // The fixture's 7-day window is 77% used with about half of it gone, which
-  // is 24 points ahead of pace: critical by feature 046's rule.
+  // is 24 points ahead of pace: critical by feature 046's rule. Its pull
+  // request is blocked (specs/074), which is the same claim about the merge.
   const reds = pool().filter((e) => e.color === "red").map((e) => e.key);
-  assert.deepEqual(reds, ["conflicts", "sevenDay"]);
+  assert.deepEqual(reds, ["conflicts", "prMerge", "sevenDay"]);
 });
 
 await test("a healthy gauge is neutral with a green icon, a warn gauge peach", () => {

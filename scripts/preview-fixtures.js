@@ -91,6 +91,16 @@ const noSources = {
   readTty: () => null,
   copilotSettings: () => ({}),
   getCopilotQuota: () => null,
+  // The session totals (specs/073): a preview reads no transcript.
+  getSessionTotals: () => null,
+  // The repository's alerts and the branch's standing (specs/074).
+  getAlerts: () => null,
+  getBranchMeta: () => null,
+  // MCP servers and the skill count (specs/075).
+  getMcpServers: () => null,
+  getSkillSessionCount: () => 0,
+  // The help page (specs/078): previews draw the bar without it.
+  getHelpPage: () => null,
 };
 
 export const SCENARIOS = [

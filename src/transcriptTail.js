@@ -244,6 +244,12 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
   const pendingShells = new Set();
   const pendingAgents = new Set();
   const backgroundCutoff = now - BACKGROUND_MAX_AGE_MS;
+  // The Skill tool calls in the window and their results (specs/075): the
+  // walk is newest-first, so a call's result is already in `results` when
+  // the call itself is reached.
+  const results = new Map();
+  const skillRuns = [];
+  let permissionMode = null;
 
   const { truncated, bytesRead } = readTailLines(file, {
     byteCap,
@@ -257,6 +263,9 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
       }
 
       const stamp = Date.parse(entry?.timestamp ?? "");
+      if (permissionMode === null && entry?.type === "permission-mode" && typeof entry.permissionMode === "string") {
+        permissionMode = entry.permissionMode;
+      }
       let inWindow = true;
       if (Number.isFinite(stamp)) {
         // The newest usable stamp is the last thing the session did. The
@@ -286,6 +295,11 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
 
       const blocks = entry?.message?.content;
       if (!Array.isArray(blocks)) return false;
+      for (const block of blocks) {
+        if (block?.type === "tool_result" && typeof block.tool_use_id === "string" && !results.has(block.tool_use_id)) {
+          results.set(block.tool_use_id, { at: Number.isFinite(stamp) ? stamp : null, error: block.is_error === true });
+        }
+      }
 
       if (!newestSeen) {
         newestSeen = true;
@@ -302,6 +316,19 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
         for (const block of toolUseBlocksIn(entry)) {
           if (String(block.name || "").toLowerCase() !== "skill") continue;
           const skillName = block.input?.skill || block.input?.name;
+          // Only the answer itself: Claude Code also writes copies of each
+          // request (`api-request-blob`, no timestamp) that repeat the same
+          // tool calls and are newer than their results.
+          if (skillName && typeof block.id === "string" && entry?.type === "assistant") {
+            const result = results.get(block.id) ?? null;
+            skillRuns.push({
+              skill: String(skillName),
+              startedAt: Number.isFinite(stamp) ? stamp : null,
+              endedAt: result?.at ?? null,
+              finished: result !== null,
+              error: result ? result.error : null,
+            });
+          }
           if (skillName && !seen.has(skillName)) {
             seen.add(skillName);
             skills.push(skillName);
@@ -335,6 +362,8 @@ export function scanTail(file, { limit = 3, windowMs = 30 * 60 * 1000, now = Dat
     lastAt,
     awaiting,
     background: { shells: pendingShells.size, agents: pendingAgents.size },
+    skillRuns,
+    permissionMode,
     truncated,
     bytesRead,
   };

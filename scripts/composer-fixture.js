@@ -42,6 +42,16 @@ export const PAYLOAD = {
     number: 128,
     url: "https://github.com/jonyfs/statusline/pull/128",
     review_state: "approved",
+    // What decides the next step (specs/074), fixed so the chips pool.
+    mergeStateStatus: "BLOCKED",
+    reviewRequests: 2,
+    statusCheckRollup: [{ name: "test (ubuntu)", status: "COMPLETED", conclusion: "SUCCESS" }, { name: "lint", status: "COMPLETED", conclusion: "FAILURE" }, { name: "build", status: "IN_PROGRESS", conclusion: null }],
+    autoMergeRequest: { mergeMethod: "SQUASH" },
+    createdAt: "2025-09-10T10:00:00Z",
+    additions: 412,
+    deletions: 87,
+    changedFiles: 23,
+    threads: 3,
   },
   context_window: { used_percentage: 46 },
   rate_limits: {
@@ -105,7 +115,24 @@ export const SOURCES = {
     state: "OPEN",
     isDraft: false,
     url: "https://github.com/jonyfs/statusline/pull/128",
+    // What decides the next step (specs/074), fixed so the chips pool.
+    mergeStateStatus: "BLOCKED",
+    reviewRequests: 2,
+    statusCheckRollup: [{ name: "test (ubuntu)", status: "COMPLETED", conclusion: "SUCCESS" }, { name: "lint", status: "COMPLETED", conclusion: "FAILURE" }, { name: "build", status: "IN_PROGRESS", conclusion: null }],
+    autoMergeRequest: { mergeMethod: "SQUASH" },
+    createdAt: "2025-09-10T10:00:00Z",
+    additions: 412,
+    deletions: 87,
+    changedFiles: 23,
+    threads: 3,
   }),
+  getAlerts: () => ({ dependabot: 2, codeScanning: 0, total: 2 }),
+  // MCP servers and the skill count (specs/075), fixed so the chips pool.
+  getMcpServers: () => ({ count: 4, names: ["github", "playwright", "slack", "docs"] }),
+  // The help page (specs/078), a fixed path so the chip pools.
+  getHelpPage: () => "/opt/statusline/help/index.html",
+  getSkillSessionCount: () => 7,
+  getBranchMeta: () => ({ branch: "redesign", defaultBranch: "main", firstCommitAt: 1757000000 }),
   getCiStatus: () => ({ status: "completed", conclusion: "success", workflow: "CI" }),
   getActiveSkills: () => ["speckit-implement", "humanizer"],
   getActiveSkillsTrueCount: () => 2,
@@ -114,6 +141,9 @@ export const SOURCES = {
     skills: ["speckit-implement", "humanizer"],
     todos: { done: 9, total: 24, current: "the composer page" },
     working: true,
+    // The permission mode and the skill runs (specs/075), fixed so the chips pool.
+    permissionMode: "auto",
+    skillRuns: [{ skill: "speckit-implement", startedAt: NOW_MS - 12 * 60_000, endedAt: null, finished: false, error: null }],
     // A Copilot session limit, so the credits chip shows its share of it.
     sessionLimit: 20,
   }),
@@ -137,9 +167,11 @@ export const SOURCES = {
   copilotSettings: () => ({}),
   // The usage credits Claude Code caches for /usage (specs/069-usage-credits),
   // so the composer has the chip to arrange without reading ~/.claude.json.
-  getUsageCredits: () => ({ pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: true, fetchedAt: NOW_MS - 3600000 }),
+  getUsageCredits: () => ({ pct: 10, daily: null, weekly: null, enabled: true, reached: false, hasWindows: true, fetchedAt: NOW_MS - 3600000, windows: { fiveHour: null, sevenDay: null, perModel: [{ model: "opus", pct: 40, resetsAt: null }, { model: "sonnet", pct: 12, resetsAt: null }] } }),
   // Whose bar it is (specs/071): a fixed organisation, so the composer can pool the chip.
   getAccountIdentity: () => ({ org: "example-org", email: null, seatTier: null, orgType: null }),
+  // The session's totals (specs/073), fixed so the chips pool.
+  getSessionTotals: () => ({ total: 1_234_000, perMinute: 3100, agentTokens: 420_000, mix: { model: "claude-opus-5-5", pct: 20 }, turns: 42, toolCalls: 42, tools: [["Bash", 30], ["Read", 12]], over200kMs: 0 }),
   readTty: () => null,
   getGateRuns: () => [
     { pid: 101, hook: "pre-commit", worktree: "statusline", path: "/Users/dev/projects/statusline", branch: "004-statusline-redesign-research", step: "gates.sh \u203a review-cycle.test.sh", startedAt: NOW_MS - 184000, state: "running" },

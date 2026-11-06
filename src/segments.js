@@ -50,13 +50,23 @@ export const SEGMENTS = [
   { key: "worktree", line: 1, order: 25, priority: 88, colour: "identity", source: "payload" },
   { key: "conflicts", line: 1, order: 28, priority: 99, colour: "identity", source: "git" },
   { key: "worktreeState", line: 1, order: 30, priority: 86, colour: "identity", source: "git" },
+  // How old the branch is (specs/074), after its state.
+  { key: "branchAge", line: 1, order: 32, priority: 43, colour: "identity", source: "cache" },
   // Not repository state: it is what this session changed, from the
   // payload's own counters rather than from git. It sits here because it
   // reads as a diff stat and belongs beside the other change counts, and it
   // keeps its low priority, so it is the first thing line 1 drops.
   { key: "linesChanged", line: 1, order: 35, priority: 48, colour: "identity", source: "payload" },
   { key: "pr", line: 1, order: 50, priority: 82, colour: "change", source: "gh" },
+  // What decides the request's next step (specs/074-pr-state), each its own
+  // chip so width drops them one at a time.
+  { key: "prMerge", line: 1, order: 51, priority: 59, colour: "identity", source: "gh" },
+  { key: "prChecks", line: 1, order: 52, priority: 57, colour: "identity", source: "gh" },
+  { key: "prReview", line: 1, order: 53, priority: 55, colour: "identity", source: "gh" },
+  { key: "prSize", line: 1, order: 54, priority: 49, colour: "identity", source: "gh" },
   { key: "ci", line: 1, order: 60, priority: 56, colour: "identity", source: "gh" },
+  // The repository's open alerts (specs/074), hourly.
+  { key: "alerts", line: 1, order: 65, priority: 54, colour: "identity", source: "gh" },
   // The statusline's own update state (specs/026-update-check): about the
   // install, not the session, so it sits with the repository's state. Useful
   // band, after the CI tick, so nothing already on the line moves.
@@ -70,6 +80,12 @@ export const SEGMENTS = [
   { key: "skills", line: 2, order: 10, priority: 76, colour: "change", source: "transcript" },
   { key: "todo", line: 2, order: 20, priority: 70, colour: "identity", source: "transcript" },
   { key: "activity", line: 2, order: 30, priority: 68, colour: "identity", source: "transcript" },
+  // The tool calls so far (specs/073-session-totals): after what the session is doing.
+  { key: "toolCalls", line: 2, order: 35, priority: 46, colour: "identity", source: "transcript" },
+  // The permission mode (specs/075), after what the session is doing; the
+  // MCP servers before the vim mode.
+  { key: "permissionMode", line: 2, order: 32, priority: 65, colour: "identity", source: "transcript" },
+  { key: "mcp", line: 2, order: 38, priority: 41, colour: "identity", source: "cache" },
   // The editor's vim mode, when vim mode is on (specs/027-bar-polish).
   { key: "vim", line: 2, order: 40, priority: 42, colour: "identity", source: "payload" },
 
@@ -97,6 +113,9 @@ export const SEGMENTS = [
   { key: "fiveHour", line: 3, group: "gauges", order: 40, priority: 94, colour: "ramp", source: "payload" },
   { key: "burnRate", line: 3, group: "gauges", order: 42, priority: 66, colour: "ramp", source: "samples" },
   { key: "sevenDay", line: 3, group: "gauges", order: 50, priority: 90, colour: "ramp", source: "payload" },
+  // The week's rate and the per-model weeks (specs/076), after the 7-day chip.
+  { key: "sevenDayRate", line: 3, group: "gauges", order: 50.3, priority: 52, colour: "identity", source: "samples" },
+  { key: "weeklyModels", line: 3, group: "gauges", order: 50.6, priority: 51, colour: "ramp", source: "cache" },
   // Codex only (specs/037-codex-windows). A window that is neither 5 hours nor
   // 7 days, such as the free plan's 30 days, stands beside the 7-day slot it
   // takes the place of. Ranked with the windows: on the free plan it is the
@@ -136,6 +155,8 @@ export const SEGMENTS = [
   // windows and the credits before it keeps the ratio.
   { key: "cacheHit", line: 3, group: "gauges", order: 54.5, priority: 64, colour: "ramp", source: "payload" },
   { key: "duration", line: 3, group: "savings", order: 55, priority: 50, colour: "identity", source: "payload" },
+  // What the session has spent (specs/073-session-totals), beside how long it has run.
+  { key: "sessionTokens", line: 3, group: "savings", order: 55.5, priority: 47, colour: "identity", source: "transcript" },
   // Copilot CLI only: the AI credits this session used, and the share of its
   // session limit when one is set (specs/033-copilot-parity). Beside the
   // premium requests, the other thing Copilot bills a session by.
@@ -146,6 +167,9 @@ export const SEGMENTS = [
   // then the projection and the burn rate — all three derived from figures
   // that stay on the line.
   { key: "rtk", line: 3, group: "savings", order: 60, priority: 72, colour: "identity", source: "rtk" },
+  // The help page (specs/078-help-page): the last chip, right-aligned, and
+  // the first to go for width.
+  { key: "help", line: 3, group: "savings", order: 99, priority: 40, colour: "identity", source: "cache" },
 ];
 
 const BY_KEY = new Map(SEGMENTS.map((s) => [s.key, s]));
@@ -197,6 +221,12 @@ export const SEGMENT_ABOUT = {
   gates: "The git hooks running in this repository's worktrees: which hook, in which worktree and branch, what it is running now and for how long, one row each after the bar. A run waiting for another's gates.lock says so. Only when the window is too short does it shrink to a count on line 1.",
   skills: "The skills shaping this session, newest first, dropped once they fall outside the activity window. A skill a subagent invoked belongs to that subagent's row instead.",
   todo: "The current todo and how far the list has got.",
+  prMerge: "Whether the pull request can be merged, as GitHub reports it: mergeable, behind, conflicts or blocked, and automerge when it is armed.",
+  prChecks: "The pull request's checks: passed, failed and running, then the name of the first failure.",
+  prReview: "Reviewers asked who have not answered, and review threads still unresolved.",
+  prSize: "The pull request's size in lines and files, and its age.",
+  alerts: "Open Dependabot and code-scanning alerts of the repository, refreshed hourly; nothing where the endpoints refuse.",
+  branchAge: "How long since the branch's first commit past the default branch.",
   activity: "What the session is doing: working (the transcript grew in the last ten seconds, or a subagent of this session is running, with a spinner that turns once a redraw), idle, sleeping after five quiet minutes, or your turn when its newest entry is a question or a plan that has no answer yet. Nothing emits \"thinking now\", so this is the honest approximation.",
   model: "The model answering, and how much of its context window this session carries.",
   effort: "The reasoning effort it is running at.",
@@ -217,8 +247,15 @@ export const SEGMENT_ABOUT = {
   account: "The signed-in Claude account's organisation and the kind of account (subscriber, budget, credits, api); CLAUDE_STATUSLINE_ACCOUNT=email shows the address instead, off hides it. Under Codex, the plan the rollout names.",
   cacheHit: "The prompt cache's hit ratio, standing, wherever the credits chip draws: the share of input tokens read from cache rather than paid in full. Bands inverted: below 40% is critical.",
   usageCredits: "The share of your monthly usage credits used, with the day and the week when Claude Code reports them, from the figure Claude Code caches for its own /usage screen in ~/.claude.json. Percentages only, never the amounts, since a screen gets shared. Drawn while extra usage is enabled on the signed-in account: for a seat billed by usage it is the only allowance, and it has no 5-hour or 7-day window. As fresh as Claude Code's last fetch, and absent past a day. A seat with extra usage off reads credits off; a figure more than six hours old loses its band and says its age after twelve.",
+  sevenDayRate: "How fast the 7-day window is going, in points per day, measured over the last minutes the way the 5-hour burn rate is.",
+  weeklyModels: "The per-model weekly windows Claude Code caches for /usage (opus, sonnet), each with its share used, in the band of the highest.",
   spendPace: "What is left of a dollar spend limit per day until it resets, beside what you have spent per day so far. It needs the dollar amounts Claude Code 2.1.284 and a gateway send, so it is absent without them. The gateway sends the dollars about every five minutes, so they can be that much older than the percentage.",
   spendLimit: "How much of your spend limit is used, and when its period resets. Claude Code reports it only behind a Claude gateway with spend limits, so it is absent on most accounts, and it goes past 100% once the limit is exceeded.",
   duration: "Wall-clock time since the session started.",
+  sessionTokens: "Every token the session has spent, summed from the transcript as it is written: input, output and both cache counts, main session and subagents. Then the output rate per minute, the subagents' share and the largest other model's share of the output, each shed for width in turn.",
+  toolCalls: "How many tool calls the session has made, from the transcript. The doctor names the three most used.",
+  permissionMode: "The permission mode the session runs in, from the transcript: plan, auto, accept edits, bypass or dontask. Nothing in the default mode.",
+  mcp: "How many MCP servers this session is configured to load: the user's, the project's .mcp.json minus the ones disabled here, and the project-local ones. The doctor names them.",
+  help: "The ? at the right end of line 3: opens the help page that ships with the statusline, in your browser, in your language.",
   rtk: "The share of tokens rtk has saved, a lifetime average across everything it has proxied rather than a figure for this session.",
 };

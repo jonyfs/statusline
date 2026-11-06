@@ -44,9 +44,9 @@ await test("long and short forms of the chips", () => {
   ]);
   // 62% used with 57% of the window gone is five points ahead: ok, no note.
   assert.deepEqual(forms("fiveHour"), [
-    `${g.timer} 5h ${trackAt(62)} ${FIGURE_SPACE}62% ${g.reset} 2h09`,
-    `${g.timer} 5h ${FIGURE_SPACE}62% ${g.reset} 2h09`,
-    `${g.timer} 5h ${FIGURE_SPACE}62%`,
+    `${g.timer} 5h ${trackAt(62)} ${FIGURE_SPACE}62% +extra ${g.reset} 2h09`,
+    `${g.timer} 5h ${FIGURE_SPACE}62% +extra ${g.reset} 2h09`,
+    `${g.timer} 5h ${FIGURE_SPACE}62% +extra`,
   ]);
 });
 

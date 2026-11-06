@@ -62,6 +62,8 @@ export function pushSample(samples, sample) {
     at: sample.at,
     contextPct: numberOrNull(sample.contextPct),
     fiveHourPct: numberOrNull(sample.fiveHourPct),
+    // The 7-day figure, for its own rate (specs/076).
+    sevenDayPct: numberOrNull(sample.sevenDayPct),
     rtkPct: numberOrNull(sample.rtkPct),
   };
   // A clock that jumped backwards would make every rate negative. Drop the

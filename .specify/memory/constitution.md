@@ -2,7 +2,18 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.12.0 (III extended on 2026-11-05: MINOR. The credits chip MAY end with when the cap
+- Version: 8.14.0 (IV clarified on 2026-11-05: MINOR. Files that only a browser runs, copied into
+  the repository with their licences (the help page's i18next and its language detector,
+  specs/078-help-page), are not runtime dependencies: Node never loads them, no package manager
+  installs them, and the clone stays the whole install.)
+- Previously, version 8.13.0 (III extended on 2026-11-05: MINOR. The same `/usage` cache's 5-hour, 7-day and
+  per-model weekly windows MAY be drawn as written, under the same account and freshness rules as
+  the credits; reading them from the cache is not fetching them. The session's own transcript MAY
+  be summed incrementally (tokens, turns, tool calls, models, subagents), never estimated. MCP
+  configuration MAY be read for server names only, never their commands or `env` values. `gh`
+  MAY be asked, behind the detached refresh only, for a pull request's merge state, checks,
+  reviewers, review threads and size, and for the repository's open alerts. See specs/073 to 077.)
+- Previously, version 8.12.0 (III extended on 2026-11-05: MINOR. The credits chip MAY end with when the cap
   comes back: the cache's own `resets_at` when an active extra-usage limit carries one, else the
   first of next calendar month at the computer's midnight, drawn with a tilde as the estimate it is,
   on by default at the owner's decision, off with `CLAUDE_STATUSLINE_CREDITS_RESET=off`. See
@@ -529,8 +540,10 @@ so it is not the invented monthly figure this principle forbids for Anthropic's 
 rollout's `credits.balance` MAY be shown as Codex writes it, only when `has_credits` is true,
 the credits are not unlimited, and the balance reads as a number. Under Claude Code the bar
 MUST NOT read Claude Code's OAuth credentials to fetch figures the payload lacks, such as the
-per-model weekly windows `/usage` shows: the payload is the source. One figure outside the
-payload is allowed, because Claude Code itself fetched and wrote it: the monthly usage credits in
+per-model weekly windows `/usage` shows: the payload is the source. Figures outside the
+payload are allowed when Claude Code itself fetched and wrote them, read as written and never
+refreshed by the bar: the 5-hour, 7-day and per-model weekly windows of the same cache (specs/070,
+specs/076), and the monthly usage credits in
 `~/.claude.json` under `cachedUsageUtilization` (specs/069-usage-credits). The bar MAY read that
 file as written, only for the account `oauthAccount` names and only within a day of
 `fetchedAtMs`, and MUST draw the percentage used as it is, with `full` when the cap is
@@ -590,7 +603,9 @@ node ~/.claude/statusline-plugin/bin/cli.js install
 
 This is only possible because the project has zero runtime dependencies, and it MUST stay that
 way. Adding a dependency would reintroduce a package manager into the install path and break
-this principle.
+this principle. A file only a browser runs, copied into the repository with its licence and
+loaded by a page the plugin ships (the help page's i18next, specs/078-help-page), is part of the
+clone and not a dependency: nothing installs it and Node never loads it.
 
 Install MUST:
 - Back up the user's existing `~/.claude/settings.json` to a timestamped file before touching it
@@ -958,4 +973,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.12.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-05
+**Version**: 8.14.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-05

@@ -1,7 +1,8 @@
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { canWrite, stateRoot } from "./paths.js";
 import os from "node:os";
-import { realpathSync } from "node:fs";
+import { realpathSync, existsSync } from "node:fs";
 import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
 import {
   getDirLabel,
@@ -13,8 +14,7 @@ import {
   getRemoteUrl,
   getCiStatus,
   normalizePr,
-  repoUrlFromPayload,
-} from "./git.js";
+  repoUrlFromPayload, getAlerts, getBranchMeta } from "./git.js";
 import {
   getActiveSkills,
   getActiveSkillsTrueCount,
@@ -44,6 +44,9 @@ import { detectHarness } from "./harness.js";
 import { accountKindOf, apiResponded, getAccountKind, noteAccountKind } from "./accountKind.js";
 import { readUsageCredits, readAccountIdentity, cacheAgeMark, monthResetAt } from "./usageCredits.js";
 import { creditsTrend } from "./creditsHistory.js";
+import { getSessionTotals, modelFamily } from "./sessionTotals.js";
+import { countMcpServers } from "./mcp.js";
+import { readSkillEventsTrueCount } from "./skillEvents.js";
 
 /**
  * Where a credit figure can be looked at in full (specs/070, FR-009). A
@@ -52,6 +55,22 @@ import { creditsTrend } from "./creditsHistory.js";
  * account, never another project's repository (specs/020). The gateway's
  * spend limit has no page the payload names, so that chip stays unlinked.
  */
+/**
+ * The help page that ships with the statusline (specs/078-help-page): one
+ * file in the clone, beside `src`, opened from disk. A copy without it (a
+ * render-only copy for a host) simply draws no help chip.
+ */
+export const HELP_PAGE = fileURLToPath(new URL("../help/index.html", import.meta.url));
+
+/** A probe that throws costs its own figure and nothing else. */
+function safeProbe(fn) {
+  try {
+    return fn();
+  } catch {
+    return null;
+  }
+}
+
 export const USAGE_PAGES = Object.freeze({
   claude: "https://claude.ai/settings/usage",
   codex: "https://chatgpt.com/codex/settings/usage",
@@ -235,6 +254,7 @@ const NF_RUST = "\u{F1679}";     // a piggy bank, which is what rtk keeps: savin
 // F00F6, listed in one cheat sheet as a cart, draws a calendar.
 const NF_WALLET = "\u{F0584}";  // nf-md-wallet
 const NF_ACCOUNT = "\u{F0004}"; // nf-md-account: who is signed in (specs/071)
+const NF_HELP = "\u{F0625}";    // nf-md-help_circle_outline: the help page (specs/078)
 // The prompt cache, one icon per state so the icon itself says which
 // (Principle X). Rendered before adoption (specs/025-prompt-cache-chip/
 // glyph-evidence.png): F09A2, listed as a database refresh, draws a speaker
@@ -339,6 +359,8 @@ export const GLYPHS = {
     rtk: NF_RUST,
     spend: NF_WALLET,
     account: NF_ACCOUNT,
+    help: NF_HELP,
+    mcp: NF_FROM,
     cacheWarm: NF_HOURGLASS_FULL,
     cacheWarmHalf: NF_HOURGLASS_HALF,
     cacheWarmLow: NF_HOURGLASS_EMPTY,
@@ -422,6 +444,8 @@ export const GLYPHS = {
     rtk: "\u{1FA99}",            // 🪙 savings
     spend: "\u{1F4B0}",          // 💰
     account: "\u{1F464}",        // 👤
+    help: "\u2753",              // ❓
+    mcp: "\u{1F50C}",            // 🔌
     cacheWarm: "\u23F3",         // ⏳
     cacheWarmHalf: "\u23F3",
     cacheWarmLow: "\u231B",      // ⌛
@@ -533,6 +557,8 @@ export const GLYPHS = {
     // ASCII, East Asian Narrow, in every font, and used nowhere else on the bar.
     spend: "$",
     account: "@",
+    help: "?",
+    mcp: "~",
     // Both East Asian Narrow. `U+2744` has an emoji form, but its default
     // presentation is text and the bar never sends the selector that asks
     // for the other one.
@@ -674,6 +700,7 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     at: now,
     contextPct: payload?.context_window?.used_percentage ?? ctxPct,
     fiveHourPct: payload?.rate_limits?.five_hour?.used_percentage ?? fiveHourPct,
+    sevenDayPct: payload?.rate_limits?.seven_day?.used_percentage ?? sevenDayPct,
     rtkPct: rtkReading.value,
   });
 
@@ -877,6 +904,19 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
         ? reading({ value: payloadPr, at: now, source: "payload" })
         : timed("gh", () => normalizePr(probe.getPrInfo(cwd, { branch: namedBranch }), "gh"))
       : missing("gh", "not a repository"),
+    // The repository's alerts and the branch's standing (specs/074-pr-state),
+    // both from caches the detached refresh fills.
+    alerts: off?.has("alerts") || !hasRepo
+      ? missing("gh", hasRepo ? "switched off" : "not a repository")
+      : timed("gh", () => probe.getAlerts?.(cwd, { now }) ?? null),
+    branchMeta: !hasRepo
+      ? missing("git", "not a repository")
+      : timed("git", () => probe.getBranchMeta?.(cwd, { now, branch: namedBranch }) ?? null),
+    // The help page, when this copy ships it (specs/078).
+    helpPage: reading({ value: safeProbe(() => probe.getHelpPage?.() ?? null), at: now, source: "cache" }),
+    // The MCP servers and the session's skill count (specs/075).
+    mcp: reading({ value: safeProbe(() => probe.getMcpServers?.(cwd) ?? null), at: now, source: "cache" }),
+    skillSessionCount: reading({ value: safeProbe(() => probe.getSkillSessionCount?.(payload?.session_id ?? null) ?? 0) ?? 0, at: now, source: "hook" }),
     skills: skillsReading(timed, probe, payload, activity.value?.skills, activity.value?.skillsTrueCount),
     activity,
     // The running subagents, which only Copilot's reader returns: Claude Code
@@ -925,6 +965,24 @@ export function gather(payload, probe, { now = Date.now(), off = null, copilotSe
     }),
     tokens: reading({ value: getContextTokens(payload), at: now, source: "payload" }),
     sessionCost: reading({ value: getSessionCost(payload), at: now, source: "payload" }),
+    // What the session has spent, summed from the transcript as it is
+    // written (specs/073-session-totals): Claude Code's transcript only.
+    sessionTotals: reading({
+      // Asked under every harness, as the credits are, so the composer's
+      // fixture can pool the chips; the reader itself answers null without a
+      // transcript path, which only Claude Code's payload carries.
+      value: probe.getSessionTotals
+        ? (safeProbe(() => probe.getSessionTotals({
+            transcriptPath: payload?.transcript_path ?? null,
+            sessionId: payload?.session_id ?? null,
+            now,
+            exceeds200k: payload?.exceeds_200k_tokens === true,
+            ownModel: modelFamily(payload?.model?.id ?? payload?.model?.display_name),
+          })) ?? null)
+        : null,
+      at: now,
+      source: "transcript",
+    }),
     context: reading({ value: ctxPct, at: now, source: "payload" }),
     fiveHour: reading({ value: fiveHourFromCache ? fiveHourFromCache.pct : fiveHourPct, at: now, source: fiveHourFromCache ? "cache" : "payload" }),
     fiveHourReset: reading({ value: fiveHourFromCache ? fiveHourFromCache.resetsAt : fiveHourResetsAt, at: now, source: fiveHourFromCache ? "cache" : "payload" }),
@@ -1033,6 +1091,16 @@ export function resetDayAndTime(resetsAtSeconds, now = Date.now()) {
   return `${months[d.getMonth()]} ${d.getDate()} ${hhmm}`;
 }
 
+/** An age in the shortest unit that is not zero: `2d`, `5h`, `20m` (specs/074). */
+export function ageLabel(ms) {
+  if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return null;
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
 /** `+++`, `++`, `+` from a model's name, or null for a name the table does not know (specs/071). */
 export function modelTierOf(name) {
   const n = String(name ?? "").toLowerCase();
@@ -1114,6 +1182,17 @@ export function renderPayload(
     // The usage credits Claude Code cached for a seat billed by usage
     // (specs/069-usage-credits): one local file read, never a fetch.
     getUsageCredits: readUsageCredits,
+    // The repository's alerts and the branch's standing (specs/074).
+    getAlerts,
+    getBranchMeta,
+    // The session's totals from its transcript (specs/073).
+    getSessionTotals,
+    // The help page beside the code, when this copy has it (specs/078).
+    getHelpPage: () => (existsSync(HELP_PAGE) ? HELP_PAGE : null),
+    // The MCP servers configured here, and how many distinct skills the
+    // session has used (specs/075).
+    getMcpServers: (cwd) => countMcpServers(cwd),
+    getSkillSessionCount: (sessionId) => (sessionId ? readSkillEventsTrueCount(sessionId, { windowMs: Number.POSITIVE_INFINITY }) : 0),
     // Who is signed in, and the credits' own history (specs/071).
     getAccountIdentity: readAccountIdentity,
     creditsTrend,
@@ -1462,11 +1541,15 @@ export function renderReadings(
     // part of the name, and the slashes are the tree view's own.
     const branchUrl =
       !detached && remoteUrl ? `${remoteUrl}/tree/${git.branch.split("/").map(encodeURIComponent).join("/")}` : null;
+    // Working on the default branch is a state to see (specs/074, item 39):
+    // the chip turns critical and the name takes a mark.
+    const meta = readings.branchMeta?.value ?? null;
+    const onDefault = !detached && typeof meta?.defaultBranch === "string" && meta.defaultBranch === git.branch;
     l1.push({
       key: "branch",
-      color: ROLE.identity,
+      color: onDefault ? ROLE.critical : ROLE.identity,
         emphasis: changes.isChanged("branch"),
-      text: ` ${detached ? g.commit : g.branch} ${label} `,
+      text: ` ${detached ? g.commit : g.branch} ${label}${onDefault ? "!" : ""} `,
       variants: [` ${detached ? g.commit : g.branch} `],
       iconLast: true,
       url: branchUrl,
@@ -1492,6 +1575,12 @@ export function renderReadings(
       // A tree that is clean and in step with its upstream says so, in the
       // one place a failed read draws nothing (specs/048-state-feedback).
       l1.push({ key: "worktreeState", color: ROLE.neutral, icon: ROLE.healthy, text: ` ${g.clean} ` });
+    }
+    // How old the branch is (specs/074): since its first commit past the
+    // default branch, once it is an hour old.
+    const branchAgeMs = !detached && shows("branchAge", "branchMeta") && typeof meta?.firstCommitAt === "number" ? now - meta.firstCommitAt * 1000 : 0;
+    if (branchAgeMs >= 3_600_000) {
+      l1.push({ key: "branchAge", color: ROLE.neutral, text: ` ${g.calendar} ${ageLabel(branchAgeMs)} ` });
     }
     // A2's chosen form: owner and repo as text. It repeats the directory in
     // a repository whose folder is named after it, and says something the
@@ -1540,6 +1629,11 @@ export function renderReadings(
         emphasis: changes.isChanged("ci"),
         url: runs ?? undefined,
       });
+    }
+    // The repository's open alerts (specs/074): Dependabot and code scanning.
+    const alerts = shows("alerts") ? readings.alerts?.value : null;
+    if (alerts?.total > 0) {
+      l1.push({ key: "alerts", color: ROLE.attention, text: ` ${g.conflict} alerts ${alerts.total} `, variants: [` ${g.conflict} ${alerts.total} `], url: remoteUrl ? `${remoteUrl}/security` : undefined });
     }
     // What this session changed, which is a different question from what the
     // working tree looks like: the payload counts it, git does not. It sits
@@ -1604,6 +1698,33 @@ export function renderReadings(
         variants: [` ${prGlyph} #${pr.number}${reviewGlyph ? ` ${reviewGlyph}` : review ? ` ${review}` : ""} `],
         url: pr.url,
       });
+      // What decides the next step (specs/074-pr-state), each its own chip
+      // so the width guard drops them one at a time: the merge state, the
+      // checks, the reviewers awaited and the threads open, the size and age.
+      const open = !["merged", "closed", "draft"].includes(pr.prState ?? "");
+      const mergeWord = { BLOCKED: ["blocked", ROLE.critical], DIRTY: ["conflicts", ROLE.critical], BEHIND: ["behind", ROLE.attention], CLEAN: ["mergeable", ROLE.healthy], HAS_HOOKS: ["mergeable", ROLE.healthy], UNSTABLE: ["mergeable", ROLE.attention] }[pr.mergeState ?? ""];
+      if (open && mergeWord && shows("prMerge", "pr")) {
+        const auto = pr.autoMerge ? " \u00b7 automerge" : "";
+        l1.push({ key: "prMerge", color: mergeWord[1], text: ` ${mergeWord[0]}${auto} `, ...(auto ? { variants: [` ${mergeWord[0]} `] } : {}) });
+      }
+      const checks = pr.checks;
+      if (checks && shows("prChecks", "pr")) {
+        const parts = [checks.ok ? `${g.ciPass}${checks.ok}` : null, checks.failed ? `${g.ciFail}${checks.failed}` : null, checks.running ? `${g.ciRunning}${checks.running}` : null].filter(Boolean);
+        const bare = ` ${parts.join(" ")} `;
+        const name = checks.failed && checks.failedName ? ` ${parts.join(" ")} \u00b7 ${cutMiddle(checks.failedName, 24)} ` : null;
+        l1.push({ key: "prChecks", color: ROLE.neutral, icon: checks.failed ? ROLE.critical : checks.running ? ROLE.modified : ROLE.healthy, text: name ?? bare, ...(name ? { variants: [bare] } : {}) });
+      }
+      const awaiting = pr.awaiting > 0 ? `${pr.awaiting} awaiting` : null;
+      const threads = pr.threads > 0 ? `${pr.threads} threads` : null;
+      if (open && (awaiting || threads) && shows("prReview", "pr")) {
+        l1.push({ key: "prReview", color: ROLE.open, text: ` ${g.account} ${[awaiting, threads].filter(Boolean).join(" \u00b7 ")} ` });
+      }
+      if (typeof pr.additions === "number" && typeof pr.deletions === "number" && shows("prSize", "pr")) {
+        const age = pr.createdAt ? ageLabel(now - Date.parse(pr.createdAt)) : null;
+        const size = `+${pr.additions} \u2212${pr.deletions}`;
+        const files = typeof pr.changedFiles === "number" ? ` \u00b7 ${pr.changedFiles}f` : "";
+        l1.push({ key: "prSize", color: ROLE.neutral, text: ` ${size}${files}${age ? ` \u00b7 ${age}` : ""} `, variants: [` ${size} `] });
+      }
     }
   }
   // The statusline's own update state, in or out of a repository: it is about
@@ -1645,6 +1766,9 @@ export function renderReadings(
     }
     // The editor's vim mode, beside what the session is doing. Absent unless
     // vim mode is on (specs/027-bar-polish).
+    // The MCP servers configured for this session (specs/075).
+    const mcp = shows("mcp") ? readings.mcp?.value : null;
+    if (mcp?.count > 0) row.push({ key: "mcp", color: ROLE.neutral, text: ` ${g.mcp} mcp ${strong(String(mcp.count))} `, variants: [` ${g.mcp} ${mcp.count} `] });
     const vimMode = shows("vim") ? readings.vim?.value : null;
     if (vimMode) row.push({ key: "vim", color: ROLE.neutral, text: ` ${g.vim} ${vimMode} `, variants: [` ${g.vim} `] });
     if (activity?.awaiting) {
@@ -1671,6 +1795,19 @@ export function renderReadings(
         variants: [` ${mark} `],
       });
     }
+    // The permission mode the session runs in (specs/075): a state to see,
+    // in the attention role for plan and auto, critical for bypass.
+    const mode = activity?.permissionMode ?? null;
+    const modeWord = { plan: ["plan", ROLE.attention], auto: ["auto", ROLE.attention], acceptEdits: ["accept edits", ROLE.neutral], bypassPermissions: ["bypass", ROLE.critical], dontAsk: ["dontask", ROLE.attention] }[mode ?? ""];
+    if (modeWord && shows("permissionMode", "activity")) {
+      row.push({ key: "permissionMode", color: modeWord[1], text: ` ${g.allowAll} ${modeWord[0]} ` });
+    }
+    // The tool calls so far (specs/073-session-totals): what the turns are
+    // spending their tokens on, after what the session is doing.
+    const totals = shows("toolCalls", "sessionTotals") ? readings.sessionTotals?.value : null;
+    if (totals && totals.toolCalls > 0) {
+      row.push({ key: "toolCalls", color: ROLE.neutral, text: ` ${g.working} tools ${strong(String(totals.toolCalls))} ` });
+    }
   }
 
   // Line 2: active skills, one chip per skill, distinct colors, no bullets.
@@ -1692,15 +1829,31 @@ export function renderReadings(
     const sddStep = sddStepFor(skills[0]);
     const featureId = sddStep ? inProgressFeatureId(readings.cwd) : null;
     const skillsSuffix = featureId ?? sddStep;
+    // Each listed skill as its newest run tells it (specs/075): running, in
+    // emphasis with its duration; the newest finished one with its outcome.
+    const runs = Array.isArray(activity?.skillRuns) ? activity.skillRuns : [];
+    const newestFinished = runs.find((r) => r.finished) ?? null;
+    const named = skills.map((name) => {
+      const run = runs.find((r) => r.skill === name) ?? null;
+      if (run && !run.finished) {
+        const age = typeof run.startedAt === "number" ? ageLabel(now - run.startedAt) : null;
+        return `${strong(name)}${age && age !== "0m" ? ` ${age}` : ""}`;
+      }
+      if (run && run === newestFinished) return `${run.error ? "\u2717" : "\u2713"} ${name}`;
+      return name;
+    });
+    const sessionCount = readings.skillSessionCount?.value ?? 0;
+    const usedTail = sessionCount > skills.length + hidden ? ` \u00b7 ${sessionCount} used` : "";
     const l2 = [
       {
         key: "skills",
         color: ROLE.skills,
         emphasis: changes.isChanged("skills"),
-        text: ` ${g.skills} ${skills.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `,
+        text: ` ${g.skills} ${named.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""}${usedTail} `,
         // The newest skill with how many more there are, then the icon (F57).
         iconLast: true,
         variants: [
+          ...(usedTail ? [` ${g.skills} ${named.join(skillJoin)}${hidden > 0 ? ` +${hidden}` : ""}${skillsSuffix ? ` (${skillsSuffix})` : ""} `] : []),
           ...(skills.length + hidden > 1 || skillsSuffix
             ? [` ${g.skills} ${skills[0]}${skills.length + hidden > 1 ? ` +${skills.length + hidden - 1}` : ""} `]
             : []),
@@ -1786,6 +1939,7 @@ export function renderReadings(
   // much, so the chips that repeated their icon in words lost the word.
   // `CLAUDE_STATUSLINE_LABELS=on` brings the words back.
   const labelsOn = String(process.env.CLAUDE_STATUSLINE_LABELS ?? "").toLowerCase() === "on";
+
   // The age of a figure taken from Claude Code's `/usage` cache: past six
   // hours the chip loses its band, past twelve it says how old it is
   // (specs/070, FR-004). `withAge` puts the mark on a finished chip; the mark
@@ -1798,6 +1952,11 @@ export function renderReadings(
   // have, such as the 5-hour window on the free plan, is absent rather than
   // `?%`, for the same reason (specs/035-codex-pane).
   const isCodex = readings.harness?.value === "codex";
+  // `CLAUDE_STATUSLINE_RESET=clock`: every window's reset as a moment in the
+  // computer's zone instead of a countdown (specs/076, FR-004).
+  const clockResets = String(process.env.CLAUDE_STATUSLINE_RESET ?? "").toLowerCase() === "clock";
+  // Where a Claude window can be looked at in full (specs/076, FR-006).
+  const windowUrl = isCodex ? USAGE_PAGES.codex : USAGE_PAGES.claude;
   // The cache hit ratio draws wherever the credits chip does (specs/071);
   // decided once, since the prompt cache state chip yields to it.
   const cacheHitRatio =
@@ -1868,11 +2027,13 @@ export function renderReadings(
       const id = shows("account") ? readings.account?.value : null;
       // A probe's text goes through the same sanitiser as the file's.
       const who = plainText(!id ? null : mode === "email" ? (id.email ?? id.org) : (id.org ?? id.email));
+      // `tier`: the seat's tier beside the organisation (specs/076, FR-005).
+      const tier = mode === "tier" && id?.seatTier ? plainText(String(id.seatTier).replace(/^enterprise_/, "").replace(/_/g, " ")) : null;
       if (!who) return null;
       const kind = readings.accountKind?.value;
       // The credits chip beside it already says `credits` (specs/072).
       const implied = !labelsOn && kind === "credits" && readings.usageCredits?.value?.enabled === true;
-      const word = implied ? null : ({ subscriber: "subscriber", budget: "budget", credits: "credits", none: "api" }[kind] ?? null);
+      const word = tier ?? (implied ? null : ({ subscriber: "subscriber", budget: "budget", credits: "credits", none: "api" }[kind] ?? null));
       return {
         color: ROLE.identity,
         text: ` ${g.account} ${who}${word ? ` \u00b7 ${word}` : ""} `,
@@ -1948,9 +2109,20 @@ export function renderReadings(
       const over200k = readings.tokens?.value?.exceeds200k === true;
       const { band: ownBand } = contextBand(ctxPct, repoConfig(readings.cwd || process.cwd()).contextBands);
       const band = over200k ? "critical" : ownBand;
+      // With the time already spent above the threshold once it is a minute
+      // (specs/073): the mark stays, the time is the first thing width sheds.
+      const overMs = readings.sessionTotals?.value?.over200kMs ?? 0;
+      const overTime = overMs >= 60_000 ? ` \u00b7 ${formatDuration(overMs)}` : "";
       const mark200k = (chip) =>
         over200k
-          ? { ...chip, text: `${chip.text.replace(/ $/, "")} \u00b7 200k+ `, variants: (chip.variants ?? []).map((v) => `${v.replace(/ $/, "")} \u00b7 200k+ `) }
+          ? {
+              ...chip,
+              text: `${chip.text.replace(/ $/, "")} \u00b7 200k+${overTime} `,
+              variants: [
+                ...(overTime ? [`${chip.text.replace(/ $/, "")} \u00b7 200k+ `] : []),
+                ...(chip.variants ?? []).map((v) => `${v.replace(/ $/, "")} \u00b7 200k+ `),
+              ],
+            }
           : chip;
       const built = gaugeChipText({ icon: g.context, label: "", pct: ctxPct, band });
       // The last eight context readings, when asked for and when there are that
@@ -1986,13 +2158,13 @@ export function renderReadings(
       // beside it, and it is shed under width like any other reset text: the
       // chip's one variant is itself without the countdown, which the width
       // guard reaches before it drops anything essential (specs/027).
-      const resets = shortCountdown(fiveHourResetsAt, now) ?? "?";
+      const resets = (clockResets ? resetMomentLabel(fiveHourResetsAt, new Date(now)) : shortCountdown(fiveHourResetsAt, now)) ?? "?";
       const mark = cachedWindowMark("fiveHour");
       const { band, pace } = mark?.dim ? { band: null, pace: null } : paceBand(fiveHourPct, elapsedPct(fiveHourResetsAt, 300));
-      return withAge({
-        ...gaugeChip(mark?.dim ? null : fiveHourPct, band),
-        ...gaugeChipText({ icon: g.timer, label: "5h", pct: fiveHourPct, band, pace, reset: resets, full: fullMark(fiveHourPct), resetsAt: fiveHourResetsAt }),
-      }, mark);
+      // A plan with extra usage on keeps working past its windows (specs/076, FR-003).
+      const extra = readings.usageCredits?.value?.enabled && readings.usageCredits.value.hasWindows ? " +extra" : "";
+      const chip = gaugeChipText({ icon: g.timer, label: "5h", pct: fiveHourPct, band, pace, reset: resets, full: `${fullMark(fiveHourPct)}${extra}`, resetsAt: fiveHourResetsAt });
+      return withAge({ ...gaugeChip(mark?.dim ? null : fiveHourPct, band), ...chip, url: windowUrl }, mark);
     },
     sevenDay: () => {
       if (noSevenDay) return null;
@@ -2002,13 +2174,34 @@ export function renderReadings(
       // around, so it names the day. C4 chose the weekday for the far case on
       // the reasoning that a countdown three days long is noise; the near case
       // used to be covered by the merged segment, and now lives here.
-      const moment = farOutMoment ?? shortCountdown(sevenDayResetsAt, now) ?? "?";
+      const moment = (clockResets ? resetMomentLabel(sevenDayResetsAt, new Date(now)) : farOutMoment ?? shortCountdown(sevenDayResetsAt, now)) ?? "?";
       const mark = cachedWindowMark("sevenDay");
       const { band, pace } = mark?.dim ? { band: null, pace: null } : paceBand(sevenDayPct, elapsedPct(sevenDayResetsAt, 10080));
       return withAge({
         ...gaugeChip(mark?.dim ? null : sevenDayPct, band),
         ...gaugeChipText({ icon: g.calendar, label: "7d", pct: sevenDayPct, band, pace, reset: moment, full: fullMark(sevenDayPct), resetsAt: sevenDayResetsAt }),
+        url: windowUrl,
       }, mark);
+    },
+    // How fast the week is going (specs/076, FR-001): the same rule as the
+    // 5-hour burn rate, scaled to a day.
+    sevenDayRate: () => {
+      if (noSevenDay || sevenDayPct === null) return null;
+      const rate = ratePerHour(sampleHistory, "sevenDayPct");
+      if (rate === null || rate <= 0) return null;
+      const perDay = rate * 24;
+      return { color: ROLE.neutral, text: ` ${g.burn} +${perDay.toFixed(perDay < 10 ? 1 : 0)}%/d ` };
+    },
+    // The per-model weeks the cache carries (specs/076, FR-002), in the band
+    // of the one furthest along.
+    weeklyModels: () => {
+      if (noLimits || isCodex) return null;
+      const list = shows("weeklyModels", "usageCredits") ? readings.usageCredits?.value?.windows?.perModel : null;
+      if (!Array.isArray(list) || !list.length) return null;
+      const top = Math.max(...list.map((w) => w.pct));
+      const band = bandFor(top)?.name ?? null;
+      const text = ` ${g.calendar} ${list.map((w) => `${w.model} ${w.pct}%`).join(" \u00b7 ")} `;
+      return { ...gaugeChip(top, band), text, variants: [` ${g.calendar} ${list[0].model} ${list[0].pct}% `], url: windowUrl };
     },
     // The allowance a gateway reports once an administrator sets a spend
     // limit. It is drawn as reported, past 100% included, because that is how
@@ -2025,11 +2218,12 @@ export function renderReadings(
       const bound = { maxMs: w.window_minutes * 60_000 + ONE_DAY_MS };
       const at = typeof w.resets_at === "number" ? w.resets_at : null;
       const counts = formatResetCountdown(at, now, bound) !== null;
-      const moment = !counts ? "?" : at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
+      const moment = !counts ? "?" : clockResets || at * 1000 - now > ONE_DAY_MS ? resetMomentLabel(at, new Date(now)) : shortCountdown(at, now, bound) ?? "?";
       const { band, pace } = paceBand(pct, elapsedPct(at, w.window_minutes));
       return {
         ...gaugeChip(pct, band),
         ...gaugeChipText({ icon: g.calendar, label: w.label, pct, band, pace, reset: moment, full: fullMark(pct), resetsAt: at }),
+        url: USAGE_PAGES.codex,
       };
     },
     // Codex's credit balance, drawn as Codex writes it.
@@ -2117,7 +2311,7 @@ export function renderReadings(
         const unknown = gaugeChipText({ icon: g.spend, label: "spend", pct: null, band: null, pace: null });
         return { ...gaugeChip(null, null), ...unknown };
       }
-      const moment = spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound) ?? "?";
+      const moment = (clockResets ? resetMomentLabel(spendLimitResetsAt, new Date(now)) : spendFarOut ?? shortCountdown(spendLimitResetsAt, now, spendBound)) ?? "?";
       const { band, pace } = spendUsd && spendPeriodMinutes
         ? paceBand(spendLimitPct, elapsedPct(spendLimitResetsAt, spendPeriodMinutes))
         : { band: bandFor(spendLimitPct)?.name ?? null, pace: null };
@@ -2155,6 +2349,12 @@ export function renderReadings(
     // spare, or a provider that reports no caching, draws nothing at all. A
     // cold chip carries shorter `variants`: when the width guard reaches it,
     // the cause comes off, then the token count, and only then the chip.
+    // The help page (specs/078): the last chip on line 3, at its right end,
+    // and the first to go for width. A link to the page on disk.
+    help: () => {
+      const page = shows("help", "helpPage") ? readings.helpPage?.value : null;
+      return page ? { color: ROLE.neutral, alignRight: true, text: ` ${g.help} `, url: pathToFileUrl(page) } : null;
+    },
     // The prompt cache's hit ratio, standing, for a seat billed by usage
     // (specs/071, FR-004): the largest cost it controls. Bands inverted,
     // since a low ratio is the bad one.
@@ -2253,6 +2453,21 @@ export function renderReadings(
       return n ? { color: ROLE.neutral, text: ` ${g.premium} ${n} premium ` } : null;
     },
     allowAll: () => (shows("allowAll") && readings.allowAll?.value ? { color: ROLE.attention, text: ` ${g.allowAll} ${strong("allow all")} ` } : null),
+    // What the session has spent (specs/073): every token the transcript
+    // recorded, then what moves it, shed right to left for width.
+    sessionTokens: () => {
+      const t = shows("sessionTokens", "sessionTotals") ? readings.sessionTotals?.value : null;
+      if (!t || !(t.total > 0)) return null;
+      const head = ` \u03a3 ${strong(abbreviate(t.total))}`;
+      const tails = [
+        t.perMinute !== null && t.perMinute >= 1 ? `\u2191${abbreviate(Math.round(t.perMinute))}/min` : null,
+        t.agentTokens > 0 ? `agents ${abbreviate(t.agentTokens)}` : null,
+        t.mix ? `${modelFamily(t.mix.model)} ${t.mix.pct}%` : null,
+      ].filter(Boolean);
+      const forms = [];
+      for (let i = tails.length; i >= 0; i--) forms.push(`${head}${tails.slice(0, i).map((x) => ` \u00b7 ${x}`).join("")} `);
+      return { color: ROLE.money, text: forms[0], variants: forms.slice(1) };
+    },
     duration: () => {
       const c = shows("sessionCost") ? readings.sessionCost.value : null;
       // Not before half an hour: a session two minutes old is not news.

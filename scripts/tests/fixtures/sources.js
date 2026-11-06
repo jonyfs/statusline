@@ -34,6 +34,16 @@ export const emptySources = {
   // machine's own files; a case says so itself or draws neither.
   getAccountIdentity: () => null,
   creditsTrend: () => null,
+  // The session's totals come from the transcript (specs/073); a case supplies them.
+  getSessionTotals: () => null,
+  // The repository's alerts and the branch's standing (specs/074).
+  getAlerts: () => null,
+  getBranchMeta: () => null,
+  // MCP servers and the session's skill count (specs/075).
+  getMcpServers: () => null,
+  getSkillSessionCount: () => 0,
+  // The help page (specs/078): a case that wants the chip says so.
+  getHelpPage: () => null,
 };
 
 /** `emptySources` with a git repository present, and any field overridden. */

@@ -66,7 +66,10 @@ await test("every link belongs to the project the bar is rendered in", () => {
   const found = targets(draw());
   assert.ok(found.length > 0, "the bar renders links at all");
   for (const url of found) {
-    const belongs = url.startsWith(THEIRS) || url.startsWith("file:///tmp/their-project");
+    // The usage pages are the reader's own account, not a repository (specs/070, 076).
+    // The help page is the one link to the plugin's own files, asked for by
+    // the owner (specs/078): it explains the bar and lives on the reader's disk.
+    const belongs = url.startsWith(THEIRS) || url.startsWith("file:///tmp/their-project") || url.startsWith("https://claude.ai/settings/usage") || url.startsWith("https://chatgpt.com/codex/settings/usage") || /\/help\/index\.html$/.test(url);
     assert.ok(belongs, `${url} is neither this project's repository nor its directory`);
   }
 });

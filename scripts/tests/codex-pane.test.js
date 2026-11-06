@@ -439,7 +439,9 @@ await test("in a real tmux pane, a resize redraws the bar at the new width", asy
     assert.equal(resized.status, 0, resized.stderr);
     const took = await until(() => /medium/.test(capture()), 2500, 50);
     assert.notEqual(took, null, `no redraw at 160 columns: ${capture()}`);
-    assert.ok(capture().split("\n").every((l) => l.length <= 160));
+    // Code points, not UTF-16 units: a Nerd Font glyph past U+FFFF (the help
+    // chip's, specs/078) is one column and two units.
+    assert.ok(capture().split("\n").every((l) => [...l].length <= 160));
   } finally {
     // tmux does not unlink its socket on kill-server, so every run would
     // leave one behind in the tmux temp directory.

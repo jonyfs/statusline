@@ -11,15 +11,16 @@
  */
 
 import { readGateRuns, probeGateRuns } from "./gateRuns.js";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { gather, renderReadings, harnessProbes } from "./render.js";
+import { gather, renderReadings, harnessProbes, HELP_PAGE } from "./render.js";
 import { detectHarness } from "./harness.js";
 import { getCopilotQuota } from "./copilotQuota.js";
 import { getAccountKind, accountKindOf } from "./accountKind.js";
 import { readUsageCredits, readAccountIdentity } from "./usageCredits.js";
 import { creditsTrend } from "./creditsHistory.js";
+import { getSessionTotals } from "./sessionTotals.js";
 import { loadCopilotSettings, copilotPadding } from "./copilotSettings.js";
 import { checkInstall, projectOverrides, harnessStatus } from "./install.js";
 import { peekUpdateNotice, readBehaviour, updatesLine, REPO_ROOT as UPDATE_ROOT } from "./updateCheck.js";
@@ -72,6 +73,12 @@ const DESCRIBE = {
   worktreeState: ["git", (v) => (v ? `${v.changed} changed, ${v.untracked} untracked` : null)],
   conflicts: ["git", (v) => (v?.conflicts ? `${v.conflicts} unmerged` : null)],
   pr: ["pr", (v) => (v ? `#${v.number} ${v.review ?? "open"}${v.source ? ` (${v.source})` : ""}` : null)],
+  prMerge: ["pr", (v) => (v?.mergeState ? `${v.mergeState.toLowerCase()}${v.autoMerge ? `, automerge ${v.autoMerge}` : ""}` : null)],
+  prChecks: ["pr", (v) => (v?.checks ? `${v.checks.ok} passed, ${v.checks.failed} failed, ${v.checks.running} running${v.checks.failedName ? ` (${v.checks.failedName})` : ""}` : null)],
+  prReview: ["pr", (v) => (v && (v.awaiting || v.threads) ? `${v.awaiting ?? 0} awaiting, ${v.threads ?? 0} unresolved threads` : null)],
+  prSize: ["pr", (v) => (v && typeof v.additions === "number" ? `+${v.additions} -${v.deletions}, ${v.changedFiles ?? "?"} files, opened ${v.createdAt ?? "?"}` : null)],
+  alerts: ["alerts", (v) => (v ? `${v.dependabot} dependabot, ${v.codeScanning} code scanning` : null)],
+  branchAge: ["branchMeta", (v) => (v?.firstCommitAt ? `first commit past ${v.defaultBranch} at ${new Date(v.firstCommitAt * 1000).toISOString()}` : null)],
   repo: ["repo", (v) => (v?.owner ? `${v.owner}/${v.name}` : null)],
   ci: ["ci", (v) => (v ? `${v.conclusion ?? v.status} ${v.workflow ?? ""}`.trim() : null)],
   worktree: ["worktree", (v) => (v?.name ? `${v.name}${v.from ? ` from ${v.from}` : ""}` : null)],
@@ -87,6 +94,8 @@ const DESCRIBE = {
   // both resets together; with the resets back on their own chips, the rows
   // follow (specs/017-line-legibility).
   fiveHour: ["fiveHour", (v, now, readings) => describeWindow(v, readings?.fiveHourReset?.value, now)],
+  sevenDayRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
+  weeklyModels: ["usageCredits", (v) => (v?.windows?.perModel?.length ? v.windows.perModel.map((w) => `${w.model} ${w.pct}%`).join(", ") : null)],
   burnRate: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   projection: ["samples", (v) => (v?.length ? `${v.length} samples` : null)],
   sevenDay: ["sevenDay", (v, now, readings) => describeWindow(v, readings?.sevenDayReset?.value, now)],
@@ -112,8 +121,16 @@ const DESCRIBE = {
   ],
   // One segment carrying both countdowns, so the diagnostic reports both. A
   // row that described only the 5-hour one named half of what is on the line.
+  sessionTokens: [
+    "sessionTotals",
+    (v) => (v && v.total > 0 ? `${v.total} tokens over ${v.turns} turns${v.agentTokens ? `, ${v.agentTokens} by subagents` : ""}${v.mix ? `, ${v.mix.model} ${v.mix.pct}% of the output` : ""}` : null),
+  ],
+  permissionMode: ["activity", (v) => (v?.permissionMode ? v.permissionMode : null)],
+  mcp: ["mcp", (v) => (v?.count ? `${v.count}: ${v.names.join(", ")}` : null)],
+  toolCalls: ["sessionTotals", (v) => (v && v.toolCalls > 0 ? `${v.toolCalls} calls: ${v.tools.slice(0, 3).map(([n, c]) => `${n} ${c}`).join(", ")}` : null)],
   duration: ["sessionCost", (v) => (v?.durationMs ? `${Math.round(v.durationMs / 60000)}m` : null)],
   linesChanged: ["sessionCost", (v) => (v?.linesAdded === null ? null : `+${v?.linesAdded} -${v?.linesRemoved}`)],
+  help: ["helpPage", (v) => (v ? `opens ${v}` : null)],
   rtk: ["rtk", (v) => (v === null ? null : `${v}% saved`)],
   dir: ["dir", (v) => v ?? null],
   // The git gates running in this repository (specs/031-git-gate-rows).
@@ -238,6 +255,12 @@ function absenceReason(segment, reading, readings, now) {
         : "not a git repository";
     }
     if (segment.key === "rtk") return "rtk not installed, or nothing cached yet";
+    if (segment.key === "help") return "this copy has no help/index.html (a render-only copy ships none)";
+    if (["prMerge", "prChecks", "prReview", "prSize"].includes(segment.key)) {
+      return inRepo ? "no open pull request, or gh has not answered with that field yet" : "not a git repository";
+    }
+    if (segment.key === "alerts") return inRepo ? "no open alerts, the endpoints refused, or nothing cached yet (hourly)" : "not a git repository";
+    if (segment.key === "branchAge") return inRepo ? "on the default branch, no origin/HEAD, or nothing cached yet" : "not a git repository";
     // Absent on most accounts, which is not a fault: say where it comes from
     // so nobody files a bug about a figure the payload never carries.
     if (segment.key === "spendLimit") {
@@ -252,6 +275,13 @@ function absenceReason(segment, reading, readings, now) {
       return readings?.usageCredits?.value?.enabled
         ? "the payload carries no prompt_cache.hit_ratio yet"
         : "drawn only beside the credits chip (a seat billed by usage, or extra usage on)";
+    }
+    if (segment.key === "sevenDayRate") return "no 7-day window, or fewer than five samples over a minute";
+    if (segment.key === "weeklyModels") return "the /usage cache carries no per-model week for this account";
+    if (segment.key === "permissionMode") return "the default mode, or no permission-mode entry in the transcript's tail";
+    if (segment.key === "mcp") return "no MCP server configured for this directory (~/.claude.json, .mcp.json)";
+    if (segment.key === "sessionTokens" || segment.key === "toolCalls") {
+      return "no transcript to sum yet (Claude Code names one in the payload after the first turn)";
     }
     if (segment.key === "account") return "no signed-in Claude account in ~/.claude.json (under Codex the chip names the plan; Copilot and OpenCode read nothing)";
     if (segment.key === "spendPace") return "the payload carries no dollar amounts for the spend limit (needs Claude Code 2.1.284 and a gateway that sends them)";
@@ -352,6 +382,10 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     // The trend is read and folded in exactly as the renderer does it: one
     // more point for the same fetch changes nothing (specs/071).
     creditsTrend,
+    // The session's totals, folded in as the renderer does it (specs/073).
+    getSessionTotals,
+    // The help page beside the code (specs/078).
+    getHelpPage: () => (existsSync(HELP_PAGE) ? HELP_PAGE : null),
   };
 
   const started = Date.now();

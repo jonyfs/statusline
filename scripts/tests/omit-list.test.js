@@ -62,8 +62,11 @@ const PUA = /[\ue000-\uf8ff\u{f0000}-\u{ffffd}]/gu;
 const firstLine = (s) => s.split("\n")[0].replace(PUA, " ").replace(/\s+/g, " ").trim();
 
 await test("the fixture bar loses the omitted chips and keeps every other one (SC-001)", () => {
-  const full = firstLine(bar(220));
-  const cut = firstLine(bar(220, "dir,branch"));
+  // 300 columns: the fixture's line 1 grew with specs/074 (the request's
+  // merge state, checks, reviewers, size, the alerts and the branch's age),
+  // and this case is about omission, not about what width sheds.
+  const full = firstLine(bar(300));
+  const cut = firstLine(bar(300, "dir,branch"));
   assert.ok(full.startsWith("statusline "), `the directory leads the full bar: ${full}`);
   assert.ok(!cut.startsWith("statusline "), `and is gone from the cut one: ${cut}`);
   assert.ok(full.includes("004-statuslin"), "the branch chip is in the full bar");

@@ -45,6 +45,9 @@ export function fixtureEnv(width, extra = {}, home = path.join(os.tmpdir(), "sta
     CLAUDE_STATUSLINE_RAMP: "default",
     CLAUDE_STATUSLINE_CONTRAST: "normal",
     CLAUDE_STATUSLINE_OUTPUT: "runs",
+    // A host's render-only copy ships no help page (specs/078), so the
+    // fixtures record the bar without its `?`, whichever copy renders them.
+    CLAUDE_STATUSLINE_OMIT: "help",
     ...extra,
   };
 }

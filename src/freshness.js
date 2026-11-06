@@ -52,6 +52,16 @@ export const MAX_AGE_MS = {
   contextSize: 1_000,
   exceeds200k: 1_000,
   duration: 1_000,
+  sessionTokens: 1_000,
+  toolCalls: 1_000,
+  sessionTotals: 1_000,
+  help: 1_000,
+  helpPage: 1_000,
+  sevenDayRate: 1_000,
+  weeklyModels: 1_000,
+  permissionMode: REDRAW_INTERVAL_MS,
+  mcp: 1_000,
+  skillSessionCount: 1_000,
   linesChanged: 1_000,
   apiTime: 1_000,
   // Not a segment: the cache key the three git-derived segments share.
@@ -61,6 +71,15 @@ export const MAX_AGE_MS = {
   // A network call, so it lives behind the same background refresh the
   // pull request uses. A green tick ten minutes old is worse than none.
   ci: 60_000,
+  // The pull request's own figures ride the pr cache (specs/074); the alerts
+  // and the branch's standing have their own.
+  prMerge: 60_000,
+  prChecks: 60_000,
+  prReview: 60_000,
+  prSize: 60_000,
+  alerts: 60 * 60_000,
+  branchMeta: 60_000,
+  branchAge: 60_000,
   todo: REDRAW_INTERVAL_MS,
   activity: REDRAW_INTERVAL_MS,
   skills: REDRAW_INTERVAL_MS,
@@ -144,6 +163,10 @@ export const REFRESH_BUDGET_MS = {
   gates: 5_000,
   // One `gh api` call.
   copilotQuota: 5_000,
+  // Two `gh api` calls (specs/074).
+  alerts: 10_000,
+  // Three cheap git calls.
+  branchMeta: 5_000,
 };
 
 /** The bytes the transcript tail read may consume before it gives up. */

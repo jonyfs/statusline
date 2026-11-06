@@ -144,7 +144,14 @@ export function readUsageCredits({ now = Date.now(), homedir = os.homedir() } = 
   if (!finite(cached.fetchedAtMs) || now - cached.fetchedAtMs > USAGE_CREDITS_FRESH_MS || cached.fetchedAtMs > now) return null;
   const util = cached.utilization;
   if (!isBlock(util)) return null;
-  const windows = { fiveHour: windowOf(util.five_hour), sevenDay: windowOf(util.seven_day) };
+  const windows = { fiveHour: windowOf(util.five_hour), sevenDay: windowOf(util.seven_day), perModel: [] };
+  // The per-model weeks (specs/076): every `seven_day_<model>` block.
+  for (const [key, block] of Object.entries(util)) {
+    const m = key.match(/^seven_day_([a-z0-9]+)$/);
+    if (!m || ["oauth_apps", "breakdown", "cowork", "omelette"].includes(m[1])) continue;
+    const w = windowOf(block);
+    if (w) windows.perModel.push({ model: m[1], ...w });
+  }
   const extra = util.extra_usage;
   const credits =
     isBlock(extra) && finite(extra.monthly_limit) && finite(extra.used_credits) && finite(extra.utilization) &&
