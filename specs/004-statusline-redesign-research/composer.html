@@ -994,6 +994,22 @@ function rowWidth(row) {
 function fitToWidth(row, width = terminalWidth()) {
   if (rowWidth(row) <= width) return row;
 
+  // A pinned segment (the help chip) is never dropped. Its width is
+  // taken off the top, and the others fit into what is left. The budget is
+  // reduced again if the group gap between them pushes the line over.
+  const pinned = row.filter((s) => s.pinned);
+  if (pinned.length) {
+    const free = row.filter((s) => !s.pinned);
+    let budget = width - rowWidth(pinned);
+    for (;;) {
+      const fitted = new Map(fitToWidth(free, budget).map((s) => [s.key, s]));
+      const out = row.filter((s) => s.pinned || fitted.has(s.key)).map((s) => (s.pinned ? s : fitted.get(s.key)));
+      const over = rowWidth(out) - width;
+      if (over <= 0 || budget <= 0) return out;
+      budget -= over;
+    }
+  }
+
   const byPriority = [...row].sort((a, b) => a.priority - b.priority);
   const dropped = new Set();
   // A segment may carry `variants`: shorter texts, in the order it gives
