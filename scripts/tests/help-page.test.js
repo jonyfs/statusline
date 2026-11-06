@@ -85,7 +85,7 @@ await test("line 3 ends with the help chip, right-aligned and linked to the page
   const src = { ...emptySources, getHelpPage: () => HELP_PAGE };
   const out = renderPayload(fullPayload(), { sources: src, trackChanges: false, maxWidth: 160, maxHeight: 40 });
   const line3 = out.split("\n").pop();
-  assert.match(line3, /\x1b\]8;;file:\/\/[^\x07]*help\/index\.html\x07/);
+  assert.match(line3, /\x1b\]8;;file:\/\/[^\x07]*help\/open-help\.(command|url|desktop)\x07/, "the chip opens the launcher, not the folder");
   // Only the separator that closes the line may follow it.
   assert.match(stripAnsi(line3).trimEnd(), /\u{F0625}\s*[\uE0B0-\uE0BF>]?$/u, "the help glyph is the last thing on the line");
   const without = stripAnsi(renderPayload(fullPayload(), { sources: emptySources, trackChanges: false, maxWidth: 160, maxHeight: 40 }));

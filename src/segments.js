@@ -168,8 +168,8 @@ export const SEGMENTS = [
   // that stay on the line.
   { key: "rtk", line: 3, group: "savings", order: 60, priority: 72, colour: "identity", source: "rtk" },
   // The help page (specs/078-help-page): the last chip, right-aligned, and
-  // the first to go for width.
-  { key: "help", line: 3, group: "savings", order: 99, priority: 40, colour: "identity", source: "cache" },
+  // always drawn: pinned, so the other chips make room for it.
+  { key: "help", line: 3, group: "savings", order: 99, priority: 40, pinned: true, colour: "identity", source: "cache" },
 ];
 
 const BY_KEY = new Map(SEGMENTS.map((s) => [s.key, s]));

@@ -148,6 +148,7 @@ export function harnessProbes(probe, harness, payload = null) {
 }
 import { elapsed, harnessAgentRows } from "./taskRows.js";
 import { getOpenTabUrl, pathToFileUrl } from "./openTerminalTab.js";
+import { helpLinkUrl } from "./helpLink.js";
 import { resetMomentLabel } from "./timeIcons.js";
 import { trackChanges, loadSamples } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
@@ -2350,10 +2351,11 @@ export function renderReadings(
     // cold chip carries shorter `variants`: when the width guard reaches it,
     // the cause comes off, then the token count, and only then the chip.
     // The help page (specs/078): the last chip on line 3, at its right end,
-    // and the first to go for width. A link to the page on disk.
+    // and always drawn (pinned). A link to a launcher that opens the page in
+    // the browser (src/helpLink.js).
     help: () => {
       const page = shows("help", "helpPage") ? readings.helpPage?.value : null;
-      return page ? { color: ROLE.neutral, alignRight: true, text: ` ${g.help} `, url: pathToFileUrl(page) } : null;
+      return page ? { color: ROLE.neutral, alignRight: true, text: ` ${g.help} `, url: helpLinkUrl(page) } : null;
     },
     // The prompt cache's hit ratio, standing, for a seat billed by usage
     // (specs/071, FR-004): the largest cost it controls. Bands inverted,

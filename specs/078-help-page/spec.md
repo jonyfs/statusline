@@ -30,7 +30,7 @@ a página usará a lib i18n … esta página html não pode em nenhuma hipótese
   their base code, and English is the fallback. A selector on the page changes it.
 - **FR-004**: The page is opened from disk: no network request, no CDN, no web font, no `fetch`.
   It uses the statusline's own colours and no company design system or branding.
-- **FR-005**: Segment `help` (line 3, last, right-aligned, priority 40, the first to go for width)
+- **FR-005**: Segment `help` (line 3, last, right-aligned, priority 40, `pinned`: always drawn at the right end of line 3, never dropped for width; the other chips make room for it)
   draws the help glyph (`?` in the plain tier, ❓ in emoji) as a link to the page, only when the
   page exists beside the code. `CLAUDE_STATUSLINE_OMIT=help` removes it.
 - **FR-006**: specs/020 keeps links in the reader's project; this link to the plugin's own file is
