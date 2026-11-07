@@ -148,7 +148,7 @@ export function harnessProbes(probe, harness, payload = null) {
 }
 import { elapsed, harnessAgentRows } from "./taskRows.js";
 import { getOpenTabUrl, pathToFileUrl } from "./openTerminalTab.js";
-import { helpLinkUrl } from "./helpLink.js";
+import { HELP_URL } from "./helpLink.js";
 import { resetMomentLabel } from "./timeIcons.js";
 import { trackChanges, loadSamples } from "./changeTracker.js";
 import { reading, missing, isRenderable } from "./freshness.js";
@@ -255,7 +255,7 @@ const NF_RUST = "\u{F1679}";     // a piggy bank, which is what rtk keeps: savin
 // F00F6, listed in one cheat sheet as a cart, draws a calendar.
 const NF_WALLET = "\u{F0584}";  // nf-md-wallet
 const NF_ACCOUNT = "\u{F0004}"; // nf-md-account: who is signed in (specs/071)
-const NF_HELP = "\u{F0625}";    // nf-md-help_circle_outline: the help page (specs/078)
+const NF_HELP = "\u{F059}";     // nf-fa-question_circle: the help page (specs/078)
 // The prompt cache, one icon per state so the icon itself says which
 // (Principle X). Rendered before adoption (specs/025-prompt-cache-chip/
 // glyph-evidence.png): F09A2, listed as a database refresh, draws a speaker
@@ -2027,7 +2027,11 @@ export function renderReadings(
       if (noLimits || harness === "opencode") return null;
       const id = shows("account") ? readings.account?.value : null;
       // A probe's text goes through the same sanitiser as the file's.
-      const who = plainText(!id ? null : mode === "email" ? (id.email ?? id.org) : (id.org ?? id.email));
+      // One word for whose account it is: `personal` for a Pro or Max seat or
+      // the address's own organisation, otherwise `business`. The organisation's
+      // name is only written in `email` mode.
+      const personal = id && (["claude_pro", "claude_max"].includes(id.orgType) || (id.org && id.email && id.org.toLowerCase() === `${id.email}'s organization`.toLowerCase()));
+      const who = plainText(!id ? null : mode === "email" ? (id.email ?? id.org) : personal ? "personal" : "business");
       // `tier`: the seat's tier beside the organisation (specs/076, FR-005).
       const tier = mode === "tier" && id?.seatTier ? plainText(String(id.seatTier).replace(/^enterprise_/, "").replace(/_/g, " ")) : null;
       if (!who) return null;
@@ -2351,11 +2355,11 @@ export function renderReadings(
     // cold chip carries shorter `variants`: when the width guard reaches it,
     // the cause comes off, then the token count, and only then the chip.
     // The help page (specs/078): the last chip on line 3, at its right end,
-    // and always drawn (pinned). A link to a launcher that opens the page in
-    // the browser (src/helpLink.js).
+    // and always drawn (pinned). An https link to the page on GitHub Pages
+    // (src/helpLink.js): a terminal opens it in the browser.
     help: () => {
       const page = shows("help", "helpPage") ? readings.helpPage?.value : null;
-      return page ? { color: ROLE.neutral, alignRight: true, text: ` ${g.help} `, url: helpLinkUrl(page) } : null;
+      return page ? { color: ROLE.neutral, alignRight: true, text: ` ${g.help} `, url: HELP_URL } : null;
     },
     // The prompt cache's hit ratio, standing, for a seat billed by usage
     // (specs/071, FR-004): the largest cost it controls. Bands inverted,

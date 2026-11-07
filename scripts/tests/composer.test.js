@@ -38,8 +38,9 @@ await test("the page reaches for nothing outside itself", () => {
   // The SVG namespace is a name rather than an address, and nothing fetches
   // it. Every other URL in the file would be a request.
   // The usage pages are the targets of the credit chips' links
-  // (specs/070, FR-009), inlined with the renderer; nothing fetches them.
-  const LINK_TARGETS = ["https://claude.ai/settings/usage", "https://chatgpt.com/codex/settings/usage"];
+  // (specs/070, FR-009), and the help page is the target of the help chip
+  // (specs/078), inlined with the renderer; nothing fetches them.
+  const LINK_TARGETS = ["https://claude.ai/settings/usage", "https://chatgpt.com/codex/settings/usage", "https://jonyfs.github.io/statusline/help/"];
   const urls = [...html.matchAll(/https?:\/\/[^\s"'<)]+/g)].map((m) => m[0]);
   const unexpected = urls.filter(
     (u) => u !== "http://www.w3.org/2000/svg" && !u.startsWith("https://github.com/") && !LINK_TARGETS.includes(u)

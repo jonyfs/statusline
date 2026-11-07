@@ -12,7 +12,3 @@ docs/article-images/
 # Built by scripts/build-render-only.js
 /dist/
 
-# Launchers the help chip opens, written at render time (src/helpLink.js)
-help/open-help.command
-help/open-help.url
-help/open-help.desktop

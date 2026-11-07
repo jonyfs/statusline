@@ -136,9 +136,12 @@ await test("the model tier mark is opt-in and comes from the name", () => {
 await test("the account chip names the organisation and the kind, the address on request, nothing when off", () => {
   const out = render(answered(), sources());
   // The credits chip beside it says `credits`, so the word goes (specs/072).
-  assert.match(out, /Acme Robotics/);
-  assert.doesNotMatch(out, /Acme Robotics · credits/);
-  assert.match(render(answered(), sources(), { CLAUDE_STATUSLINE_LABELS: "on" }), /Acme Robotics · credits/);
+  assert.match(out, /business/);
+  assert.doesNotMatch(out, /Acme Robotics/);
+  assert.doesNotMatch(out, /business · credits/);
+  assert.match(render(answered(), sources(), { CLAUDE_STATUSLINE_LABELS: "on" }), /business · credits/);
+  const personal = sources({ getAccountIdentity: () => ({ org: "dev@example.com's Organization", email: "dev@example.com", seatTier: null, orgType: "claude_max" }) });
+  assert.match(render(answered(), personal), /personal/);
   assert.doesNotMatch(out, /dev@example\.com/);
   assert.match(render(answered(), sources(), { CLAUDE_STATUSLINE_ACCOUNT: "email" }), /dev@example\.com/);
   assert.doesNotMatch(render(answered(), sources(), { CLAUDE_STATUSLINE_ACCOUNT: "off" }), /Acme|dev@/);

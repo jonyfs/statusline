@@ -71,7 +71,7 @@ await test("CLAUDE_STATUSLINE_RESET=clock draws the resets as moments in the com
 
 await test("the account chip can name the seat tier, and the window chips link to the usage page", () => {
   const src = sources({ getAccountIdentity: () => ({ org: "Acme Robotics", email: null, seatTier: "enterprise_usage_based", orgType: null }) });
-  assert.match(render(fullPayload({ now: NOW }), src, { CLAUDE_STATUSLINE_ACCOUNT: "tier" }), /Acme Robotics · usage based/);
+  assert.match(render(fullPayload({ now: NOW }), src, { CLAUDE_STATUSLINE_ACCOUNT: "tier" }), /business · usage based/);
   const out = raw(fullPayload({ now: NOW }), src);
   const i = out.indexOf("5h");
   const before = out.slice(Math.max(0, i - 160), i);
