@@ -368,8 +368,14 @@ export function install({ registerHook: hookFlag, refreshInterval: intervalFlag,
   const wantInterval = choose(intervalFlag, "refreshInterval");
   const wantTaskRows = choose(taskRowsFlag, "taskRows");
 
+  // The interval the person already has is theirs: kept, unless it is the old
+  // installed default of 60, which moves to REFRESH_INTERVAL_SECONDS.
+  const priorInterval = settings.statusLine?.refreshInterval;
   settings.statusLine = { type: "command", command };
-  if (wantInterval) settings.statusLine.refreshInterval = REFRESH_INTERVAL_SECONDS;
+  if (wantInterval) {
+    const keep = Number.isInteger(priorInterval) && priorInterval !== 60;
+    settings.statusLine.refreshInterval = keep ? priorInterval : REFRESH_INTERVAL_SECONDS;
+  }
   // The subagent rows are their own top-level setting with their own tick,
   // not a field on `statusLine`. This was installed as `statusLine.taskCommand`
   // until 2026-09-06, which Claude Code does not read: the rows kept their
@@ -396,7 +402,7 @@ export function install({ registerHook: hookFlag, refreshInterval: intervalFlag,
     command,
     hookRegistered: Boolean(hookCommand),
     hookCommand,
-    refreshInterval: wantInterval ? REFRESH_INTERVAL_SECONDS : null,
+    refreshInterval: wantInterval ? settings.statusLine.refreshInterval : null,
     taskRows: Boolean(wantTaskRows),
     keptOff,
     alreadyInstalled,
