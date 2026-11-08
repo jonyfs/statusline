@@ -953,12 +953,26 @@ function copilotTerminal({ platform = process.platform, readTty = readTtySize, s
 /**
  * The size a redraw fits to, and where it came from.
  *
- * `COLUMNS` is authoritative whenever it is set: Claude Code sets it with its
- * own layout already taken into account, and `/dev/tty` is never opened then.
- * Only Copilot, which sets nothing, is measured from the terminal. Anything
- * else keeps the old answer: 120 columns and every line.
+ * The terminal's size is read from `/dev/tty` first, so the bar fits the window
+ * as it is now, on a laptop, a monitor or an ultrawide. `COLUMNS` is the
+ * fallback when no terminal can be read, and `CLAUDE_STATUSLINE_NO_TTY=1`
+ * skips the read (the test suite does). Anything else keeps 120 columns.
  */
 function terminalFor(harness, { env = process.env, platform = process.platform, readTty = readTtySize, settings = null } = {}) {
+  // The window's own size, read on every redraw, so a resize or a move to a
+  // screen of another width takes effect at the next redraw (specs/079). It
+  // is what the person sees; `COLUMNS` can be a stale or a fixed value. Not
+  // under Copilot, which keeps its own padding rule, and not on Windows.
+  if (harness !== "copilot" && platform !== "win32" && env?.CLAUDE_STATUSLINE_NO_TTY !== "1") {
+    let size = null;
+    try {
+      size = readTty();
+    } catch {
+      size = null;
+    }
+    const measured = positiveInt(size?.columns);
+    if (measured) return { columns: measured, rows: positiveInt(size?.rows) ?? positiveInt(env?.LINES) ?? Infinity, source: "tty" };
+  }
   const columns = positiveInt(env?.COLUMNS);
   if (columns) return { columns, rows: positiveInt(env?.LINES) ?? Infinity, source: "COLUMNS" };
   if (harness === "copilot") {

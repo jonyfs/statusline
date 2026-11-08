@@ -17,6 +17,9 @@
 // would pass or fail by the size of the window it was run in. Pin them, and
 // let the cases that care about size pass their own.
 process.env.COLUMNS = process.env.CLAUDE_STATUSLINE_TEST_COLUMNS || "200";
+// The suite must not measure the terminal it runs in: a fixed COLUMNS is the
+// size every case expects (see `terminalFor`).
+process.env.CLAUDE_STATUSLINE_NO_TTY = "1";
 process.env.LINES = process.env.CLAUDE_STATUSLINE_TEST_LINES || "40";
 
 // Clock faces and reset labels derive from LOCAL time, so a case that
