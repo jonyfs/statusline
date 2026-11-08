@@ -9,6 +9,7 @@ import {
   MIN_SAMPLES_FOR_RATE,
   MAX_SPAN_MS,
   MAX_GAP_MS,
+  MIN_SAMPLE_INTERVAL_MS,
 } from "../../src/samples.js";
 
 const T0 = 1787000000000;
@@ -23,10 +24,24 @@ const ring = (count, step = 15_000, from = 10, per = 1) =>
 await test("the ring is bounded and evicts the oldest", () => {
   let samples = [];
   for (let i = 0; i < MAX_SAMPLES + 20; i++) {
-    samples = pushSample(samples, { at: T0 + i * 1000, contextPct: i });
+    samples = pushSample(samples, { at: T0 + i * MIN_SAMPLE_INTERVAL_MS, contextPct: i });
   }
-  assert.equal(samples.length, MAX_SAMPLES);
+  // The span caps the history before the count does at a minute a sample.
+  assert.ok(samples.length <= MAX_SAMPLES);
   assert.equal(samples[samples.length - 1].contextPct, MAX_SAMPLES + 19);
+});
+
+await test("a redraw every two seconds keeps one sample a minute, so the history still reaches back minutes, not two", () => {
+  let samples = [];
+  for (let i = 0; i < 600; i++) {
+    samples = pushSample(samples, { at: T0 + i * 2000, contextPct: i });
+  }
+  // Twenty minutes of redraws: one kept sample per minute, bounded by the span.
+  const span = samples[samples.length - 1].at - samples[0].at;
+  assert.ok(span >= 10 * 60_000, `history spans ${span / 60000} minutes, expected at least 10`);
+  for (let i = 1; i < samples.length; i++) {
+    assert.ok(samples[i].at - samples[i - 1].at >= MIN_SAMPLE_INTERVAL_MS, "no two kept samples closer than the floor");
+  }
 });
 
 await test("an absent value stays absent rather than becoming a zero", () => {
@@ -108,16 +123,16 @@ await test("a window that reset starts the history again", () => {
   // The 5-hour figure only climbs inside its window. A fall of this size is
   // the window rolling, and a rate spanning the boundary is arithmetic on
   // two unrelated series.
-  const climbing = ring(6, 15_000, 80, 1);
+  const climbing = ring(6, MIN_SAMPLE_INTERVAL_MS, 80, 1);
   const last = climbing[climbing.length - 1];
-  const afterReset = pushSample(climbing, { at: last.at + 15_000, contextPct: 30, fiveHourPct: 2 });
+  const afterReset = pushSample(climbing, { at: last.at + MIN_SAMPLE_INTERVAL_MS, contextPct: 30, fiveHourPct: 2 });
   assert.equal(afterReset.length, 1);
   assert.equal(afterReset[0].fiveHourPct, 2);
 });
 
 await test("an ordinary redraw still extends the history", () => {
-  const before = ring(4, 15_000, 10, 1);
+  const before = ring(4, MIN_SAMPLE_INTERVAL_MS, 10, 1);
   const last = before[before.length - 1];
-  const pushed = pushSample(before, { at: last.at + 15_000, contextPct: 20, fiveHourPct: last.fiveHourPct + 1 });
+  const pushed = pushSample(before, { at: last.at + MIN_SAMPLE_INTERVAL_MS, contextPct: 20, fiveHourPct: last.fiveHourPct + 1 });
   assert.equal(pushed.length, 5);
 });

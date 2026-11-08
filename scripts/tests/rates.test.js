@@ -46,14 +46,14 @@ await test("no burn rate in the first minute of a session", () => {
 
 await test("a burn rate appears once the ring has enough", () => {
   const steps = [];
-  for (let i = 0; i < 8; i++) steps.push({ at: i * 20_000, context: 10 + i, fiveHour: 10 + i });
+  for (let i = 0; i < 8; i++) steps.push({ at: i * 60_000, context: 10 + i, fiveHour: 10 + i });
   const later = overTime(`rate-later-${process.pid}`, steps);
-  assert.match(later, re`${G.burn} \d+(\.\d)?%/h`, "seven samples over two minutes is enough");
+  assert.match(later, re`${G.burn} \d+(\.\d)?%/h`, "seven samples a minute apart is enough");
 });
 
 await test("a falling window has no rate and no projection", () => {
   const steps = [];
-  for (let i = 0; i < 8; i++) steps.push({ at: i * 20_000, context: 50 - i, fiveHour: 50 - i });
+  for (let i = 0; i < 8; i++) steps.push({ at: i * 60_000, context: 50 - i, fiveHour: 50 - i });
   const falling = overTime(`rate-falling-${process.pid}`, steps);
   assert.doesNotMatch(falling, /%\/h/, "a window that is emptying is not burning");
   assert.doesNotMatch(falling, /full ~/);
@@ -63,11 +63,11 @@ await test("the projection only renders when it lands before the reset", () => {
   // A projection that lands after the window resets says nothing: the window
   // resets first, which is the good outcome.
   const gentle = [];
-  for (let i = 0; i < 8; i++) gentle.push({ at: i * 20_000, context: 10, fiveHour: 10 + i * 0.1 });
+  for (let i = 0; i < 8; i++) gentle.push({ at: i * 60_000, context: 10, fiveHour: 10 + i * 0.1 });
   assert.doesNotMatch(overTime(`proj-gentle-${process.pid}`, gentle), /full ~/);
 
   const steep = [];
-  for (let i = 0; i < 8; i++) steep.push({ at: i * 20_000, context: 10, fiveHour: 50 + i * 3 });
+  for (let i = 0; i < 8; i++) steep.push({ at: i * 60_000, context: 10, fiveHour: 50 + i * 3 });
   assert.match(overTime(`proj-steep-${process.pid}`, steep), /full ~\d\d:\d\d/);
 });
 
@@ -75,7 +75,7 @@ await test("no sparkline: the trend segment was removed", () => {
   // Removed on 2026-08-26. The ring it read from stays, because the burn
   // rate and the projection are still drawn from it.
   const steps = [];
-  for (let i = 0; i < 6; i++) steps.push({ at: i * 20_000, context: 10 + i * 5, fiveHour: 10 });
+  for (let i = 0; i < 6; i++) steps.push({ at: i * 60_000, context: 10 + i * 5, fiveHour: 10 });
   const out = overTime(`spark-${process.pid}`, steps);
   assert.doesNotMatch(out, /[▁▂▃▄▅▆▇]/);
 });

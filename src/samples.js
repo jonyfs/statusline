@@ -30,6 +30,16 @@ export const MAX_SAMPLES = 60;
 export const MAX_SPAN_MS = 15 * 60_000;
 
 /**
+ * The least time between two kept samples.
+ *
+ * The bar redraws every couple of seconds (specs/079, refreshInterval 2), and a
+ * count of samples would then reach back two minutes, not fifteen. One sample a
+ * minute keeps the window the rates were designed for, at the cadence they were
+ * tuned on.
+ */
+export const MIN_SAMPLE_INTERVAL_MS = 60_000;
+
+/**
  * A gap this long ends the history rather than stretching it.
  *
  * Nothing was observed across the gap, so the two sides of it are two
@@ -70,6 +80,9 @@ export function pushSample(samples, sample) {
   // out-of-order sample rather than the whole history.
   const last = ring[ring.length - 1];
   if (last && clean.at < last.at) return ring;
+  // Too soon after the last kept sample: keep the history as it is. A window
+  // reset is still seen at the next sample that is kept.
+  if (last && clean.at - last.at < MIN_SAMPLE_INTERVAL_MS) return ring;
 
   // Two things end the history rather than extending it: a gap nobody
   // observed, and a window that reset underneath it.
