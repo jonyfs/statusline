@@ -68,21 +68,34 @@ await test("under Copilot with no COLUMNS the size comes from /dev/tty, less Cop
   assert.equal(copilotTerminal({ env: {}, platform: "linux", readTty: tty, settings: { statusLine: { padding: "x" } } }).columns, 117);
 });
 
-await test("COLUMNS wins, and Windows or a missing terminal falls back to 120", () => {
+await test("the terminal's own size wins under Claude Code; COLUMNS is the fallback; Windows and a missing terminal fall back to 120", () => {
   let opened = 0;
   const tty = () => {
     opened++;
     return { columns: 117, rows: 40 };
   };
+  // Copilot keeps COLUMNS first, as before.
   assert.deepEqual(terminalFor("copilot", { env: { COLUMNS: "80", LINES: "20" }, platform: "darwin", readTty: tty }), {
     columns: 80,
     rows: 20,
     source: "COLUMNS",
   });
-  assert.deepEqual(terminalFor("claude", { env: {}, platform: "darwin", readTty: tty }), { columns: DEFAULT_WIDTH, rows: Infinity, source: "default" });
-  assert.equal(opened, 0, "the terminal is never opened under Claude Code or with COLUMNS set");
+  assert.equal(opened, 0, "Copilot with COLUMNS set does not open the terminal");
+  // Claude Code: the window's real size, even when COLUMNS says otherwise.
+  assert.deepEqual(terminalFor("claude", { env: { COLUMNS: "200", LINES: "20" }, platform: "darwin", readTty: tty }), {
+    columns: 117,
+    rows: 40,
+    source: "tty",
+  });
+  // The suite can pin the size instead of reading the terminal it runs in.
+  assert.deepEqual(terminalFor("claude", { env: { COLUMNS: "80", CLAUDE_STATUSLINE_NO_TTY: "1" }, platform: "darwin", readTty: tty }), {
+    columns: 80,
+    rows: Infinity,
+    source: "COLUMNS",
+  });
+  assert.equal(opened, 1, "the terminal is opened under Claude Code once, and not when NO_TTY is set");
   assert.deepEqual(terminalFor("copilot", { env: {}, platform: "win32", readTty: tty }), { columns: DEFAULT_WIDTH, rows: Infinity, source: "default" });
-  assert.equal(opened, 0, "nor on Windows, which has no /dev/tty");
+  assert.equal(opened, 1, "nor on Windows, which has no /dev/tty");
   const failing = () => {
     throw Object.assign(new Error("ENXIO: no such device"), { code: "ENXIO" });
   };
@@ -461,7 +474,7 @@ await test("doctor names Copilot's refresh interval and footer, and where the wi
   const t = terminalReport("copilot", { env: {}, platform: "darwin", readTty: () => ({ columns: 117, rows: 40 }), settings: { statusLine: { padding: 2 } } });
   assert.equal(terminalReport("copilot", { env: {}, platform: "win32", readTty: () => ({ columns: 117, rows: 40 }) }).columnsSource, "default");
   assert.deepEqual([t.columns, t.rows, t.columnsSource], [115, 40, "tty"]);
-  assert.match(terminalLine(t), /115 columns \(read from \/dev\/tty: Copilot CLI sets no COLUMNS; less its padding of 2\), 40 rows/);
+  assert.match(terminalLine(t), /115 columns \(the window.s size, read from \/dev\/tty on this redraw; less its padding of 2\), 40 rows/);
 });
 
 await test("doctor describes the credits and the quota, and says why they are absent under Claude Code", () => {

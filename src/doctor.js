@@ -607,7 +607,7 @@ export function terminalLine(t) {
     t.columnsSource === "default"
       ? `${t.columns} columns (COLUMNS not set, using the default)`
       : t.columnsSource === "tty"
-        ? `${t.columns} columns (read from /dev/tty: Copilot CLI sets no COLUMNS${t.padding ? `; less its padding of ${t.padding}` : ""})`
+        ? `${t.columns} columns (the window's size, read from /dev/tty on this redraw${t.padding ? `; less its padding of ${t.padding}` : ""})`
         : `${t.columns} columns`;
   const rows = t.rows === null ? "rows unknown (LINES not set, every line drawn)" : `${t.rows} rows`;
   return `terminal: ${columns}, ${rows}`;
