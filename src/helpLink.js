@@ -5,4 +5,4 @@
  * The link is https, because a terminal opens an https link in the browser, while a
  * `file://` link to a local page may reveal the folder in the file manager instead.
  */
-export const HELP_URL = "https://jonyfs.github.io/statusline/help/";
+export const HELP_URL = "https://jonyfs.github.io/statusline/";
