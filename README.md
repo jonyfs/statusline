@@ -96,7 +96,7 @@ The install step backs up your existing `~/.claude/settings.json` to
 updates the moment a skill runs, and leaves every other setting alone. Run
 it as many times as you like; it does the same thing each time.
 
-Install also sets `refreshInterval: 60`, so the countdowns keep moving while
+Install also sets `refreshInterval: 2`, so the countdowns keep moving while
 a session sits idle and Claude Code stops sending events, and a
 `subagentStatusLine` command so the rows for running subagents are drawn in
 the same style as the bar. That setting is top-level and separate from

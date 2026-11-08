@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
 import { makeHome, withHome } from "./fixtures/home.js";
-import { install, uninstall, buildHookCommand } from "../../src/install.js";
+import { install, uninstall, buildHookCommand, REFRESH_INTERVAL_SECONDS } from "../../src/install.js";
 
 const thirdPartyHook = {
   matcher: "Bash",
@@ -130,11 +130,11 @@ await test("install writes the refresh interval and the subagent row command", a
   const home = makeHome({});
   await withHome(home, () => {
     const result = install();
-    assert.equal(result.refreshInterval, 60);
+    assert.equal(result.refreshInterval, REFRESH_INTERVAL_SECONDS);
     assert.equal(result.taskRows, true);
 
     const written = home.read();
-    assert.equal(written.statusLine.refreshInterval, 60);
+    assert.equal(written.statusLine.refreshInterval, REFRESH_INTERVAL_SECONDS);
     assert.equal(written.statusLine.taskCommand, undefined, "not a field on statusLine");
     assert.equal(written.subagentStatusLine.type, "command");
     assert.match(written.subagentStatusLine.command, /task-rows$/);
@@ -240,7 +240,7 @@ await test("a re-install keeps the pieces that were on, and keeps one opt-out wi
     const result = install();
     const written = home.read();
     assert.equal(written.hooks, undefined, "the hook stays off");
-    assert.equal(written.statusLine.refreshInterval, 60);
+    assert.equal(written.statusLine.refreshInterval, REFRESH_INTERVAL_SECONDS);
     assert.match(written.subagentStatusLine.command, /task-rows$/);
     assert.deepEqual(result.keptOff, ["hook"]);
   });
@@ -267,7 +267,7 @@ await test("a first install over another tool's statusline keeps today's default
   await withHome(home, () => {
     const result = install();
     const written = home.read();
-    assert.equal(written.statusLine.refreshInterval, 60);
+    assert.equal(written.statusLine.refreshInterval, REFRESH_INTERVAL_SECONDS);
     assert.match(written.subagentStatusLine.command, /task-rows$/);
     assert.ok(written.hooks.PostToolUse.some((g) => g.matcher === "Skill"));
     assert.deepEqual(result.keptOff, []);
