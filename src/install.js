@@ -249,9 +249,11 @@ export function buildTaskRowCommand() {
  * Updates are event-driven, and the events go quiet while a session is
  * idle. The countdowns and the clock are exactly the segments that keep
  * changing while nothing else does, so without an interval they freeze at
- * whatever they said when the last event fired. Item F1's chosen value.
+ * whatever they said when the last event fired. A resize sends no event, so the
+ * interval is also how the bar follows a new window width: short enough that the
+ * help chip moves within seconds (Claude Code accepts 1 as the minimum).
  */
-export const REFRESH_INTERVAL_SECONDS = 60;
+export const REFRESH_INTERVAL_SECONDS = 2;
 
 /** Whether a command string belongs to this plugin's own CLI. */
 function isOurCommand(command) {
