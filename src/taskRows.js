@@ -813,8 +813,14 @@ export function cutToWidth(text, max) {
 // column was missed and a cut could fall inside a joined sequence, leaving a
 // joiner glued to the ellipsis. Intl.Segmenter ships in every Node from 16;
 // the fallback is the code-point walk this replaced.
-const segmenter = typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+// Built on first use, not when the module loads: constructing it loads ICU's
+// break data, about 15 ms, and every redraw imports this module whether or not
+// a row is cut (specs/079, FR-005).
+let segmenter;
 function graphemes(text) {
+  if (segmenter === undefined) {
+    segmenter = typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+  }
   return segmenter ? Array.from(segmenter.segment(text), (s) => s.segment) : [...text];
 }
 

@@ -1349,6 +1349,10 @@ export function renderReadings(
       enabled: tracking,
       now,
       samples: readings.samples.value,
+      // The spinner is only drawn while the session works; otherwise its
+      // frame need not advance, and the state file need not be rewritten
+      // on a redraw where nothing else moved (specs/079, FR-003).
+      animating: readings.activity?.value?.working === true,
     }
   );
 

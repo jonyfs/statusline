@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { statSync } from "node:fs";
+import { statSync, readFileSync } from "node:fs";
 import { plainText } from "./text.js";
 import path from "node:path";
 import { pathToFileUrl } from "./openTerminalTab.js";
@@ -198,6 +198,55 @@ export function parsePorcelainV2(text) {
  * already fetched but not merged", not "commits that exist on the remote
  * right now".
  */
+/** How long a git snapshot is reused while HEAD and the index are unchanged. */
+export const GIT_REUSE_MS = 10_000;
+
+/**
+ * What changes when the branch, the commit or the staged set does: the size
+ * and modification time of HEAD and of the index, in the repository's git
+ * directory. Found by walking up from `cwd` to the first `.git`, which is a
+ * directory, or in a linked worktree a file naming one. Null when there is no
+ * repository or anything cannot be read, which means "do not reuse".
+ */
+export function gitSignature(cwd) {
+  try {
+    let dir = path.resolve(cwd || ".");
+    for (let i = 0; i < 64; i++) {
+      const dotGit = path.join(dir, ".git");
+      let info = null;
+      try {
+        info = statSync(dotGit);
+      } catch {
+        info = null;
+      }
+      if (info) {
+        let gitDir = dotGit;
+        if (info.isFile()) {
+          const line = readFileSync(dotGit, "utf8").trim();
+          const m = /^gitdir:\s*(.+)$/.exec(line);
+          if (!m) return null;
+          gitDir = path.resolve(dir, m[1]);
+        }
+        const part = (name) => {
+          try {
+            const s = statSync(path.join(gitDir, name));
+            return `${s.size}:${s.mtimeMs}`;
+          } catch {
+            return "-";
+          }
+        };
+        return `${gitDir}|HEAD ${part("HEAD")}|index ${part("index")}`;
+      }
+      const up = path.dirname(dir);
+      if (up === dir) return null;
+      dir = up;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.git } = {}) {
   const args = ["--no-optional-locks", "status", "--porcelain=v2", "--branch", "-z"];
   const key = repoKey(cwd);
@@ -227,6 +276,19 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
     return null;
   }
 
+  // The bar redraws every two seconds now, and a quiet repository gave the
+  // same answer every time for 30 ms of `git status` (specs/079, FR-006). The
+  // last snapshot is reused for up to GIT_REUSE_MS while HEAD and the index
+  // are untouched: a branch switch, a commit or a stage changes one of them
+  // and is still seen at once. An edit to a tracked file touches neither and
+  // shows within GIT_REUSE_MS, which is the price of not running git.
+  const signature = gitSignature(cwd);
+  if (signature) {
+    const ran = readEntry(key, "gitSig");
+    const stored = readEntry(key, "git");
+    if (ran && stored && ran.value === signature && now - ran.at >= 0 && now - ran.at < GIT_REUSE_MS) return stored.value;
+  }
+
   const started = Date.now();
   const result = runGit(args, cwd, budgetMs);
   const snapshot = parsePorcelainV2(result.text);
@@ -234,6 +296,7 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
   if (!costEntry || Math.abs(costEntry.value - tookMs) > budgetMs / 4) {
     writeEntry(key, "gitCost", tookMs, { now });
   }
+  if (snapshot && signature) writeEntry(key, "gitSig", signature, { now });
 
   if (snapshot) {
     // Only write when the snapshot actually moved, or when the stored one

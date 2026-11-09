@@ -198,6 +198,18 @@ async function main() {
     }
     throw new Error(`Node ${MIN_NODE_MAJOR} or newer is required; this is Node ${process.versions.node}. Nothing was changed.`);
   }
+  // The bar is a new process every couple of seconds, and compiling the
+  // modules was a third of each one (specs/079, FR-004). Node keeps the
+  // compiled code in its own cache, keyed by each file's contents, so an
+  // update invalidates it by itself. A passive render writes nothing.
+  if ((subcommand === "render" || subcommand === undefined || subcommand === "task-rows") && process.env.CLAUDE_STATUSLINE_PASSIVE !== "1") {
+    try {
+      const { enableCompileCache } = await import("node:module");
+      if (typeof enableCompileCache === "function") enableCompileCache();
+    } catch {
+      // an older Node, or a cache directory that cannot be written: compile as before
+    }
+  }
   if (runsMode) {
     await runRuns();
     return;

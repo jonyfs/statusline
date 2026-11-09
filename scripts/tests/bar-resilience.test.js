@@ -65,3 +65,62 @@ await test("agent rows take the window's width from COLUMNS when the payload car
     else process.env.COLUMNS = saved;
   }
 });
+
+await test("a quiet repository is not asked again within the reuse window, and a branch switch is still seen at once (FR-006)", async () => {
+  const { execFileSync } = await import("node:child_process");
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const os = await import("node:os");
+  const pathMod = await import("node:path");
+  const { getGitInfo, gitSignature, GIT_REUSE_MS } = await import("../../src/git.js");
+  const { readEntry, repoKey } = await import("../../src/cache.js");
+  const repo = mkdtempSync(pathMod.join(os.tmpdir(), "sl-079-git-"));
+  const git = (...args) => execFileSync("git", ["-C", repo, ...args], { stdio: "pipe" });
+  git("init", "-q", "-b", "main");
+  git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "one");
+  const home = makeHome();
+  await withHome(home, async () => {
+    const now = Date.now();
+    assert.equal(getGitInfo(repo, { now })?.branch, "main");
+    const key = repoKey(repo);
+    const ranAt = readEntry(key, "gitSig").at;
+    // Inside the window with HEAD and the index unchanged: the snapshot is reused,
+    // so a new untracked file is not seen yet and git did not run.
+    writeFileSync(pathMod.join(repo, "untracked.txt"), "x");
+    const reused = getGitInfo(repo, { now: now + 2_000 });
+    assert.equal(reused?.branch, "main");
+    assert.equal(reused?.untracked, 0, "the reused snapshot is the earlier one");
+    assert.equal(readEntry(key, "gitSig").at, ranAt, "git was not run again");
+    // A branch switch rewrites HEAD: seen on the very next redraw.
+    git("checkout", "-q", "-b", "feature");
+    assert.equal(getGitInfo(repo, { now: now + 4_000 })?.branch, "feature");
+    // Past the window, git runs again and sees the untracked file.
+    const later = getGitInfo(repo, { now: now + 4_000 + GIT_REUSE_MS });
+    assert.equal(later.untracked, 1, "the edit shows after the window");
+    assert.equal(gitSignature(pathMod.join(os.tmpdir())), null, "no repository, no reuse");
+  });
+});
+
+await test("an idle session writes its state only when it changes; a working one still moves the spinner a frame a redraw (FR-003)", async () => {
+  const { trackChanges } = await import("../../src/changeTracker.js");
+  const fs = await import("node:fs");
+  const pathMod = await import("node:path");
+  const { stateRoot } = await import("../../src/paths.js");
+  const home = makeHome();
+  await withHome(home, async () => {
+    const id = `t079-${process.pid}`;
+    const t0 = 1_800_000_000_000;
+    const first = trackChanges(id, { branch: "main" }, { now: t0, animating: false });
+    const file = fs.readdirSync(stateRoot(), { recursive: true }).map(String).find((f) => f.includes(id));
+    assert.ok(file, "the first redraw writes the state");
+    const full = pathMod.join(stateRoot(), file);
+    fs.utimesSync(full, new Date(1_000_000), new Date(1_000_000));
+    const second = trackChanges(id, { branch: "main" }, { now: t0 + 2_000, animating: false });
+    assert.equal(fs.statSync(full).mtimeMs, 1_000_000, "idle and unchanged: nothing written");
+    assert.equal(first.frame, second.frame, "an idle spinner stands still");
+    const working = trackChanges(id, { branch: "main" }, { now: t0 + 4_000, animating: true });
+    assert.equal(working.frame, (second.frame + 1) % 4, "a working session advances one frame a redraw");
+    fs.utimesSync(full, new Date(1_000_000), new Date(1_000_000));
+    trackChanges(id, { branch: "feature" }, { now: t0 + 6_000, animating: false });
+    assert.notEqual(fs.statSync(full).mtimeMs, 1_000_000, "a change is written");
+  });
+});
