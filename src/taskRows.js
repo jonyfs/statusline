@@ -561,7 +561,17 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
 
   const flavor = process.env.CLAUDE_STATUSLINE_FLAVOR || "mocha";
   const palette = PALETTES[flavor] || PALETTES.mocha;
-  const columns = typeof payload.columns === "number" ? payload.columns : 80;
+  // The payload's own width, else the window Claude Code reports in COLUMNS
+  // (it sets it for its commands, measured in specs/079 T3), else 80. The
+  // rows sit under a bar that fills the window; 80 alone left them half its
+  // width on a monitor (FR-013).
+  const envColumns = Number(process.env.COLUMNS);
+  const columns =
+    typeof payload.columns === "number"
+      ? payload.columns
+      : Number.isInteger(envColumns) && envColumns > 0
+        ? envColumns
+        : 80;
 
   // Skills the hook attributed to a running subagent. Empty unless the hook is
   // installed and Claude Code's `agent_id` turns out to be the same value as

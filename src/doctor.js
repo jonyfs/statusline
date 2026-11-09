@@ -531,9 +531,12 @@ export function terminalReport(harness = "claude", { readTty, settings = null, e
   return {
     columns: size.columns,
     columnsSource: size.source,
-    padding: size.source === "tty" ? copilotPadding(settings) : 0,
+    // Only Copilot pads its lines; under every other host the tty is the window.
+    padding: harness === "copilot" && size.source === "tty" ? copilotPadding(settings) : 0,
+    margin: size.margin ?? 0,
     rows,
-    rowsSource: rows === null ? "unset" : size.source === "tty" ? "tty" : "LINES",
+    // Rows come from LINES everywhere but Copilot, which measures the tty (specs/079, FR-009).
+    rowsSource: rows === null ? "unset" : harness === "copilot" && size.source === "tty" ? "tty" : "LINES",
   };
 }
 
@@ -603,12 +606,14 @@ function codexPaneText(pane) {
 }
 
 export function terminalLine(t) {
-  const columns =
-    t.columnsSource === "default"
-      ? `${t.columns} columns (COLUMNS not set, using the default)`
-      : t.columnsSource === "tty"
-        ? `${t.columns} columns (the window's size, read from /dev/tty on this redraw${t.padding ? `; less its padding of ${t.padding}` : ""})`
-        : `${t.columns} columns`;
+  const why = {
+    default: "COLUMNS not set and no terminal to read, using the default",
+    tty: `the window's size, read from /dev/tty on this redraw${t.padding ? `; less its padding of ${t.padding}` : ""}`,
+    COLUMNS: "from COLUMNS, which the host updates on each redraw",
+    "min(tty,COLUMNS)": "the smaller of COLUMNS and /dev/tty, which disagree",
+  }[t.columnsSource];
+  const margin = t.margin ? `; less a margin of ${t.margin} (CLAUDE_STATUSLINE_WIDTH_MARGIN)` : "";
+  const columns = why ? `${t.columns} columns (${why}${margin})` : `${t.columns} columns`;
   const rows = t.rows === null ? "rows unknown (LINES not set, every line drawn)" : `${t.rows} rows`;
   return `terminal: ${columns}, ${rows}`;
 }

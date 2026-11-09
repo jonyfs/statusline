@@ -953,33 +953,59 @@ function copilotTerminal({ platform = process.platform, readTty = readTtySize, s
 /**
  * The size a redraw fits to, and where it came from.
  *
- * The terminal's size is read from `/dev/tty` first, so the bar fits the window
- * as it is now, on a laptop, a monitor or an ultrawide. `COLUMNS` is the
- * fallback when no terminal can be read, and `CLAUDE_STATUSLINE_NO_TTY=1`
- * skips the read (the test suite does). Anything else keeps 120 columns.
+ * Measured inside Claude Code 2026-11-09 (specs/079, T3): the command runs with
+ * no controlling terminal (`/dev/tty` fails) and with `COLUMNS` and `LINES` set
+ * to the window, updated on the next redraw after a resize (373, then 143 after
+ * the window was narrowed). So under Claude Code `COLUMNS` is the answer. The
+ * tty is read too, for a host that sets nothing or a stale value; when both are
+ * known the smaller wins, because a bar narrower than its window costs nothing
+ * and one wider wraps (FR-008). `CLAUDE_STATUSLINE_NO_TTY=1` skips the read (the
+ * test suite does). `CLAUDE_STATUSLINE_WIDTH_MARGIN` reserves columns at the
+ * right for a host that draws in less than it reports (FR-011). Anything else
+ * keeps 120 columns.
  */
 function terminalFor(harness, { env = process.env, platform = process.platform, readTty = readTtySize, settings = null } = {}) {
-  // The window's own size, read on every redraw, so a resize or a move to a
-  // screen of another width takes effect at the next redraw (specs/079). It
-  // is what the person sees; `COLUMNS` can be a stale or a fixed value. Not
-  // under Copilot, which keeps its own padding rule, and not on Windows.
-  if (harness !== "copilot" && platform !== "win32" && env?.CLAUDE_STATUSLINE_NO_TTY !== "1") {
-    let size = null;
-    try {
-      size = readTty();
-    } catch {
-      size = null;
-    }
-    const measured = positiveInt(size?.columns);
-    if (measured) return { columns: measured, rows: positiveInt(size?.rows) ?? positiveInt(env?.LINES) ?? Infinity, source: "tty" };
-  }
-  const columns = positiveInt(env?.COLUMNS);
-  if (columns) return { columns, rows: positiveInt(env?.LINES) ?? Infinity, source: "COLUMNS" };
+  const fit = (size) => withMargin(size, env);
+  // Rows from LINES only: the tty's height is the whole terminal, not the
+  // area the status line is drawn in (specs/079, FR-009).
+  const rows = positiveInt(env?.LINES) ?? Infinity;
+  const fromEnv = positiveInt(env?.COLUMNS);
+  // Copilot keeps its own rule (specs/033): COLUMNS, then the tty less padding.
   if (harness === "copilot") {
+    if (fromEnv) return fit({ columns: fromEnv, rows, source: "COLUMNS" });
     const measured = copilotTerminal({ platform, readTty, settings: typeof settings === "function" ? settings() : settings });
-    if (measured) return measured;
+    if (measured) return fit(measured);
+    return fit({ columns: DEFAULT_WIDTH, rows, source: "default" });
   }
-  return { columns: DEFAULT_WIDTH, rows: positiveInt(env?.LINES) ?? Infinity, source: "default" };
+  let fromTty = null;
+  if (platform !== "win32" && env?.CLAUDE_STATUSLINE_NO_TTY !== "1") {
+    try {
+      fromTty = positiveInt(readTty()?.columns);
+    } catch {
+      fromTty = null;
+    }
+  }
+  if (fromEnv && fromTty) {
+    if (fromEnv === fromTty) return fit({ columns: fromEnv, rows, source: "COLUMNS" });
+    return fit({ columns: Math.min(fromEnv, fromTty), rows, source: "min(tty,COLUMNS)" });
+  }
+  if (fromEnv) return fit({ columns: fromEnv, rows, source: "COLUMNS" });
+  if (fromTty) return fit({ columns: fromTty, rows, source: "tty" });
+  return fit({ columns: DEFAULT_WIDTH, rows, source: "default" });
+}
+
+/** The right-hand margin a person asked for, 0 to 8 columns (FR-011). */
+function widthMargin(env = process.env) {
+  const raw = env?.CLAUDE_STATUSLINE_WIDTH_MARGIN;
+  if (raw === undefined || raw === "") return 0;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 && n <= 8 ? n : 0;
+}
+
+function withMargin(size, env) {
+  const margin = widthMargin(env);
+  if (!margin) return size;
+  return { ...size, columns: Math.max(20, size.columns - margin), margin };
 }
 
 /** What a row of segments costs in columns, separators included. */
@@ -1008,20 +1034,27 @@ function rowWidth(row) {
 function fitToWidth(row, width = terminalWidth()) {
   if (rowWidth(row) <= width) return row;
 
-  // A pinned segment (the help chip) is never dropped. Its width is
-  // taken off the top, and the others fit into what is left. The budget is
-  // reduced again if the group gap between them pushes the line over.
+  // A pinned segment (the help chip) is kept while there is room for it. Its
+  // width is taken off the top, and the others fit into what is left. The
+  // budget is reduced again if the group gap between them pushes the line
+  // over. When even that does not fit, the pin is dropped for this row and
+  // the ordinary priority fit decides, so a pinned chip never makes a row
+  // wider than its window (specs/079, FR-012).
   const pinned = row.filter((s) => s.pinned);
   if (pinned.length) {
     const free = row.filter((s) => !s.pinned);
     let budget = width - rowWidth(pinned);
-    for (;;) {
+    while (budget > 0) {
       const fitted = new Map(fitToWidth(free, budget).map((s) => [s.key, s]));
       const out = row.filter((s) => s.pinned || fitted.has(s.key)).map((s) => (s.pinned ? s : fitted.get(s.key)));
       const over = rowWidth(out) - width;
-      if (over <= 0 || budget <= 0) return out;
+      if (over <= 0) return out;
       budget -= over;
     }
+    return fitToWidth(
+      row.map((s) => (s.pinned ? { ...s, pinned: false } : s)),
+      width
+    ).map((s) => row.find((r) => r.key === s.key && r.pinned) ?? s);
   }
 
   const byPriority = [...row].sort((a, b) => a.priority - b.priority);

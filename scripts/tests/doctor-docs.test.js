@@ -94,7 +94,7 @@ await test("doctor says when the terminal size was assumed rather than read", ()
     assert.equal(report.terminal.rowsSource, "unset");
     const text = formatReport(report);
     assert.doesNotMatch(text, /Infinity/);
-    assert.match(text, /terminal: 120 columns \(COLUMNS not set, using the default\), rows unknown \(LINES not set, every line drawn\)/);
+    assert.match(text, /terminal: 120 columns \(COLUMNS not set and no terminal to read, using the default\), rows unknown \(LINES not set, every line drawn\)/);
   } finally {
     for (const [k, v] of Object.entries(saved)) if (v !== undefined) process.env[k] = v;
   }
@@ -103,7 +103,7 @@ await test("doctor says when the terminal size was assumed rather than read", ()
 await test("doctor reports a measured terminal size plainly", () => {
   const report = buildReport({}, { live: false, probe: emptySources });
   assert.equal(report.terminal.columnsSource, "COLUMNS");
-  assert.match(formatReport(report), new RegExp(`terminal: ${process.env.COLUMNS} columns, ${process.env.LINES} rows`));
+  assert.match(formatReport(report), new RegExp(`terminal: ${process.env.COLUMNS} columns \\(from COLUMNS, which the host updates on each redraw\\), ${process.env.LINES} rows`));
 });
 
 // Finding #24: a mistyped flavor fell back to mocha without a word, and the
