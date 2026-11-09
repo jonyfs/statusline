@@ -124,3 +124,33 @@ await test("an idle session writes its state only when it changes; a working one
     assert.notEqual(fs.statSync(full).mtimeMs, 1_000_000, "a change is written");
   });
 });
+
+await test("within a tier a glyph has one meaning, outside the shared groups the tier declares (FR-015, FR-016)", async () => {
+  const { GLYPHS, SHARED_GLYPHS } = await import("../../src/render.js");
+  for (const [tier, glyphs] of Object.entries(GLYPHS)) {
+    const groups = SHARED_GLYPHS[tier] ?? [];
+    const groupOf = new Map();
+    groups.forEach((g, i) => g.forEach((k) => groupOf.set(k, i)));
+    const byGlyph = new Map();
+    for (const [key, glyph] of Object.entries(glyphs)) byGlyph.set(glyph, [...(byGlyph.get(glyph) ?? []), key]);
+    for (const [glyph, keys] of byGlyph) {
+      if (keys.length < 2) continue;
+      const ids = new Set(keys.map((k) => groupOf.get(k)));
+      assert.ok(!ids.has(undefined) && ids.size === 1, `${tier}: ${JSON.stringify(glyph)} means ${keys.join(", ")}`);
+    }
+    for (const group of groups) for (const k of group) assert.ok(k in glyphs, `${tier}: shared group names ${k}, which the tier lacks`);
+  }
+  // The four the audit found, each with a picture of its own now.
+  assert.notEqual(GLYPHS.nerd.timer, GLYPHS.nerd.cacheWarmHalf);
+  assert.notEqual(GLYPHS.nerd.mcp, GLYPHS.nerd.from);
+  assert.notEqual(GLYPHS.emoji.timer, GLYPHS.emoji.cacheWarm);
+  assert.notEqual(GLYPHS.emoji.unavailable, GLYPHS.emoji.prClosed);
+  assert.notEqual(GLYPHS.plain.help, GLYPHS.plain.untracked);
+});
+
+await test("new glyphs keep their tier's width: one column in nerd and plain, two in emoji (FR-017)", async () => {
+  const { GLYPHS } = await import("../../src/render.js");
+  for (const [tier, key, cols] of [["nerd", "timer", 1], ["nerd", "mcp", 1], ["plain", "help", 1], ["emoji", "cacheWarm", 2], ["emoji", "unavailable", 2]]) {
+    assert.equal(displayWidth(GLYPHS[tier][key]), cols, `${tier}.${key}`);
+  }
+});

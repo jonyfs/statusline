@@ -244,8 +244,9 @@ const NF_EFFORT = NF_EFFORT_HIGH;
 const NF_CONTEXT = "\u{F09D1}";  // nf-md-brain: the context window (guide section 5.3)
                                  // F09DA, listed as "brain", draws a boxed
                                  // chevron in this build
-const NF_TIMER = "\u{F051F}";    // an hourglass: a window that runs out, time remaining. F44E, listed as "stopwatch",
-                                 // draws three flat bars in this build
+const NF_CLOCK = "\u{F0150}";    // nf-md-clock_outline: the 5-hour window. The hourglass family stays
+                                 // the prompt cache's, so the two never share a picture (specs/079)
+const NF_PLUG = "\u{F492}";      // nf-oct-plug: MCP servers, which had shared the arrow with `from` (specs/079)
 const NF_STOPWATCH = "\u{F520}"; // a stopwatch: session duration, time elapsed
 const NF_BURN = "\u{F0238}";     // nf-md-fire: how fast the window is going
 const NF_RUST = "\u{F1679}";     // a piggy bank, which is what rtk keeps: savings
@@ -354,14 +355,14 @@ export const GLYPHS = {
     model: NF_MODEL,
     effort: NF_EFFORT,
     context: NF_CONTEXT,
-    timer: NF_TIMER,
+    timer: NF_CLOCK,
     duration: NF_STOPWATCH,
     burn: NF_BURN,
     rtk: NF_RUST,
     spend: NF_WALLET,
     account: NF_ACCOUNT,
     help: NF_HELP,
-    mcp: NF_FROM,
+    mcp: NF_PLUG,
     cacheWarm: NF_HOURGLASS_FULL,
     cacheWarmHalf: NF_HOURGLASS_HALF,
     cacheWarmLow: NF_HOURGLASS_EMPTY,
@@ -434,7 +435,7 @@ export const GLYPHS = {
     sleeping: "\u{1F4A4}",
     yourTurn: "\u{1F514}",       // 🔔
     clean: "\u2705",             // ✅
-    unavailable: "\u{1F6AB}",    // 🚫
+    unavailable: "\u26D4",       // ⛔ not 🚫, which is a closed pull request (specs/079)
     skills: "\u{1F9E9}",         // 🧩
     model: "\u{1F916}",          // 🤖
     effort: "\u{1F3AF}",         // 🎯
@@ -447,8 +448,8 @@ export const GLYPHS = {
     account: "\u{1F464}",        // 👤
     help: "\u2753",              // ❓
     mcp: "\u{1F50C}",            // 🔌
-    cacheWarm: "\u23F3",         // ⏳
-    cacheWarmHalf: "\u23F3",
+    cacheWarm: "\u{1F4BE}",      // 💾 the stored prompt; ⏳ is the 5-hour window (specs/079)
+    cacheWarmHalf: "\u{1F4BE}",
     cacheWarmLow: "\u231B",      // ⌛
     cacheCold: "\u{1F9CA}",      // 🧊
     updateReady: "\u{1F195}",     // 🆕
@@ -558,7 +559,7 @@ export const GLYPHS = {
     // ASCII, East Asian Narrow, in every font, and used nowhere else on the bar.
     spend: "$",
     account: "@",
-    help: "?",
+    help: "\u203D",       // ‽ East Asian Narrow; `?` stays the untracked mark and the unknown figure (specs/079)
     mcp: "~",
     // Both East Asian Narrow. `U+2744` has an emoji form, but its default
     // presentation is text and the bar never sends the selector that asks
@@ -578,6 +579,45 @@ export const GLYPHS = {
     gateRunning: "\u27F3", // ⟳
     gateWaiting: "\u29D6", // ⧖
   },
+};
+
+/**
+ * The only glyphs a tier may give to more than one meaning (specs/079,
+ * FR-015). Each group is one picture on purpose: a family whose members are
+ * told apart by colour or position (three good states, three positions of a
+ * track, a spinner's frames), or two words for one thing. A glyph shared by
+ * keys outside one group is a picture with two meanings, which the help page
+ * cannot explain; the test fails on it.
+ */
+export const SHARED_GLYPHS = {
+  nerd: [
+    ["bandCritical", "conflict"], // both "stop", red, never on one line
+    ["reviewApproved", "ciPass", "clean"], // three good states, alike on purpose
+    ["effortHigh", "effort"], // `effort` names the family
+  ],
+  emoji: [
+    ["reset", "ciRunning"], // both "comes round again", line 3 and line 1
+    ["trackEmptyStart", "trackEmptyMid", "trackEmptyEnd"],
+    ["trackFullStart", "trackFullMid", "trackFullEnd"],
+    ["reviewApproved", "ciPass", "clean"],
+    ["effortLow", "effortMedium", "effortHigh", "effort"], // the emoji tier does not grade effort
+    ["working", "workingFrame0", "workingFrame1", "workingFrame2", "workingFrame3"], // does not animate
+    ["idle", "sleeping"],
+    ["cacheWarm", "cacheWarmHalf"], // a warm cache; the last third is the other hourglass
+  ],
+  plain: [
+    ["branch", "worktree"],
+    ["pr", "prDraft", "prMerged", "prClosed"], // colour carries the state
+    ["dir", "home"],
+    ["removed", "ciSkipped", "workingFrame2"], // ASCII has one dash; a count follows `removed`
+    ["trackEmptyStart", "trackEmptyMid", "trackEmptyEnd"],
+    ["trackFullStart", "trackFullMid", "trackFullEnd", "workingFrame0"],
+    ["bandCritical", "yourTurn", "unavailable"], // colour carries which; see specs/079 plan
+    ["reviewApproved", "ciPass", "clean"],
+    ["effortLow", "effortMedium", "effortHigh", "effort"],
+    ["idle", "sleeping"],
+    ["cacheWarm", "cacheWarmHalf", "cacheWarmLow"],
+  ],
 };
 
 async function readStdinAsync() {

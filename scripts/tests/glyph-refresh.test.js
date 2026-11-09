@@ -15,7 +15,8 @@ const textOf = (entries, key) => entries.find((e) => e.key === key)?.text ?? nul
 const NERD = {
   dir: 0xf4d4, home: 0xf02dc, repo: 0xf401, worktree: 0xe5fb,
   effortLow: 0xf0875, effortMedium: 0xf029a, effortHigh: 0xf0874,
-  fast: 0xf140b, timer: 0xf051f, duration: 0xf520, rtk: 0xf1679,
+  // `timer` moved from the hourglass to a clock in specs/079, so it no longer shares the prompt cache's picture.
+  fast: 0xf140b, timer: 0xf0150, duration: 0xf520, rtk: 0xf1679,
   pr: 0xf407, prDraft: 0xf4dd, prMerged: 0xf419, prClosed: 0xf4dc,
   reviewApproved: 0xf4a4, reviewComments: 0xf442, reviewRequested: 0xf441,
   push: 0xf431, pull: 0xf433, conflict: 0xf40c, removed: 0xf458,
