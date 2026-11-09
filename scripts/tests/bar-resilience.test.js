@@ -116,8 +116,13 @@ await test("a quiet repository is not asked again within the reuse window, and a
       assert.match(sig, /worktrees/, "the worktree's own git directory");
       execFileSync("git", ["-C", wt, "checkout", "-q", "-b", "side2"], { stdio: "pipe" });
       assert.notEqual(gitSignature(wt), sig, "a checkout in the worktree moves its signature");
-      writeFileSync(pathMod.join(wt, ".git"), "not a gitdir line\n");
-      assert.equal(gitSignature(wt), null, "a malformed .git file means no reuse");
+      const bogus = mkdtempSync(pathMod.join(os.tmpdir(), "sl-079-bogus-"));
+      try {
+        writeFileSync(pathMod.join(bogus, ".git"), "not a gitdir line\n");
+        assert.equal(gitSignature(bogus), null, "a malformed .git file means no reuse");
+      } finally {
+        rmSync(bogus, { recursive: true, force: true });
+      }
     } finally {
       rmSync(wt, { recursive: true, force: true });
     }
@@ -245,14 +250,15 @@ await test("doctor names the smaller-width rule and the margin", async () => {
 
 await test("the Ghostty font is the first of its list, after any reset, with control characters removed", async () => {
   const { terminalFont } = await import("../../src/doctor.js");
+  const pathMod = await import("node:path");
   const only = (want, text) => (p) => {
     if (p !== want) throw new Error("ENOENT");
     return text;
   };
-  const xdg = "/x/ghostty/config";
+  const xdg = pathMod.join("/x", "ghostty", "config");
   assert.equal(terminalFont({ TERM: "xterm-ghostty", XDG_CONFIG_HOME: "/x" }, { home: "/h", read: only(xdg, "font-family = A\nfont-family = B\n") }), "A");
-  assert.equal(terminalFont({ TERM_PROGRAM: "ghostty" }, { home: "/h", read: only("/h/.config/ghostty/config", 'font-family = A\nfont-family = ""\nfont-family = C\n') }), "C");
-  const mac = "/h/Library/Application Support/com.mitchellh.ghostty/config";
+  assert.equal(terminalFont({ TERM_PROGRAM: "ghostty" }, { home: "/h", read: only(pathMod.join("/h", ".config", "ghostty", "config"), 'font-family = A\nfont-family = ""\nfont-family = C\n') }), "C");
+  const mac = pathMod.join("/h", "Library", "Application Support", "com.mitchellh.ghostty", "config");
   const cleaned = terminalFont({ TERM_PROGRAM: "ghostty" }, { home: "/h", read: only(mac, "font-family = Mac\u001b[31mRed\n") });
   assert.ok(cleaned.startsWith("Mac") && !/[\u0000-\u001f]/.test(cleaned), `no control characters: ${JSON.stringify(cleaned)}`);
 });
