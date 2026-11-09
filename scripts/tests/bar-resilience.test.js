@@ -154,3 +154,36 @@ await test("new glyphs keep their tier's width: one column in nerd and plain, tw
     assert.equal(displayWidth(GLYPHS[tier][key]), cols, `${tier}.${key}`);
   }
 });
+
+await test("with CLAUDE_STATUSLINE_NERD_WIDTH=2 every Nerd icon counts two columns and no line passes the width (FR-018, SC-006)", async () => {
+  const { renderPayload } = await import("../../src/render.js");
+  const { fullPayload, emptySources } = await import("./fixtures/sources.js");
+  const saved = process.env.CLAUDE_STATUSLINE_NERD_WIDTH;
+  try {
+    process.env.CLAUDE_STATUSLINE_NERD_WIDTH = "2";
+    assert.equal(displayWidth("\u{F0150}\u{F492}"), 4, "plane 15 and BMP icons, two each");
+    assert.equal(displayWidth("ab"), 2, "ordinary text unchanged");
+    const src = { ...emptySources, getHelpPage: () => "/x/help/index.html" };
+    for (let width = 60; width <= 300; width += 20) {
+      const out = renderPayload(fullPayload(), { sources: src, trackChanges: false, maxWidth: width, maxHeight: 40 });
+      for (const line of stripAll(out).split("\n")) assert.ok(displayWidth(line) <= width, `${displayWidth(line)} > ${width}: ${line}`);
+    }
+    process.env.CLAUDE_STATUSLINE_NERD_WIDTH = "3";
+    assert.equal(displayWidth("\u{F0150}"), 1, "any other value is ignored");
+  } finally {
+    if (saved === undefined) delete process.env.CLAUDE_STATUSLINE_NERD_WIDTH;
+    else process.env.CLAUDE_STATUSLINE_NERD_WIDTH = saved;
+  }
+});
+
+await test("doctor names the terminal's font when it can, and the icon width rule (FR-018)", async () => {
+  const { iconStatus, terminalFont } = await import("../../src/doctor.js");
+  const read = () => "theme = x\nfont-family = Hack Nerd Font Mono\n";
+  const font = terminalFont({ TERM_PROGRAM: "ghostty" }, { home: "/h", read });
+  assert.equal(font, "Hack Nerd Font Mono");
+  assert.equal(terminalFont({ TERM_PROGRAM: "iTerm.app" }, { home: "/h", read }), null, "only a terminal whose config is known");
+  assert.match(iconStatus({}, { font }).line, /font Hack Nerd Font Mono; icons counted 1 column, as a Nerd Font Mono draws them \(set CLAUDE_STATUSLINE_NERD_WIDTH=2 if icons overlap\)/);
+  assert.match(iconStatus({ CLAUDE_STATUSLINE_NERD_WIDTH: "2" }, { font: null }).line, /icons counted 2 columns/);
+  assert.match(iconStatus({ CLAUDE_STATUSLINE_NERD_WIDTH: "wide" }, { font: null }).line, /"wide" ignored/);
+  assert.doesNotMatch(iconStatus({ CLAUDE_STATUSLINE_ICONS: "plain" }, { font }).line, /columns/, "only the Nerd tier has the rule");
+});

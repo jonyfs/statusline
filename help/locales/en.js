@@ -48,6 +48,8 @@
       OMIT: "`CLAUDE_STATUSLINE_OMIT=help,rtk` switches named chips off. `help` removes the `?` that opens this page.",
       ICONS: "`CLAUDE_STATUSLINE_ICONS` picks the icon set: `nerd` (needs a Nerd Font), `emoji` or `plain`.",
       FLAVOR: "`CLAUDE_STATUSLINE_FLAVOR` picks the colour theme, such as `mocha`, `latte`, `nord` or `gruvbox`.",
+      NERD_WIDTH: "`CLAUDE_STATUSLINE_NERD_WIDTH=2` counts each Nerd Font icon as two columns. Set it when icons overlap the text after them: that happens with a Nerd Font that is not a Mono variant, or a terminal that draws the newer icons double width.",
+      WIDTH_MARGIN: "`CLAUDE_STATUSLINE_WIDTH_MARGIN=n` leaves n columns (0 to 8) free at the right of every line, for a host that draws the bar in less room than it reports.",
     },
     src: {
       label: "Source",

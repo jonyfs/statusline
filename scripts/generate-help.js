@@ -163,7 +163,7 @@ const sections = [1, 2, 3]
   .join("\n");
 
 const states = ["dash", "question", "off", "tilde", "age", "emphasis"].map((k) => `<li data-i18n="states.${k}"></li>`).join("");
-const switches = ["LABELS", "AMOUNTS", "ACCOUNT", "RESET", "CREDITS_RESET", "SESSION_SHARE", "MODEL_TIER", "OMIT", "ICONS", "FLAVOR"]
+const switches = ["LABELS", "AMOUNTS", "ACCOUNT", "RESET", "CREDITS_RESET", "SESSION_SHARE", "MODEL_TIER", "OMIT", "ICONS", "FLAVOR", "NERD_WIDTH", "WIDTH_MARGIN"]
   .map((k) => `<li data-i18n="switches.${k}"></li>`)
   .join("");
 

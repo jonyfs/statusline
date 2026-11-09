@@ -672,19 +672,49 @@ export function flavorStatus(cwd = process.cwd(), env = process.env) {
  * An unknown value of `CLAUDE_STATUSLINE_ICONS` is named, because the bar
  * falls back to the Nerd Font tier and nothing else would say so.
  */
-export function iconStatus(env = process.env) {
+export function iconStatus(env = process.env, { font = terminalFont(env) } = {}) {
   const asciiArrows = env.CLAUDE_STATUSLINE_ASCII === "1";
   const { tier, source, unknown } = iconTier({ env, asciiArrows });
   const from = source === "default" ? "default" : source === "ASCII" ? "from CLAUDE_STATUSLINE_ASCII" : "from CLAUDE_STATUSLINE_ICONS";
   const event = tier === "nerd" && env.CLAUDE_STATUSLINE_EVENT_EMOJI === "1" ? ", event emoji on" : "";
+  // Nerd icons are counted one column each unless the person says two
+  // (specs/079, FR-018). The font is named when the terminal's own config
+  // says it, so the hint can be read against it.
+  const raw = env.CLAUDE_STATUSLINE_NERD_WIDTH;
+  let width = "";
+  if (tier === "nerd") {
+    const fontText = font ? `font ${font}; ` : "";
+    if (raw === "2") width = `; ${fontText}icons counted 2 columns (CLAUDE_STATUSLINE_NERD_WIDTH=2)`;
+    else if (raw !== undefined && raw !== "" && raw !== "1") width = `; ${fontText}CLAUDE_STATUSLINE_NERD_WIDTH="${raw}" ignored (1 or 2), icons counted 1 column`;
+    else width = `; ${fontText}icons counted 1 column, as a Nerd Font Mono draws them (set CLAUDE_STATUSLINE_NERD_WIDTH=2 if icons overlap)`;
+  }
   return {
     tier,
     source,
     unknown: unknown ?? null,
     line: unknown !== undefined
       ? `icons: unknown "${unknown}" (CLAUDE_STATUSLINE_ICONS), using nerd`
-      : `icons: ${tier} (${from})${event}`,
+      : `icons: ${tier} (${from})${event}${width}`,
   };
+}
+
+/**
+ * The terminal's font family, when its own configuration names one: Ghostty's
+ * `font-family`. Read for that one key only; nothing else in the file is
+ * looked at. Null when there is no such file or no such key.
+ */
+export function terminalFont(env = process.env, { home = os.homedir(), read = (p) => readFileSync(p, "utf8") } = {}) {
+  if (env.TERM_PROGRAM !== "ghostty" && env.TERM !== "xterm-ghostty") return null;
+  const base = env.XDG_CONFIG_HOME || path.join(home, ".config");
+  for (const file of [path.join(base, "ghostty", "config"), path.join(home, "Library", "Application Support", "com.mitchellh.ghostty", "config")]) {
+    try {
+      const m = /^\s*font-family\s*=\s*"?([^"\n]+?)"?\s*$/m.exec(read(file));
+      if (m) return m[1].trim().slice(0, 60);
+    } catch {
+      // no file here
+    }
+  }
+  return null;
 }
 
 /**
