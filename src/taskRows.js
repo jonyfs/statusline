@@ -21,10 +21,11 @@ import { canWrite, stateRoot, readablePath } from "./paths.js";
 import path from "node:path";
 import os from "node:os";
 import { loadTotals } from "./sessionTotals.js";
-import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
+import { PALETTES, displayWidth, colourEnabled, fgSeq, padNerdIcons } from "./theme.js";
 import { eighthsBar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
+import { terminalFor } from "./layout.js";
 import { iconTier, resolveSettings } from "./config.js";
 import { readSkillsByAgent } from "./skillEvents.js";
 
@@ -561,7 +562,13 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
 
   const flavor = process.env.CLAUDE_STATUSLINE_FLAVOR || "mocha";
   const palette = PALETTES[flavor] || PALETTES.mocha;
-  const columns = typeof payload.columns === "number" ? payload.columns : 80;
+  // The payload's own width, else the window Claude Code reports, else 80.
+  // The rows sit under a bar that fills the window; 80 alone left them half
+  // its width on a monitor (FR-013).
+  // Same rule as the bar (specs/079): COLUMNS and the tty, the smaller when
+  // both are known, less any CLAUDE_STATUSLINE_WIDTH_MARGIN. With neither, 80.
+  const size = terminalFor("claude");
+  const columns = typeof payload.columns === "number" ? payload.columns : size.source === "default" ? 80 : size.columns;
 
   // Skills the hook attributed to a running subagent. Empty unless the hook is
   // installed and Claude Code's `agent_id` turns out to be the same value as
@@ -613,7 +620,8 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   }
   if (next.some((w, i) => w !== remembered[i])) writeWidthMemory(sessionId, next);
 
-  return [...rows, ...hideLines].map((row) => JSON.stringify(row)).join("\n");
+  // The Nerd padding goes on the finished rows, after every width was measured (FR-018).
+  return [...rows, ...hideLines].map((row) => JSON.stringify(row.content ? { ...row, content: padNerdIcons(row.content) } : row)).join("\n");
 }
 
 /**
@@ -803,8 +811,14 @@ export function cutToWidth(text, max) {
 // column was missed and a cut could fall inside a joined sequence, leaving a
 // joiner glued to the ellipsis. Intl.Segmenter ships in every Node from 16;
 // the fallback is the code-point walk this replaced.
-const segmenter = typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+// Built on first use, not when the module loads: constructing it loads ICU's
+// break data, about 15 ms, and every redraw imports this module whether or not
+// a row is cut (specs/079, FR-005).
+let segmenter;
 function graphemes(text) {
+  if (segmenter === undefined) {
+    segmenter = typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+  }
   return segmenter ? Array.from(segmenter.segment(text), (s) => s.segment) : [...text];
 }
 

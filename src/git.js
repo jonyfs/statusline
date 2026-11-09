@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { statSync } from "node:fs";
+import { statSync, readFileSync } from "node:fs";
 import { plainText } from "./text.js";
 import path from "node:path";
 import { pathToFileUrl } from "./openTerminalTab.js";
@@ -182,6 +182,52 @@ export function parsePorcelainV2(text) {
   };
 }
 
+/** How long a git snapshot is reused while HEAD and the index are unchanged. */
+export const GIT_REUSE_MS = 10_000;
+
+/**
+ * What changes when the branch, the commit or the staged set does: the size
+ * and modification time of HEAD, of its reflog (which every commit, reset and
+ * checkout appends to, an empty commit and `reset --soft` included) and of the
+ * index, in the repository's git directory. Found by walking up from `cwd`
+ * to the first `.git`, which is a directory, or in a linked worktree a file
+ * naming one. Null when there is no
+ * repository or anything cannot be read, which means "do not reuse".
+ */
+export function gitSignature(cwd) {
+  try {
+    let dir = path.resolve(cwd || ".");
+    for (let i = 0; i < 64; i++) {
+      const dotGit = path.join(dir, ".git");
+      const info = statSync(dotGit, { throwIfNoEntry: false });
+      if (info) {
+        let gitDir = dotGit;
+        if (info.isFile()) {
+          const line = readFileSync(dotGit, "utf8").trim();
+          const m = /^gitdir:\s*(.+)$/.exec(line);
+          if (!m) return null;
+          gitDir = path.resolve(dir, m[1]);
+        }
+        const part = (name) => {
+          try {
+            const s = statSync(path.join(gitDir, name));
+            return `${s.size}:${s.mtimeMs}`;
+          } catch {
+            return "-";
+          }
+        };
+        return `${gitDir}|HEAD ${part("HEAD")}|log ${part("logs/HEAD")}|index ${part("index")}`;
+      }
+      const up = path.dirname(dir);
+      if (up === dir) return null;
+      dir = up;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The working-tree snapshot.
  *
@@ -190,7 +236,10 @@ export function parsePorcelainV2(text) {
  * measured at 812 ms, and no flag combination brings that down), the
  * redraw uses the cached snapshot and starts a detached refresh instead of
  * stalling. The cached snapshot is at most 5 seconds old, which is inside
- * the one-redraw allowance for working-tree state.
+ * the one-redraw allowance for working-tree state. In a fast repository the
+ * last snapshot is also reused for up to GIT_REUSE_MS while HEAD, its reflog
+ * and the index are unchanged (specs/079), so an edit to a tracked file can
+ * show up to that late; anything that moves HEAD or the index shows at once.
  *
  * This deliberately never fetches: the statusline re-renders every few
  * seconds, and hitting the network that often would be hostile to both the
@@ -227,6 +276,21 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
     return null;
   }
 
+  // The bar redraws every two seconds now, and a quiet repository gave the
+  // same answer every time for 30 ms of `git status` (specs/079, FR-006). The
+  // last snapshot is reused for up to GIT_REUSE_MS while HEAD, its reflog and
+  // the index are untouched: a branch switch, a commit (empty ones too), a
+  // reset or a stage changes one of them and is still seen at once. An edit to a tracked file touches neither and
+  // shows within GIT_REUSE_MS, which is the price of not running git.
+  const signature = gitSignature(cwd);
+  if (signature) {
+    // One entry holds both, written together, so a signature is never paired
+    // with a snapshot another session wrote.
+    const ran = readEntry(key, "gitReuse");
+    const fresh = ran && now - ran.at >= 0 && now - ran.at < GIT_REUSE_MS;
+    if (fresh && ran.value?.signature === signature && ran.value.snapshot) return ran.value.snapshot;
+  }
+
   const started = Date.now();
   const result = runGit(args, cwd, budgetMs);
   const snapshot = parsePorcelainV2(result.text);
@@ -234,6 +298,7 @@ export function getGitInfo(cwd, { now = Date.now(), budgetMs = SOURCE_BUDGET_MS.
   if (!costEntry || Math.abs(costEntry.value - tookMs) > budgetMs / 4) {
     writeEntry(key, "gitCost", tookMs, { now });
   }
+  if (snapshot && signature) writeEntry(key, "gitReuse", { signature, snapshot }, { now });
 
   if (snapshot) {
     // Only write when the snapshot actually moved, or when the stored one

@@ -68,7 +68,7 @@ await test("under Copilot with no COLUMNS the size comes from /dev/tty, less Cop
   assert.equal(copilotTerminal({ env: {}, platform: "linux", readTty: tty, settings: { statusLine: { padding: "x" } } }).columns, 117);
 });
 
-await test("the terminal's own size wins under Claude Code; COLUMNS is the fallback; Windows and a missing terminal fall back to 120", () => {
+await test("the smaller of COLUMNS and the tty wins; either alone is used; Windows and a missing terminal fall back to 120", () => {
   let opened = 0;
   const tty = () => {
     opened++;
@@ -81,26 +81,52 @@ await test("the terminal's own size wins under Claude Code; COLUMNS is the fallb
     source: "COLUMNS",
   });
   assert.equal(opened, 0, "Copilot with COLUMNS set does not open the terminal");
-  // Claude Code: the window's real size, even when COLUMNS says otherwise.
+  // Both known and different: the smaller, so the bar never wraps (FR-008).
+  // Rows come from LINES, never the tty: the tty's height is the whole
+  // terminal, not the status line's area (specs/079, FR-009).
   assert.deepEqual(terminalFor("claude", { env: { COLUMNS: "200", LINES: "20" }, platform: "darwin", readTty: tty }), {
     columns: 117,
-    rows: 40,
-    source: "tty",
+    rows: 20,
+    source: "min(tty,COLUMNS)",
   });
+  // Claude Code as measured: no tty, COLUMNS is the window.
+  assert.deepEqual(terminalFor("claude", { env: { COLUMNS: "143", LINES: "78" }, platform: "darwin", readTty: () => null }), {
+    columns: 143,
+    rows: 78,
+    source: "COLUMNS",
+  });
+  assert.equal(
+    terminalFor("claude", { env: {}, platform: "darwin", readTty: tty }).rows,
+    Infinity,
+    "with LINES unset every line is drawn, whatever the tty's height"
+  );
   // The suite can pin the size instead of reading the terminal it runs in.
   assert.deepEqual(terminalFor("claude", { env: { COLUMNS: "80", CLAUDE_STATUSLINE_NO_TTY: "1" }, platform: "darwin", readTty: tty }), {
     columns: 80,
     rows: Infinity,
     source: "COLUMNS",
   });
-  assert.equal(opened, 1, "the terminal is opened under Claude Code once, and not when NO_TTY is set");
+  assert.equal(opened, 2, "the terminal is opened under Claude Code (twice above), and not when NO_TTY is set");
   assert.deepEqual(terminalFor("copilot", { env: {}, platform: "win32", readTty: tty }), { columns: DEFAULT_WIDTH, rows: Infinity, source: "default" });
-  assert.equal(opened, 1, "nor on Windows, which has no /dev/tty");
+  assert.equal(opened, 2, "nor on Windows, which has no /dev/tty");
   const failing = () => {
     throw Object.assign(new Error("ENXIO: no such device"), { code: "ENXIO" });
   };
   assert.deepEqual(terminalFor("copilot", { env: {}, platform: "linux", readTty: failing }), { columns: DEFAULT_WIDTH, rows: Infinity, source: "default" });
   assert.deepEqual(terminalFor("copilot", { env: {}, platform: "linux", readTty: () => null }).source, "default");
+});
+
+await test("a right-hand margin is taken off the width, 0 to 8 columns, and anything else is ignored (FR-011)", () => {
+  const none = () => null;
+  assert.deepEqual(terminalFor("claude", { env: { COLUMNS: "143", CLAUDE_STATUSLINE_WIDTH_MARGIN: "3" }, platform: "darwin", readTty: none }), {
+    columns: 140,
+    rows: Infinity,
+    source: "COLUMNS",
+    margin: 3,
+  });
+  for (const bad of ["9", "-1", "two", "1.5"]) {
+    assert.equal(terminalFor("claude", { env: { COLUMNS: "143", CLAUDE_STATUSLINE_WIDTH_MARGIN: bad }, platform: "darwin", readTty: none }).columns, 143, bad);
+  }
 });
 
 await test("a Copilot bar is fitted to the terminal it measured, not wrapped from 120", () => {

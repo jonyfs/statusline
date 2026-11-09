@@ -635,6 +635,45 @@ function isWide(cp) {
   return false;
 }
 
+/**
+ * How many columns a Nerd Font icon takes: 1, or 2 when the person says so
+ * with `CLAUDE_STATUSLINE_NERD_WIDTH=2` (specs/079, FR-018). A Nerd Font
+ * "Mono" variant draws every icon in one cell; the proportional variants and
+ * some terminals draw them, the `nf-md` ones above U+F0000 especially, in two.
+ * Nothing in the environment says which, so the reader does. Any other value
+ * is ignored and `doctor` says so.
+ */
+export function nerdWidth(env = process.env) {
+  return env.CLAUDE_STATUSLINE_NERD_WIDTH === "2" ? 2 : 1;
+}
+
+/** A Nerd Font icon: the private use areas, less the Powerline separators. */
+const NERD_ICON = /[\uE000-\uE09F\uE0D8-\uF8FF\u{F0000}-\u{FFFFD}]/gu;
+
+/**
+ * Text as it goes to the terminal under `CLAUDE_STATUSLINE_NERD_WIDTH=2`
+ * (specs/079, FR-018): the font draws an icon over two cells while the
+ * terminal moves the cursor one, so a space after each icon gives it its
+ * second cell and it no longer covers the next character. Every layout
+ * measures the text before this, counting each icon two columns, which is
+ * what the icon and its space take. Applied once, to the finished output of
+ * the bar and of the agent rows, and nowhere earlier, so nothing measures a
+ * padded icon. Unchanged when the switch is off.
+ */
+export function padNerdIcons(text, env = process.env) {
+  return nerdWidth(env) === 2 ? String(text).replace(NERD_ICON, (icon) => `${icon} `) : text;
+}
+
+/**
+ * The private use areas Nerd Fonts draw icons in: the BMP block and plane 15,
+ * less the Powerline separators (U+E0A0 to U+E0D7), which every Nerd Font
+ * variant draws one cell wide so that they join the chips on either side.
+ */
+function isPrivateUse(cp) {
+  if (cp >= 0xe0a0 && cp <= 0xe0d7) return false;
+  return (cp >= 0xe000 && cp <= 0xf8ff) || (cp >= 0xf0000 && cp <= 0xffffd);
+}
+
 export function displayWidth(text) {
   const plain = String(text)
     .replace(/\x1b\[[0-9;:]*m/g, "")
@@ -642,6 +681,7 @@ export function displayWidth(text) {
     .replace(/\x1b\]8;;[^\x07]*\x07/g, "");
 
   const chars = [...plain];
+  const nerdIsWide = nerdWidth() === 2;
   let width = 0;
   for (let i = 0; i < chars.length; i++) {
     const cp = chars[i].codePointAt(0);
@@ -657,6 +697,7 @@ export function displayWidth(text) {
     const wide =
       forcedEmoji ||
       (ambiguousIsWide() && AMBIGUOUS.has(cp)) ||
+      (nerdIsWide && isPrivateUse(cp)) ||
       isWide(cp);
     width += wide ? 2 : 1;
   }

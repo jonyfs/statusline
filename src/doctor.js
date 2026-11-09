@@ -60,6 +60,7 @@ import { ROLE, LEGEND } from "./colourRoles.js";
 import { terminalFor } from "./layout.js";
 import { resolveLayout, repoConfig, terminalFlavor, resolveSettings, iconTier } from "./config.js";
 import { resolveArrangement } from "./arrangement.js";
+import { plainText } from "./text.js";
 
 /**
  * How to describe each segment's value, and which reading feeds it.
@@ -531,9 +532,13 @@ export function terminalReport(harness = "claude", { readTty, settings = null, e
   return {
     columns: size.columns,
     columnsSource: size.source,
-    padding: size.source === "tty" ? copilotPadding(settings) : 0,
+    // Only Copilot pads its lines; under every other host the tty is the window.
+    padding: harness === "copilot" && size.source === "tty" ? copilotPadding(settings) : 0,
+    margin: size.margin ?? 0,
+    inset: size.inset ?? 0,
     rows,
-    rowsSource: rows === null ? "unset" : size.source === "tty" ? "tty" : "LINES",
+    // Rows come from LINES everywhere but Copilot, which measures the tty (specs/079, FR-009).
+    rowsSource: rows === null ? "unset" : harness === "copilot" && size.source === "tty" ? "tty" : "LINES",
   };
 }
 
@@ -603,12 +608,15 @@ function codexPaneText(pane) {
 }
 
 export function terminalLine(t) {
-  const columns =
-    t.columnsSource === "default"
-      ? `${t.columns} columns (COLUMNS not set, using the default)`
-      : t.columnsSource === "tty"
-        ? `${t.columns} columns (the window's size, read from /dev/tty on this redraw${t.padding ? `; less its padding of ${t.padding}` : ""})`
-        : `${t.columns} columns`;
+  const why = {
+    default: "COLUMNS not set and no terminal to read, using the default",
+    tty: `the window's size, read from /dev/tty on this redraw${t.padding ? `; less its padding of ${t.padding}` : ""}`,
+    COLUMNS: "from COLUMNS, which the host updates on each redraw",
+    "min(tty,COLUMNS)": "the smaller of COLUMNS and /dev/tty, which disagree",
+  }[t.columnsSource];
+  const inset = t.inset ? `; less ${t.inset} for Claude Code's footer padding` : "";
+  const margin = t.margin ? `; less a margin of ${t.margin} (CLAUDE_STATUSLINE_WIDTH_MARGIN)` : "";
+  const columns = why ? `${t.columns} columns (${why}${inset}${margin})` : `${t.columns} columns`;
   const rows = t.rows === null ? "rows unknown (LINES not set, every line drawn)" : `${t.rows} rows`;
   return `terminal: ${columns}, ${rows}`;
 }
@@ -667,19 +675,60 @@ export function flavorStatus(cwd = process.cwd(), env = process.env) {
  * An unknown value of `CLAUDE_STATUSLINE_ICONS` is named, because the bar
  * falls back to the Nerd Font tier and nothing else would say so.
  */
-export function iconStatus(env = process.env) {
+export function iconStatus(env = process.env, { font = terminalFont(env) } = {}) {
   const asciiArrows = env.CLAUDE_STATUSLINE_ASCII === "1";
   const { tier, source, unknown } = iconTier({ env, asciiArrows });
   const from = source === "default" ? "default" : source === "ASCII" ? "from CLAUDE_STATUSLINE_ASCII" : "from CLAUDE_STATUSLINE_ICONS";
   const event = tier === "nerd" && env.CLAUDE_STATUSLINE_EVENT_EMOJI === "1" ? ", event emoji on" : "";
+  // Nerd icons are counted one column each unless the person says two
+  // (specs/079, FR-018). The font is named when the terminal's own config
+  // says it, so the hint can be read against it.
+  const raw = env.CLAUDE_STATUSLINE_NERD_WIDTH;
+  let width = "";
+  if (tier === "nerd") {
+    const fontText = font ? `font ${font}; ` : "";
+    if (raw === "2") width = `; ${fontText}icons counted 2 columns (CLAUDE_STATUSLINE_NERD_WIDTH=2)`;
+    else if (raw !== undefined && raw !== "" && raw !== "1") width = `; ${fontText}CLAUDE_STATUSLINE_NERD_WIDTH="${raw}" ignored (1 or 2), icons counted 1 column`;
+    else width = `; ${fontText}icons counted 1 column, as a Nerd Font Mono draws them (set CLAUDE_STATUSLINE_NERD_WIDTH=2 if icons overlap)`;
+  }
   return {
     tier,
     source,
     unknown: unknown ?? null,
     line: unknown !== undefined
       ? `icons: unknown "${unknown}" (CLAUDE_STATUSLINE_ICONS), using nerd`
-      : `icons: ${tier} (${from})${event}`,
+      : `icons: ${tier} (${from})${event}${width}`,
   };
+}
+
+/**
+ * The terminal's font family, when its own configuration names one: Ghostty's
+ * `font-family`. Read for that one key only; nothing else in the file is
+ * looked at. Null when there is no such file or no such key.
+ */
+export function terminalFont(env = process.env, { home = os.homedir(), read = (p) => readFileSync(p, "utf8") } = {}) {
+  if (env.TERM_PROGRAM !== "ghostty" && env.TERM !== "xterm-ghostty") return null;
+  const base = env.XDG_CONFIG_HOME || path.join(home, ".config");
+  for (const file of [path.join(base, "ghostty", "config"), path.join(home, "Library", "Application Support", "com.mitchellh.ghostty", "config")]) {
+    let text;
+    try {
+      text = read(file);
+    } catch {
+      continue; // no file here
+    }
+    // Ghostty keeps a list: each `font-family` adds a fallback, and an empty
+    // one clears the list. The first left standing is the font drawn.
+    let families = [];
+    for (const m of text.matchAll(/^\s*font-family\s*=\s*"?([^"\n]*?)"?\s*$/gm)) {
+      const name = m[1].trim();
+      families = name ? [...families, name] : [];
+    }
+    // Text from a file is printed to the terminal: no control characters.
+    const first = families.length ? plainText(families[0]) : null;
+    // Cut by code point, so a long name never ends in half a character.
+    if (first) return [...first].slice(0, 60).join("");
+  }
+  return null;
 }
 
 /**

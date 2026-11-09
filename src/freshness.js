@@ -9,8 +9,13 @@
  */
 
 /**
- * Claude Code re-invokes the statusline command roughly every 5-6 seconds
- * while you work. "One redraw old" therefore means about six seconds.
+ * How old a payload-derived value may be: a little more than the slowest gap
+ * between redraws a session sees. Claude Code redraws on its own events and
+ * every `refreshInterval` seconds; the install sets 2 (specs/079), and a
+ * person who keeps a longer interval of their own gets gaps of that length.
+ * Six seconds covers the installed cadence three times over and the event
+ * bursts in between. It is an allowance, not the cadence: nothing here runs
+ * on a timer.
  */
 export const REDRAW_INTERVAL_MS = 6_000;
 

@@ -133,7 +133,7 @@ function saveState(sessionId, state) {
  * the line permanently animated and the highlight would stop meaning
  * anything.
  */
-export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = true, sample = null, samples = null } = {}) {
+export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = true, sample = null, samples = null, animating = true } = {}) {
   if (!enabled) {
     return {
       isChanged: () => false,
@@ -146,7 +146,12 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
 
   const previous = loadState(sessionId);
   const changedAt = { ...(previous?.changedAt || {}) };
-  const frame = ((previous?.frame ?? -1) + 1) % 4;
+  // The spinner moves one frame a redraw, on the session's counter (specs/048),
+  // but only while it is drawn: a counter that advanced on every redraw
+  // rewrote the state file every two seconds even when nothing else moved
+  // (specs/079, FR-003). While the session is idle the frame stands still.
+  const held = previous?.frame ?? -1;
+  const frame = animating ? (held + 1) % 4 : ((held % 4) + 4) % 4;
 
   for (const [key, value] of Object.entries(snapshot)) {
     const before = previous?.snapshot?.[key];
@@ -180,7 +185,11 @@ export function trackChanges(sessionId, snapshot, { now = Date.now(), enabled = 
   // frequent enough given each session starts exactly once.
   if (!previous) pruneStaleState(now);
 
-  saveState(sessionId, { snapshot, changedAt, frame, samples: nextSamples });
+  // Written only when it differs from what was read (FR-003): an idle
+  // session whose snapshot, highlights and samples stand still writes nothing.
+  const next = { snapshot, changedAt, frame, samples: nextSamples };
+  const before = previous && { snapshot: previous.snapshot, changedAt: previous.changedAt, frame: previous.frame, samples: previous.samples };
+  if (!previous || JSON.stringify(next) !== JSON.stringify(before)) saveState(sessionId, next);
 
   return {
     isChanged: (key) => HIGHLIGHTED.has(key) && Object.hasOwn(changedAt, key),

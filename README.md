@@ -933,9 +933,9 @@ they have. A few rules keep the line from moving as figures change:
 ## What the session is doing
 
 The activity chip has four states. While the session works it shows a spinner of four frames,
-one a redraw: it advances on the session's own counter and never reads the clock, so a bar
-redrawn every 60 seconds turns once a minute, and a stuck session is a spinner that has
-stopped. Idle is a coffee cup for five minutes of quiet and a sleeping mark after, when line 2
+one a redraw: it advances on the session's own counter and never reads the clock, so at the
+installed 2-second refresh it turns every two seconds, and a stuck session is a spinner that has
+stopped. While the session is idle the counter stands still, so an idle bar writes nothing. Idle is a coffee cup for five minutes of quiet and a sleeping mark after, when line 2
 goes quiet too. `your turn` shows when the newest thing in the transcript is a question or a
 plan that has no answer yet. A permission prompt is not recorded anywhere and Claude Code
 hides the bar while one is open, so it is not a state here.
@@ -1246,8 +1246,8 @@ instead.
 
 The samples live in the same per-session file as the change highlighting,
 bounded at sixty and at fifteen minutes, swept after a week. Both bounds
-matter: a count is not a bound on time, and with the installed 60-second
-refresh, sixty samples would otherwise reach back an hour, or across a night
+matter: a count is not a bound on time. A sample is kept at most once a minute, whatever
+the refresh interval, so sixty samples would otherwise reach back an hour, or across a night
 in a session left open. The history also starts again after a gap of five
 minutes, and when the 5-hour figure drops — that drop is the window
 resetting, and a rate measured across it is arithmetic on two unrelated
@@ -1314,6 +1314,8 @@ can also carry its own settings in a file, which is the next section.
 | `CLAUDE_STATUSLINE_ASCII=1` | Swaps every glyph and the Powerline separators for terminals without a Nerd Font |
 | `CLAUDE_STATUSLINE_ICONS` | `nerd` (default), `emoji` or `plain`. The emoji tier draws pictures and takes the plain separator unless one is named |
 | `CLAUDE_STATUSLINE_UNDERLINE=0` | Turns off the dotted underline on linked text |
+| `CLAUDE_STATUSLINE_NERD_WIDTH=2` | Draws a space after each Nerd Font icon and counts the two as two columns, so an icon the font draws two cells wide has its second cell. A Nerd Font *Mono* variant draws one cell per icon, which is the default; set this when icons overlap the text after them (a proportional Nerd Font, or a terminal that draws the newer `nf-md` icons double width). `doctor` names the font when Ghostty's config says it. The Powerline separators stay one column |
+| `CLAUDE_STATUSLINE_WIDTH_MARGIN=n` | Leaves `n` columns (0 to 8) free at the right of every line, for a host that draws the bar in less room than it reports. The width itself is `COLUMNS`, which Claude Code updates on every redraw, or `/dev/tty` where nothing sets it; when both are known the smaller wins |
 | `CLAUDE_STATUSLINE_HAIRLINE=1` | Draws an overline on line 1, a rule above the bar without a fourth line. A terminal that does not draw overlines ignores it |
 | `CLAUDE_STATUSLINE_OUTPUT=runs` | Prints the footer as one JSON object of styled runs, and a failure as exit code 75 and one error object, for a program that draws the bar itself. The flag `--format runs` does the same. See [the footer as data](#the-footer-as-data-for-a-host-that-draws-it-itself) |
 | `CLAUDE_STATUSLINE_OMIT=dir,branch` | Switches the named segments off, as an arrangement entry `{ "on": false }` would, on top of whichever arrangement is in force. The names are the segment keys in [Arranging the bar yourself](#arranging-the-bar-yourself). For a program that draws some of the facts itself |

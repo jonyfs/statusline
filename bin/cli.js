@@ -198,6 +198,35 @@ async function main() {
     }
     throw new Error(`Node ${MIN_NODE_MAJOR} or newer is required; this is Node ${process.versions.node}. Nothing was changed.`);
   }
+  // The bar is a new process every couple of seconds, and compiling the
+  // modules was about 25 ms of each one (specs/079, FR-004). Node keeps the
+  // compiled code keyed by each file's contents, so an update invalidates it
+  // by itself. The cache lives in this plugin's own state directory, created
+  // private: Node's default is the system temp folder, which on Linux is
+  // shared, and code read from a folder another user created first is code
+  // that user chose. A passive render, or one that may not write, skips it.
+  if ((subcommand === "render" || subcommand === undefined || subcommand === "task-rows") && process.env.CLAUDE_STATUSLINE_PASSIVE !== "1") {
+    try {
+      const { enableCompileCache } = await import("node:module");
+      const { stateRoot, canWrite } = await import("../src/paths.js");
+      if (typeof enableCompileCache === "function" && canWrite()) {
+        const { mkdirSync, lstatSync } = await import("node:fs");
+        const { join } = await import("node:path");
+        const dir = join(stateRoot(), "compile-cache");
+        mkdirSync(dir, { recursive: true, mode: 0o700 });
+        // The mode only applies when the directory is made. One that already
+        // existed is used only if it is a real directory, this user's, and
+        // closed to everyone else; a host can point the state elsewhere.
+        const info = lstatSync(dir);
+        const ours =
+          process.platform === "win32" ||
+          (info.isDirectory() && !info.isSymbolicLink() && info.uid === process.getuid?.() && (info.mode & 0o077) === 0);
+        if (ours) enableCompileCache(dir);
+      }
+    } catch {
+      // an older Node, or a directory that cannot be made: compile as before
+    }
+  }
   if (runsMode) {
     await runRuns();
     return;
