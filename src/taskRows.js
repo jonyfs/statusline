@@ -21,7 +21,7 @@ import { canWrite, stateRoot, readablePath } from "./paths.js";
 import path from "node:path";
 import os from "node:os";
 import { loadTotals } from "./sessionTotals.js";
-import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
+import { PALETTES, displayWidth, colourEnabled, fgSeq, padNerdIcons } from "./theme.js";
 import { eighthsBar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
@@ -620,7 +620,8 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
   }
   if (next.some((w, i) => w !== remembered[i])) writeWidthMemory(sessionId, next);
 
-  return [...rows, ...hideLines].map((row) => JSON.stringify(row)).join("\n");
+  // The Nerd padding goes on the finished rows, after every width was measured (FR-018).
+  return [...rows, ...hideLines].map((row) => JSON.stringify(row.content ? { ...row, content: padNerdIcons(row.content) } : row)).join("\n");
 }
 
 /**

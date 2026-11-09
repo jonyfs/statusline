@@ -723,7 +723,8 @@ export function terminalFont(env = process.env, { home = os.homedir(), read = (p
     }
     // Text from a file is printed to the terminal: no control characters.
     const first = families.length ? plainText(families[0]) : null;
-    if (first) return first.slice(0, 60);
+    // Cut by code point, so a long name never ends in half a character.
+    if (first) return [...first].slice(0, 60).join("");
   }
   return null;
 }

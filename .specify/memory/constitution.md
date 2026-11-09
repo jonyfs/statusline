@@ -7,7 +7,9 @@ Sync Impact Report:
   `LINES` only, outside Copilot. A person MAY declare that their font draws Nerd icons two columns
   wide (`CLAUDE_STATUSLINE_NERD_WIDTH=2`) and MAY reserve a right margin of up to 8 columns. The
   doctor MAY read the terminal's font family from Ghostty's own config file, that one key and
-  nothing else. A git snapshot MAY be reused for up to 10 s while HEAD and the index are unchanged.
+  nothing else. A git snapshot MAY be reused for up to 10 s while HEAD, its reflog and the index
+  are unchanged. Node's compile cache MAY be written, only under the plugin's own state directory,
+  created private.
   Within an icon tier a glyph has one meaning, outside declared groups. See specs/079-bar-resilience.)
 - Previously, version 8.14.0 (IV clarified on 2026-11-05: MINOR. Files that only a browser runs, copied into
   the repository with their licences (the help page's i18next and its language detector,

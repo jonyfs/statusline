@@ -3,7 +3,7 @@ import path from "node:path";
 import { canWrite, stateRoot } from "./paths.js";
 import os from "node:os";
 import { realpathSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
+import { PALETTES, renderRow, displayWidth, padNerdIcons, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
 import {
   getDirLabel,
   getDirUrl,
@@ -2712,7 +2712,7 @@ export function renderReadings(
   // bar's lines in the same output. They are not lines of the bar: they never
   // count toward the three, and the per-line view above never sees them
   // (Principle II, specs/030-copilot-agent-rows).
-  if (!trailingRows) return drawn.map((entry) => entry.text).join("\n");
+  if (!trailingRows) return padNerdIcons(drawn.map((entry) => entry.text).join("\n"));
   const agentRows = isCopilot ? harnessAgentRows(agentList, { columns: maxWidth, palette, now, cap: AGENT_ROW_CAP, asciiArrows }) : [];
   // The gates, in Claude Code and Copilot alike, unless the arrangement
   // switched them off. They are the first thing a short window gives up,
@@ -2722,7 +2722,8 @@ export function renderReadings(
     gateRowsFit && placementFor("gates")?.on !== false
       ? gateRows(gateRuns, { columns: maxWidth, palette, now, here: gateHere, glyphs: g, cap: GATE_ROW_CAP })
       : [];
-  return [...drawn.map((entry) => entry.text), ...agentRows, ...gateLines].join("\n");
+  // The finished output, measured already; the Nerd padding goes on last (FR-018).
+  return padNerdIcons([...drawn.map((entry) => entry.text), ...agentRows, ...gateLines].join("\n"));
 }
 
 /**

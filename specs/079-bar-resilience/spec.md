@@ -107,9 +107,9 @@ terminal. `LINES` is the terminal's height too, which is why it only gates shedd
 | FR | State | Where |
 |---|---|---|
 | FR-003 | done: the state file is written only when it changes; the spinner counter only advances while the session works | `changeTracker.js` |
-| FR-004 | done: Node compile cache for `render` and `task-rows`, not in a passive render | `bin/cli.js` |
+| FR-004 | done: Node compile cache for `render` and `task-rows`, in the plugin's state directory created `0700` (review finding: Node's default is the shared `/tmp` on Linux), not in a passive render or one that may not write | `bin/cli.js` |
 | FR-005 | partial: the eager `Intl.Segmenter` (15 ms per process) is now built on first use. Lazy harness imports measured at a few ms and not done | `taskRows.js` |
-| FR-006 | done differently: a git snapshot is reused for 10 s while HEAD and the index are unchanged, so a branch switch, commit or stage is still seen at once; the freshness ages did not need to move because a reused value is read with `at: now` | `git.js` |
+| FR-006 | done differently: a git snapshot is reused for 10 s while HEAD, its reflog and the index are unchanged, so a branch switch, a commit (empty ones too), a reset or a stage is still seen at once; signature and snapshot are one cache entry, written together (review finding); the freshness ages did not need to move because a reused value is read with `at: now` | `git.js` |
 | FR-001, FR-002, FR-007 | **deferred**. Redraw measured on `main` 168 ms wall / 170 ms CPU, on this branch 128 / 130 ms (20 runs each, interleaved, this repository, 160 columns): a 24 % cut, 6.5 % of a core at the 2 s cadence. The < 60 ms target needs the replay, which must run before `src/render.js` is imported and must key on the spinner, the highlight fades and every cache version; it is its own spec | |
 | FR-008 to FR-014 | done | `layout.js`, `taskRows.js`, `doctor.js`, `render.js` |
 | FR-015 to FR-017 | done, with FR-016 amended: the plain `!` and `⇄` families stay (colour carries the state; the plan explains) | `render.js` `SHARED_GLYPHS` |

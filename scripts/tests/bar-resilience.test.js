@@ -327,3 +327,36 @@ await test("the compile cache lives in the plugin's own state directory, private
   const dir = pathMod.join(home.dir, found[0]);
   if (process.platform !== "win32") assert.equal(fs.statSync(dir).mode & 0o777, 0o700, "private to the user");
 });
+
+await test("under NERD_WIDTH=2 the space goes on the finished output only: agent rows get it, and the right-aligned chip still meets the edge (FR-018)", async () => {
+  const { renderPayload } = await import("../../src/render.js");
+  const { fullPayload, emptySources } = await import("./fixtures/sources.js");
+  const { padNerdIcons } = await import("../../src/theme.js");
+  const saved = process.env.CLAUDE_STATUSLINE_NERD_WIDTH;
+  const home = makeHome();
+  try {
+    process.env.CLAUDE_STATUSLINE_NERD_WIDTH = "2";
+    assert.equal(padNerdIcons("a\u{F40C}bc"), "a\u{F40C} bc", "icons padded, Powerline separators not");
+    // An agent row at 90 % draws the critical mark: it gets its space too.
+    await withHome(home, async () => {
+      const task = { id: "t1", name: "explore", type: "agent", description: "Busy", startTime: NOW - 135_000, model: "claude-haiku-4-5", contextWindowSize: 200000, tokenCount: 180000 };
+      const out = await runTaskRows({ now: NOW, input: JSON.stringify({ columns: 160, tasks: [task] }) });
+      const content = stripAll(JSON.parse(out.split("\n")[0]).content);
+      assert.match(content, /\u{F40C} /u, "the critical mark has the space after it");
+    });
+    // The help chip is pinned to the right edge: measured as the terminal
+    // advances (icon one cell, its space one), the last line is the full width.
+    const width = 140;
+    const src = { ...emptySources, getHelpPage: () => "/x/help/index.html" };
+    const drawn = stripAll(renderPayload(fullPayload(), { sources: src, trackChanges: false, maxWidth: width, maxHeight: 40 }));
+    delete process.env.CLAUDE_STATUSLINE_NERD_WIDTH;
+    const last = drawn.split("\n").pop();
+    assert.ok(displayWidth(last) <= width, `no wider than the window: ${displayWidth(last)}`);
+    assert.ok(displayWidth(last.trimEnd()) >= width - 2, `the help chip reaches the edge: ${displayWidth(last.trimEnd())} of ${width}`);
+    // Only the separator that closes the chip may follow it, as in help-page.test.js.
+    assert.match(last.trimEnd(), /\u{F059}\s*[\uE0B0-\uE0BF>]?$/u, "the help glyph is the last thing on the line");
+  } finally {
+    if (saved === undefined) delete process.env.CLAUDE_STATUSLINE_NERD_WIDTH;
+    else process.env.CLAUDE_STATUSLINE_NERD_WIDTH = saved;
+  }
+});

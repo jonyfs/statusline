@@ -19,4 +19,4 @@ Order follows [plan.md](plan.md). A task is checked when its test is green and t
 - [x] T9 FR-019 as amended: already in place (`checkInstall`); nothing to change.
 - [x] T10 FR-020 docs: spec 071, README cadence and samples, `freshness.js`/`samples.js`
       comments, constitution 8.15.0.
-- [ ] T11 Full suite, bench numbers in the PR, `/verify`, PR, `/review`, fix findings.
+- [x] T11 Full suite, bench numbers in the PR, `/verify`, PR, `/review`, fix findings. Review: six reviewers, findings fixed in 9c091c1 and dab43c8; incomplete (no exploratory QA step, no Red Team, no zero-edit re-pass).

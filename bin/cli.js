@@ -210,11 +210,18 @@ async function main() {
       const { enableCompileCache } = await import("node:module");
       const { stateRoot, canWrite } = await import("../src/paths.js");
       if (typeof enableCompileCache === "function" && canWrite()) {
-        const { mkdirSync } = await import("node:fs");
+        const { mkdirSync, lstatSync } = await import("node:fs");
         const { join } = await import("node:path");
         const dir = join(stateRoot(), "compile-cache");
         mkdirSync(dir, { recursive: true, mode: 0o700 });
-        enableCompileCache(dir);
+        // The mode only applies when the directory is made. One that already
+        // existed is used only if it is a real directory, this user's, and
+        // closed to everyone else; a host can point the state elsewhere.
+        const info = lstatSync(dir);
+        const ours =
+          process.platform === "win32" ||
+          (info.isDirectory() && !info.isSymbolicLink() && info.uid === process.getuid?.() && (info.mode & 0o077) === 0);
+        if (ours) enableCompileCache(dir);
       }
     } catch {
       // an older Node, or a directory that cannot be made: compile as before
