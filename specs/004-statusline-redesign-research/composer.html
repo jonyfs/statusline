@@ -1030,12 +1030,23 @@ function terminalFor(harness, { env = process.env, platform = process.platform, 
     if (fromEnv === fromTty) return fit({ columns: fromEnv, rows, source: "COLUMNS" });
     return fit({ columns: Math.min(fromEnv, fromTty), rows, source: "min(tty,COLUMNS)" });
   }
-  if (fromEnv) return fit({ columns: fromEnv, rows, source: "COLUMNS" });
+  // Claude Code spawns the status line with CLAUDE_PROJECT_DIR set and no
+  // tty. Its footer draws the line inside paddingX 2 and cuts each line with
+  // "…", so COLUMNS (the whole window) overstates the room by 4 and the help
+  // chip at the right end was the part cut off (read in Claude Code 2.1.321).
+  if (fromEnv) {
+    const size = { columns: fromEnv, rows, source: "COLUMNS" };
+    return fit(env?.CLAUDE_PROJECT_DIR ? footerInset(size) : size);
+  }
   if (fromTty) return fit({ columns: fromTty, rows, source: "tty" });
   return fit({ columns: DEFAULT_WIDTH, rows, source: "default" });
 }
 
 /** The right-hand margin a person asked for, 0 to 8 columns (FR-011). */
+const CLAUDE_FOOTER_INSET = 4;
+function footerInset(size) {
+  return { ...size, columns: Math.max(Math.min(size.columns, 20), size.columns - CLAUDE_FOOTER_INSET), inset: CLAUDE_FOOTER_INSET };
+}
 function widthMargin(env = process.env) {
   const raw = env?.CLAUDE_STATUSLINE_WIDTH_MARGIN;
   if (raw === undefined || raw === "") return 0;

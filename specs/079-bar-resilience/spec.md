@@ -413,3 +413,7 @@ the docs describe the bar that is installed.
 - Making Claude Code emit a resize event or a `terminal_width` field (upstream).
 - The Ghostty `link-previews` hover behaviour over the help chip (terminal setting, documented in
   the help page's "switches" section instead).
+
+### Follow-up: Claude Code's footer padding (2026-11-09)
+
+The help chip still vanished after the first round. Captured redraws showed line 3 drawn at exactly `COLUMNS` (143 of 143). Claude Code 2.1.321 sets `COLUMNS` to the whole window (`process.stdout.columns`) but draws the status line inside a footer box with `paddingX: 2`, and every line is `wrap: "truncate"`. So 4 columns were always cut, and the right end, where the help chip sits, became `…`. `terminalFor("claude")` now subtracts `CLAUDE_FOOTER_INSET` (4) from `COLUMNS` when `CLAUDE_PROJECT_DIR` is set, which Claude Code exports to the status line command. Run by hand, `COLUMNS` is still the room. `CLAUDE_STATUSLINE_WIDTH_MARGIN` stacks on top, and the doctor names the inset.

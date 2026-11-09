@@ -535,6 +535,7 @@ export function terminalReport(harness = "claude", { readTty, settings = null, e
     // Only Copilot pads its lines; under every other host the tty is the window.
     padding: harness === "copilot" && size.source === "tty" ? copilotPadding(settings) : 0,
     margin: size.margin ?? 0,
+    inset: size.inset ?? 0,
     rows,
     // Rows come from LINES everywhere but Copilot, which measures the tty (specs/079, FR-009).
     rowsSource: rows === null ? "unset" : harness === "copilot" && size.source === "tty" ? "tty" : "LINES",
@@ -613,8 +614,9 @@ export function terminalLine(t) {
     COLUMNS: "from COLUMNS, which the host updates on each redraw",
     "min(tty,COLUMNS)": "the smaller of COLUMNS and /dev/tty, which disagree",
   }[t.columnsSource];
+  const inset = t.inset ? `; less ${t.inset} for Claude Code's footer padding` : "";
   const margin = t.margin ? `; less a margin of ${t.margin} (CLAUDE_STATUSLINE_WIDTH_MARGIN)` : "";
-  const columns = why ? `${t.columns} columns (${why}${margin})` : `${t.columns} columns`;
+  const columns = why ? `${t.columns} columns (${why}${inset}${margin})` : `${t.columns} columns`;
   const rows = t.rows === null ? "rows unknown (LINES not set, every line drawn)" : `${t.rows} rows`;
   return `terminal: ${columns}, ${rows}`;
 }

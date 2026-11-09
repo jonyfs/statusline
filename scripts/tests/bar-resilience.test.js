@@ -232,6 +232,25 @@ await test("a margin narrows the line and never widens a tiny window (FR-011)", 
   assert.deepEqual(terminalFor("claude", { env: {}, platform: "darwin", readTty: () => ({ columns: 117, rows: 40 }) }), { columns: 117, rows: Infinity, source: "tty" });
 });
 
+await test("inside Claude Code the footer's 4 columns of padding come off COLUMNS, so the help chip is not the part cut", async () => {
+  const { terminalFor, CLAUDE_FOOTER_INSET } = await import("../../src/layout.js");
+  const none = () => null;
+  const host = { COLUMNS: "143", LINES: "78", CLAUDE_PROJECT_DIR: "/p" };
+  assert.equal(CLAUDE_FOOTER_INSET, 4);
+  assert.deepEqual(terminalFor("claude", { env: host, platform: "darwin", readTty: none }), { columns: 139, rows: 78, source: "COLUMNS", inset: 4 });
+  // The margin stacks on top of the inset.
+  assert.equal(terminalFor("claude", { env: { ...host, CLAUDE_STATUSLINE_WIDTH_MARGIN: "3" }, platform: "darwin", readTty: none }).columns, 136);
+  // A tiny window is never widened, and 20 columns stay when there are more.
+  assert.equal(terminalFor("claude", { env: { ...host, COLUMNS: "12" }, platform: "darwin", readTty: none }).columns, 12);
+  assert.equal(terminalFor("claude", { env: { ...host, COLUMNS: "22" }, platform: "darwin", readTty: none }).columns, 20);
+  // Run by hand (no CLAUDE_PROJECT_DIR), COLUMNS is the room: unchanged.
+  assert.equal(terminalFor("claude", { env: { COLUMNS: "143" }, platform: "darwin", readTty: none }).columns, 143);
+  // Copilot keeps its own rule.
+  assert.equal(terminalFor("copilot", { env: host, platform: "darwin", readTty: none }).columns, 143);
+  const { terminalReport, terminalLine } = await import("../../src/doctor.js");
+  assert.match(terminalLine(terminalReport("claude", { env: host, platform: "darwin", readTty: none })), /139 columns \(.*less 4 for Claude Code's footer padding\)/);
+});
+
 await test("a pinned chip that yields keeps the shorter text the fit chose (FR-012)", () => {
   const model = seg("model", " Opus 5 (1M context) ", 92);
   const pinned = seg("help", " a long pinned label ", 95, { pinned: true, variants: [" p "] });
