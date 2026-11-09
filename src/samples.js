@@ -9,8 +9,9 @@
  * writes, swept on the same schedule and failing the same safe way. A second
  * store would have doubled the failure modes for the same data.
  *
- * The ring is bounded at sixty samples, roughly six minutes of redraws, and
- * a rate is refused below five samples spanning a minute. A rate computed
+ * The ring keeps at most one sample a minute (MIN_SAMPLE_INTERVAL_MS) and is
+ * bounded at sixty samples and fifteen minutes; a rate is refused below five
+ * samples spanning a minute. A rate computed
  * over twelve seconds swings wildly, and a number that swings wildly beside
  * measured ones gets read as measured.
  */
@@ -21,9 +22,9 @@ export const MAX_SAMPLES = 60;
 /**
  * How far back a rate may reach.
  *
- * A count is not a bound on time. Redraws are event-driven, and the installed
- * refresh interval is 60 seconds, so sixty samples can span an hour — or a
- * whole night, if the session was left open. A rate drawn across that says
+ * A count is not a bound on time. Redraws are event-driven, and at one sample
+ * a minute sixty samples can span an hour, or a whole night if the session
+ * was left open with a long refresh interval of the person's own. A rate drawn across that says
  * what the average was while nobody was working, presented beside numbers
  * that describe now.
  */

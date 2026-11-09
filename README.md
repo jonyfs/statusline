@@ -933,9 +933,9 @@ they have. A few rules keep the line from moving as figures change:
 ## What the session is doing
 
 The activity chip has four states. While the session works it shows a spinner of four frames,
-one a redraw: it advances on the session's own counter and never reads the clock, so a bar
-redrawn every 60 seconds turns once a minute, and a stuck session is a spinner that has
-stopped. Idle is a coffee cup for five minutes of quiet and a sleeping mark after, when line 2
+one a redraw: it advances on the session's own counter and never reads the clock, so at the
+installed 2-second refresh it turns every two seconds, and a stuck session is a spinner that has
+stopped. While the session is idle the counter stands still, so an idle bar writes nothing. Idle is a coffee cup for five minutes of quiet and a sleeping mark after, when line 2
 goes quiet too. `your turn` shows when the newest thing in the transcript is a question or a
 plan that has no answer yet. A permission prompt is not recorded anywhere and Claude Code
 hides the bar while one is open, so it is not a state here.
@@ -1246,8 +1246,8 @@ instead.
 
 The samples live in the same per-session file as the change highlighting,
 bounded at sixty and at fifteen minutes, swept after a week. Both bounds
-matter: a count is not a bound on time, and with the installed 60-second
-refresh, sixty samples would otherwise reach back an hour, or across a night
+matter: a count is not a bound on time. A sample is kept at most once a minute, whatever
+the refresh interval, so sixty samples would otherwise reach back an hour, or across a night
 in a session left open. The history also starts again after a gap of five
 minutes, and when the 5-hour figure drops — that drop is the window
 resetting, and a rate measured across it is arithmetic on two unrelated

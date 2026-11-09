@@ -2,7 +2,14 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.14.0 (IV clarified on 2026-11-05: MINOR. Files that only a browser runs, copied into
+- Version: 8.15.0 (II and III clarified on 2026-11-09: MINOR. The width a redraw fits to is the
+  smaller of `COLUMNS` and `/dev/tty` when both are known, else the one that is; rows come from
+  `LINES` only, outside Copilot. A person MAY declare that their font draws Nerd icons two columns
+  wide (`CLAUDE_STATUSLINE_NERD_WIDTH=2`) and MAY reserve a right margin of up to 8 columns. The
+  doctor MAY read the terminal's font family from Ghostty's own config file, that one key and
+  nothing else. A git snapshot MAY be reused for up to 10 s while HEAD and the index are unchanged.
+  Within an icon tier a glyph has one meaning, outside declared groups. See specs/079-bar-resilience.)
+- Previously, version 8.14.0 (IV clarified on 2026-11-05: MINOR. Files that only a browser runs, copied into
   the repository with their licences (the help page's i18next and its language detector,
   specs/078-help-page), are not runtime dependencies: Node never loads them, no package manager
   installs them, and the clone stays the whole install.)
@@ -973,4 +980,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.14.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-05
+**Version**: 8.15.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-09

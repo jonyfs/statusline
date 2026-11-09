@@ -89,6 +89,34 @@ it needs to be:
 | spec 071 still describes the account chip as "the account's organisation name and the account kind, `Acme · credits`" (`specs/071-line-3-credits-seat/spec.md:52`); the chip now says `personal`/`business` (PR #85) | grep |
 | `samples.js` and README were tuned for the 60 s cadence; `pushSample` got a one-minute floor in v1.66.4 but the README's explanation (`README.md:1245-1255`) still reasons from 60 s | grep |
 
+## Outcome (2026-11-09)
+
+### What the live session measured (T3)
+
+`CLAUDE_STATUSLINE_DEBUG=1` was put into the owner's own `statusLine.command` for two redraws
+and taken out again. Inside Claude Code the command runs with **no controlling terminal**
+(`/dev/tty` fails, `tty: null`) and with `COLUMNS=373`, `LINES=78`; after the owner narrowed
+the window, the next redraw had `COLUMNS=143`, `LINES=78`. So Claude Code sets `COLUMNS` to the
+window and updates it on the next redraw after a resize. The tty read added in v1.66.3 never
+applied there. FR-008's rule (smaller of the two when both are known) is therefore safe and
+changes nothing under Claude Code; it matters for a host that sets a stale `COLUMNS` and keeps a
+terminal. `LINES` is the terminal's height too, which is why it only gates shedding (FR-009).
+
+### Delivered, deferred, amended
+
+| FR | State | Where |
+|---|---|---|
+| FR-003 | done: the state file is written only when it changes; the spinner counter only advances while the session works | `changeTracker.js` |
+| FR-004 | done: Node compile cache for `render` and `task-rows`, not in a passive render | `bin/cli.js` |
+| FR-005 | partial: the eager `Intl.Segmenter` (15 ms per process) is now built on first use. Lazy harness imports measured at a few ms and not done | `taskRows.js` |
+| FR-006 | done differently: a git snapshot is reused for 10 s while HEAD and the index are unchanged, so a branch switch, commit or stage is still seen at once; the freshness ages did not need to move because a reused value is read with `at: now` | `git.js` |
+| FR-001, FR-002, FR-007 | **deferred**. Redraw measured on `main` 168 ms wall / 170 ms CPU, on this branch 128 / 130 ms (20 runs each, interleaved, this repository, 160 columns): a 24 % cut, 6.5 % of a core at the 2 s cadence. The < 60 ms target needs the replay, which must run before `src/render.js` is imported and must key on the spinner, the highlight fades and every cache version; it is its own spec | |
+| FR-008 to FR-014 | done | `layout.js`, `taskRows.js`, `doctor.js`, `render.js` |
+| FR-015 to FR-017 | done, with FR-016 amended: the plain `!` and `⇄` families stay (colour carries the state; the plan explains) | `render.js` `SHARED_GLYPHS` |
+| FR-018 | done; the Powerline separators stay one column under `NERD_WIDTH=2` (found by SC-006: counting them two overflowed a line by one) | `theme.js`, `doctor.js` |
+| FR-019 | amended: the two commands differ on purpose (Principle IX, `install.js:214-243`), and `doctor` already reports a missing interpreter (`checkInstall`, `install.js:447-476`). Nothing changed | |
+| FR-020 | done | spec 071, README, `samples.js`, `freshness.js`, constitution 8.15.0 |
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A redraw every two seconds that the machine does not notice (Priority: P1)

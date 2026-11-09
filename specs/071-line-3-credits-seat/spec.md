@@ -49,8 +49,10 @@ are null), so what follows comes from the payload and from history the bar keeps
   the model chip from the model's name (Opus and Fable, Sonnet, Haiku). A table in the plugin, not
   a payload fact; its first width variant is the bare name.
 - **FR-007** (account): A new segment `account`, line 3 before the model: the signed-in Claude
-  account's organisation name and the account kind, `Acme · credits`. `CLAUDE_STATUSLINE_ACCOUNT`
-  is `org` (default), `email` (the address instead of the organisation) or `off`. Read from
+  account in one word, `personal` (a Pro or Max seat, or the address's own organisation) or
+  `business`, and the account kind, `business · credits` (changed in PR #85; the organisation's
+  name was too long for line 3). `CLAUDE_STATUSLINE_ACCOUNT` is `org` (default, the word),
+  `email` (the address instead) or `off`. Read from
   `oauthAccount` in `~/.claude.json`, never the token. Under Codex it names the plan the rollout
   reports, `codex pro`; Copilot and OpenCode draw nothing, as nothing is read there.
 - **FR-009** (when the cap comes back): The credits chip ends with the reset, as a day and a time in
