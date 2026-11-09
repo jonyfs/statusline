@@ -73,6 +73,7 @@ await test("a quiet repository is not asked again within the reuse window, and a
   const pathMod = await import("node:path");
   const { getGitInfo, gitSignature, GIT_REUSE_MS } = await import("../../src/git.js");
   const { readEntry, repoKey } = await import("../../src/cache.js");
+  const { rmSync } = await import("node:fs");
   const repo = mkdtempSync(pathMod.join(os.tmpdir(), "sl-079-git-"));
   const git = (...args) => execFileSync("git", ["-C", repo, ...args], { stdio: "pipe" });
   git("init", "-q", "-b", "main");
@@ -82,14 +83,14 @@ await test("a quiet repository is not asked again within the reuse window, and a
     const now = Date.now();
     assert.equal(getGitInfo(repo, { now })?.branch, "main");
     const key = repoKey(repo);
-    const ranAt = readEntry(key, "gitSig").at;
+    const ranAt = readEntry(key, "gitReuse").at;
     // Inside the window with HEAD and the index unchanged: the snapshot is reused,
     // so a new untracked file is not seen yet and git did not run.
     writeFileSync(pathMod.join(repo, "untracked.txt"), "x");
     const reused = getGitInfo(repo, { now: now + 2_000 });
     assert.equal(reused?.branch, "main");
     assert.equal(reused?.untracked, 0, "the reused snapshot is the earlier one");
-    assert.equal(readEntry(key, "gitSig").at, ranAt, "git was not run again");
+    assert.equal(readEntry(key, "gitReuse").at, ranAt, "git was not run again");
     // A branch switch rewrites HEAD: seen on the very next redraw.
     git("checkout", "-q", "-b", "feature");
     assert.equal(getGitInfo(repo, { now: now + 4_000 })?.branch, "feature");
@@ -97,7 +98,31 @@ await test("a quiet repository is not asked again within the reuse window, and a
     const later = getGitInfo(repo, { now: now + 4_000 + GIT_REUSE_MS });
     assert.equal(later.untracked, 1, "the edit shows after the window");
     assert.equal(gitSignature(pathMod.join(os.tmpdir())), null, "no repository, no reuse");
+    // An empty commit and a soft reset touch neither HEAD nor the index, but
+    // both append to the reflog, so the signature still moves.
+    const before = gitSignature(repo);
+    await new Promise((r) => setTimeout(r, 15));
+    git("-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "two");
+    const afterEmpty = gitSignature(repo);
+    assert.notEqual(afterEmpty, before, "an empty commit moves the signature");
+    await new Promise((r) => setTimeout(r, 15));
+    git("reset", "-q", "--soft", "HEAD~1");
+    assert.notEqual(gitSignature(repo), afterEmpty, "a soft reset moves the signature");
+    // A linked worktree: .git is a file naming its own git directory.
+    const wt = pathMod.join(repo, "..", pathMod.basename(repo) + "-wt");
+    git("worktree", "add", "-q", "-b", "side", wt);
+    try {
+      const sig = gitSignature(wt);
+      assert.match(sig, /worktrees/, "the worktree's own git directory");
+      execFileSync("git", ["-C", wt, "checkout", "-q", "-b", "side2"], { stdio: "pipe" });
+      assert.notEqual(gitSignature(wt), sig, "a checkout in the worktree moves its signature");
+      writeFileSync(pathMod.join(wt, ".git"), "not a gitdir line\n");
+      assert.equal(gitSignature(wt), null, "a malformed .git file means no reuse");
+    } finally {
+      rmSync(wt, { recursive: true, force: true });
+    }
   });
+  rmSync(repo, { recursive: true, force: true });
 });
 
 await test("an idle session writes its state only when it changes; a working one still moves the spinner a frame a redraw (FR-003)", async () => {
@@ -165,9 +190,14 @@ await test("with CLAUDE_STATUSLINE_NERD_WIDTH=2 every Nerd icon counts two colum
     assert.equal(displayWidth("ab"), 2, "ordinary text unchanged");
     const src = { ...emptySources, getHelpPage: () => "/x/help/index.html" };
     for (let width = 60; width <= 300; width += 20) {
-      const out = renderPayload(fullPayload(), { sources: src, trackChanges: false, maxWidth: width, maxHeight: 40 });
-      for (const line of stripAll(out).split("\n")) assert.ok(displayWidth(line) <= width, `${displayWidth(line)} > ${width}: ${line}`);
+      process.env.CLAUDE_STATUSLINE_NERD_WIDTH = "2";
+      const out = stripAll(renderPayload(fullPayload(), { sources: src, trackChanges: false, maxWidth: width, maxHeight: 40 }));
+      assert.match(out, /\u{F0150} /u, "each icon is followed by the space that gives it its second cell");
+      // What the terminal advances: one cell per icon and one for its space.
+      delete process.env.CLAUDE_STATUSLINE_NERD_WIDTH;
+      for (const line of out.split("\n")) assert.ok(displayWidth(line) <= width, `${displayWidth(line)} > ${width}: ${line}`);
     }
+    process.env.CLAUDE_STATUSLINE_NERD_WIDTH = "2";
     process.env.CLAUDE_STATUSLINE_NERD_WIDTH = "3";
     assert.equal(displayWidth("\u{F0150}"), 1, "any other value is ignored");
   } finally {
@@ -186,4 +216,108 @@ await test("doctor names the terminal's font when it can, and the icon width rul
   assert.match(iconStatus({ CLAUDE_STATUSLINE_NERD_WIDTH: "2" }, { font: null }).line, /icons counted 2 columns/);
   assert.match(iconStatus({ CLAUDE_STATUSLINE_NERD_WIDTH: "wide" }, { font: null }).line, /"wide" ignored/);
   assert.doesNotMatch(iconStatus({ CLAUDE_STATUSLINE_ICONS: "plain" }, { font }).line, /columns/, "only the Nerd tier has the rule");
+});
+
+await test("a margin narrows the line and never widens a tiny window (FR-011)", async () => {
+  const { terminalFor } = await import("../../src/layout.js");
+  const none = () => null;
+  assert.equal(terminalFor("claude", { env: { COLUMNS: "12", CLAUDE_STATUSLINE_WIDTH_MARGIN: "2" }, platform: "darwin", readTty: none }).columns, 12);
+  assert.equal(terminalFor("claude", { env: { COLUMNS: "21", CLAUDE_STATUSLINE_WIDTH_MARGIN: "4" }, platform: "darwin", readTty: none }).columns, 20);
+  // Claude Code with no COLUMNS but a terminal: the terminal, rows unset.
+  assert.deepEqual(terminalFor("claude", { env: {}, platform: "darwin", readTty: () => ({ columns: 117, rows: 40 }) }), { columns: 117, rows: Infinity, source: "tty" });
+});
+
+await test("a pinned chip that yields keeps the shorter text the fit chose (FR-012)", () => {
+  const model = seg("model", " Opus 5 (1M context) ", 92);
+  const pinned = seg("help", " a long pinned label ", 95, { pinned: true, variants: [" p "] });
+  const width = rowWidth([model]) + 2;
+  const fitted = fitToWidth([model, pinned], width);
+  assert.ok(rowWidth(fitted) <= width, `row is ${rowWidth(fitted)} columns in ${width}`);
+});
+
+await test("doctor names the smaller-width rule and the margin", async () => {
+  const { terminalLine } = await import("../../src/doctor.js");
+  assert.match(
+    terminalLine({ columns: 140, columnsSource: "min(tty,COLUMNS)", margin: 3, rows: 20 }),
+    /140 columns \(the smaller of COLUMNS and \/dev\/tty, which disagree; less a margin of 3 \(CLAUDE_STATUSLINE_WIDTH_MARGIN\)\), 20 rows/
+  );
+});
+
+await test("the Ghostty font is the first of its list, after any reset, with control characters removed", async () => {
+  const { terminalFont } = await import("../../src/doctor.js");
+  const only = (want, text) => (p) => {
+    if (p !== want) throw new Error("ENOENT");
+    return text;
+  };
+  const xdg = "/x/ghostty/config";
+  assert.equal(terminalFont({ TERM: "xterm-ghostty", XDG_CONFIG_HOME: "/x" }, { home: "/h", read: only(xdg, "font-family = A\nfont-family = B\n") }), "A");
+  assert.equal(terminalFont({ TERM_PROGRAM: "ghostty" }, { home: "/h", read: only("/h/.config/ghostty/config", 'font-family = A\nfont-family = ""\nfont-family = C\n') }), "C");
+  const mac = "/h/Library/Application Support/com.mitchellh.ghostty/config";
+  const cleaned = terminalFont({ TERM_PROGRAM: "ghostty" }, { home: "/h", read: only(mac, "font-family = Mac\u001b[31mRed\n") });
+  assert.ok(cleaned.startsWith("Mac") && !/[\u0000-\u001f]/.test(cleaned), `no control characters: ${JSON.stringify(cleaned)}`);
+});
+
+await test("agent rows fall back to 80 when COLUMNS is not a width (FR-013)", async () => {
+  const saved = process.env.COLUMNS;
+  const home = makeHome();
+  try {
+    await withHome(home, async () => {
+      const task = { id: "t1", name: "explore", type: "agent", description: "Finding the auth code in a long description that has room to grow on a wide window", startTime: NOW - 135_000, model: "claude-haiku-4-5", contextWindowSize: 200000, tokenCount: 40000 };
+      const input = JSON.stringify({ tasks: [task] });
+      delete process.env.COLUMNS;
+      const unset = await runTaskRows({ now: NOW, input });
+      for (const bad of ["abc", "0", "12.5"]) {
+        process.env.COLUMNS = bad;
+        assert.equal(await runTaskRows({ now: NOW, input }), unset, `COLUMNS=${bad}`);
+      }
+    });
+  } finally {
+    if (saved === undefined) delete process.env.COLUMNS;
+    else process.env.COLUMNS = saved;
+  }
+});
+
+await test("CLAUDE_STATUSLINE_DEBUG=1 writes the width inputs, and a terminal that cannot be read does not fail the redraw (FR-010)", async () => {
+  const { renderPayload } = await import("../../src/render.js");
+  const { emptySources } = await import("./fixtures/sources.js");
+  const { stateRoot } = await import("../../src/paths.js");
+  const fs = await import("node:fs");
+  const pathMod = await import("node:path");
+  const home = makeHome();
+  const saved = process.env.CLAUDE_STATUSLINE_DEBUG;
+  try {
+    await withHome(home, async () => {
+      process.env.CLAUDE_STATUSLINE_DEBUG = "1";
+      const failing = () => {
+        throw new Error("ENXIO");
+      };
+      const out = renderPayload({}, { sources: { ...emptySources, readTty: failing }, trackChanges: false });
+      assert.ok(out.length > 0, "the bar still draws");
+      const record = JSON.parse(fs.readFileSync(pathMod.join(stateRoot(), "debug-last-env.json"), "utf8"));
+      assert.equal(record.tty, null);
+      assert.ok(["COLUMNS", "default", "tty", "min(tty,COLUMNS)"].includes(record.chosen.source));
+    });
+  } finally {
+    if (saved === undefined) delete process.env.CLAUDE_STATUSLINE_DEBUG;
+    else process.env.CLAUDE_STATUSLINE_DEBUG = saved;
+  }
+});
+
+await test("the compile cache lives in the plugin's own state directory, private (FR-004)", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const fs = await import("node:fs");
+  const pathMod = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const cli = fileURLToPath(new URL("../../bin/cli.js", import.meta.url));
+  const home = makeHome();
+  const env = { ...process.env, HOME: home.dir, USERPROFILE: home.dir };
+  delete env.CLAUDE_STATUSLINE_PASSIVE;
+  delete env.XDG_STATE_HOME;
+  spawnSync(process.execPath, [cli, "render"], { input: "{}", env, encoding: "utf8" });
+  if (typeof (await import("node:module")).enableCompileCache !== "function") return; // older Node: nothing to check
+  // Wherever the child put its state, it is under this throwaway home and not in the system temp folder.
+  const found = fs.readdirSync(home.dir, { recursive: true }).map(String).filter((f) => f.endsWith("compile-cache"));
+  assert.equal(found.length, 1, `compile-cache under the home: ${JSON.stringify(found)}`);
+  const dir = pathMod.join(home.dir, found[0]);
+  if (process.platform !== "win32") assert.equal(fs.statSync(dir).mode & 0o777, 0o700, "private to the user");
 });

@@ -199,15 +199,25 @@ async function main() {
     throw new Error(`Node ${MIN_NODE_MAJOR} or newer is required; this is Node ${process.versions.node}. Nothing was changed.`);
   }
   // The bar is a new process every couple of seconds, and compiling the
-  // modules was a third of each one (specs/079, FR-004). Node keeps the
-  // compiled code in its own cache, keyed by each file's contents, so an
-  // update invalidates it by itself. A passive render writes nothing.
+  // modules was about 25 ms of each one (specs/079, FR-004). Node keeps the
+  // compiled code keyed by each file's contents, so an update invalidates it
+  // by itself. The cache lives in this plugin's own state directory, created
+  // private: Node's default is the system temp folder, which on Linux is
+  // shared, and code read from a folder another user created first is code
+  // that user chose. A passive render, or one that may not write, skips it.
   if ((subcommand === "render" || subcommand === undefined || subcommand === "task-rows") && process.env.CLAUDE_STATUSLINE_PASSIVE !== "1") {
     try {
       const { enableCompileCache } = await import("node:module");
-      if (typeof enableCompileCache === "function") enableCompileCache();
+      const { stateRoot, canWrite } = await import("../src/paths.js");
+      if (typeof enableCompileCache === "function" && canWrite()) {
+        const { mkdirSync } = await import("node:fs");
+        const { join } = await import("node:path");
+        const dir = join(stateRoot(), "compile-cache");
+        mkdirSync(dir, { recursive: true, mode: 0o700 });
+        enableCompileCache(dir);
+      }
     } catch {
-      // an older Node, or a cache directory that cannot be written: compile as before
+      // an older Node, or a directory that cannot be made: compile as before
     }
   }
   if (runsMode) {

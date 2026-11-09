@@ -457,6 +457,12 @@ export function renderRow(palette, segments, { asciiArrows = false, width = null
     // trailing padding stays: 0 before, 1 after, as the guide draws it
     // (specs/054-guide-gaps, owner decision of 2026-10-12).
     if (style === "round" && colourEnabled()) label = label.replace(/^ /, "");
+    // `CLAUDE_STATUSLINE_NERD_WIDTH=2` (specs/079, FR-018): the font draws an
+    // icon over two cells while the terminal moves the cursor one. A space
+    // after each icon gives it the second cell, so it no longer covers the
+    // next character; the icon is counted two columns, which is what the
+    // icon and its space take.
+    if (nerdWidth() === 2) label = label.replace(NERD_ICON, (icon) => `${icon} `);
     // `CLAUDE_STATUSLINE_PADDING=wide`: two columns before the icon of every
     // chip that follows an arrow (the review's section 5.5). Opt-in, because it
     // costs a column a chip and the track already costs about six a gauge.
@@ -643,6 +649,9 @@ function isWide(cp) {
  * Nothing in the environment says which, so the reader does. Any other value
  * is ignored and `doctor` says so.
  */
+/** A Nerd Font icon: the private use areas, less the Powerline separators. */
+const NERD_ICON = /[\uE000-\uE09F\uE0D8-\uF8FF\u{F0000}-\u{FFFFD}]/gu;
+
 export function nerdWidth(env = process.env) {
   return env.CLAUDE_STATUSLINE_NERD_WIDTH === "2" ? 2 : 1;
 }

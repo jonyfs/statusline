@@ -48,7 +48,7 @@
       OMIT: "`CLAUDE_STATUSLINE_OMIT=help,rtk` desliga os chips nomeados. `help` remove o `?` que abre esta página.",
       ICONS: "`CLAUDE_STATUSLINE_ICONS` escolhe o conjunto de ícones: `nerd` (precisa de uma Nerd Font), `emoji` ou `plain`.",
       FLAVOR: "`CLAUDE_STATUSLINE_FLAVOR` escolhe o tema de cores, como `mocha`, `latte`, `nord` ou `gruvbox`.",
-      NERD_WIDTH: "`CLAUDE_STATUSLINE_NERD_WIDTH=2` conta cada ícone da Nerd Font como duas colunas. Use quando os ícones encostam no texto seguinte: isso acontece com uma Nerd Font que não é a variante Mono, ou com um terminal que desenha os ícones mais novos com largura dupla.",
+      NERD_WIDTH: "`CLAUDE_STATUSLINE_NERD_WIDTH=2` desenha um espaço depois de cada ícone da Nerd Font, para que um ícone desenhado em duas células tenha espaço, e conta o par como duas colunas. Use quando os ícones encostam no texto seguinte: isso acontece com uma Nerd Font que não é a variante Mono, ou com um terminal que desenha os ícones mais novos com largura dupla.",
       WIDTH_MARGIN: "`CLAUDE_STATUSLINE_WIDTH_MARGIN=n` deixa n colunas (de 0 a 8) livres à direita de cada linha, para um programa que desenha a barra num espaço menor do que informa.",
     },
     src: {

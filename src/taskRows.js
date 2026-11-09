@@ -25,6 +25,7 @@ import { PALETTES, displayWidth, colourEnabled, fgSeq } from "./theme.js";
 import { eighthsBar, rampColour } from "./ramp.js";
 import { abbreviate } from "./tokens.js";
 import { plainText } from "./text.js";
+import { terminalFor } from "./layout.js";
 import { iconTier, resolveSettings } from "./config.js";
 import { readSkillsByAgent } from "./skillEvents.js";
 
@@ -561,17 +562,13 @@ export async function runTaskRows({ now = Date.now(), input } = {}) {
 
   const flavor = process.env.CLAUDE_STATUSLINE_FLAVOR || "mocha";
   const palette = PALETTES[flavor] || PALETTES.mocha;
-  // The payload's own width, else the window Claude Code reports in COLUMNS
-  // (it sets it for its commands, measured in specs/079 T3), else 80. The
-  // rows sit under a bar that fills the window; 80 alone left them half its
-  // width on a monitor (FR-013).
-  const envColumns = Number(process.env.COLUMNS);
-  const columns =
-    typeof payload.columns === "number"
-      ? payload.columns
-      : Number.isInteger(envColumns) && envColumns > 0
-        ? envColumns
-        : 80;
+  // The payload's own width, else the window Claude Code reports, else 80.
+  // The rows sit under a bar that fills the window; 80 alone left them half
+  // its width on a monitor (FR-013).
+  // Same rule as the bar (specs/079): COLUMNS and the tty, the smaller when
+  // both are known, less any CLAUDE_STATUSLINE_WIDTH_MARGIN. With neither, 80.
+  const size = terminalFor("claude");
+  const columns = typeof payload.columns === "number" ? payload.columns : size.source === "default" ? 80 : size.columns;
 
   // Skills the hook attributed to a running subagent. Empty unless the hook is
   // installed and Claude Code's `agent_id` turns out to be the same value as

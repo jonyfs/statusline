@@ -113,7 +113,7 @@ terminal. `LINES` is the terminal's height too, which is why it only gates shedd
 | FR-001, FR-002, FR-007 | **deferred**. Redraw measured on `main` 168 ms wall / 170 ms CPU, on this branch 128 / 130 ms (20 runs each, interleaved, this repository, 160 columns): a 24 % cut, 6.5 % of a core at the 2 s cadence. The < 60 ms target needs the replay, which must run before `src/render.js` is imported and must key on the spinner, the highlight fades and every cache version; it is its own spec | |
 | FR-008 to FR-014 | done | `layout.js`, `taskRows.js`, `doctor.js`, `render.js` |
 | FR-015 to FR-017 | done, with FR-016 amended: the plain `!` and `⇄` families stay (colour carries the state; the plan explains) | `render.js` `SHARED_GLYPHS` |
-| FR-018 | done; the Powerline separators stay one column under `NERD_WIDTH=2` (found by SC-006: counting them two overflowed a line by one) | `theme.js`, `doctor.js` |
+| FR-018 | done; under `NERD_WIDTH=2` each icon is drawn with a space after it (review finding: counting alone left the overlap), and the Powerline separators stay one column (found by SC-006: counting them two overflowed a line by one) | `theme.js`, `doctor.js` |
 | FR-019 | amended: the two commands differ on purpose (Principle IX, `install.js:214-243`), and `doctor` already reports a missing interpreter (`checkInstall`, `install.js:447-476`). Nothing changed | |
 | FR-020 | done | spec 071, README, `samples.js`, `freshness.js`, constitution 8.15.0 |
 

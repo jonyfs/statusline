@@ -48,7 +48,7 @@
       OMIT: "`CLAUDE_STATUSLINE_OMIT=help,rtk` désactive les puces nommées. `help` retire le `?` qui ouvre cette page.",
       ICONS: "`CLAUDE_STATUSLINE_ICONS` choisit le jeu d'icônes : `nerd` (il faut une Nerd Font), `emoji` ou `plain`.",
       FLAVOR: "`CLAUDE_STATUSLINE_FLAVOR` choisit le thème de couleurs, comme `mocha`, `latte`, `nord` ou `gruvbox`.",
-      NERD_WIDTH: "`CLAUDE_STATUSLINE_NERD_WIDTH=2` compte chaque icône Nerd Font sur deux colonnes. À activer quand les icônes chevauchent le texte qui les suit : c'est le cas avec une Nerd Font qui n'est pas la variante Mono, ou un terminal qui dessine les icônes récentes en double largeur.",
+      NERD_WIDTH: "`CLAUDE_STATUSLINE_NERD_WIDTH=2` dessine une espace après chaque icône Nerd Font, pour qu'une icône dessinée sur deux cellules ait sa place, et compte la paire sur deux colonnes. À activer quand les icônes chevauchent le texte qui les suit : c'est le cas avec une Nerd Font qui n'est pas la variante Mono, ou un terminal qui dessine les icônes récentes en double largeur.",
       WIDTH_MARGIN: "`CLAUDE_STATUSLINE_WIDTH_MARGIN=n` laisse n colonnes (de 0 à 8) libres à droite de chaque ligne, pour un hôte qui dessine la barre dans moins de place qu'il n'en annonce.",
     },
     src: {

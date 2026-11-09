@@ -162,7 +162,9 @@ export function widthMargin(env = process.env) {
 function withMargin(size, env) {
   const margin = widthMargin(env);
   if (!margin) return size;
-  return { ...size, columns: Math.max(20, size.columns - margin), margin };
+  // Never below 20 columns of room, and never wider than the window itself:
+  // a margin narrows the line, it does not widen a tiny one.
+  return { ...size, columns: Math.min(size.columns, Math.max(20, size.columns - margin)), margin };
 }
 
 /** What a row of segments costs in columns, separators included. */
@@ -211,7 +213,7 @@ export function fitToWidth(row, width = terminalWidth()) {
     return fitToWidth(
       row.map((s) => (s.pinned ? { ...s, pinned: false } : s)),
       width
-    ).map((s) => row.find((r) => r.key === s.key && r.pinned) ?? s);
+    );
   }
 
   const byPriority = [...row].sort((a, b) => a.priority - b.priority);

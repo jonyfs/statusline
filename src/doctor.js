@@ -60,6 +60,7 @@ import { ROLE, LEGEND } from "./colourRoles.js";
 import { terminalFor } from "./layout.js";
 import { resolveLayout, repoConfig, terminalFlavor, resolveSettings, iconTier } from "./config.js";
 import { resolveArrangement } from "./arrangement.js";
+import { plainText } from "./text.js";
 
 /**
  * How to describe each segment's value, and which reading feeds it.
@@ -707,12 +708,22 @@ export function terminalFont(env = process.env, { home = os.homedir(), read = (p
   if (env.TERM_PROGRAM !== "ghostty" && env.TERM !== "xterm-ghostty") return null;
   const base = env.XDG_CONFIG_HOME || path.join(home, ".config");
   for (const file of [path.join(base, "ghostty", "config"), path.join(home, "Library", "Application Support", "com.mitchellh.ghostty", "config")]) {
+    let text;
     try {
-      const m = /^\s*font-family\s*=\s*"?([^"\n]+?)"?\s*$/m.exec(read(file));
-      if (m) return m[1].trim().slice(0, 60);
+      text = read(file);
     } catch {
-      // no file here
+      continue; // no file here
     }
+    // Ghostty keeps a list: each `font-family` adds a fallback, and an empty
+    // one clears the list. The first left standing is the font drawn.
+    let families = [];
+    for (const m of text.matchAll(/^\s*font-family\s*=\s*"?([^"\n]*?)"?\s*$/gm)) {
+      const name = m[1].trim();
+      families = name ? [...families, name] : [];
+    }
+    // Text from a file is printed to the terminal: no control characters.
+    const first = families.length ? plainText(families[0]) : null;
+    if (first) return first.slice(0, 60);
   }
   return null;
 }

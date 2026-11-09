@@ -49,7 +49,6 @@ function sweptDirs() {
 }
 const HIGHLIGHT_MS = 30_000;
 
-
 /**
  * How long each tracked value stays marked. A branch switch is over in a
  * moment; a CI result is worth two minutes (specs/048-state-feedback).
