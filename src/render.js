@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { canWrite, stateRoot } from "./paths.js";
 import os from "node:os";
-import { realpathSync, existsSync } from "node:fs";
+import { realpathSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { PALETTES, renderRow, displayWidth, separatorStyle, colourEnabled, bgSeq, STRONG, QUIET, MARK_OFF, GOOD, WARM, BEHIND } from "./theme.js";
 import {
   getDirLabel,
@@ -1209,6 +1209,35 @@ export function renderPayload(
     maxWidth === null || maxHeight === null
       ? terminalFor(harness, { readTty: probe.readTty, settings: copilotSettings })
       : null;
+  // What the host said about the window and what the terminal says, side by
+  // side, so the rule that picks the width can be checked against a real
+  // session (specs/079, FR-010). Debug only, and never allowed to fail a redraw.
+  if (process.env.CLAUDE_STATUSLINE_DEBUG === "1" && canWrite()) {
+    try {
+      let tty = null;
+      try {
+        tty = (probe.readTty ?? readTtySize)();
+      } catch {
+        tty = null;
+      }
+      const dir = stateRoot();
+      mkdirSync(dir, { recursive: true });
+      const record = {
+        at: new Date(now).toISOString(),
+        harness,
+        COLUMNS: process.env.COLUMNS ?? null,
+        LINES: process.env.LINES ?? null,
+        TERM_PROGRAM: process.env.TERM_PROGRAM ?? null,
+        tty,
+        chosen: (({ columns, rows, source }) => ({ columns, rows: Number.isFinite(rows) ? rows : "all", source }))(
+          size ?? { columns: maxWidth, rows: maxHeight, source: "caller" }
+        ),
+      };
+      writeFileSync(path.join(dir, "debug-last-env.json"), JSON.stringify(record, null, 2) + "\n");
+    } catch {
+      // debug-only
+    }
+  }
 
   // What the arrangement switched off, so gather can skip a source whose
   // only reader is a segment nobody will see.

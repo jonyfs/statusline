@@ -128,7 +128,10 @@ export function terminalFor(harness, { env = process.env, platform = process.pla
       size = null;
     }
     const measured = positiveInt(size?.columns);
-    if (measured) return { columns: measured, rows: positiveInt(size?.rows) ?? positiveInt(env?.LINES) ?? Infinity, source: "tty" };
+    // Rows from LINES only: the tty's height is the whole terminal, not the
+    // area the status line is drawn in, and shedding lines by it hides line 2
+    // in a short window that has room for the bar (specs/079, FR-009).
+    if (measured) return { columns: measured, rows: positiveInt(env?.LINES) ?? Infinity, source: "tty" };
   }
   const columns = positiveInt(env?.COLUMNS);
   if (columns) return { columns, rows: positiveInt(env?.LINES) ?? Infinity, source: "COLUMNS" };
