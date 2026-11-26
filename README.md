@@ -2039,8 +2039,14 @@ it is up to what sits between the bar and you (specs/080-linux-link-opening):
 | GNOME Terminal and other VTE terminals (Ubuntu's default), Windows Terminal, VS Code and Ghostty on Linux | **Ctrl+click**. A plain click does nothing |
 | iTerm2, VS Code and Ghostty on macOS | **Cmd+click** |
 | kitty, WezTerm | a plain click |
-| inside tmux | tmux 3.4 or newer, and `set -as terminal-features ',*:hyperlinks'` in `~/.tmux.conf`, then restart tmux. Without it tmux drops every link |
+| inside tmux | tmux 3.4 or newer. tmux turns links on by itself for some terminals (iTerm2); for the rest, GNOME Terminal included, add `set -as terminal-features ',*:hyperlinks'` to `~/.tmux.conf` and restart tmux. Without it tmux drops every link. `doctor` reads what tmux has on for your terminal |
 | over SSH | web links open in the browser of the computer running your terminal. The folder links are left out, since the path is on the other machine |
+| VS Code Remote-SSH | links stay: VS Code opens a folder link in the remote workspace |
+
+SSH is read from `SSH_CONNECTION`, `SSH_CLIENT` and `SSH_TTY`, and a tmux pane
+keeps the ones it was started with: a pane opened over SSH and later attached
+locally still counts as SSH, and a session started locally and attached over SSH
+does not. A redraw does not ask tmux, so the bar cannot tell.
 
 If none of that helps, test the terminal on its own:
 

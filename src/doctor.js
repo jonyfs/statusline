@@ -54,7 +54,7 @@ import {
   PROMPT_CACHE_CLOSING_S,
 } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
-import { linkStatus } from "./linkEnv.js";
+import { isRemoteSession, linkStatus } from "./linkEnv.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
 import { displayWidth, PALETTES, colourEnabled, bgSeq, SEPARATOR_STYLES, colourDepth } from "./theme.js";
 import { ROLE, LEGEND } from "./colourRoles.js";
@@ -364,7 +364,8 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     subagentActivity,
     getSessionActivity,
     getRtkSavings,
-    getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
+    // As the bar: over SSH no folder link, so no open-tab script either.
+    getDirUrl: (cwd) => (isRemoteSession() ? null : getOpenTabUrl(cwd) || getDirUrl(cwd)),
     // The diagnostic reports the update state; it neither starts a check nor
     // marks a one-time notice as seen.
     maybeStartUpdateCheck: () => false,

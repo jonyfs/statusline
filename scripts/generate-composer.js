@@ -78,7 +78,7 @@ function buildPools() {
   // carries its widest form and the page shows the chip at that size or not
   // at all. In a terminal it names fewer instead of vanishing. The page is a
   // tool for choosing placement, and placement is what it gets exactly right.
-  const common = { flavor: "mocha", tracking: false, now, samples: SAMPLES, maxWidth: 400, maxHeight: 40, asPool: true };
+  const common = { remote: false, flavor: "mocha", tracking: false, now, samples: SAMPLES, maxWidth: 400, maxHeight: 40, asPool: true };
   const priorIcons = process.env.CLAUDE_STATUSLINE_ICONS;
   process.env.CLAUDE_STATUSLINE_ICONS = "emoji";
   let emoji;

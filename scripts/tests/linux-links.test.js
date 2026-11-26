@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { test } from "../test-harness.js";
 import { renderPayload } from "../../src/render.js";
 import { pathToFileUrl } from "../../src/openTerminalTab.js";
-import { isRemoteSession, linkGesture, linkStatus, tmuxLinks } from "../../src/linkEnv.js";
+import { isRemoteSession, linkGesture, linkStatus, parseTmuxVersion, tmuxLinks } from "../../src/linkEnv.js";
 import { gitSources, fullPayload } from "./fixtures/sources.js";
 
 const NOW = Date.parse("2026-11-26T12:00:00.000Z");
@@ -87,10 +87,26 @@ for (const name of ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"]) {
   });
 }
 
-await test("isRemoteSession reads the three SSH variables and nothing else", () => {
+await test("isRemoteSession reads the three SSH variables, and leaves VS Code Remote-SSH alone", () => {
   assert.equal(isRemoteSession({}), false);
   assert.equal(isRemoteSession({ TMUX: "/tmp/tmux-1000/default,1,0" }), false);
   assert.equal(isRemoteSession({ SSH_TTY: "/dev/pts/3" }), true);
+  // VS Code opens file:// against the remote workspace, so the link works there.
+  assert.equal(isRemoteSession({ SSH_CONNECTION: "a b c d", TERM_PROGRAM: "vscode" }), false);
+});
+
+await test("a generator passes remote: false and gets the folder links whatever machine it runs on", () => {
+  const out = withEnv({ SSH_CONNECTION: "a b c d" }, () =>
+    renderPayload(fullPayload({ cwd: "/home/ana/p", workspace: { current_dir: "/home/ana/p" } }), {
+      remote: false,
+      sources: { ...gitSources({ branch: "main" }), getDirUrl: () => "file:///home/ana/p" },
+      trackChanges: false,
+      now: NOW,
+      maxWidth: 400,
+      maxHeight: 40,
+    })
+  );
+  assert.ok(targets(out).includes("file:///home/ana/p"));
 });
 
 await test("the gesture: Ctrl+click on VTE and Windows Terminal, Cmd+click on iTerm2, null when unknown", () => {
@@ -102,31 +118,54 @@ await test("the gesture: Ctrl+click on VTE and Windows Terminal, Cmd+click on iT
   assert.equal(linkGesture({}, "linux"), null);
 });
 
-await test("tmux: version and the hyperlinks feature come from tmux itself; null outside tmux", () => {
+await test("over SSH or inside tmux the terminal is not named: the variables describe the far side", () => {
+  // What a real GNOME Terminal -> ssh -> tmux shell has: no VTE_VERSION, tmux's own TERM.
+  const real = { TERM: "tmux-256color", TERM_PROGRAM: "tmux", TMUX: "/tmp/tmux-1000/default,1,0", SSH_CONNECTION: "a b c d" };
+  assert.equal(linkGesture(real, "linux"), null);
+  // A local tmux inherits VTE_VERSION from where it was started, which may not be this terminal.
+  assert.equal(linkGesture({ VTE_VERSION: "7600", TMUX: "x" }, "linux"), null);
+  assert.equal(linkGesture({ TERM_PROGRAM: "vscode", SSH_CONNECTION: "a b c d" }, "linux"), "Ctrl+click");
+});
+
+await test("tmux -V: major and minor as integers; a build with no number is unknown", () => {
+  assert.deepEqual(parseTmuxVersion("tmux 3.4\n"), [3, 4]);
+  assert.deepEqual(parseTmuxVersion("tmux 3.10a\n"), [3, 10]);
+  assert.equal(parseTmuxVersion("tmux openbsd-7.4\n"), null);
+  assert.equal(parseTmuxVersion("tmux next-3.6\n"), null);
+  assert.equal(parseTmuxVersion(null), null);
+});
+
+await test("tmux: the attached client's features decide; the option list counts only a *:hyperlinks entry", () => {
   assert.equal(tmuxLinks({}), null);
-  const run = (feat) => (args) => (args[0] === "-V" ? "tmux 3.4\n" : feat);
-  assert.deepEqual(tmuxLinks({ TMUX: "x" }, { run: run("xterm*:clipboard:ccolour\n") }), { version: 3.4, enabled: false });
-  assert.deepEqual(tmuxLinks({ TMUX: "x" }, { run: run("xterm*:clipboard\n*:hyperlinks\n") }), { version: 3.4, enabled: true });
+  const run = (client, options) => (args) => (args[0] === "-V" ? "tmux 3.5\n" : args[0] === "display-message" ? client : options);
+  // iTerm2 detected by tmux: hyperlinks on with nothing in tmux.conf.
+  assert.deepEqual(tmuxLinks({ TMUX: "x" }, { run: run("256,RGB,clipboard,hyperlinks,title\n", "xterm*:clipboard\n") }), { version: [3, 5], enabled: true });
+  assert.deepEqual(tmuxLinks({ TMUX: "x" }, { run: run("256,RGB,clipboard,title\n", "*:hyperlinks\n") }), { version: [3, 5], enabled: false });
+  // No client answer: only a pattern for every terminal says anything.
+  assert.deepEqual(tmuxLinks({ TMUX: "x" }, { run: run("", "screen*:hyperlinks\n") }), { version: [3, 5], enabled: null });
+  assert.deepEqual(tmuxLinks({ TMUX: "x" }, { run: run(null, "xterm*:clipboard\n*:hyperlinks\n") }), { version: [3, 5], enabled: true });
   assert.deepEqual(tmuxLinks({ TMUX: "x" }, { run: () => null }), { version: null, enabled: null });
 });
 
-await test("the reported setup (GNOME Terminal, tmux without hyperlinks, SSH) gets all three lines, in order", () => {
-  const env = { VTE_VERSION: "7600", TMUX: "x", SSH_CONNECTION: "a b c d" };
-  const lines = linkStatus(env, { platform: "linux", tmux: { version: 3.4, enabled: false } });
+await test("the reported setup (GNOME Terminal, ssh, tmux without hyperlinks) gets every line, in order", () => {
+  const env = { TERM: "tmux-256color", TERM_PROGRAM: "tmux", TMUX: "x", SSH_CONNECTION: "a b c d" };
+  const lines = linkStatus(env, { platform: "linux", tmux: { version: [3, 4], enabled: false } });
   const at = (re) => lines.findIndex((l) => re.test(l));
-  assert.ok(at(/Ctrl\+click/) === 0, lines.join("\n"));
+  assert.equal(at(/Ctrl\+click in GNOME Terminal/), 0, lines.join("\n"));
   assert.ok(at(/hyperlinks feature is off.*terminal-features/) > 0, lines.join("\n"));
   assert.ok(at(/over SSH/) > at(/hyperlinks feature is off/), lines.join("\n"));
+  assert.ok(at(/keeps the SSH variables/) > at(/over SSH/), lines.join("\n"));
   assert.match(lines.at(-1), /printf .*Claude Code is not passing links through/);
 });
 
-await test("an old tmux is named with the version it needs; a working one says so; no SSH line locally", () => {
-  const old = linkStatus({ TMUX: "x" }, { platform: "linux", tmux: { version: 3.2, enabled: false } });
+await test("an old tmux is named with the version it needs; 3.10 is not older than 3.4; no SSH line locally", () => {
+  const old = linkStatus({ TMUX: "x" }, { platform: "linux", tmux: { version: [3, 2], enabled: false } });
   assert.ok(old.some((l) => /tmux 3\.2 drops them; tmux 3\.4 or newer/.test(l)), old.join("\n"));
-  const ok = linkStatus({ TMUX: "x" }, { platform: "linux", tmux: { version: 3.5, enabled: true } });
-  assert.ok(ok.some((l) => /tmux passes them on/.test(l)));
-  assert.ok(!ok.some((l) => /SSH/.test(l)));
+  const ten = linkStatus({ TMUX: "x" }, { platform: "linux", tmux: { version: [3, 10], enabled: true } });
+  assert.ok(ten.some((l) => /tmux passes them on/.test(l)), ten.join("\n"));
+  assert.ok(!ten.some((l) => /SSH/.test(l)));
   const none = linkStatus({}, { platform: "linux", tmux: null });
   assert.ok(!none.some((l) => /tmux/.test(l)));
   assert.match(none[0], /terminal's link gesture/);
+  assert.equal(linkStatus({ VTE_VERSION: "7600" }, { platform: "linux", tmux: null })[0], "links: open with Ctrl+click in this terminal");
 });

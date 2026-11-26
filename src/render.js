@@ -1195,6 +1195,8 @@ export function renderPayload(
     samples = null,
     // See `renderReadings`: false leaves out the rows after the bar.
     trailingRows = true,
+    // See `renderReadings`.
+    remote = isRemoteSession(),
   } = {}
 ) {
   const probe = {
@@ -1210,7 +1212,7 @@ export function renderPayload(
     getCiStatus,
     getRtkSavings,
     // Over SSH no folder link is drawn, so no open-tab script is written.
-    getDirUrl: (cwd) => (isRemoteSession() ? null : getOpenTabUrl(cwd) || getDirUrl(cwd)),
+    getDirUrl: (cwd) => (remote ? null : getOpenTabUrl(cwd) || getDirUrl(cwd)),
     maybeStartUpdateCheck,
     getUpdateNotice,
     getGateRuns: readGateRuns,
@@ -1288,6 +1290,7 @@ export function renderPayload(
   );
   const readings = gather(payload, harnessProbes(probe, harness, payload), { now, off, copilotSettings });
   return renderReadings(readings, payload, {
+    remote,
     asciiArrows,
     flavor,
     tracking,
@@ -1328,6 +1331,11 @@ export function renderReadings(
     // instead of the one on disk. Only a generator passes this; a real
     // redraw has its own history and must not be told a different one.
     samples: sampleOverride = null,
+    // Whether the bar runs on a machine reached over SSH, where a folder link
+    // names a path the terminal's computer does not have (specs/080). A
+    // generator passes false, so what it writes does not depend on where it
+    // was run.
+    remote = isRemoteSession(),
     // The person's own bar: which segments are on, in what order, on which
     // line, against which edge. Nothing means the registry, unchanged.
     arrangement = null,
@@ -1355,7 +1363,6 @@ export function renderReadings(
   // Over SSH a click is handled by the computer running the terminal, where a
   // `file://` path names nothing, or another folder (specs/080, FR-004). The
   // chip keeps its text; only the link goes.
-  const remote = isRemoteSession();
   const dirUrl = !remote && shows("dir", "dirUrl") ? readings.dirUrl.value : null;
 
   // The usage figures are the one place an absent value keeps its slot:

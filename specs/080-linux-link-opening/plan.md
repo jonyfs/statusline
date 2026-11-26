@@ -55,3 +55,19 @@ Pages workflow publishes it on merge. Constitution IX clarified (8.15.1).
 A terminal tab on Linux or Windows; wrapping links in tmux's DCS passthrough (needs
 `allow-passthrough` and still goes through Claude Code's renderer first); the bar opening
 anything itself.
+
+## Review (PR #97, /code-review medium): eight findings, all addressed
+
+- tmux state comes from the attached client (`#{client_termfeatures}`), which includes what
+  tmux detects for itself (iTerm2); the option list is a fallback and counts only `*:hyperlinks`.
+- `tmux -V` is compared as integers (3.10 is newer than 3.4); `openbsd-7.4`, `next-3.6` are
+  unknown.
+- Over SSH or inside tmux the terminal is not named: those variables describe the far side.
+  The doctor lists the gestures per terminal instead. The test uses a real SSH+tmux env.
+- VS Code Remote-SSH keeps folder links (VS Code opens them in the remote workspace).
+- `remote` is a render option defaulting to the environment; the composer, previews and images
+  generators pass `false`, so committed output does not depend on where it was built.
+- The doctor's probe skips the open-tab script over SSH, as the bar does.
+- A tmux pane's stale SSH variables cannot be detected without asking tmux on every redraw,
+  which the bar does not do: documented in README and as a doctor line.
+- README and help p5 no longer say tmux always needs the config line.
