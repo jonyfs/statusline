@@ -33,7 +33,7 @@ process.env.TZ = "UTC";
 // truecolor terminal that draws no styled underline; the cases that care
 // about either set their own around one render.
 process.env.COLORTERM = "truecolor";
-for (const name of ["TERM_PROGRAM", "KITTY_WINDOW_ID", "WEZTERM_EXECUTABLE", "WT_SESSION", "VTE_VERSION", "COLORFGBG", "NO_COLOR"]) {
+for (const name of ["TERM_PROGRAM", "KITTY_WINDOW_ID", "WEZTERM_EXECUTABLE", "WT_SESSION", "VTE_VERSION", "COLORFGBG", "NO_COLOR", "SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"]) {
   delete process.env[name];
 }
 process.env.TERM = "xterm";

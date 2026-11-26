@@ -8,7 +8,7 @@
       language: "Langue",
       contents: "Sur cette page",
       example: "Exemple",
-      footer: "Cette page est livrée avec le statusline et s'ouvre depuis votre propre disque. Elle ne charge rien depuis le réseau.",
+      footer: "Cette page est publiée depuis le dépôt du statusline sur GitHub Pages. Tout ce dont elle a besoin vient avec elle ; elle ne charge rien d'autres sites.",
     },
     read: {
       title: "Lire la barre",
@@ -16,7 +16,7 @@
       p2: "Chaque puce commence par une icône qui dit de quoi elle parle, suivie d'un nombre ou d'un mot court. L'icône porte le sens, donc la plupart des puces n'ont pas d'étiquette : `81%` à côté du cerveau, c'est la fenêtre de contexte. Une étiquette reste seulement là où elle dit ce que l'icône ne dit pas, comme `5h` et `7d`, qui sont des durées de fenêtre.",
       p3: "La couleur dit à quel point s'inquiéter. Une jauge dans sa plage normale a un fond sombre et une icône verte ; elle passe au pêche quand elle approche de la limite, et au rouge quand elle est critique ou en avance sur son rythme. Seule la jauge critique la plus haute reçoit un fond rouge : la puce rouge est la première à regarder.",
       p4: "Quand le terminal est trop étroit, les puces raccourcissent avant de disparaître, et les moins importantes partent en premier. La fenêtre de contexte et la branche partent en dernier. Une puce sans rien à dire est omise au lieu d'être dessinée vide.",
-      p5: "Beaucoup de puces sont des liens. Cliquer sur le dossier ouvre un terminal dedans, la branche ouvre sa page sur GitHub, la pull request ouvre la demande, les crédits ouvrent votre page d'usage, et le `?` au bout à droite de la ligne 3 ouvre cette page.",
+      p5: "Beaucoup de puces sont des liens. Le dossier ouvre un onglet de terminal dedans dans iTerm2 ou Terminal.app sur macOS, et le dossier ailleurs ; la branche ouvre sa page sur GitHub, la pull request ouvre la demande, les crédits ouvrent votre page d'usage, et le `?` au bout à droite de la ligne 3 ouvre cette page. La plupart des terminaux ouvrent un lien avec Ctrl+clic (GNOME Terminal, Windows Terminal) ou Cmd+clic (iTerm2, Ghostty sur macOS), pas avec un simple clic. Dans tmux, les liens ne passent qu'avec `set -as terminal-features ',*:hyperlinks'` (tmux 3.4 ou plus récent). Par SSH, les liens web s'ouvrent sur votre propre ordinateur et le lien du dossier est retiré. `doctor` dit lequel de ces cas est le vôtre.",
     },
     states: {
       title: "Quand un chiffre manque, est ancien ou estimé",

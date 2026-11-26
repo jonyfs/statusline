@@ -148,6 +148,7 @@ export function harnessProbes(probe, harness, payload = null) {
 }
 import { elapsed, harnessAgentRows } from "./taskRows.js";
 import { getOpenTabUrl, pathToFileUrl } from "./openTerminalTab.js";
+import { isRemoteSession } from "./linkEnv.js";
 import { HELP_URL } from "./helpLink.js";
 import { resetMomentLabel } from "./timeIcons.js";
 import { trackChanges, loadSamples } from "./changeTracker.js";
@@ -1208,7 +1209,8 @@ export function renderPayload(
     getSessionActivity,
     getCiStatus,
     getRtkSavings,
-    getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
+    // Over SSH no folder link is drawn, so no open-tab script is written.
+    getDirUrl: (cwd) => (isRemoteSession() ? null : getOpenTabUrl(cwd) || getDirUrl(cwd)),
     maybeStartUpdateCheck,
     getUpdateNotice,
     getGateRuns: readGateRuns,
@@ -1350,7 +1352,11 @@ export function renderReadings(
   const effort = shows("effort") ? readings.effort.value : null;
   const outputStyle = shows("outputStyle") ? readings.outputStyle.value : null;
   const dirLabel = readings.dir.value;
-  const dirUrl = shows("dir", "dirUrl") ? readings.dirUrl.value : null;
+  // Over SSH a click is handled by the computer running the terminal, where a
+  // `file://` path names nothing, or another folder (specs/080, FR-004). The
+  // chip keeps its text; only the link goes.
+  const remote = isRemoteSession();
+  const dirUrl = !remote && shows("dir", "dirUrl") ? readings.dirUrl.value : null;
 
   // The usage figures are the one place an absent value keeps its slot:
   // Principle III and FR-010 require `?%` rather than a segment that
@@ -1598,7 +1604,7 @@ export function renderReadings(
       key: "projectDir",
       color: ROLE.neutral,
       text: ` ${g.from} ${getDirLabel(projectDir)} `,
-      url: pathToFileUrl(projectDir),
+      ...(remote ? {} : { url: pathToFileUrl(projectDir) }),
     });
   }
   if (git) {

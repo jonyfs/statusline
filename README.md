@@ -1999,10 +1999,10 @@ the bar then linked to a repository that was not theirs — correct by
 construction, and indistinguishable from a bug.
 
 The `?` at the right end of line 3 is the other exception: it opens the help
-page that ships with the statusline (`help/index.html` in the install), from your
-own disk, in English, Portuguese, French or Spanish according to your browser
-(specs/078-help-page). It explains every chip in detail and loads nothing from
-the network. `CLAUDE_STATUSLINE_OMIT=help` removes it.
+page in your browser, published from this repository's `help/` folder on GitHub
+Pages (`https://jonyfs.github.io/statusline/`), in English, Portuguese, French or
+Spanish according to your browser (specs/078-help-page). It explains every chip
+in detail. `CLAUDE_STATUSLINE_OMIT=help` removes it.
 
 The one exception is a credit figure, which does have a page of its own: your
 account's. The `credits` chip (the figure, `credits —` and `credits off`) opens
@@ -2028,6 +2028,29 @@ The directory opens a new tab in iTerm2 or Terminal.app on macOS, already
 `cd`'d into the right place, via a generated `.command` script and a bit of
 AppleScript. Everywhere else it falls back to a `file://` link, which your
 system resolves to a file manager window.
+
+### When a link does not open
+
+The bar writes the same link on macOS, Linux and Windows. Whether a click opens
+it is up to what sits between the bar and you (specs/080-linux-link-opening):
+
+| Where | What to do |
+|---|---|
+| GNOME Terminal and other VTE terminals (Ubuntu's default), Windows Terminal, VS Code and Ghostty on Linux | **Ctrl+click**. A plain click does nothing |
+| iTerm2, VS Code and Ghostty on macOS | **Cmd+click** |
+| kitty, WezTerm | a plain click |
+| inside tmux | tmux 3.4 or newer, and `set -as terminal-features ',*:hyperlinks'` in `~/.tmux.conf`, then restart tmux. Without it tmux drops every link |
+| over SSH | web links open in the browser of the computer running your terminal. The folder links are left out, since the path is on the other machine |
+
+If none of that helps, test the terminal on its own:
+
+```bash
+printf '\e]8;;https://example.com\e\\link\e]8;;\e\\\n'
+```
+
+If that word opens and the bar's links do not, Claude Code is not passing
+links through to your terminal; some Claude Code versions drop them from the
+status line. `doctor` prints the `links:` lines that apply to your setup.
 
 The branch opens its tree view on GitHub, built from `git remote get-url
 origin`, and only when you have a remote configured. The PR opens its own

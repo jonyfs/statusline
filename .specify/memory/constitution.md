@@ -2,7 +2,10 @@
 
 <!--
 Sync Impact Report:
-- Version: 8.15.0 (II and III clarified on 2026-11-09: MINOR. The width a redraw fits to is the
+- Version: 8.15.1 (IX clarified on 2026-11-26: PATCH. Links are the terminal's to open: the bar
+  opens nothing, leaves folder links out over SSH, and the doctor MAY ask tmux for its version and
+  terminal-features. See specs/080-linux-link-opening.)
+- Previously, version 8.15.0 (II and III clarified on 2026-11-09: MINOR. The width a redraw fits to is the
   smaller of `COLUMNS` and `/dev/tty` when both are known, else the one that is; rows come from
   `LINES` only, outside Copilot. A person MAY declare that their font draws Nerd icons two columns
   wide (`CLAUDE_STATUSLINE_NERD_WIDTH=2`) and MAY reserve a right margin of up to 8 columns. The
@@ -769,6 +772,12 @@ cloned by whoever runs Claude Code, and Claude Code runs on all three.
   a platform (opening a terminal tab from a link has no Linux/Windows equivalent that works
   without installing a URL-scheme handler) MUST fall back to the nearest portable behaviour
   and be documented as platform-limited. It MUST NOT emit a broken artifact or throw.
+- **Links are the terminal's to open**: the bar prints the same OSC 8 bytes on every platform
+  and MUST NOT open anything itself. A `file://` link names a folder on the machine running the
+  bar, so over SSH (`SSH_CONNECTION`, `SSH_CLIENT` or `SSH_TTY` set) folder links MUST be left
+  out, the chip's text unchanged. The doctor MAY ask tmux, when `TMUX` is set, for its version
+  and its `terminal-features`, to say whether links reach the terminal; a redraw never does
+  (specs/080-linux-link-opening).
 - **Verification**: `node scripts/smoke-test.js` MUST pass on all three platforms. It MUST cover path/URL
   construction, platform guards, and the degraded rendering paths, so a platform regression
   fails a test rather than surfacing as a broken statusline on someone else's machine.
@@ -982,4 +991,4 @@ Claude settings location: `~/.claude/settings.json` or `~/.claude/settings.local
 
 **Repository State**: This constitution supersedes all other project guidelines. When in doubt, refer to Core Principles I–XII. Runtime integration guidance lives in `README.md` (user-facing) and `.claude/CLAUDE.md` (developer-facing).
 
-**Version**: 8.15.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-09
+**Version**: 8.15.1 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-11-26

@@ -8,7 +8,7 @@
       language: "Idioma",
       contents: "En esta página",
       example: "Ejemplo",
-      footer: "Esta página viene con el statusline y se abre desde tu propio disco. No carga nada de la red.",
+      footer: "Esta página se publica desde el repositorio del statusline en GitHub Pages. Todo lo que necesita viene con ella; no carga nada de otros sitios.",
     },
     read: {
       title: "Cómo leer la barra",
@@ -16,7 +16,7 @@
       p2: "Cada chip empieza con un icono que dice de qué trata, seguido de un número o una palabra corta. El icono lleva el significado, así que la mayoría de los chips no gasta palabras en una etiqueta: `81%` junto al cerebro es la ventana de contexto. Solo queda una etiqueta donde dice algo que el icono no dice, como `5h` y `7d`, que son duraciones de ventana.",
       p3: "El color dice cuánto preocuparse. Un medidor en su rango normal tiene fondo oscuro e icono verde; pasa a melocotón cuando se acerca al límite y a rojo cuando es crítico o va por delante de su ritmo. Solo el medidor crítico más alto recibe fondo rojo, así que el chip rojo es el primero que hay que mirar.",
       p4: "Cuando la terminal es demasiado estrecha, los chips se acortan antes de desaparecer, y los menos importantes se van primero. La ventana de contexto y la rama son los últimos. Un chip sin nada que decir se omite en lugar de dibujarse vacío.",
-      p5: "Muchos chips son enlaces. Al hacer clic en la carpeta se abre una terminal en ella, la rama abre su página en GitHub, el pull request abre la solicitud, los créditos abren tu página de uso, y el `?` al final a la derecha de la línea 3 abre esta página.",
+      p5: "Muchos chips son enlaces. La carpeta abre una pestaña de terminal en ella en iTerm2 o Terminal.app en macOS, y la carpeta en los demás; la rama abre su página en GitHub, el pull request abre la solicitud, los créditos abren tu página de uso, y el `?` al final a la derecha de la línea 3 abre esta página. La mayoría de las terminales abren un enlace con Ctrl+clic (GNOME Terminal, Windows Terminal) o Cmd+clic (iTerm2, Ghostty en macOS), no con un clic simple. Dentro de tmux, los enlaces solo pasan con `set -as terminal-features ',*:hyperlinks'` (tmux 3.4 o más nuevo). Por SSH, los enlaces web se abren en tu propio ordenador y el enlace de la carpeta queda fuera. `doctor` dice cuál de estos casos es el tuyo.",
     },
     states: {
       title: "Cuando una cifra falta, es antigua o es una estimación",

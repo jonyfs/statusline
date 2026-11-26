@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current feature's
-spec at specs/079-bar-resilience/spec.md
+spec at specs/080-linux-link-opening/spec.md
 <!-- SPECKIT END -->
 
 ## Skill routing
