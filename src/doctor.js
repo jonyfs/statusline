@@ -54,6 +54,7 @@ import {
   PROMPT_CACHE_CLOSING_S,
 } from "./tokens.js";
 import { getOpenTabUrl } from "./openTerminalTab.js";
+import { isRemoteSession, linkStatus } from "./linkEnv.js";
 import { isRenderable, ageMs, MAX_AGE_MS, SOURCE_BUDGET_MS, REFRESH_BUDGET_MS } from "./freshness.js";
 import { displayWidth, PALETTES, colourEnabled, bgSeq, SEPARATOR_STYLES, colourDepth } from "./theme.js";
 import { ROLE, LEGEND } from "./colourRoles.js";
@@ -363,7 +364,8 @@ export function buildReport(payload, { now = Date.now(), live = true, probe } = 
     subagentActivity,
     getSessionActivity,
     getRtkSavings,
-    getDirUrl: (cwd) => getOpenTabUrl(cwd) || getDirUrl(cwd),
+    // As the bar: over SSH no folder link, so no open-tab script either.
+    getDirUrl: (cwd) => (isRemoteSession() ? null : getOpenTabUrl(cwd) || getDirUrl(cwd)),
     // The diagnostic reports the update state; it neither starts a check nor
     // marks a one-time notice as seen.
     maybeStartUpdateCheck: () => false,
@@ -850,6 +852,7 @@ export function formatReport(report) {
     ...(report.icons ? [report.icons.line] : []),
     ...(report.separator ? [report.separator.line] : []),
     ...(report.colour ? [report.colour.line] : []),
+    ...(report.links ?? []),
     terminalLine(report.terminal),
     `history: ${report.samples} samples (a rate needs 5 spanning a minute)`,
     `rendered ${widths}`,
@@ -877,6 +880,7 @@ export async function runDoctor({ json = false, now = Date.now() } = {}) {
   report.icons = iconStatus();
   report.separator = separatorStatus();
   report.colour = colourStatus();
+  report.links = linkStatus();
   // A project statusLine wins over the user's, so a person in that project
   // sees another bar and this one looks broken (specs/028-cross-platform).
   report.overrides = projectOverrides(payload?.workspace?.project_dir || payload?.cwd || process.cwd());

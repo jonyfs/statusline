@@ -48,6 +48,7 @@ const frame = (i, branch) =>
   renderPayload(
     { ...scenario.payload, session_id: "images" },
     {
+      remote: false,
       sources: {
         ...scenario.sources,
         getGitInfo: () => ({ branch, upstream: `origin/${branch}`, ahead: 2, behind: 0, changed: 4, untracked: 1 }),

@@ -1,6 +1,6 @@
 ---
 track: full
-status: active
+status: done
 ---
 
 # Bar resilience: icons that mean one thing, a width that is the window's, a redraw that costs little

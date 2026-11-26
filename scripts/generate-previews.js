@@ -76,7 +76,7 @@ function main() {
     let ansi;
     try {
       ansi = withFrozenClock(() =>
-        renderPayload(scenario.payload, {
+        renderPayload(scenario.payload, { remote: false,
           sources: scenario.sources,
           trackChanges: false,
           layout: NO_ARRANGEMENT,
